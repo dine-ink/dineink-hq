@@ -40,9 +40,13 @@ export default function Navbar() {
         </div>
         <div className="hidden lg:flex lg:gap-x-12">
           {navigation.map((item) => (
-            <a key={item.name} href={item.href} className="text-sm/6 font-semibold text-gray-900">
+            <Link
+              key={item.name}
+              to={item.href}
+              className="text-sm font-semibold text-gray-900"
+            >
               {item.name}
-            </a>
+            </Link>
           ))}
         </div>
         <div className="hidden lg:flex lg:flex-1 lg:justify-end">
@@ -62,9 +66,11 @@ export default function Navbar() {
                 src="https://tailwindcss.com/plus-assets/img/logos/mark.svg?color=red&shade=600"
                 className="h-8 w-auto"
               /> */}
+            <Link to="/" className="-m-1.5 p-1.5">
               <div className="text-2xl font-bold tracking-wide text-red-700">
                 DineInk
               </div>
+            </Link>
             </a>
             <button
               type="button"
@@ -79,13 +85,14 @@ export default function Navbar() {
             <div className="-my-6 divide-y divide-gray-500/10">
               <div className="space-y-2 py-6">
                 {navigation.map((item) => (
-                  <a
+                  <Link
                     key={item.name}
-                    href={item.href}
-                    className="-mx-3 block rounded-lg px-3 py-2 text-base/7 font-semibold text-gray-900 hover:bg-gray-50"
+                    to={item.href}
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="-mx-3 block rounded-lg px-3 py-2 text-base font-semibold text-gray-900 hover:bg-gray-50"
                   >
                     {item.name}
-                  </a>
+                  </Link>
                 ))}
               </div>
               <div className="py-6">
