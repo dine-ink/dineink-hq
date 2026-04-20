@@ -9,6 +9,8 @@ import Pricing from "../pages/pricing/Pricing";
 import Features from "../pages/features/Features";
 import About from "../pages/about/About";
 import Contact from "../pages/contact/Contact";
+import Login from "../pages/auth/Login";
+import Signup from "../pages/auth/Signup";
 
 // import RestaurantSetup from "../pages/setup/RestaurantSetup";
 // import BranchSetup from "../pages/setup/BranchSetup";
@@ -20,7 +22,7 @@ import Contact from "../pages/contact/Contact";
 // import TaxSetup from "../pages/setup/TaxSetup";
 // import FinishSetup from "../pages/setup/FinishSetup";
 
-// import Dashboard from "../pages/dashboard/Dashboard";
+import Dashboard from "../pages/dashboard/Dashboard";
 // import NotFound from "../pages/NotFound";
 
 export default function AppRoutes() {
@@ -35,9 +37,9 @@ export default function AppRoutes() {
         <Route path="/contact" element={<Contact />} />
 
         {/* Auth Pages */}
-        {/* <Route path="/login" element={<Login />} />
+        <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
-        <Route path="/forgot-password" element={<ForgotPassword />} /> */}
+        {/* <Route path="/forgot-password" element={<ForgotPassword />} /> */}
 
         {/* Restaurant Setup Flow */}
         {/* <Route path="/setup/restaurant" element={<RestaurantSetup />} />
@@ -51,7 +53,7 @@ export default function AppRoutes() {
         <Route path="/setup/finish" element={<FinishSetup />} /> */}
 
         {/* Dashboard */}
-        {/* <Route path="/dashboard" element={<Dashboard />} /> */}
+        <Route path="/dashboard" element={<Dashboard />} />
 
         {/* 404 */}
         {/* <Route path="*" element={<NotFound />} /> */}
