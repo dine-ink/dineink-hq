@@ -1,34 +1,31 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 
 import Home from "../pages/home/Home";
-// import Login from "../pages/auth/Login";
-// import Signup from "../pages/auth/Signup";
-// import ForgotPassword from "../pages/auth/ForgotPassword";
-
 import Pricing from "../pages/pricing/Pricing";
 import Features from "../pages/features/Features";
 import About from "../pages/about/About";
 import Contact from "../pages/contact/Contact";
+
 import Login from "../pages/auth/Login";
 import Signup from "../pages/auth/Signup";
 
-// import RestaurantSetup from "../pages/setup/RestaurantSetup";
-// import BranchSetup from "../pages/setup/BranchSetup";
-// import OrderTypeSetup from "../pages/setup/OrderTypeSetup";
-// import TableSetup from "../pages/setup/TableSetup";
-// import CategorySetup from "../pages/setup/CategorySetup";
-// import MenuSetup from "../pages/setup/MenuSetup";
-// import UserSetup from "../pages/setup/UserSetup";
-// import TaxSetup from "../pages/setup/TaxSetup";
-// import FinishSetup from "../pages/setup/FinishSetup";
-
 import Dashboard from "../pages/dashboard/Dashboard";
-// import NotFound from "../pages/NotFound";
 
+import DashboardLayout from "../layouts/DashboardLayout";
+import Settings from "../pages/settings/Settings";
+import Shops from "../pages/shops/Shops";
+import Bills from "../components/bills/Bills";
+import Customers from "../pages/customers/Customers";
+import Reports from "../pages/reports/Report";
+import ProtectedRoute from './ProtectedRoute'
+import AuthRoute from './AuthRoute'
+import Insights from "@/pages/insights/Insights";
+import MenuManagement from "@/pages/menuManagement/MenuManagement";
 export default function AppRoutes() {
   return (
     <BrowserRouter>
       <Routes>
+
         {/* Public Pages */}
         <Route path="/" element={<Home />} />
         <Route path="/pricing" element={<Pricing />} />
@@ -36,27 +33,43 @@ export default function AppRoutes() {
         <Route path="/about" element={<About />} />
         <Route path="/contact" element={<Contact />} />
 
-        {/* Auth Pages */}
-        <Route path="/login" element={<Login />} />
-        <Route path="/signup" element={<Signup />} />
-        {/* <Route path="/forgot-password" element={<ForgotPassword />} /> */}
+        {/* Auth */}
+        <Route
+          path="/login"
+          element={
+            <AuthRoute>
+              <Login />
+            </AuthRoute>
+          }
+        />
 
-        {/* Restaurant Setup Flow */}
-        {/* <Route path="/setup/restaurant" element={<RestaurantSetup />} />
-        <Route path="/setup/branch" element={<BranchSetup />} />
-        <Route path="/setup/order-types" element={<OrderTypeSetup />} />
-        <Route path="/setup/tables" element={<TableSetup />} />
-        <Route path="/setup/categories" element={<CategorySetup />} />
-        <Route path="/setup/menu" element={<MenuSetup />} />
-        <Route path="/setup/users" element={<UserSetup />} />
-        <Route path="/setup/taxes" element={<TaxSetup />} />
-        <Route path="/setup/finish" element={<FinishSetup />} /> */}
+        <Route
+          path="/signup"
+          element={
+            <AuthRoute>
+              <Signup />
+            </AuthRoute>
+          }
+        />
 
-        {/* Dashboard */}
-        <Route path="/dashboard" element={<Dashboard />} />
+        {/* 🔥 DASHBOARD WITH LAYOUT */}
+        <Route
+          path="/dashboard"
+          element={
+            <ProtectedRoute>
+              <DashboardLayout />
+            </ProtectedRoute>
+          }
+        >          
+          <Route index element={<Dashboard />} />
+          <Route path="settings" element={<Settings />} />
+          <Route path="shops" element={<Shops />} />
+          <Route path="bills" element={<Bills />} />
+          <Route path="customers" element={<Customers/>}/>
+          <Route path="insights" element={<Insights />}/>
+          <Route path="menu-management" element={<MenuManagement/>}/>
+        </Route>
 
-        {/* 404 */}
-        {/* <Route path="*" element={<NotFound />} /> */}
       </Routes>
     </BrowserRouter>
   );

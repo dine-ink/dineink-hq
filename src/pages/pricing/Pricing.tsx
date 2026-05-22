@@ -155,7 +155,6 @@ export default function Pricing() {
   return (
     <div className="min-h-screen bg-white">
       <Navbar />
-
       <main className="pt-24">
         <section className="relative overflow-hidden bg-gradient-to-br from-red-900 via-rose-900 to-slate-900 pb-20 pt-20">
           <div className="mx-auto max-w-7xl px-6 lg:px-8">
@@ -167,7 +166,6 @@ export default function Pricing() {
                 Choose a plan that fits your restaurant size and operations.
               </p>
             </div>
-
             <div className="mt-16 grid gap-8 lg:grid-cols-3">
               {pricing.tiers.map((tier) => (
                 <div
@@ -187,7 +185,6 @@ export default function Pricing() {
                   >
                     {tier.name}
                   </h3>
-
                   <p
                     className={classNames(
                       tier.featured ? "text-gray-600" : "text-gray-300",
@@ -196,7 +193,6 @@ export default function Pricing() {
                   >
                     {tier.description}
                   </p>
-
                   <div className="mt-6">
                     <span
                       className={classNames(
@@ -215,7 +211,6 @@ export default function Pricing() {
                       Per year
                     </p>
                   </div>
-
                   <button
                     className={classNames(
                       tier.featured
@@ -226,7 +221,6 @@ export default function Pricing() {
                   >
                     Get Started
                   </button>
-
                   <ul className="mt-8 space-y-4">
                     {tier.highlights.map((feature) => (
                       <li
@@ -246,7 +240,6 @@ export default function Pricing() {
             </div>
           </div>
         </section>
-
         <section className="bg-gray-50 py-24">
           <div className="mx-auto max-w-7xl px-6 lg:px-8">
             <div className="mx-auto max-w-3xl text-center">
@@ -257,14 +250,12 @@ export default function Pricing() {
                 See which plan is best for your restaurant.
               </p>
             </div>
-
             <div className="mt-16 space-y-16">
               {pricing.sections.map((section) => (
                 <div key={section.name}>
                   <h3 className="text-xl font-semibold text-gray-900">
                     {section.name}
                   </h3>
-
                   <div className="mt-8 overflow-hidden rounded-3xl border border-red-100 bg-white shadow-lg">
                     <table className="w-full border-collapse">
                       <thead>
@@ -282,7 +273,6 @@ export default function Pricing() {
                           ))}
                         </tr>
                       </thead>
-
                       <tbody>
                         {section.features.map((feature) => (
                           <tr
@@ -292,11 +282,9 @@ export default function Pricing() {
                             <td className="px-6 py-4 text-sm text-gray-700">
                               {feature.name}
                             </td>
-
                             {pricing.tiers.map((tier) => {
                               const tierValue =
                                 feature.tiers[tier.name as keyof typeof feature.tiers];
-
                               return (
                                 <td key={tier.id} className="px-6 py-4 text-center">
                                   {typeof tierValue === "string" ? (
@@ -321,14 +309,12 @@ export default function Pricing() {
             </div>
           </div>
         </section>
-
         <section className="mx-auto max-w-7xl px-6 py-24 lg:px-8">
           <div className="mx-auto max-w-3xl text-center">
             <h2 className="text-4xl font-bold text-gray-900">
               Frequently asked questions
             </h2>
           </div>
-
           <div className="mt-16 divide-y divide-red-100 rounded-3xl border border-red-100 bg-white shadow-lg">
             {faqs.map((faq) => (
               <div key={faq.id} className="p-8">
@@ -341,7 +327,6 @@ export default function Pricing() {
           </div>
         </section>
       </main>
-
       <Footer />
     </div>
   );

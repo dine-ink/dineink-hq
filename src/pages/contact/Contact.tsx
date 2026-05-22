@@ -32,7 +32,6 @@ export default function Contact() {
                       <path d="M130 200V.5M.5 .5H200" fill="none" />
                     </pattern>
                   </defs>
-
                   <rect
                     fill="url(#contact-pattern)"
                     width="100%"
@@ -40,7 +39,6 @@ export default function Contact() {
                     strokeWidth={0}
                   />
                 </svg>
-
                 <div
                   aria-hidden="true"
                   className="absolute top-[calc(100%-13rem)] -left-56 hidden transform-gpu blur-3xl lg:block"
@@ -54,20 +52,16 @@ export default function Contact() {
                   />
                 </div>
               </div>
-
               <div className="inline-flex items-center rounded-full border border-red-100 bg-red-50 px-4 py-1 text-sm font-medium text-red-700">
                 Contact DineInk
               </div>
-
               <h1 className="mt-6 text-5xl font-bold tracking-tight text-slate-900 sm:text-6xl">
                 Get in touch with DineInk
               </h1>
-
               <p className="mt-6 text-lg leading-8 text-slate-600">
                 Have questions about pricing, restaurant setup, billing, menu
                 management or onboarding? Our team is here to help you.
               </p>
-
               <dl className="mt-10 space-y-6 text-base text-slate-600">
                 <div className="flex gap-x-4">
                   <dt className="flex-none">
@@ -84,7 +78,6 @@ export default function Contact() {
                     India
                   </dd>
                 </div>
-
                 <div className="flex gap-x-4">
                   <dt className="flex-none">
                     <PhoneIcon
@@ -101,7 +94,6 @@ export default function Contact() {
                     </a>
                   </dd>
                 </div>
-
                 <div className="flex gap-x-4">
                   <dt className="flex-none">
                     <EnvelopeIcon
@@ -121,7 +113,6 @@ export default function Contact() {
               </dl>
             </div>
           </div>
-
           <form
             action="#"
             method="POST"
@@ -131,11 +122,9 @@ export default function Contact() {
               <h2 className="text-2xl font-bold text-slate-900">
                 Send us a message
               </h2>
-
               <p className="mt-3 text-sm text-slate-500">
                 Fill out the form below and we will get back to you soon.
               </p>
-
               <div className="mt-8 grid grid-cols-1 gap-x-6 gap-y-6 sm:grid-cols-2">
                 <div>
                   <label
@@ -154,7 +143,6 @@ export default function Contact() {
                     />
                   </div>
                 </div>
-
                 <div>
                   <label
                     htmlFor="last-name"
@@ -172,7 +160,6 @@ export default function Contact() {
                     />
                   </div>
                 </div>
-
                 <div className="sm:col-span-2">
                   <label
                     htmlFor="email"
@@ -190,7 +177,6 @@ export default function Contact() {
                     />
                   </div>
                 </div>
-
                 <div className="sm:col-span-2">
                   <label
                     htmlFor="phone-number"
@@ -208,7 +194,6 @@ export default function Contact() {
                     />
                   </div>
                 </div>
-
                 <div className="sm:col-span-2">
                   <label
                     htmlFor="message"
@@ -227,7 +212,6 @@ export default function Contact() {
                   </div>
                 </div>
               </div>
-
               <div className="mt-8 flex justify-end">
                 <button
                   type="submit"
@@ -240,7 +224,6 @@ export default function Contact() {
           </form>
         </div>
       </main>
-
       <Footer />
     </div>
   );
