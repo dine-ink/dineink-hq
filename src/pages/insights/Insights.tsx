@@ -45,6 +45,8 @@ import {
   Receipt,
   ShieldCheck,
   Rocket,
+  PieChart,
+  BadgePercent,
 } from "lucide-react";
 import React from "react";
 
@@ -738,7 +740,7 @@ export default function Insights() {
       try {
         const token = localStorage.getItem("token");
         const res = await fetch(
-          `${API_URL}/api/restaurant/staff/${currentUser.restaurantId}`,
+          `${API_URL}/api/restaurant/staff/${currentUser.restaurantId}/${selectedBranch.id}`,
           {
             headers: {
               Authorization: `Bearer ${token}`,
@@ -759,37 +761,66 @@ export default function Insights() {
   }, [selectedBranch]);
 
   return (
-    <main className="flex h-[calc(100vh-64px)] flex-col overflow-hidden bg-[#f5f6fa] px-4 py-4 xl:px-6 xl:py-5">
+    <main className="flex  flex-col overflow-hidden bg-[#f5f6fa]  ">
       <div className="mx-auto flex h-full w-full  flex-col gap-4 overflow-hidden">
         {/* HEADER */}
-        <div className="shrink-0 overflow-hidden rounded-2xl border border-gray-200 bg-white/75 p-5 shadow-[0_8px_30px_rgba(0,0,0,0.04)] backdrop-blur-xl">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-            {/* TITLE */}
-            <div>
-              <h1 className="text-[30px] font-bold tracking-tight text-gray-900">
-                Insights
-              </h1>
-              <p className="mt-1 text-sm font-medium text-gray-500">
-                Restaurant operational analytics and expense intelligence
-              </p>
-            </div>
-            {/* TABS */}
-            <div className="hide-scrollbar overflow-x-auto">
-              <div className="flex min-w-max gap-2">
-                {tabs.map((tab) => (
-                  <button
-                    key={tab}
-                    onClick={() => setActiveTab(tab)}
-                    className={`rounded-2xl border px-5 py-2.5 text-sm font-semibold transition-all duration-200 ${
-                      activeTab === tab
-                        ? "border-red-500 bg-gradient-to-r from-red-500 to-rose-500 text-white shadow-lg shadow-red-500/20"
-                        : "border-white/40 bg-white/70 text-gray-700 backdrop-blur-xl hover:border-red-200 hover:bg-red-50 hover:text-red-600"
-                    }`}
-                  >
-                    {tab}
-                  </button>
-                ))}
+        <div className="relative overflow-hidden rounded-md border border-gray-200 bg-white px-4 py-3 shadow-sm">
+          {/* Glow */}
+          <div className="absolute -right-10 -top-10 h-24 w-24 rounded-full bg-red-100/50 blur-3xl" />
+
+          <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+            {/* LEFT */}
+
+            <div className="flex items-start gap-3">
+              {/* ICON */}
+
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-red-500 to-pink-500 shadow-sm">
+                <BarChart3 className="h-4 w-4 text-white" />
               </div>
+
+              {/* CONTENT */}
+
+              <div>
+                {/* TITLE */}
+
+                <h1 className="text-[22px] font-black leading-none tracking-tight text-gray-900">
+                  Insights
+                </h1>
+
+                {/* SUBTITLE */}
+
+                <p className="mt-1 text-[12px] text-gray-500">
+                  Restaurant operational analytics & expense intelligence
+                </p>
+              </div>
+            </div>
+
+            {/* RIGHT */}
+
+            <div className="flex items-center gap-2">
+              {tabs.map((tab) => (
+                <button
+                  key={tab}
+                  onClick={() => setActiveTab(tab)}
+                  className={`
+          rounded-xl
+          px-3.5
+          py-2
+          text-[12px]
+          font-semibold
+          transition-all
+          duration-200
+
+          ${
+            activeTab === tab
+              ? "bg-gradient-to-r from-red-500 to-pink-500 text-white shadow-md"
+              : "border border-gray-200 bg-gray-50 text-gray-600 hover:border-red-200 hover:bg-red-50 hover:text-red-600"
+          }
+        `}
+                >
+                  {tab}
+                </button>
+              ))}
             </div>
           </div>
         </div>
@@ -797,395 +828,467 @@ export default function Insights() {
         <div className="min-h-0 flex-1 overflow-y-auto rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
           {/* OVERVIEW */}
           {activeTab === "Overview" && (
-            <div className="space-y-6">
+            <div className="space-y-4">
               {/* TOP KPIs */}
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-                {/* REVENUE */}
-                <div className="group relative overflow-hidden rounded-2xl border border-gray-200 bg-white/75 px-6 py-5 hover:shadow-[0_12px_40px_rgba(255,0,80,0.08)] shadow-[0_8px_30px_rgba(0,0,0,0.06)] backdrop-blur-xl transition-all duration-300 hover:-translate-y-1 hover:shadow-xl">
-                  <div className="absolute inset-x-0 top-0 h-[3px] bg-gradient-to-r from-emerald-500 to-teal-500"></div>
-                  <div className="absolute -right-10 -top-10 h-28 w-28 rounded-full bg-emerald-100 blur-3xl"></div>
-                  <div className="relative z-10">
-                    <p className="text-sm font-medium text-gray-800">
-                      Monthly Revenue
-                    </p>
-                    <p className="mt-3 text-2xl font-bold tracking-tight text-emerald-600">
-                      {revenue}
-                    </p>
-                    <p className="mt-4 text-xs text-gray-800">
-                      Total business earnings
-                    </p>
-                  </div>
-                </div>
-                {/* NET PROFIT */}
-                <div className="group relative overflow-hidden rounded-2xl border border-gray-200 bg-white/75 px-6 py-5 hover:shadow-[0_12px_40px_rgba(255,0,80,0.08)] shadow-[0_8px_30px_rgba(0,0,0,0.06)] backdrop-blur-xl transition-all duration-300 hover:-translate-y-1 hover:shadow-xl">
-                  <div className="absolute inset-x-0 top-0 h-[3px] bg-gradient-to-r from-blue-500 to-indigo-500"></div>
-                  <div className="absolute -right-10 -top-10 h-28 w-28 rounded-full bg-blue-100 blur-3xl"></div>
-                  <div className="relative z-10">
-                    <p className="text-sm font-medium text-gray-800">
-                      Estimated Net Profit
-                    </p>
-                    <p className="mt-3 text-2xl font-bold tracking-tight text-blue-600">
-                      ₹
-                      {isNaN(revenue - totalExpenses)
-                        ? 0
-                        : Math.round(revenue - totalExpenses).toLocaleString()}
-                    </p>
-                    <p className="mt-4 text-xs text-gray-800">
-                      Operational profitability
-                    </p>
-                  </div>
-                </div>
-                {/* EBITDA */}
-                <div className="group relative overflow-hidden rounded-2xl border border-gray-200 bg-white/75 px-6 py-5 hover:shadow-[0_12px_40px_rgba(255,0,80,0.08)] shadow-[0_8px_30px_rgba(0,0,0,0.06)] backdrop-blur-xl transition-all duration-300 hover:-translate-y-1 hover:shadow-xl">
-                  <div className="absolute inset-x-0 top-0 h-[3px] bg-gradient-to-r from-violet-500 to-purple-500"></div>
-                  <div className="absolute -right-10 -top-10 h-28 w-28 rounded-full bg-violet-100 blur-3xl"></div>
-                  <div className="relative z-10">
-                    <p className="text-sm font-medium text-gray-800">
-                      EBITDA %
-                    </p>
-                    <p className="mt-3 text-2xl font-bold tracking-tight text-violet-600">
-                      {ebitdaPercentage}%
-                    </p>
-                    <div className="mt-4 flex items-center gap-2">
-                      <div className="h-2 w-2 rounded-full bg-violet-500"></div>
-                      <p className="text-xs text-gray-800">
-                        Profitability indicator
-                      </p>
-                    </div>
-                  </div>
-                </div>
-                {/* PRIME COST */}
-                <div className="group relative overflow-hidden rounded-2xl border border-gray-200 bg-white/75 px-6 py-5 hover:shadow-[0_12px_40px_rgba(255,0,80,0.08)] shadow-[0_8px_30px_rgba(0,0,0,0.06)] backdrop-blur-xl transition-all duration-300 hover:-translate-y-1 hover:shadow-xl">
-                  <div className="absolute inset-x-0 top-0 h-[3px] bg-gradient-to-r from-orange-500 to-amber-500"></div>
-                  <div className="absolute -right-10 -top-10 h-28 w-28 rounded-full bg-orange-100 blur-3xl"></div>
-                  <div className="relative z-10">
-                    <p className="text-sm font-medium text-gray-800">
-                      Prime Cost %
-                    </p>
-                    <p className="mt-3 text-2xl font-bold tracking-tight text-orange-600">
-                      {primeCostPercentage}%
-                    </p>
-                    <p className="mt-4 text-xs text-gray-800">
-                      Food + labor efficiency
-                    </p>
-                  </div>
-                </div>
-              </div>
-              {/* EBITDA HEALTH */}
-              <div className="relative overflow-hidden rounded-2xl border border-gray-200 bg-gradient-to-br from-white to-gray-50 p-5 shadow-[0_8px_30px_rgba(0,0,0,0.05)]">
-                {/* Glow */}
-                <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-violet-100 blur-3xl" />
-                <div className="relative z-10">
-                  {/* Header */}
-                  <div className="mb-5 flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-violet-50">
-                        <TrendingUp className="h-5 w-5 text-violet-600" />
-                      </div>
-                      <div>
-                        <h3 className="text-lg font-bold text-gray-900">
-                          Profitability Health
-                        </h3>
-                        <p className="mt-1 text-sm text-gray-500">
-                          Current vs target profitability
-                        </p>
-                      </div>
-                    </div>
-                    {/* Status */}
-                    <div
-                      className={`flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold ${
-                        Number(ebitdaPercentage) >= insightsData.targetEbitda
-                          ? "bg-green-100 text-green-700"
-                          : Number(ebitdaPercentage) >=
-                              insightsData.targetEbitda - 5
-                            ? "bg-yellow-100 text-yellow-700"
-                            : "bg-red-100 text-red-700"
-                      }`}
-                    >
-                      <div
-                        className={`h-2 w-2 rounded-full ${
-                          Number(ebitdaPercentage) >= insightsData.targetEbitda
-                            ? "bg-green-500"
-                            : Number(ebitdaPercentage) >=
-                                insightsData.targetEbitda - 5
-                              ? "bg-yellow-500"
-                              : "bg-red-500"
-                        }`}
-                      />
-                      {Number(ebitdaPercentage) >= insightsData.targetEbitda
-                        ? "Healthy"
-                        : Number(ebitdaPercentage) >=
-                            insightsData.targetEbitda - 5
-                          ? "Moderate"
-                          : "Critical"}
-                    </div>
-                  </div>
-                  {/* Progress */}
-                  <div className="mb-6">
-                    <div className="mb-2 flex items-center justify-between">
-                      <p className="text-xs font-medium text-gray-500">
-                        EBITDA Target Progress
-                      </p>
-                      <p className="text-xs font-bold text-violet-600">
-                        {Math.min(
-                          Math.round(
-                            (Number(ebitdaPercentage) /
-                              insightsData.targetEbitda) *
-                              100,
-                          ),
-                          100,
-                        )}
-                        %
-                      </p>
-                    </div>
-                    <div className="h-3 overflow-hidden rounded-full bg-gray-100">
-                      <div
-                        className="h-full rounded-full bg-gradient-to-r from-violet-500 to-purple-500 transition-all duration-500"
-                        style={{
-                          width: `${Math.min((Number(ebitdaPercentage) / insightsData.targetEbitda) * 100, 100)}%`,
-                        }}
-                      />
-                    </div>
-                  </div>
-                  {/* Metrics */}
-                  <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-                    {/* Current */}
-                    <div className="rounded-2xl border border-violet-100 bg-violet-50/60 p-4">
-                      <p className="text-sm font-medium text-gray-500">
-                        Current EBITDA
-                      </p>
-                      <p className="mt-2 text-2xl font-black tracking-tight text-violet-600">
-                        {ebitdaPercentage}%
-                      </p>
-                    </div>
-                    {/* Target */}
-                    <div className="rounded-2xl border border-emerald-100 bg-emerald-50/60 p-4">
-                      <p className="text-sm font-medium text-gray-500">
-                        Target EBITDA
-                      </p>
-                      <p className="mt-2 text-2xl font-black tracking-tight text-emerald-600">
-                        {insightsData.targetEbitda}%
-                      </p>
-                    </div>
-                    {/* Gap */}
-                    <div className="rounded-2xl border border-orange-100 bg-orange-50/60 p-4">
-                      <p className="text-sm font-medium text-gray-500">
-                        EBITDA Gap
-                      </p>
-                      <p className="mt-2 text-2xl font-black tracking-tight text-orange-600">
-                        {isNaN(
-                          Number(ebitdaPercentage) - insightsData.targetEbitda,
-                        )
-                          ? "0"
-                          : (
-                              Number(ebitdaPercentage) -
-                              insightsData.targetEbitda
-                            ).toFixed(1)}{" "}
-                        %
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              {/* SALES TARGET TABLE */}
-              <div className="relative overflow-hidden rounded-2xl border border-gray-200 bg-gradient-to-br from-white to-gray-50 p-5 shadow-[0_8px_30px_rgba(0,0,0,0.05)]">
-                {/* Glow */}
-                <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-red-100/70 blur-3xl" />
-                <div className="relative z-10">
-                  {/* Header */}
-                  <div className="mb-5 flex items-start justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-red-50">
-                        <Target className="h-5 w-5 text-red-600" />
-                      </div>
-                      <div>
-                        <h3 className="text-lg font-bold text-gray-900">
-                          Revenue Targets
-                        </h3>
-                        <p className="mt-1 text-sm text-gray-500">
-                          Revenue required to reach EBITDA goals
-                        </p>
-                      </div>
-                    </div>
-                    <div className="rounded-full bg-red-50 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-red-600">
-                      Financial Planning
-                    </div>
-                  </div>
-                  {/* Cards */}
-                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-                    {[0, 5, 10, 15, 20, 25].map((target) => {
-                      const requiredRevenue =
-                        totalExpenses / (1 - target / 100);
-                      const extraNeeded = requiredRevenue - revenue;
-                      return (
-                        <div
-                          key={target}
-                          className="group rounded-2xl border border-gray-100 bg-white p-4 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg"
-                        >
-                          {/* Top */}
-                          <div className="mb-4 flex items-center justify-between">
-                            <div
-                              className={`rounded-full px-3 py-1 text-xs font-bold ${
-                                target >= 20
-                                  ? "bg-emerald-100 text-emerald-700"
-                                  : target >= 10
-                                    ? "bg-amber-100 text-amber-700"
-                                    : "bg-gray-100 text-gray-700"
-                              }`}
-                            >
-                              {target}% EBITDA
-                            </div>
-                            <div
-                              className={`h-2.5 w-2.5 rounded-full ${
-                                target >= 20
-                                  ? "bg-emerald-500"
-                                  : target >= 10
-                                    ? "bg-amber-500"
-                                    : "bg-gray-400"
-                              }`}
-                            />
-                          </div>
-                          {/* Revenue */}
-                          <div>
-                            <p className="text-xs font-medium uppercase tracking-wide text-gray-400">
-                              Required Revenue
-                            </p>
-                            <h2 className="mt-2 text-2xl font-black tracking-tight text-gray-900">
-                              ₹{Math.round(requiredRevenue).toLocaleString()}
-                            </h2>
-                          </div>
-                          {/* Gap */}
-                          <div className="mt-4 rounded-xl bg-gray-50 p-3">
-                            <p className="text-xs text-gray-500">
-                              Additional Revenue Needed
-                            </p>
-                            <p
-                              className={`mt-1 text-sm font-bold ${extraNeeded <= 0 ? "text-emerald-600" : "text-red-600"}`}
-                            >
-                              {extraNeeded <= 0
-                                ? "Target already achieved"
-                                : `₹${Math.round(extraNeeded).toLocaleString()}`}
-                            </p>
-                          </div>
-                          {/* Progress */}
-                          <div className="mt-4">
-                            <div className="mb-2 flex items-center justify-between">
-                              <p className="text-[11px] font-medium text-gray-500">
-                                Target Difficulty
-                              </p>
-                              <p className="text-[11px] font-bold text-gray-700">
-                                {target * 4}%
-                              </p>
-                            </div>
-                            <div className="h-2 overflow-hidden rounded-full bg-gray-100">
-                              <div
-                                className={`h-full rounded-full ${
-                                  target >= 20
-                                    ? "bg-gradient-to-r from-emerald-500 to-teal-500"
-                                    : target >= 10
-                                      ? "bg-gradient-to-r from-amber-500 to-orange-500"
-                                      : "bg-gradient-to-r from-gray-400 to-gray-500"
-                                }`}
-                                style={{
-                                  width: `${Math.min(target * 4, 100)}%`,
-                                }}
-                              />
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              </div>
-              {/* COST BREAKDOWN */}
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+              {/* ================= KPI ================= */}
+
+              <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
                 {[
                   {
-                    label: "Fixed Expenses",
-                    value: totalFixedExpenses,
-                    color: "from-blue-500 to-indigo-500",
-                    bg: "bg-blue-100",
-                    iconColor: "text-blue-600",
-                    text: "text-blue-600",
-                    glow: "bg-blue-100",
-                    icon: Wallet,
-                    subtitle: "Rent, utilities & recurring costs",
+                    label: "Revenue",
+                    value: revenue,
+                    sub: "Monthly earnings",
+                    icon: IndianRupee,
+                    color: "emerald",
                   },
+
                   {
-                    label: "Variable Expenses",
-                    value: totalVariableExpenses,
-                    color: "from-orange-500 to-amber-500",
-                    bg: "bg-orange-100",
-                    iconColor: "text-orange-600",
-                    text: "text-orange-600",
-                    glow: "bg-orange-100",
+                    label: "Net Profit",
+                    value: `₹${
+                      isNaN(revenue - totalExpenses)
+                        ? 0
+                        : Math.round(revenue - totalExpenses).toLocaleString()
+                    }`,
+                    sub: "Estimated profit",
+                    icon: TrendingUp,
+                    color: "blue",
+                  },
+
+                  {
+                    label: "EBITDA",
+                    value: `${ebitdaPercentage}%`,
+                    sub: "Profitability",
                     icon: BarChart3,
-                    subtitle: "Operational running expenses",
+                    color: "violet",
                   },
+
                   {
-                    label: "Labour",
-                    value: totalLabourCost,
-                    color: "from-emerald-500 to-teal-500",
-                    bg: "bg-emerald-100",
-                    iconColor: "text-emerald-600",
-                    text: "text-emerald-600",
-                    glow: "bg-emerald-100",
-                    icon: Users,
-                    subtitle: "Staff salary & workforce cost",
-                  },
-                  {
-                    label: "Tax & Finance",
-                    value: totalFinanceCost,
-                    color: "from-violet-500 to-purple-500",
-                    bg: "bg-violet-100",
-                    iconColor: "text-violet-600",
-                    text: "text-violet-600",
-                    glow: "bg-violet-100",
-                    icon: Landmark,
-                    subtitle: "GST, EMI & finance charges",
+                    label: "Prime Cost",
+                    value: `${primeCostPercentage}%`,
+                    sub: "Food + labour",
+                    icon: PieChart,
+                    color: "orange",
                   },
                 ].map((item) => {
                   const Icon = item.icon;
+
                   return (
                     <div
                       key={item.label}
-                      className="group relative overflow-hidden rounded-2xl border border-gray-200 bg-gradient-to-br from-white to-gray-50 p-5 shadow-[0_8px_30px_rgba(0,0,0,0.05)] backdrop-blur-xl transition-all duration-300 hover:-translate-y-1 hover:shadow-xl"
+                      className="
+          rounded-2xl
+          border
+          border-gray-200
+          bg-white
+          p-3
+          shadow-sm
+        "
                     >
-                      {/* TOP BORDER */}
-                      <div
-                        className={`absolute inset-x-0 top-0 h-[3px] bg-gradient-to-r ${item.color}`}
-                      />
-                      {/* GLOW */}
-                      <div
-                        className={`absolute -right-10 -top-10 h-28 w-28 rounded-full ${item.glow} blur-3xl`}
-                      />
-                      <div className="relative z-10">
-                        {/* ICON */}
-                        <div
-                          className={`mb-4 flex h-11 w-11 items-center justify-center rounded-2xl ${item.bg}`}
-                        >
-                          <Icon className={`h-5 w-5 ${item.iconColor}`} />
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <p
+                            className={`
+                text-[10px]
+                font-bold
+                uppercase
+                tracking-[0.14em]
+
+                ${
+                  item.color === "emerald"
+                    ? "text-emerald-500"
+                    : item.color === "blue"
+                      ? "text-blue-500"
+                      : item.color === "violet"
+                        ? "text-violet-500"
+                        : "text-orange-500"
+                }
+              `}
+                          >
+                            {item.label}
+                          </p>
+
+                          <p className="mt-2 text-[22px] font-bold tracking-tight text-gray-900">
+                            {item.value}
+                          </p>
+
+                          <p className="mt-1 text-[11px] text-gray-500">
+                            {item.sub}
+                          </p>
                         </div>
-                        {/* LABEL */}
-                        <p className="text-sm font-medium text-gray-700">
+
+                        <div
+                          className={`
+              flex
+              h-8
+              w-8
+              items-center
+              justify-center
+              rounded-lg
+
+              ${
+                item.color === "emerald"
+                  ? "bg-emerald-50"
+                  : item.color === "blue"
+                    ? "bg-blue-50"
+                    : item.color === "violet"
+                      ? "bg-violet-50"
+                      : "bg-orange-50"
+              }
+            `}
+                        >
+                          <Icon
+                            className={`
+                h-4
+                w-4
+
+                ${
+                  item.color === "emerald"
+                    ? "text-emerald-600"
+                    : item.color === "blue"
+                      ? "text-blue-600"
+                      : item.color === "violet"
+                        ? "text-violet-600"
+                        : "text-orange-600"
+                }
+              `}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* ================= EBITDA HEALTH ================= */}
+
+              <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+                <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+                  {/* LEFT */}
+
+                  <div className="flex items-start gap-3">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-violet-50">
+                      <TrendingUp className="h-4 w-4 text-violet-600" />
+                    </div>
+
+                    <div>
+                      <h3 className="text-[18px] font-bold tracking-tight text-gray-900">
+                        Profitability Health
+                      </h3>
+
+                      <p className="mt-1 text-[12px] text-gray-500">
+                        EBITDA performance tracking
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* RIGHT */}
+
+                  <div className="flex flex-wrap gap-2">
+                    {[
+                      {
+                        label: "Status",
+                        value:
+                          Number(ebitdaPercentage) >= insightsData.targetEbitda
+                            ? "Healthy"
+                            : "Critical",
+                        color:
+                          Number(ebitdaPercentage) >= insightsData.targetEbitda
+                            ? "emerald"
+                            : "red",
+                      },
+
+                      {
+                        label: "Current",
+                        value: `${ebitdaPercentage}%`,
+                        color: "violet",
+                      },
+
+                      {
+                        label: "Target",
+                        value: `${insightsData.targetEbitda}%`,
+                        color: "emerald",
+                      },
+
+                      {
+                        label: "Gap",
+                        value: `${(
+                          Number(ebitdaPercentage) - insightsData.targetEbitda
+                        ).toFixed(1)}%`,
+                        color: "orange",
+                      },
+                    ].map((item) => (
+                      <div
+                        key={item.label}
+                        className="rounded-xl border border-gray-200 bg-gray-50 px-3 py-2"
+                      >
+                        <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-gray-400">
                           {item.label}
                         </p>
-                        {/* VALUE */}
+
                         <p
-                          className={`mt-3 text-2xl font-bold tracking-tight ${item.text}`}
+                          className={`
+              text-[16px]
+              font-bold
+
+              ${
+                item.color === "emerald"
+                  ? "text-emerald-600"
+                  : item.color === "red"
+                    ? "text-red-600"
+                    : item.color === "violet"
+                      ? "text-violet-600"
+                      : "text-orange-600"
+              }
+            `}
                         >
-                          ₹{Math.round(item.value).toLocaleString()}
+                          {item.value}
                         </p>
-                        {/* PERCENTAGE */}
-                        <p className="mt-2 text-xs font-medium text-gray-500">
-                          {((item.value / totalExpenses) * 100).toFixed(1)} % of
-                          total expenses
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* PROGRESS */}
+
+                <div className="mt-4">
+                  <div className="mb-2 flex items-center justify-between">
+                    <p className="text-[11px] text-gray-500">EBITDA Progress</p>
+
+                    <p className="text-[11px] font-semibold text-violet-600">
+                      {Math.min(
+                        Math.round(
+                          (Number(ebitdaPercentage) /
+                            insightsData.targetEbitda) *
+                            100,
+                        ),
+                        100,
+                      )}
+                      %
+                    </p>
+                  </div>
+
+                  <div className="h-2 overflow-hidden rounded-full bg-gray-100">
+                    <div
+                      className="h-full rounded-full bg-violet-500"
+                      style={{
+                        width: `${Math.min((Number(ebitdaPercentage) / insightsData.targetEbitda) * 100, 100)}%`,
+                      }}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* ================= REVENUE TARGETS ================= */}
+
+              <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+                {/* HEADER */}
+
+                <div className="mb-4 flex items-center justify-between">
+                  {/* LEFT */}
+
+                  <div className="flex items-start gap-3">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-red-50">
+                      <Target className="h-4 w-4 text-red-600" />
+                    </div>
+
+                    <div>
+                      <h3 className="text-[18px] font-bold tracking-tight text-gray-900">
+                        Revenue Targets
+                      </h3>
+
+                      <p className="mt-1 text-[12px] text-gray-500">
+                        EBITDA revenue planning
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* BADGE */}
+
+                  <span className="rounded-full bg-red-50 px-3 py-1 text-[10px] font-semibold text-red-600">
+                    Financial Planning
+                  </span>
+                </div>
+
+                {/* TARGET GRID */}
+
+                <div className="grid grid-cols-2 gap-3 xl:grid-cols-6">
+                  {[0, 5, 10, 15, 20, 25].map((target) => {
+                    const requiredRevenue = totalExpenses / (1 - target / 100);
+
+                    const extraNeeded = requiredRevenue - revenue;
+
+                    return (
+                      <div
+                        key={target}
+                        className={`
+            rounded-2xl
+            border
+            p-3
+            shadow-sm
+            transition-all
+
+            ${
+              target >= 20
+                ? "border-emerald-100 bg-emerald-50/40"
+                : target >= 10
+                  ? "border-orange-100 bg-orange-50/40"
+                  : "border-gray-200 bg-gray-50"
+            }
+          `}
+                      >
+                        {/* TOP */}
+
+                        <div className="flex items-center justify-between">
+                          <p
+                            className={`
+                text-[10px]
+                font-bold
+                uppercase
+                tracking-[0.14em]
+
+                ${
+                  target >= 20
+                    ? "text-emerald-500"
+                    : target >= 10
+                      ? "text-orange-500"
+                      : "text-gray-500"
+                }
+              `}
+                          >
+                            {target}% EBITDA
+                          </p>
+
+                          <div
+                            className={`
+                h-2
+                w-2
+                rounded-full
+
+                ${
+                  target >= 20
+                    ? "bg-emerald-500"
+                    : target >= 10
+                      ? "bg-orange-500"
+                      : "bg-gray-400"
+                }
+              `}
+                          />
+                        </div>
+
+                        {/* VALUE */}
+
+                        <p className="mt-3 text-[24px] font-bold leading-none tracking-tight text-gray-900">
+                          ₹{Math.round(requiredRevenue).toLocaleString()}
                         </p>
-                        {/* FOOTER */}
-                        <p className="mt-3 text-xs text-gray-400">
-                          {item.subtitle}
+
+                        {/* EXTRA */}
+
+                        <p
+                          className={`
+              mt-2
+              text-[11px]
+              font-semibold
+
+              ${extraNeeded <= 0 ? "text-emerald-600" : "text-red-500"}
+            `}
+                        >
+                          {extraNeeded <= 0
+                            ? "Target achieved"
+                            : `+₹${Math.round(extraNeeded).toLocaleString()}`}
                         </p>
+
+                        {/* BAR */}
+
+                        <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/80">
+                          <div
+                            className={`
+                h-full
+                rounded-full
+
+                ${
+                  target >= 20
+                    ? "bg-emerald-500"
+                    : target >= 10
+                      ? "bg-orange-500"
+                      : "bg-gray-500"
+                }
+              `}
+                            style={{
+                              width: `${Math.min(target * 4, 100)}%`,
+                            }}
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* ================= COST BREAKDOWN ================= */}
+
+              <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+                {[
+                  {
+                    label: "Fixed",
+                    value: totalFixedExpenses,
+                    icon: Wallet,
+                    color: "blue",
+                  },
+
+                  {
+                    label: "Variable",
+                    value: totalVariableExpenses,
+                    icon: BarChart3,
+                    color: "orange",
+                  },
+
+                  {
+                    label: "Labour",
+                    value: totalLabourCost,
+                    icon: Users,
+                    color: "emerald",
+                  },
+
+                  {
+                    label: "Tax",
+                    value: totalFinanceCost,
+                    icon: Landmark,
+                    color: "violet",
+                  },
+                ].map((item) => {
+                  const Icon = item.icon;
+
+                  return (
+                    <div
+                      key={item.label}
+                      className="
+          rounded-2xl
+          border
+          border-gray-200
+          bg-white
+          p-3
+          shadow-sm
+        "
+                    >
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-gray-400">
+                            {item.label}
+                          </p>
+
+                          <p className="mt-2 text-[22px] font-bold tracking-tight text-gray-900">
+                            ₹{Math.round(item.value).toLocaleString()}
+                          </p>
+
+                          <p className="mt-1 text-[11px] text-gray-500">
+                            {((item.value / totalExpenses) * 100).toFixed(1)}%
+                            of expenses
+                          </p>
+                        </div>
+
+                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gray-100">
+                          <Icon className="h-4 w-4 text-gray-700" />
+                        </div>
                       </div>
                     </div>
                   );
@@ -1348,29 +1451,33 @@ export default function Insights() {
 
           {/* Insights Setup */}
           {activeTab === "Insights Setup" && (
-            <div className="flex h-full overflow-hidden bg-gradient-to-br from-[#fafafa] via-white to-red-50/20">
-              {/* SIDEBAR */}
-              <div className="hide-scrollbar h-full w-[270px] overflow-y-auto border-r border-white/40 bg-white/70 p-5 backdrop-blur-xl">
-                {/* AI HEADER */}
-                <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-red-500 via-pink-500 to-rose-500 p-5 shadow-[0_20px_50px_rgba(255,0,80,0.18)]">
-                  <div className="absolute -right-10 -top-10 h-28 w-28 rounded-full bg-white/10 blur-3xl"></div>
-                  <div className="relative z-10">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/15 backdrop-blur">
-                      <Sparkles className="h-6 w-6 text-white" />
-                    </div>
-                    <h2 className="mt-4 text-lg font-bold text-white">
-                      Financial Intelligence
-                    </h2>
-                    <p className="mt-1 text-sm leading-6 text-red-100">
-                      AI forecasting & profitability engine
-                    </p>
-                    <div className="mt-4 inline-flex rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-white backdrop-blur">
-                      AI Active
-                    </div>
+            <div className="flex h-full overflow-hidden bg-[#f6f7fb]">
+              {/* ================= SIDEBAR ================= */}
+
+              <div className="hide-scrollbar h-full w-[230px] overflow-y-auto border-r border-gray-200 bg-white p-4">
+                {/* AI CARD */}
+
+                <div className="rounded-xl border border-red-100 bg-gradient-to-br from-red-500 to-pink-500 p-4 shadow-sm">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/15">
+                    <Sparkles className="h-5 w-5 text-white" />
+                  </div>
+
+                  <h2 className="mt-4 text-[18px] font-bold text-white">
+                    Financial Intelligence
+                  </h2>
+
+                  <p className="mt-1 text-[12px] leading-6 text-red-100">
+                    AI forecasting & profitability engine
+                  </p>
+
+                  <div className="mt-4 inline-flex rounded-full bg-white/15 px-3 py-1 text-[11px] font-semibold text-white">
+                    AI Active
                   </div>
                 </div>
+
                 {/* COMPLETION */}
-                <div className="mt-5 rounded-2xl border border-white/40 bg-white/80 p-4 shadow-sm">
+
+                <div className="mt-4 rounded-xl border border-gray-200 bg-white p-4">
                   {(() => {
                     const fields = [
                       insightsData.monthlyRent,
@@ -1406,12 +1513,12 @@ export default function Insights() {
 
                       insightsData.expectedMonthlyGrowth,
                       insightsData.expectedDeliveryGrowth,
-                      insightsData.expectedInflation,
                       insightsData.seasonalImpact,
                       insightsData.weekendSalesIncrease,
 
                       insightsData.plannedExpansion,
                     ];
+
                     const filledFields = fields.filter(
                       (field) =>
                         field !== null &&
@@ -1419,9 +1526,11 @@ export default function Insights() {
                         field !== "" &&
                         field !== 0,
                     ).length;
+
                     const completion = Math.round(
                       (filledFields / fields.length) * 100,
                     );
+
                     return (
                       <>
                         <div className="flex items-center justify-between">
@@ -1429,19 +1538,17 @@ export default function Insights() {
                             <p className="text-sm font-semibold text-gray-900">
                               Setup Readiness
                             </p>
-                            <p className="mt-1 text-xs text-gray-500">
+
+                            <p className="mt-1 text-[11px] text-gray-500">
                               AI configuration progress
                             </p>
                           </div>
-                          <div className="text-right">
-                            <p className="text-2xl font-bold text-red-600">
-                              {completion}%
-                            </p>
-                            <p className="text-[11px] text-gray-400">
-                              Completed
-                            </p>
-                          </div>
+
+                          <p className="text-xl font-bold text-red-600">
+                            {completion}%
+                          </p>
                         </div>
+
                         <div className="mt-4 h-2 overflow-hidden rounded-full bg-gray-100">
                           <div
                             className="h-full rounded-full bg-gradient-to-r from-red-500 to-pink-500 transition-all duration-500"
@@ -1452,8 +1559,10 @@ export default function Insights() {
                     );
                   })()}
                 </div>
+
                 {/* NAVIGATION */}
-                <div className="mt-5 space-y-2">
+
+                <div className="mt-4 space-y-1.5">
                   {[
                     {
                       label: "Fixed Expenses",
@@ -1481,66 +1590,60 @@ export default function Insights() {
                     },
                   ].map((item) => {
                     const Icon = item.icon;
+
                     return (
                       <button
                         key={item.label}
                         onClick={() => setInsightsSection(item.label)}
-                        className={`group flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left text-sm font-medium transition-all duration-200 ${
+                        className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium transition-all duration-200 ${
                           insightsSection === item.label
-                            ? "border border-red-100 bg-gradient-to-r from-red-50 to-pink-50 text-red-600 shadow-sm"
-                            : "text-gray-700 hover:bg-white hover:shadow-sm"
+                            ? "bg-red-50 text-red-600"
+                            : "text-gray-700 hover:bg-gray-50"
                         }`}
                       >
-                        <div
-                          className={`flex h-9 w-9 items-center justify-center rounded-xl transition ${
-                            insightsSection === item.label
-                              ? "bg-red-100"
-                              : "bg-gray-100 group-hover:bg-red-50"
-                          }`}
-                        >
-                          <Icon
-                            className={`h-4 w-4 ${
-                              insightsSection === item.label
-                                ? "text-red-600"
-                                : "text-gray-500"
-                            }`}
-                            children={""}
-                          />
-                        </div>
+                        <Icon className="h-4 w-4" />
+
                         <span>{item.label}</span>
                       </button>
                     );
                   })}
                 </div>
               </div>
-              {/* CONTENT */}
+
+              {/* ================= CONTENT ================= */}
+
               <div className="flex-1 overflow-y-auto p-4">
-                <div className="mx-auto max-w-7xl space-y-6">
+                <div className="mx-auto max-w-7xl space-y-4">
                   {/* TOP HEADER */}
-                  <div className="sticky top-0 z-20 rounded-2xl border border-white/40 bg-white/80 p-5 shadow-[0_8px_30px_rgba(0,0,0,0.05)] backdrop-blur-xl">
+
+                  <div className="sticky top-0 z-20 rounded-xl border border-gray-200 bg-white px-4 py-3 shadow-sm">
                     <div className="flex flex-wrap items-center justify-between gap-4">
-                      <div>
-                        <div className="flex items-center gap-3">
-                          <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-red-50">
-                            <Sparkles className="h-5 w-5 text-red-500" />
-                          </div>
-                          <div>
-                            <h1 className="text-2xl font-bold tracking-tight text-gray-900">
-                              {insightsSection === "Labour"
-                                ? "Labour Intelligence"
-                                : insightsSection}
-                            </h1>
-                            <p className="mt-1 text-sm text-gray-500">
-                              AI-powered operational intelligence & forecasting
-                              configuration
-                            </p>
-                          </div>
+                      {/* LEFT */}
+
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-red-50">
+                          <Sparkles className="h-4 w-4 text-red-500" />
+                        </div>
+
+                        <div>
+                          <h1 className="text-xl font-bold tracking-tight text-gray-900">
+                            {insightsSection === "Labour"
+                              ? "Labour Intelligence"
+                              : insightsSection}
+                          </h1>
+
+                          <p className="mt-0.5 text-[12px] text-gray-500">
+                            AI-powered operational intelligence
+                          </p>
                         </div>
                       </div>
+
+                      {/* BUTTON */}
+
                       {insightsSection !== "Labour" && (
                         <button
                           onClick={handleSaveInsights}
-                          className="flex items-center gap-2 rounded-2xl bg-gradient-to-r from-red-500 to-pink-500 px-6 py-3 text-sm font-semibold text-white shadow-[0_15px_40px_rgba(255,0,80,0.18)] transition-all duration-300 hover:scale-[1.02]"
+                          className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-red-500 to-pink-500 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-all duration-200 hover:opacity-95"
                         >
                           <Save className="h-4 w-4" />
                           Save Setup
@@ -1548,15 +1651,22 @@ export default function Insights() {
                       )}
                     </div>
                   </div>
+
+                  {/* ================= FIXED EXPENSES ================= */}
+
                   {insightsSection === "Fixed Expenses" && (
-                    <div className="space-y-6">
+                    <div className="space-y-4">
                       {/* KPI */}
-                      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-                        <div className="rounded-2xl border border-white/40 bg-white/80 p-5 shadow-sm">
-                          <p className="text-sm text-gray-500">
+
+                      <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+                        {/* MONTHLY FIXED */}
+
+                        <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+                          <p className="text-[12px] font-medium uppercase tracking-wide text-gray-400">
                             Monthly Fixed Cost
                           </p>
-                          <p className="mt-3 text-3xl font-bold tracking-tight text-red-600">
+
+                          <p className="mt-2 text-2xl font-bold tracking-tight text-gray-900">
                             ₹
                             {(
                               insightsData.monthlyRent +
@@ -1568,41 +1678,56 @@ export default function Insights() {
                               insightsData.licenses
                             ).toLocaleString()}
                           </p>
-                          <p className="mt-3 text-xs text-gray-400">
+
+                          <p className="mt-2 text-[12px] text-gray-500">
                             Operational commitments
                           </p>
                         </div>
-                        <div className="rounded-2xl border border-white/40 bg-white/80 p-5 shadow-sm">
-                          <p className="text-sm text-gray-500">
+
+                        {/* HEALTH */}
+
+                        <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+                          <p className="text-[12px] font-medium uppercase tracking-wide text-gray-400">
                             Expense Health
                           </p>
-                          <p className="mt-3 text-3xl font-bold tracking-tight text-emerald-600">
+
+                          <p className="mt-2 text-2xl font-bold tracking-tight text-emerald-600">
                             Stable
                           </p>
-                          <p className="mt-3 text-xs text-gray-400">
+
+                          <p className="mt-2 text-[12px] text-gray-500">
                             Financial commitments manageable
                           </p>
                         </div>
-                        <div className="rounded-2xl border border-white/40 bg-white/80 p-5 shadow-sm">
-                          <p className="text-sm text-gray-500">
-                            AI Recommendation
-                          </p>
-                          <p className="mt-3 text-lg font-semibold leading-7 text-gray-900">
-                            Fixed cost ratio is within healthy range.
-                          </p>
+
+                        {/* AI */}
+
+                        <div className="rounded-xl border border-blue-100 bg-blue-50 p-4">
+                          <div className="flex items-start gap-3">
+                            <Sparkles className="mt-0.5 h-4 w-4 text-blue-600" />
+
+                            <p className="text-sm leading-6 text-blue-900">
+                              Fixed cost ratio is currently within healthy
+                              operational range.
+                            </p>
+                          </div>
                         </div>
                       </div>
+
                       {/* FORM */}
-                      <div className="rounded-2xl border border-white/40 bg-white/80 p-4 shadow-[0_8px_30px_rgba(0,0,0,0.05)] backdrop-blur-xl">
-                        <div className="mb-6">
+
+                      <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+                        <div className="mb-5">
                           <h3 className="text-lg font-semibold text-gray-900">
                             Monthly Fixed Expenses
                           </h3>
+
                           <p className="mt-1 text-sm text-gray-500">
                             Configure recurring operational commitments
                           </p>
                         </div>
-                        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+
+                        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
                           {[
                             {
                               label: "Monthly Rent",
@@ -1635,15 +1760,17 @@ export default function Insights() {
                           ].map((field) => (
                             <div
                               key={field.key}
-                              className="rounded-2xl border border-gray-100 bg-gray-50/70 p-4 transition-all duration-200 hover:bg-white hover:shadow-sm"
+                              className="rounded-xl border border-gray-200 bg-white p-3"
                             >
-                              <label className="mb-3 block text-sm font-semibold text-gray-700">
+                              <label className="mb-2 block text-sm font-medium text-gray-700">
                                 {field.label}
                               </label>
+
                               <div className="relative">
-                                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-medium text-gray-400">
+                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-400">
                                   ₹
                                 </span>
+
                                 <input
                                   type="number"
                                   value={insightsData[field.key]}
@@ -1654,10 +1781,11 @@ export default function Insights() {
                                     })
                                   }
                                   placeholder="0"
-                                  className="w-full rounded-2xl border border-gray-100 bg-white pl-9 pr-4 py-3 text-sm outline-none transition-all duration-200 focus:border-red-300 focus:shadow-[0_0_0_4px_rgba(255,0,80,0.05)]"
+                                  className="w-full rounded-xl border border-gray-200 bg-gray-50 py-2.5 pl-8 pr-3 text-sm outline-none transition-all duration-200 focus:border-red-300 focus:bg-white"
                                 />
                               </div>
-                              <p className="mt-3 text-xs text-gray-400">
+
+                              <p className="mt-2 text-[11px] text-gray-400">
                                 Monthly operational expense
                               </p>
                             </div>
@@ -1666,313 +1794,301 @@ export default function Insights() {
                       </div>
                     </div>
                   )}
+                  {/* ================= VARIABLE EXPENSES ================= */}
+
                   {insightsSection === "Variable Expenses" && (
-                    <div className="space-y-6">
-                      {/* TOP KPI CARDS */}
-                      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-                        {/* TOTAL VARIABLE */}
-                        <div className="group relative overflow-hidden rounded-2xl border border-white/40 bg-white/80 p-5 shadow-[0_8px_30px_rgba(0,0,0,0.05)] backdrop-blur-xl">
-                          <div className="absolute -right-10 -top-10 h-28 w-28 rounded-full bg-red-100 blur-3xl"></div>
-                          <div className="relative z-10">
-                            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-red-50">
-                              <Activity className="h-5 w-5 text-red-500" />
-                            </div>
-                            <p className="mt-4 text-sm text-gray-500">
-                              Total Variable Cost
-                            </p>
-                            <p className="mt-2 text-3xl font-bold tracking-tight text-red-600">
-                              ₹
-                              {(
-                                insightsData.deliveryCharges +
-                                insightsData.packaging +
-                                insightsData.paymentGateway +
-                                insightsData.aggregatorCommission +
-                                insightsData.electricity +
-                                insightsData.gas +
-                                insightsData.maintenance +
-                                insightsData.fuel
-                              ).toLocaleString()}
-                            </p>
-                            <p className="mt-3 text-xs text-gray-400">
-                              Operationally dynamic expenses
-                            </p>
-                          </div>
+                    <div className="space-y-4">
+                      {/* KPI */}
+
+                      <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+                        {/* MONTHLY VARIABLE */}
+
+                        <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+                          <p className="text-[12px] font-medium uppercase tracking-wide text-gray-400">
+                            Monthly Variable Cost
+                          </p>
+
+                          <p className="mt-2 text-2xl font-bold tracking-tight text-gray-900">
+                            ₹
+                            {(
+                              insightsData.deliveryCharges +
+                              insightsData.packaging +
+                              insightsData.paymentGateway +
+                              insightsData.aggregatorCommission +
+                              insightsData.electricity +
+                              insightsData.gas +
+                              insightsData.maintenance +
+                              insightsData.fuel
+                            ).toLocaleString()}
+                          </p>
+
+                          <p className="mt-2 text-[12px] text-gray-500">
+                            Operational running expenses
+                          </p>
                         </div>
-                        {/* BUSINESS HEALTH */}
-                        <div className="group relative overflow-hidden rounded-2xl border border-white/40 bg-white/80 p-5 shadow-[0_8px_30px_rgba(0,0,0,0.05)] backdrop-blur-xl">
-                          <div className="absolute -right-10 -top-10 h-28 w-28 rounded-full bg-emerald-100 blur-3xl"></div>
-                          <div className="relative z-10">
-                            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-50">
-                              <TrendingUp className="h-5 w-5 text-emerald-600" />
-                            </div>
-                            <p className="mt-4 text-sm text-gray-500">
-                              Cost Efficiency
-                            </p>
-                            <p className="mt-2 text-3xl font-bold tracking-tight text-emerald-600">
-                              Stable
-                            </p>
-                            <p className="mt-3 text-xs text-gray-400">
-                              Expense ratio within healthy range
-                            </p>
-                          </div>
+
+                        {/* HEALTH */}
+
+                        <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+                          <p className="text-[12px] font-medium uppercase tracking-wide text-gray-400">
+                            Expense Health
+                          </p>
+
+                          <p className="mt-2 text-2xl font-bold tracking-tight text-orange-500">
+                            Moderate
+                          </p>
+
+                          <p className="mt-2 text-[12px] text-gray-500">
+                            Utility & operational costs increasing
+                          </p>
                         </div>
-                        {/* AI INSIGHT */}
-                        <div className="group relative overflow-hidden rounded-2xl border border-white/40 bg-gradient-to-br from-red-500 via-pink-500 to-rose-500 p-5 shadow-[0_20px_50px_rgba(255,0,80,0.18)]">
-                          <div className="absolute -right-10 -top-10 h-28 w-28 rounded-full bg-white/10 blur-3xl"></div>
-                          <div className="relative z-10">
-                            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/15 backdrop-blur">
-                              <Sparkles className="h-5 w-5 text-white" />
-                            </div>
-                            <p className="mt-4 text-sm text-red-100">
-                              AI Recommendation
-                            </p>
-                            <p className="mt-2 text-lg font-semibold leading-7 text-white">
-                              Delivery and packaging costs are primary
-                              operational drivers.
+
+                        {/* AI */}
+
+                        <div className="rounded-xl border border-orange-100 bg-orange-50 p-4">
+                          <div className="flex items-start gap-3">
+                            <Sparkles className="mt-0.5 h-4 w-4 text-orange-600" />
+
+                            <p className="text-sm leading-6 text-orange-900">
+                              Electricity and aggregator charges are
+                              contributing heavily to monthly variable expenses.
                             </p>
                           </div>
                         </div>
                       </div>
-                      {/* MAIN FORM */}
-                      <div className="rounded-2xl border border-white/40 bg-white/80 p-4 shadow-[0_8px_30px_rgba(0,0,0,0.05)] backdrop-blur-xl">
-                        {/* HEADER */}
-                        <div className="mb-6 flex items-center gap-4">
-                          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-red-50">
-                            <Wallet className="h-5 w-5 text-red-500" />
-                          </div>
-                          <div>
-                            <h3 className="text-lg font-semibold text-gray-900">
-                              Operational Variable Costs
-                            </h3>
-                            <p className="mt-1 text-sm text-gray-500">
-                              Costs that fluctuate with restaurant activity
-                            </p>
-                          </div>
+
+                      {/* FORM */}
+
+                      <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+                        <div className="mb-5">
+                          <h3 className="text-lg font-semibold text-gray-900">
+                            Monthly Variable Expenses
+                          </h3>
+
+                          <p className="mt-1 text-sm text-gray-500">
+                            Configure operational & utility based expenses
+                          </p>
                         </div>
-                        {/* INPUT GRID */}
-                        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+
+                        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
                           {[
                             {
                               label: "Delivery Charges",
                               key: "deliveryCharges",
-                              icon: Bike,
                             },
                             {
                               label: "Packaging",
                               key: "packaging",
-                              icon: Package,
                             },
                             {
                               label: "Payment Gateway",
                               key: "paymentGateway",
-                              icon: CreditCard,
                             },
                             {
                               label: "Aggregator Commission",
                               key: "aggregatorCommission",
-                              icon: Percent,
                             },
                             {
                               label: "Electricity",
                               key: "electricity",
-                              icon: Zap,
                             },
                             {
                               label: "Gas",
                               key: "gas",
-                              icon: Flame,
                             },
                             {
                               label: "Maintenance",
                               key: "maintenance",
-                              icon: Wrench,
                             },
                             {
                               label: "Fuel",
                               key: "fuel",
-                              icon: Fuel,
                             },
-                          ].map((field) => {
-                            const Icon = field.icon;
-                            return (
-                              <div
-                                key={field.key}
-                                className="group rounded-2xl border border-gray-100 bg-gray-50/70 p-5 transition-all duration-200 hover:bg-white hover:shadow-sm"
-                              >
-                                {/* TOP */}
-                                <div className="mb-4 flex items-center gap-3">
-                                  <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-red-50 transition-all duration-200 group-hover:bg-red-100">
-                                    <Icon className="h-4 w-4 text-red-500" />
-                                  </div>
-                                  <div>
-                                    <label className="text-sm font-semibold text-gray-800">
-                                      {field.label}
-                                    </label>
-                                    <p className="mt-0.5 text-xs text-gray-400">
-                                      Monthly operational expense
-                                    </p>
-                                  </div>
-                                </div>
-                                {/* INPUT */}
-                                <div className="relative">
-                                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-medium text-gray-400">
-                                    ₹
-                                  </span>
-                                  <input
-                                    type="number"
-                                    value={insightsData[field.key]}
-                                    onChange={(e) =>
-                                      setInsightsData({
-                                        ...insightsData,
-                                        [field.key]: Number(e.target.value),
-                                      })
-                                    }
-                                    placeholder="0"
-                                    className="w-full rounded-2xl border border-gray-100 bg-white px-4 py-3 pl-9 text-sm font-medium outline-none transition-all duration-200 focus:border-red-300 focus:shadow-[0_0_0_4px_rgba(255,0,80,0.05)]"
-                                  />
-                                </div>
+                          ].map((field) => (
+                            <div
+                              key={field.key}
+                              className="rounded-xl border border-gray-200 bg-white p-3"
+                            >
+                              <label className="mb-2 block text-sm font-medium text-gray-700">
+                                {field.label}
+                              </label>
+
+                              <div className="relative">
+                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-400">
+                                  ₹
+                                </span>
+
+                                <input
+                                  type="number"
+                                  value={insightsData[field.key]}
+                                  onChange={(e) =>
+                                    setInsightsData({
+                                      ...insightsData,
+                                      [field.key]: Number(e.target.value),
+                                    })
+                                  }
+                                  placeholder="0"
+                                  className="w-full rounded-xl border border-gray-200 bg-gray-50 py-2.5 pl-8 pr-3 text-sm outline-none transition-all duration-200 focus:border-red-300 focus:bg-white"
+                                />
                               </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                      {/* AI INSIGHT PANEL */}
-                      <div className="relative overflow-hidden rounded-2xl border border-red-100 bg-gradient-to-br from-red-50 via-white to-pink-50 p-4">
-                        <div className="absolute -right-10 -top-10 h-32 w-32 rounded-full bg-red-100 blur-3xl"></div>
-                        <div className="relative z-10 flex items-start gap-4">
-                          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-red-500 to-pink-500 shadow-lg">
-                            <Sparkles className="h-5 w-5 text-white" />
-                          </div>
-                          <div>
-                            <h4 className="text-lg font-semibold text-gray-900">
-                              AI Variable Cost Insight
-                            </h4>
-                            <p className="mt-2 max-w-3xl text-sm leading-7 text-gray-600">
-                              Variable operational expenses directly impact
-                              profitability and EBITDA. Monitoring delivery,
-                              packaging, electricity and aggregator commissions
-                              can significantly improve restaurant operational
-                              efficiency.
-                            </p>
-                          </div>
+
+                              <p className="mt-2 text-[11px] text-gray-400">
+                                Monthly operational expense
+                              </p>
+                            </div>
+                          ))}
                         </div>
                       </div>
                     </div>
                   )}
-                  {/* LABOUR */}
+                  {/* ================= LABOUR ================= */}
+
+                  {/* ================= LABOUR ================= */}
+
                   {insightsSection === "Labour" && (
-                    <div className="space-y-6">
-                      {/* TOP KPI CARDS */}
-                      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+                    <div className="space-y-4">
+                      {/* ================= KPI ================= */}
+
+                      <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
                         {/* TOTAL STAFF */}
-                        <div className="group relative overflow-hidden rounded-2xl border border-white/40 bg-white/80 p-5 shadow-[0_8px_30px_rgba(0,0,0,0.05)] backdrop-blur-xl">
-                          <div className="absolute -right-10 -top-10 h-28 w-28 rounded-full bg-blue-100 blur-3xl"></div>
-                          <div className="relative z-10">
-                            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-blue-50">
-                              <Users className="h-5 w-5 text-blue-600" />
+
+                        <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+                          <div className="flex items-start justify-between">
+                            <div>
+                              <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-gray-400">
+                                Staff
+                              </p>
+
+                              <p className="mt-2 text-2xl font-bold tracking-tight text-gray-900">
+                                {staffData?.length || 0}
+                              </p>
+
+                              <p className="mt-1 text-[11px] text-gray-500">
+                                Active workforce
+                              </p>
                             </div>
-                            <p className="mt-4 text-sm text-gray-500">
-                              Total Staff
-                            </p>
-                            <p className="mt-2 text-3xl font-bold tracking-tight text-gray-900">
-                              {staffData?.length || 0}
-                            </p>
-                            <p className="mt-3 text-xs text-gray-400">
-                              Workforce strength
-                            </p>
+
+                            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50">
+                              <Users className="h-4 w-4 text-blue-600" />
+                            </div>
                           </div>
                         </div>
-                        {/* MONTHLY LABOUR COST */}
-                        <div className="group relative overflow-hidden rounded-2xl border border-white/40 bg-white/80 p-5 shadow-[0_8px_30px_rgba(0,0,0,0.05)] backdrop-blur-xl">
-                          <div className="absolute -right-10 -top-10 h-28 w-28 rounded-full bg-red-100 blur-3xl"></div>
-                          <div className="relative z-10">
-                            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-red-50">
-                              <Wallet className="h-5 w-5 text-red-500" />
+
+                        {/* LABOUR COST */}
+
+                        <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+                          <div className="flex items-start justify-between">
+                            <div>
+                              <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-gray-400">
+                                Labour Cost
+                              </p>
+
+                              <p className="mt-2 text-2xl font-bold tracking-tight text-gray-900">
+                                ₹
+                                {(
+                                  staffData?.reduce(
+                                    (sum: number, s: any) =>
+                                      sum + (s.salary || 0),
+                                    0,
+                                  ) || 0
+                                ).toLocaleString()}
+                              </p>
+
+                              <p className="mt-1 text-[11px] text-gray-500">
+                                Monthly salary
+                              </p>
                             </div>
-                            <p className="mt-4 text-sm text-gray-500">
-                              Monthly Labour Cost
-                            </p>
-                            <p className="mt-2 text-3xl font-bold tracking-tight text-red-600">
-                              ₹
-                              {(
-                                staffData?.reduce(
-                                  (sum: number, s: any) =>
-                                    sum + (s.salary || 0),
-                                  0,
-                                ) || 0
-                              ).toLocaleString()}
-                            </p>
-                            <p className="mt-3 text-xs text-gray-400">
-                              Total salary commitment
-                            </p>
+
+                            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-red-50">
+                              <Wallet className="h-4 w-4 text-red-500" />
+                            </div>
                           </div>
                         </div>
+
                         {/* AVG SALARY */}
-                        <div className="group relative overflow-hidden rounded-2xl border border-white/40 bg-white/80 p-5 shadow-[0_8px_30px_rgba(0,0,0,0.05)] backdrop-blur-xl">
-                          <div className="absolute -right-10 -top-10 h-28 w-28 rounded-full bg-violet-100 blur-3xl"></div>
-                          <div className="relative z-10">
-                            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-violet-50">
-                              <BadgeIndianRupee className="h-5 w-5 text-violet-600" />
+
+                        <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+                          <div className="flex items-start justify-between">
+                            <div>
+                              <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-gray-400">
+                                Avg Salary
+                              </p>
+
+                              <p className="mt-2 text-2xl font-bold tracking-tight text-gray-900">
+                                ₹
+                                {staffData?.length
+                                  ? Math.round(
+                                      staffData.reduce(
+                                        (sum: number, s: any) =>
+                                          sum + (s.salary || 0),
+                                        0,
+                                      ) / staffData.length,
+                                    ).toLocaleString()
+                                  : 0}
+                              </p>
+
+                              <p className="mt-1 text-[11px] text-gray-500">
+                                Per employee
+                              </p>
                             </div>
-                            <p className="mt-4 text-sm text-gray-500">
-                              Avg Salary
-                            </p>
-                            <p className="mt-2 text-3xl font-bold tracking-tight text-violet-600">
-                              ₹
-                              {staffData?.length
-                                ? Math.round(
-                                    staffData.reduce(
-                                      (sum: number, s: any) =>
-                                        sum + (s.salary || 0),
-                                      0,
-                                    ) / staffData.length,
-                                  ).toLocaleString()
-                                : 0}
-                            </p>
-                            <p className="mt-3 text-xs text-gray-400">
-                              Average salary per employee
-                            </p>
+
+                            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-50">
+                              <BadgeIndianRupee className="h-4 w-4 text-violet-600" />
+                            </div>
                           </div>
                         </div>
+
                         {/* FULL TIME */}
-                        <div className="group relative overflow-hidden rounded-2xl border border-white/40 bg-white/80 p-5 shadow-[0_8px_30px_rgba(0,0,0,0.05)] backdrop-blur-xl">
-                          <div className="absolute -right-10 -top-10 h-28 w-28 rounded-full bg-emerald-100 blur-3xl"></div>
-                          <div className="relative z-10">
-                            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-50">
-                              <UserCheck className="h-5 w-5 text-emerald-600" />
+
+                        <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+                          <div className="flex items-start justify-between">
+                            <div>
+                              <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-gray-400">
+                                Full Time
+                              </p>
+
+                              <p className="mt-2 text-2xl font-bold tracking-tight text-gray-900">
+                                {staffData?.filter(
+                                  (s: any) => s.employmentType === "FULL_TIME",
+                                ).length || 0}
+                              </p>
+
+                              <p className="mt-1 text-[11px] text-gray-500">
+                                Permanent staff
+                              </p>
                             </div>
-                            <p className="mt-4 text-sm text-gray-500">
-                              Full Time Staff
-                            </p>
-                            <p className="mt-2 text-3xl font-bold tracking-tight text-emerald-600">
-                              {staffData?.filter(
-                                (s: any) => s.employmentType === "FULL_TIME",
-                              ).length || 0}
-                            </p>
-                            <p className="mt-3 text-xs text-gray-400">
-                              Permanent employees
-                            </p>
+
+                            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50">
+                              <UserCheck className="h-4 w-4 text-emerald-600" />
+                            </div>
                           </div>
                         </div>
                       </div>
-                      {/* DEPARTMENT BREAKDOWN */}
-                      <div className="rounded-2xl border border-white/40 bg-white/80 p-4 shadow-[0_8px_30px_rgba(0,0,0,0.05)] backdrop-blur-xl">
+
+                      {/* ================= DEPARTMENT BREAKDOWN ================= */}
+
+                      <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
                         {/* HEADER */}
-                        <div className="mb-6 flex items-center gap-4">
-                          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-indigo-50">
-                            <Building2 className="h-5 w-5 text-indigo-600" />
+
+                        <div className="mb-5 flex items-center gap-3">
+                          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-50">
+                            <Building2 className="h-4 w-4 text-indigo-600" />
                           </div>
+
                           <div>
-                            <h3 className="text-lg font-semibold text-gray-900">
+                            <h3 className="text-[18px] font-semibold text-gray-900">
                               Department Breakdown
                             </h3>
-                            <p className="mt-1 text-sm text-gray-500">
+
+                            <p className="mt-1 text-[12px] text-gray-500">
                               Salary distribution by department
                             </p>
                           </div>
                         </div>
-                        {/* DEPARTMENT GRID */}
-                        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+
+                        {/* GRID */}
+
+                        <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
                           {[
                             "KITCHEN",
                             "SERVICE",
@@ -1987,29 +2103,34 @@ export default function Insights() {
                               staffData?.filter(
                                 (s: any) => s.department === dept,
                               ) || [];
+
                             const deptSalary = deptStaff.reduce(
                               (sum: number, s: any) => sum + (s.salary || 0),
                               0,
                             );
+
                             return (
                               <div
                                 key={dept}
-                                className="group rounded-2xl border border-gray-100 bg-gray-50/70 p-5 transition-all duration-200 hover:bg-white hover:shadow-sm"
+                                className="rounded-xl border border-gray-200 bg-gray-50 p-4 transition-all duration-200 hover:bg-white"
                               >
-                                <div className="flex items-center justify-between">
+                                <div className="flex items-start justify-between">
                                   <div>
-                                    <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">
+                                    <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-gray-400">
                                       {dept}
                                     </p>
-                                    <p className="mt-3 text-2xl font-bold tracking-tight text-gray-900">
+
+                                    <p className="mt-2 text-xl font-bold tracking-tight text-gray-900">
                                       ₹{deptSalary.toLocaleString()}
                                     </p>
-                                    <p className="mt-2 text-sm text-gray-500">
+
+                                    <p className="mt-1 text-[11px] text-gray-500">
                                       {deptStaff.length} staff members
                                     </p>
                                   </div>
-                                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-red-50">
-                                    <Users className="h-5 w-5 text-red-500" />
+
+                                  <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-red-50">
+                                    <Users className="h-4 w-4 text-red-500" />
                                   </div>
                                 </div>
                               </div>
@@ -2017,31 +2138,41 @@ export default function Insights() {
                           })}
                         </div>
                       </div>
-                      {/* STAFF TABLE */}
-                      <div className="rounded-2xl border border-white/40 bg-white/80 shadow-[0_8px_30px_rgba(0,0,0,0.05)] backdrop-blur-xl overflow-hidden">
+
+                      {/* ================= STAFF TABLE ================= */}
+
+                      <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
                         {/* HEADER */}
-                        <div className="flex items-center justify-between border-b border-gray-100 px-6 py-5">
-                          <div className="flex items-center gap-4">
-                            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-red-50">
-                              <ClipboardList className="h-5 w-5 text-red-500" />
+
+                        <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3">
+                          <div className="flex items-center gap-3">
+                            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-red-50">
+                              <ClipboardList className="h-4 w-4 text-red-500" />
                             </div>
+
                             <div>
-                              <h3 className="text-lg font-semibold text-gray-900">
+                              <h3 className="text-[18px] font-semibold text-gray-900">
                                 Staff Overview
                               </h3>
-                              <p className="mt-1 text-sm text-gray-500">
+
+                              <p className="mt-1 text-[12px] text-gray-500">
                                 Restaurant workforce summary
                               </p>
                             </div>
                           </div>
-                          <div className="rounded-full bg-red-50 px-4 py-2 text-sm font-semibold text-red-600">
+
+                          <div className="rounded-full bg-red-50 px-3 py-1 text-[11px] font-semibold text-red-600">
                             {staffData?.length || 0} Employees
                           </div>
                         </div>
-                        {/*TABLE */}
+
+                        {/* TABLE */}
+
                         <div className="overflow-x-auto">
                           <table className="min-w-full">
-                            <thead className="bg-gray-50/80">
+                            {/* HEAD */}
+
+                            <thead className="bg-gray-50">
                               <tr>
                                 {[
                                   "Name",
@@ -2054,53 +2185,77 @@ export default function Insights() {
                                 ].map((head) => (
                                   <th
                                     key={head}
-                                    className="whitespace-nowrap px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-gray-500"
+                                    className="
+                    whitespace-nowrap
+                    px-4
+                    py-3
+                    text-left
+                    text-[10px]
+                    font-bold
+                    uppercase
+                    tracking-[0.14em]
+                    text-gray-400
+                  "
                                   >
                                     {head}
                                   </th>
                                 ))}
                               </tr>
                             </thead>
+
+                            {/* BODY */}
+
                             <tbody>
                               {staffData?.map((staff: any, index: number) => (
                                 <tr
                                   key={index}
-                                  className="border-t border-gray-100 transition hover:bg-red-50/30"
+                                  className="border-t border-gray-100 transition hover:bg-red-50/20"
                                 >
                                   {/* NAME */}
-                                  <td className="px-6 py-5">
+
+                                  <td className="px-4 py-3">
                                     <div className="flex items-center gap-3">
-                                      <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gray-100 font-semibold text-gray-700">
+                                      <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gray-100 text-sm font-semibold text-gray-700">
                                         {staff.name?.charAt(0)}
                                       </div>
+
                                       <div>
                                         <p className="text-sm font-semibold text-gray-900">
                                           {staff.name}
                                         </p>
-                                        <p className="text-xs text-gray-400">
+
+                                        <p className="text-[11px] text-gray-400">
                                           Staff member
                                         </p>
                                       </div>
                                     </div>
                                   </td>
+
                                   {/* ROLE */}
-                                  <td className="px-6 py-5 text-sm text-gray-600">
+
+                                  <td className="px-4 py-3 text-sm text-gray-600">
                                     {staff.role}
                                   </td>
+
                                   {/* DEPARTMENT */}
-                                  <td className="px-6 py-5">
-                                    <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-600">
+
+                                  <td className="px-4 py-3">
+                                    <span className="rounded-full bg-blue-50 px-2.5 py-1 text-[11px] font-semibold text-blue-600">
                                       {staff.department}
                                     </span>
                                   </td>
+
                                   {/* SALARY */}
-                                  <td className="px-6 py-5 text-sm font-semibold text-gray-900">
+
+                                  <td className="px-4 py-3 text-sm font-semibold text-gray-900">
                                     ₹{staff.salary?.toLocaleString()}
                                   </td>
+
                                   {/* EMPLOYMENT */}
-                                  <td className="px-6 py-5">
+
+                                  <td className="px-4 py-3">
                                     <span
-                                      className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                                      className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${
                                         staff.employmentType === "FULL_TIME"
                                           ? "bg-emerald-50 text-emerald-600"
                                           : "bg-amber-50 text-amber-600"
@@ -2109,12 +2264,16 @@ export default function Insights() {
                                       {staff.employmentType}
                                     </span>
                                   </td>
+
                                   {/* SHIFT */}
-                                  <td className="px-6 py-5 text-sm text-gray-600">
+
+                                  <td className="px-4 py-3 text-sm text-gray-600">
                                     {staff.shift}
                                   </td>
+
                                   {/* HOURS */}
-                                  <td className="px-6 py-5 text-sm text-gray-600">
+
+                                  <td className="px-4 py-3 text-sm text-gray-600">
                                     {staff.monthlyWorkingHours}h
                                   </td>
                                 </tr>
@@ -2123,690 +2282,194 @@ export default function Insights() {
                           </table>
                         </div>
                       </div>
-                      {/* AI INSIGHT */}
-                      <div className="relative overflow-hidden rounded-2xl border border-red-100 bg-gradient-to-br from-red-50 via-white to-pink-50 p-4">
-                        <div className="absolute -right-10 -top-10 h-32 w-32 rounded-full bg-red-100 blur-3xl"></div>
-                        <div className="relative z-10 flex items-start gap-4">
-                          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-red-500 to-pink-500 shadow-lg">
-                            <Sparkles className="h-5 w-5 text-white" />
-                          </div>
-                          <div>
-                            <h4 className="text-lg font-semibold text-gray-900">
-                              AI Labour Insight
-                            </h4>
-                            <p className="mt-2 max-w-3xl text-sm leading-7 text-gray-600">
-                              Labour cost is one of the biggest operational
-                              expenses in restaurants. Monitoring
-                              department-wise salary distribution and staffing
-                              efficiency helps improve profitability and
-                              operational stability.
-                            </p>
-                          </div>
-                        </div>
-                      </div>
                     </div>
                   )}
-                  {/* FINANCIAL TARGETS */}
+                  {/* ================= FINANCIAL TARGETS ================= */}
+
                   {insightsSection === "Financial Targets" && (
-                    <div className="space-y-6">
-                      {/* TOP KPI CARDS */}
-                      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-                        {/* EBITDA */}
-                        <div className="group relative overflow-hidden rounded-2xl border border-white/40 bg-white/80 p-5 shadow-[0_8px_30px_rgba(0,0,0,0.05)] backdrop-blur-xl">
-                          <div className="absolute -right-10 -top-10 h-28 w-28 rounded-full bg-red-100 blur-3xl"></div>
-                          <div className="relative z-10">
-                            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-red-50">
-                              <TrendingUp className="h-5 w-5 text-red-500" />
+                    <div className="space-y-4">
+                      {/* ================= KPI ================= */}
+
+                      <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+                        {/* TARGET EBITDA */}
+
+                        <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+                          <div className="flex items-start justify-between">
+                            <div>
+                              <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-gray-400">
+                                EBITDA Target
+                              </p>
+
+                              <p className="mt-2 text-2xl font-bold tracking-tight text-gray-900">
+                                {insightsData.targetEbitda || 0}%
+                              </p>
+
+                              <p className="mt-1 text-[11px] text-gray-500">
+                                Profitability goal
+                              </p>
                             </div>
-                            <p className="mt-4 text-sm text-gray-500">
-                              EBITDA Goal
-                            </p>
-                            <p className="mt-2 text-3xl font-bold tracking-tight text-red-600">
-                              {insightsData.targetEbitda}%
-                            </p>
-                            <p className="mt-3 text-xs text-gray-400">
-                              Healthy profitability target
-                            </p>
+
+                            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-50">
+                              <TrendingUp className="h-4 w-4 text-violet-600" />
+                            </div>
                           </div>
                         </div>
+
                         {/* FOOD COST */}
-                        <div className="group relative overflow-hidden rounded-2xl border border-white/40 bg-white/80 p-5 shadow-[0_8px_30px_rgba(0,0,0,0.05)] backdrop-blur-xl">
-                          <div className="absolute -right-10 -top-10 h-28 w-28 rounded-full bg-orange-100 blur-3xl"></div>
-                          <div className="relative z-10">
-                            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-orange-50">
-                              <UtensilsCrossed className="h-5 w-5 text-orange-500" />
+
+                        <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+                          <div className="flex items-start justify-between">
+                            <div>
+                              <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-gray-400">
+                                Food Cost
+                              </p>
+
+                              <p className="mt-2 text-2xl font-bold tracking-tight text-gray-900">
+                                {insightsData.targetFoodCost || 0}%
+                              </p>
+
+                              <p className="mt-1 text-[11px] text-gray-500">
+                                Inventory efficiency
+                              </p>
                             </div>
-                            <p className="mt-4 text-sm text-gray-500">
-                              Food Cost Goal
-                            </p>
-                            <p className="mt-2 text-3xl font-bold tracking-tight text-orange-600">
-                              {insightsData.targetFoodCost}%
-                            </p>
-                            <p className="mt-3 text-xs text-gray-400">
-                              Ingredient efficiency target
-                            </p>
+
+                            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-orange-50">
+                              <UtensilsCrossed className="h-4 w-4 text-orange-600" />
+                            </div>
                           </div>
                         </div>
+
                         {/* GROSS MARGIN */}
-                        <div className="group relative overflow-hidden rounded-2xl border border-white/40 bg-white/80 p-5 shadow-[0_8px_30px_rgba(0,0,0,0.05)] backdrop-blur-xl">
-                          <div className="absolute -right-10 -top-10 h-28 w-28 rounded-full bg-violet-100 blur-3xl"></div>
-                          <div className="relative z-10">
-                            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-violet-50">
-                              <BarChart3 className="h-5 w-5 text-violet-600" />
+
+                        <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+                          <div className="flex items-start justify-between">
+                            <div>
+                              <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-gray-400">
+                                Gross Margin
+                              </p>
+
+                              <p className="mt-2 text-2xl font-bold tracking-tight text-gray-900">
+                                {insightsData.targetGrossMargin || 0}%
+                              </p>
+
+                              <p className="mt-1 text-[11px] text-gray-500">
+                                Revenue margin target
+                              </p>
                             </div>
-                            <p className="mt-4 text-sm text-gray-500">
-                              Gross Margin Goal
-                            </p>
-                            <p className="mt-2 text-3xl font-bold tracking-tight text-violet-600">
-                              {insightsData.targetGrossMargin}%
-                            </p>
-                            <p className="mt-3 text-xs text-gray-400">
-                              Operational margin target
-                            </p>
+
+                            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50">
+                              <BarChart3 className="h-4 w-4 text-emerald-600" />
+                            </div>
                           </div>
                         </div>
+
                         {/* PRIME COST */}
-                        <div className="group relative overflow-hidden rounded-2xl border border-white/40 bg-white/80 p-5 shadow-[0_8px_30px_rgba(0,0,0,0.05)] backdrop-blur-xl">
-                          <div className="absolute -right-10 -top-10 h-28 w-28 rounded-full bg-emerald-100 blur-3xl"></div>
-                          <div className="relative z-10">
-                            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-50">
-                              <Target className="h-5 w-5 text-emerald-600" />
+
+                        <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+                          <div className="flex items-start justify-between">
+                            <div>
+                              <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-gray-400">
+                                Prime Cost
+                              </p>
+
+                              <p className="mt-2 text-2xl font-bold tracking-tight text-gray-900">
+                                {insightsData.targetPrimeCost || 0}%
+                              </p>
+
+                              <p className="mt-1 text-[11px] text-gray-500">
+                                Labour + food cost
+                              </p>
                             </div>
-                            <p className="mt-4 text-sm text-gray-500">
-                              Prime Cost Goal
-                            </p>
-                            <p className="mt-2 text-3xl font-bold tracking-tight text-emerald-600">
-                              {insightsData.targetPrimeCost}%
-                            </p>
-                            <p className="mt-3 text-xs text-gray-400">
-                              Food + labour efficiency
-                            </p>
+
+                            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-red-50">
+                              <PieChart className="h-4 w-4 text-red-500" />
+                            </div>
                           </div>
                         </div>
                       </div>
-                      {/* MAIN TARGET FORM */}
-                      <div className="rounded-2xl border border-white/40 bg-white/80 p-4 shadow-[0_8px_30px_rgba(0,0,0,0.05)] backdrop-blur-xl">
+
+                      {/* ================= TARGET FORM ================= */}
+
+                      <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
                         {/* HEADER */}
-                        <div className="mb-6 flex items-center gap-4">
-                          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-red-50">
-                            <Goal className="h-5 w-5 text-red-500" />
+
+                        <div className="mb-5 flex items-center gap-3">
+                          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-red-50">
+                            <Target className="h-4 w-4 text-red-500" />
                           </div>
+
                           <div>
-                            <h3 className="text-lg font-semibold text-gray-900">
-                              Financial Targets Setup
+                            <h3 className="text-[18px] font-semibold text-gray-900">
+                              Financial Goal Configuration
                             </h3>
-                            <p className="mt-1 text-sm text-gray-500">
-                              Configure profitability and growth goals
+
+                            <p className="mt-1 text-[12px] text-gray-500">
+                              Configure profitability & operational targets
                             </p>
                           </div>
                         </div>
-                        {/* INPUT GRID */}
-                        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+
+                        {/* FORM GRID */}
+
+                        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
                           {[
                             {
                               label: "Target EBITDA %",
                               key: "targetEbitda",
-                              placeholder: "15",
-                              icon: TrendingUp,
-                              color: "red",
+                              helper: "Expected profitability target",
                             },
+
                             {
                               label: "Target Food Cost %",
                               key: "targetFoodCost",
-                              placeholder: "30",
-                              icon: UtensilsCrossed,
-                              color: "orange",
+                              helper: "Ideal inventory cost ratio",
                             },
+
                             {
                               label: "Target Gross Margin %",
                               key: "targetGrossMargin",
-                              placeholder: "60",
-                              icon: BarChart3,
-                              color: "violet",
+                              helper: "Revenue profitability expectation",
                             },
+
                             {
-                              label: "Ideal Prime Cost %",
+                              label: "Target Prime Cost %",
                               key: "targetPrimeCost",
-                              placeholder: "55",
-                              icon: Target,
-                              color: "emerald",
+                              helper: "Combined labour & food cost",
                             },
+
                             {
                               label: "Monthly Revenue Goal",
                               key: "monthlyRevenueGoal",
-                              placeholder: "500000",
-                              icon: Wallet,
-                              color: "blue",
+                              helper: "Target monthly restaurant revenue",
+                              prefix: "₹",
                             },
+
                             {
                               label: "Monthly Profit Goal",
                               key: "monthlyProfitGoal",
-                              placeholder: "100000",
-                              icon: IndianRupee,
-                              color: "pink",
+                              helper: "Expected monthly net profit",
+                              prefix: "₹",
                             },
-                          ].map((field) => {
-                            const Icon = field.icon;
-                            return (
-                              <div
-                                key={field.key}
-                                className="group rounded-2xl border border-gray-100 bg-gray-50/70 p-5 transition-all duration-200 hover:bg-white hover:shadow-sm"
-                              >
-                                {/* TOP */}
-                                <div className="mb-4 flex items-center gap-3">
-                                  <div
-                                    className={`flex h-10 w-10 items-center justify-center rounded-2xl ${
-                                      field.color === "red"
-                                        ? "bg-red-50"
-                                        : field.color === "orange"
-                                          ? "bg-orange-50"
-                                          : field.color === "violet"
-                                            ? "bg-violet-50"
-                                            : field.color === "emerald"
-                                              ? "bg-emerald-50"
-                                              : field.color === "blue"
-                                                ? "bg-blue-50"
-                                                : "bg-pink-50"
-                                    }`}
-                                  >
-                                    <Icon
-                                      className={`h-4 w-4 ${
-                                        field.color === "red"
-                                          ? "text-red-500"
-                                          : field.color === "orange"
-                                            ? "text-orange-500"
-                                            : field.color === "violet"
-                                              ? "text-violet-600"
-                                              : field.color === "emerald"
-                                                ? "text-emerald-600"
-                                                : field.color === "blue"
-                                                  ? "text-blue-600"
-                                                  : "text-pink-600"
-                                      }`}
-                                    />
-                                  </div>
-                                  <div>
-                                    <label className="text-sm font-semibold text-gray-800">
-                                      {field.label}
-                                    </label>
-                                    <p className="mt-0.5 text-xs text-gray-400">
-                                      Business target configuration
-                                    </p>
-                                  </div>
-                                </div>
-                                {/* INPUT */}
-                                <div className="relative">
-                                  {(field.key === "monthlyRevenueGoal" ||
-                                    field.key === "monthlyProfitGoal") && (
-                                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-medium text-gray-400">
-                                      ₹
-                                    </span>
-                                  )}
-                                  <input
-                                    type="number"
-                                    value={insightsData[field.key]}
-                                    onChange={(e) =>
-                                      setInsightsData({
-                                        ...insightsData,
-                                        [field.key]: Number(e.target.value),
-                                      })
-                                    }
-                                    placeholder={field.placeholder}
-                                    className={`w-full rounded-2xl border border-gray-100 bg-white px-4 py-3 text-sm font-medium outline-none transition-all duration-200 focus:shadow-[0_0_0_4px_rgba(255,0,80,0.05)] ${
-                                      field.key === "monthlyRevenueGoal" ||
-                                      field.key === "monthlyProfitGoal"
-                                        ? "pl-9"
-                                        : ""
-                                    }`}
-                                  />
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                      {/* AI INSIGHT PANEL */}
-                      <div className="relative overflow-hidden rounded-2xl border border-red-100 bg-gradient-to-br from-red-50 via-white to-pink-50 p-4">
-                        <div className="absolute -right-10 -top-10 h-32 w-32 rounded-full bg-red-100 blur-3xl"></div>
-                        <div className="relative z-10 flex items-start gap-4">
-                          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-red-500 to-pink-500 shadow-lg">
-                            <Sparkles className="h-5 w-5 text-white" />
-                          </div>
-                          <div>
-                            <h4 className="text-lg font-semibold text-gray-900">
-                              AI Financial Insight
-                            </h4>
-                            <p className="mt-2 max-w-3xl text-sm leading-7 text-gray-600">
-                              Financial targets help DineInk generate
-                              profitability forecasting, EBITDA projections,
-                              operational health scoring and long-term
-                              restaurant growth analysis.
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                  {/* TAX & FINANCE */}
-                  {insightsSection === "Tax & Finance" && (
-                    <div className="space-y-6">
-                      {/* TOP SUMMARY */}
-                      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-                        {/* GST */}
-                        <div className="group relative overflow-hidden rounded-2xl border border-white/40 bg-white/80 p-5 shadow-[0_8px_30px_rgba(0,0,0,0.05)] backdrop-blur-xl">
-                          <div className="absolute -right-10 -top-10 h-28 w-28 rounded-full bg-blue-100 blur-3xl"></div>
-                          <div className="relative z-10">
-                            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-blue-50">
-                              <Receipt className="h-5 w-5 text-blue-600" />
-                            </div>
-                            <p className="mt-4 text-sm text-gray-500">
-                              GST Configuration
-                            </p>
-                            <p className="mt-2 text-3xl font-bold text-blue-600">
-                              {insightsData.gstPercentage}%
-                            </p>
-                            <p className="mt-2 text-xs text-gray-400">
-                              Restaurant taxation setup
-                            </p>
-                          </div>
-                        </div>
-                        {/* FINANCIAL BURDEN */}
-                        <div className="group relative overflow-hidden rounded-2xl border border-white/40 bg-white/80 p-5 shadow-[0_8px_30px_rgba(0,0,0,0.05)] backdrop-blur-xl">
-                          <div className="absolute -right-10 -top-10 h-28 w-28 rounded-full bg-red-100 blur-3xl"></div>
-                          <div className="relative z-10">
-                            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-red-50">
-                              <Landmark className="h-5 w-5 text-red-500" />
-                            </div>
-                            <p className="mt-4 text-sm text-gray-500">
-                              Monthly Financial Burden
-                            </p>
-                            <p className="mt-2 text-3xl font-bold text-red-600">
-                              ₹
-                              {(
-                                insightsData.monthlyLoanEmi +
-                                insightsData.monthlyInterestPayments
-                              ).toLocaleString()}
-                            </p>
-                            <p className="mt-2 text-xs text-gray-400">
-                              EMI + interest obligations
-                            </p>
-                          </div>
-                        </div>
-                        {/* IMPACT */}
-                        <div className="group relative overflow-hidden rounded-2xl border border-white/40 bg-white/80 p-5 shadow-[0_8px_30px_rgba(0,0,0,0.05)] backdrop-blur-xl">
-                          <div className="absolute -right-10 -top-10 h-28 w-28 rounded-full bg-emerald-100 blur-3xl"></div>
-                          <div className="relative z-10">
-                            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-50">
-                              <ShieldCheck className="h-5 w-5 text-emerald-600" />
-                            </div>
-                            <p className="mt-4 text-sm text-gray-500">
-                              Net Profit Impact
-                            </p>
-                            <p className="mt-2 text-3xl font-bold text-emerald-600">
-                              {insightsData.monthlyLoanEmi +
-                                insightsData.monthlyInterestPayments >
-                              100000
-                                ? "High"
-                                : insightsData.monthlyLoanEmi +
-                                      insightsData.monthlyInterestPayments >
-                                    50000
-                                  ? "Moderate"
-                                  : "Low"}
-                            </p>
-                            <p className="mt-2 text-xs text-gray-400">
-                              Financial commitment health
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                      {/* MAIN FORM */}
-                      <div className="rounded-2xl border border-white/40 bg-white/80 p-4 shadow-[0_8px_30px_rgba(0,0,0,0.05)] backdrop-blur-xl">
-                        {/* HEADER */}
-                        <div className="mb-6 flex items-center gap-4">
-                          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-red-50">
-                            <BadgeDollarSign className="h-5 w-5 text-red-500" />
-                          </div>
-                          <div>
-                            <h3 className="text-lg font-semibold text-gray-900">
-                              Tax & Finance Configuration
-                            </h3>
-                            <p className="mt-1 text-sm text-gray-500">
-                              Configure financial obligations & taxation
-                            </p>
-                          </div>
-                        </div>
-                        {/* INPUTS */}
-                        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-                          {[
-                            {
-                              label: "GST Percentage",
-                              key: "gstPercentage",
-                              placeholder: "5",
-                              icon: Receipt,
-                              color: "blue",
-                              prefix: "%",
-                            },
-                            {
-                              label: "Monthly Loan EMI",
-                              key: "monthlyLoanEmi",
-                              placeholder: "50000",
-                              icon: Landmark,
-                              color: "red",
-                            },
-                            {
-                              label: "Monthly Interest Payments",
-                              key: "monthlyInterestPayments",
-                              placeholder: "10000",
-                              icon: Wallet,
-                              color: "orange",
-                            },
-                            {
-                              label: "Accounting / CA Fees",
-                              key: "caFees",
-                              placeholder: "5000",
-                              icon: Calculator,
-                              color: "violet",
-                            },
-                            {
-                              label: "Insurance Cost",
-                              key: "insuranceCost",
-                              placeholder: "3000",
-                              icon: ShieldCheck,
-                              color: "emerald",
-                            },
-                            {
-                              label: "Other Taxes / Charges",
-                              key: "otherTaxes",
-                              placeholder: "2000",
-                              icon: FileText,
-                              color: "pink",
-                            },
-                          ].map((field) => {
-                            const Icon = field.icon;
-                            return (
-                              <div
-                                key={field.key}
-                                className="rounded-2xl border border-gray-100 bg-gray-50/70 p-5 transition-all duration-200 hover:bg-white hover:shadow-sm"
-                              >
-                                {/* TOP */}
-                                <div className="mb-4 flex items-center gap-3">
-                                  <div
-                                    className={`flex h-10 w-10 items-center justify-center rounded-2xl ${
-                                      field.color === "blue"
-                                        ? "bg-blue-50"
-                                        : field.color === "red"
-                                          ? "bg-red-50"
-                                          : field.color === "orange"
-                                            ? "bg-orange-50"
-                                            : field.color === "violet"
-                                              ? "bg-violet-50"
-                                              : field.color === "emerald"
-                                                ? "bg-emerald-50"
-                                                : "bg-pink-50"
-                                    }`}
-                                  >
-                                    <Icon
-                                      className={`h-4 w-4 ${
-                                        field.color === "blue"
-                                          ? "text-blue-600"
-                                          : field.color === "red"
-                                            ? "text-red-500"
-                                            : field.color === "orange"
-                                              ? "text-orange-500"
-                                              : field.color === "violet"
-                                                ? "text-violet-600"
-                                                : field.color === "emerald"
-                                                  ? "text-emerald-600"
-                                                  : "text-pink-600"
-                                      }`}
-                                    />
-                                  </div>
-                                  <div>
-                                    <label className="text-sm font-semibold text-gray-800">
-                                      {field.label}
-                                    </label>
-                                    <p className="mt-0.5 text-xs text-gray-400">
-                                      Financial configuration
-                                    </p>
-                                  </div>
-                                </div>
-                                {/* INPUT */}
-                                <div className="relative">
-                                  {!field.prefix && (
-                                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-medium text-gray-400">
-                                      ₹
-                                    </span>
-                                  )}
-                                  <input
-                                    type="number"
-                                    value={insightsData[field.key]}
-                                    onChange={(e) =>
-                                      setInsightsData({
-                                        ...insightsData,
-                                        [field.key]: Number(e.target.value),
-                                      })
-                                    }
-                                    placeholder={field.placeholder}
-                                    className={`w-full rounded-2xl border border-gray-100 bg-white py-3 text-sm font-medium outline-none transition-all duration-200 focus:shadow-[0_0_0_4px_rgba(255,0,80,0.05)] ${
-                                      field.prefix ? "px-4" : "pl-9 pr-4"
-                                    }`}
-                                  />
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                      {/* AI INFO PANEL */}
-                      <div className="relative overflow-hidden rounded-2xl border border-blue-100 bg-gradient-to-br from-blue-50 via-white to-cyan-50 p-4">
-                        <div className="absolute -right-10 -top-10 h-32 w-32 rounded-full bg-blue-100 blur-3xl"></div>
-                        <div className="relative z-10 flex items-start gap-4">
-                          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500 to-cyan-500 shadow-lg">
-                            <Sparkles className="h-5 w-5 text-white" />
-                          </div>
-                          <div>
-                            <h4 className="text-lg font-semibold text-gray-900">
-                              AI Finance Intelligence
-                            </h4>
-                            <p className="mt-2 max-w-3xl text-sm leading-7 text-gray-600">
-                              DineInk uses taxation and finance data to
-                              calculate break-even analysis, EBITDA accuracy,
-                              net profitability forecasting and long-term
-                              financial sustainability.
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                  {/* BUSINESS ASSUMPTIONS */}
-                  {insightsSection === "Business Assumptions" && (
-                    <div className="space-y-6">
-                      {/* TOP KPI CARDS */}
-                      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-                        {/* GROWTH */}
-                        <div className="group relative overflow-hidden rounded-2xl border border-white/40 bg-white/80 p-5 shadow-[0_8px_30px_rgba(0,0,0,0.05)] backdrop-blur-xl">
-                          <div className="absolute -right-10 -top-10 h-28 w-28 rounded-full bg-emerald-100 blur-3xl"></div>
-                          <div className="relative z-10">
-                            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-50">
-                              <TrendingUp className="h-5 w-5 text-emerald-600" />
-                            </div>
-                            <p className="mt-4 text-sm text-gray-500">
-                              Projected Growth
-                            </p>
-                            <p className="mt-2 text-3xl font-bold tracking-tight text-emerald-600">
-                              +{insightsData.expectedMonthlyGrowth}%
-                            </p>
-                            <p className="mt-3 text-xs text-gray-400">
-                              Expected business expansion
-                            </p>
-                          </div>
-                        </div>
-                        {/* DELIVERY */}
-                        <div className="group relative overflow-hidden rounded-2xl border border-white/40 bg-white/80 p-5 shadow-[0_8px_30px_rgba(0,0,0,0.05)] backdrop-blur-xl">
-                          <div className="absolute -right-10 -top-10 h-28 w-28 rounded-full bg-blue-100 blur-3xl"></div>
-                          <div className="relative z-10">
-                            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-blue-50">
-                              <Bike className="h-5 w-5 text-blue-600" />
-                            </div>
-                            <p className="mt-4 text-sm text-gray-500">
-                              Delivery Expansion
-                            </p>
-                            <p className="mt-2 text-3xl font-bold tracking-tight text-blue-600">
-                              +{insightsData.expectedDeliveryGrowth}%
-                            </p>
-                            <p className="mt-3 text-xs text-gray-400">
-                              Online order projection
-                            </p>
-                          </div>
-                        </div>
-                        {/* INFLATION */}
-                        {/* <div className="group relative overflow-hidden rounded-2xl border border-white/40 bg-white/80 p-5 shadow-[0_8px_30px_rgba(0,0,0,0.05)] backdrop-blur-xl">
-                          <div className="absolute -right-10 -top-10 h-28 w-28 rounded-full bg-orange-100 blur-3xl"></div>
-                          <div className="relative z-10">
-                            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-orange-50">
-                              <ChartNoAxesCombined className="h-5 w-5 text-orange-500" />
-                            </div>
-                            <p className="mt-4 text-sm text-gray-500">
-                              Inflation Impact
-                            </p>
-                            <p className="mt-2 text-3xl font-bold tracking-tight text-orange-500">
-                              {insightsData.expectedInflation}%
-                            </p>
-                            <p className="mt-3 text-xs text-gray-400">
-                              Estimated operational inflation
-                            </p>
-                          </div>
-                        </div> */}
-                        {/* WEEKEND */}
-                        <div className="group relative overflow-hidden rounded-2xl border border-white/40 bg-white/80 p-5 shadow-[0_8px_30px_rgba(0,0,0,0.05)] backdrop-blur-xl">
-                          <div className="absolute -right-10 -top-10 h-28 w-28 rounded-full bg-violet-100 blur-3xl"></div>
-                          <div className="relative z-10">
-                            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-violet-50">
-                              <Rocket className="h-5 w-5 text-violet-600" />
-                            </div>
-                            <p className="mt-4 text-sm text-gray-500">
-                              Weekend Boost
-                            </p>
-                            <p className="mt-2 text-3xl font-bold tracking-tight text-violet-600">
-                              +{insightsData.weekendSalesIncrease}%
-                            </p>
-                            <p className="mt-3 text-xs text-gray-400">
-                              Weekend sales uplift
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                      {/* MAIN FORECAST ENGINE */}
-                      <div className="relative overflow-hidden rounded-2xl border border-white/40 bg-white/80 p-4 shadow-[0_8px_30px_rgba(0,0,0,0.05)] backdrop-blur-xl">
-                        {/* GLOW */}
-                        <div className="absolute -right-10 -top-10 h-32 w-32 rounded-full bg-red-100 blur-3xl"></div>
-                        {/* HEADER */}
-                        <div className="relative z-10 mb-8 flex flex-wrap items-center justify-between gap-4">
-                          <div className="flex items-center gap-4">
-                            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-red-500 to-pink-500 shadow-lg">
-                              <Sparkles className="h-6 w-6 text-white" />
-                            </div>
-                            <div>
-                              <h3 className="text-xl font-bold text-gray-900">
-                                Business Forecast Engine
-                              </h3>
-                              <p className="mt-1 text-sm text-gray-500">
-                                AI-powered future growth & profitability
-                                assumptions
-                              </p>
-                            </div>
-                          </div>
-                          {/* LIVE CHIP */}
-                          <div className="inline-flex items-center gap-2 rounded-full bg-red-50 px-4 py-2 text-xs font-semibold text-red-600">
-                            <div className="h-2 w-2 rounded-full bg-red-500 animate-pulse"></div>
-                            AI Forecast Active
-                          </div>
-                        </div>
-                        {/* INPUT GRID */}
-                        <div className="relative z-10 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-                          {[
-                            {
-                              label: "Expected Monthly Growth %",
-                              key: "expectedMonthlyGrowth",
-                              placeholder: "10",
-                              icon: TrendingUp,
-                              color: "emerald",
-                            },
-                            {
-                              label: "Expected Delivery Growth %",
-                              key: "expectedDeliveryGrowth",
-                              placeholder: "15",
-                              icon: Bike,
-                              color: "blue",
-                            },
-                            // {
-                            //   label: "Expected Inflation %",
-                            //   key: "expectedInflation",
-                            //   placeholder: "6",
-                            //   icon: ChartNoAxesCombined,
-                            //   color: "orange",
-                            // },
-                            {
-                              label: "Seasonal Impact %",
-                              key: "seasonalImpact",
-                              placeholder: "20",
-                              icon: CalendarRange,
-                              color: "pink",
-                            },
-                            {
-                              label: "Avg Weekend Sales Increase %",
-                              key: "weekendSalesIncrease",
-                              placeholder: "25",
-                              icon: Rocket,
-                              color: "violet",
-                            },
-                          ].map((field) => {
-                            const Icon = field.icon;
-                            return (
-                              <div
-                                key={field.key}
-                                className="rounded-2xl border border-gray-100 bg-gray-50/70 p-5 transition-all duration-200 hover:bg-white hover:shadow-sm"
-                              >
-                                {/* TOP */}
-                                <div className="mb-4 flex items-center gap-3">
-                                  <div
-                                    className={`flex h-10 w-10 items-center justify-center rounded-2xl ${
-                                      field.color === "emerald"
-                                        ? "bg-emerald-50"
-                                        : field.color === "blue"
-                                          ? "bg-blue-50"
-                                          : field.color === "orange"
-                                            ? "bg-orange-50"
-                                            : field.color === "pink"
-                                              ? "bg-pink-50"
-                                              : "bg-violet-50"
-                                    }`}
-                                  >
-                                    <Icon
-                                      className={`h-4 w-4 ${
-                                        field.color === "emerald"
-                                          ? "text-emerald-600"
-                                          : field.color === "blue"
-                                            ? "text-blue-600"
-                                            : field.color === "orange"
-                                              ? "text-orange-500"
-                                              : field.color === "pink"
-                                                ? "text-pink-500"
-                                                : "text-violet-600"
-                                      }`}
-                                    />
-                                  </div>
-                                  <div>
-                                    <label className="text-sm font-semibold text-gray-800">
-                                      {field.label}
-                                    </label>
-                                    <p className="mt-0.5 text-xs text-gray-400">
-                                      Forecast configuration
-                                    </p>
-                                  </div>
-                                </div>
-                                {/* INPUT */}
+                          ].map((field) => (
+                            <div
+                              key={field.key}
+                              className="rounded-xl border border-gray-200 bg-white p-3"
+                            >
+                              <label className="mb-2 block text-sm font-medium text-gray-700">
+                                {field.label}
+                              </label>
+
+                              <div className="relative">
+                                {field.prefix ? (
+                                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-400">
+                                    {field.prefix}
+                                  </span>
+                                ) : (
+                                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-gray-400">
+                                    %
+                                  </span>
+                                )}
+
                                 <input
                                   type="number"
                                   value={insightsData[field.key]}
@@ -2816,10 +2479,631 @@ export default function Insights() {
                                       [field.key]: Number(e.target.value),
                                     })
                                   }
-                                  placeholder={field.placeholder}
-                                  className="w-full rounded-2xl border border-gray-100 bg-white px-4 py-3 text-sm font-medium outline-none transition-all duration-200 focus:shadow-[0_0_0_4px_rgba(255,0,80,0.05)]"
+                                  placeholder="0"
+                                  className={`w-full rounded-xl border border-gray-200 bg-gray-50 py-2.5 text-sm outline-none transition-all duration-200 focus:border-red-300 focus:bg-white ${
+                                    field.prefix ? "pl-8 pr-3" : "pl-3 pr-8"
+                                  }`}
                                 />
+                              </div>
+
+                              <p className="mt-2 text-[11px] text-gray-400">
+                                {field.helper}
+                              </p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* ================= TARGET INSIGHTS ================= */}
+
+                      <div className="grid grid-cols-1 gap-3 xl:grid-cols-3">
+                        {/* EBITDA */}
+
+                        <div className="rounded-xl border border-violet-100 bg-violet-50 p-4">
+                          <div className="flex items-start gap-3">
+                            <TrendingUp className="mt-0.5 h-4 w-4 text-violet-600" />
+
+                            <div>
+                              <p className="text-sm font-semibold text-violet-900">
+                                EBITDA Strategy
+                              </p>
+
+                              <p className="mt-1 text-[12px] leading-6 text-violet-800">
+                                Maintaining EBITDA above 15% is considered
+                                healthy for most restaurant operations.
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* FOOD */}
+
+                        <div className="rounded-xl border border-orange-100 bg-orange-50 p-4">
+                          <div className="flex items-start gap-3">
+                            <UtensilsCrossed className="mt-0.5 h-4 w-4 text-orange-600" />
+
+                            <div>
+                              <p className="text-sm font-semibold text-orange-900">
+                                Food Cost Control
+                              </p>
+
+                              <p className="mt-1 text-[12px] leading-6 text-orange-800">
+                                Restaurants usually maintain food cost between
+                                28%–35% for sustainable profitability.
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* PRIME */}
+
+                        <div className="rounded-xl border border-red-100 bg-red-50 p-4">
+                          <div className="flex items-start gap-3">
+                            <PieChart className="mt-0.5 h-4 w-4 text-red-500" />
+
+                            <div>
+                              <p className="text-sm font-semibold text-red-900">
+                                Prime Cost Health
+                              </p>
+
+                              <p className="mt-1 text-[12px] leading-6 text-red-800">
+                                Prime cost should ideally stay below 60% for
+                                strong operational performance.
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* ================= TAX & FINANCE ================= */}
+
+                  {insightsSection === "Tax & Finance" && (
+                    <div className="space-y-4">
+                      {/* ================= KPI ================= */}
+
+                      <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+                        {/* GST */}
+
+                        <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+                          <div className="flex items-start justify-between">
+                            <div>
+                              <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-gray-400">
+                                GST
+                              </p>
+
+                              <p className="mt-2 text-2xl font-bold tracking-tight text-gray-900">
+                                {insightsData.gstPercentage || 0}%
+                              </p>
+
+                              <p className="mt-1 text-[11px] text-gray-500">
+                                Tax percentage
+                              </p>
+                            </div>
+
+                            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50">
+                              <Receipt className="h-4 w-4 text-blue-600" />
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* EMI */}
+
+                        <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+                          <div className="flex items-start justify-between">
+                            <div>
+                              <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-gray-400">
+                                Loan EMI
+                              </p>
+
+                              <p className="mt-2 text-2xl font-bold tracking-tight text-gray-900">
+                                ₹
+                                {(
+                                  insightsData.monthlyLoanEmi || 0
+                                ).toLocaleString()}
+                              </p>
+
+                              <p className="mt-1 text-[11px] text-gray-500">
+                                Monthly repayments
+                              </p>
+                            </div>
+
+                            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-red-50">
+                              <Wallet className="h-4 w-4 text-red-500" />
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* INTEREST */}
+
+                        <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+                          <div className="flex items-start justify-between">
+                            <div>
+                              <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-gray-400">
+                                Interest
+                              </p>
+
+                              <p className="mt-2 text-2xl font-bold tracking-tight text-gray-900">
+                                ₹
+                                {(
+                                  insightsData.monthlyInterestPayments || 0
+                                ).toLocaleString()}
+                              </p>
+
+                              <p className="mt-1 text-[11px] text-gray-500">
+                                Financing charges
+                              </p>
+                            </div>
+
+                            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-orange-50">
+                              <BadgePercent className="h-4 w-4 text-orange-600" />
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* TOTAL */}
+
+                        <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+                          <div className="flex items-start justify-between">
+                            <div>
+                              <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-gray-400">
+                                Finance Cost
+                              </p>
+
+                              <p className="mt-2 text-2xl font-bold tracking-tight text-gray-900">
+                                ₹
+                                {(
+                                  (insightsData.monthlyLoanEmi || 0) +
+                                  (insightsData.monthlyInterestPayments || 0) +
+                                  (insightsData.caFees || 0) +
+                                  (insightsData.insuranceCost || 0) +
+                                  (insightsData.otherTaxes || 0)
+                                ).toLocaleString()}
+                              </p>
+
+                              <p className="mt-1 text-[11px] text-gray-500">
+                                Total financial overhead
+                              </p>
+                            </div>
+
+                            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-50">
+                              <Landmark className="h-4 w-4 text-violet-600" />
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* ================= FORM ================= */}
+
+                      <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+                        {/* HEADER */}
+
+                        <div className="mb-5 flex items-center gap-3">
+                          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-50">
+                            <Landmark className="h-4 w-4 text-violet-600" />
+                          </div>
+
+                          <div>
+                            <h3 className="text-[18px] font-semibold text-gray-900">
+                              Tax & Financial Configuration
+                            </h3>
+
+                            <p className="mt-1 text-[12px] text-gray-500">
+                              Configure tax liabilities & financing expenses
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* GRID */}
+
+                        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
+                          {[
+                            {
+                              label: "GST Percentage",
+                              key: "gstPercentage",
+                              helper: "Applicable restaurant GST %",
+                              suffix: "%",
+                            },
+
+                            {
+                              label: "Monthly Loan EMI",
+                              key: "monthlyLoanEmi",
+                              helper: "Monthly repayment amount",
+                              prefix: "₹",
+                            },
+
+                            {
+                              label: "Interest Payments",
+                              key: "monthlyInterestPayments",
+                              helper: "Monthly financing interest",
+                              prefix: "₹",
+                            },
+
+                            {
+                              label: "CA / Accounting Fees",
+                              key: "caFees",
+                              helper: "Professional accounting expense",
+                              prefix: "₹",
+                            },
+
+                            {
+                              label: "Insurance Cost",
+                              key: "insuranceCost",
+                              helper: "Monthly business insurance",
+                              prefix: "₹",
+                            },
+
+                            {
+                              label: "Other Taxes",
+                              key: "otherTaxes",
+                              helper: "Additional tax obligations",
+                              prefix: "₹",
+                            },
+                          ].map((field) => (
+                            <div
+                              key={field.key}
+                              className="rounded-xl border border-gray-200 bg-white p-3"
+                            >
+                              <label className="mb-2 block text-sm font-medium text-gray-700">
+                                {field.label}
+                              </label>
+
+                              <div className="relative">
+                                {field.prefix && (
+                                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-400">
+                                    {field.prefix}
+                                  </span>
+                                )}
+
+                                {field.suffix && (
+                                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-gray-400">
+                                    {field.suffix}
+                                  </span>
+                                )}
+
+                                <input
+                                  type="number"
+                                  value={insightsData[field.key]}
+                                  onChange={(e) =>
+                                    setInsightsData({
+                                      ...insightsData,
+                                      [field.key]: Number(e.target.value),
+                                    })
+                                  }
+                                  placeholder="0"
+                                  className={`w-full rounded-xl border border-gray-200 bg-gray-50 py-2.5 text-sm outline-none transition-all duration-200 focus:border-red-300 focus:bg-white ${
+                                    field.prefix
+                                      ? "pl-8 pr-3"
+                                      : field.suffix
+                                        ? "pl-3 pr-8"
+                                        : "px-3"
+                                  }`}
+                                />
+                              </div>
+
+                              <p className="mt-2 text-[11px] text-gray-400">
+                                {field.helper}
+                              </p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* ================= INSIGHTS ================= */}
+
+                      <div className="grid grid-cols-1 gap-3 xl:grid-cols-3">
+                        {/* TAX */}
+
+                        <div className="rounded-xl border border-blue-100 bg-blue-50 p-4">
+                          <div className="flex items-start gap-3">
+                            <Receipt className="mt-0.5 h-4 w-4 text-blue-600" />
+
+                            <div>
+                              <p className="text-sm font-semibold text-blue-900">
+                                GST Planning
+                              </p>
+
+                              <p className="mt-1 text-[12px] leading-6 text-blue-800">
+                                Restaurants generally operate under 5% GST
+                                without input tax credit for simplified
+                                taxation.
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* LOAN */}
+
+                        <div className="rounded-xl border border-orange-100 bg-orange-50 p-4">
+                          <div className="flex items-start gap-3">
+                            <Wallet className="mt-0.5 h-4 w-4 text-orange-600" />
+
+                            <div>
+                              <p className="text-sm font-semibold text-orange-900">
+                                Financing Health
+                              </p>
+
+                              <p className="mt-1 text-[12px] leading-6 text-orange-800">
+                                Loan repayment should ideally remain below 15%
+                                of monthly revenue for healthy cash flow.
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* INSURANCE */}
+
+                        <div className="rounded-xl border border-violet-100 bg-violet-50 p-4">
+                          <div className="flex items-start gap-3">
+                            <ShieldCheck className="mt-0.5 h-4 w-4 text-violet-600" />
+
+                            <div>
+                              <p className="text-sm font-semibold text-violet-900">
+                                Risk Protection
+                              </p>
+
+                              <p className="mt-1 text-[12px] leading-6 text-violet-800">
+                                Insurance coverage protects restaurant
+                                operations against unexpected liabilities &
+                                operational risks.
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  {/* ================= BUSINESS ASSUMPTIONS ================= */}
+
+                  {insightsSection === "Business Assumptions" && (
+                    <div className="space-y-4">
+                      {/* ================= KPI ================= */}
+
+                      <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+                        {/* GROWTH */}
+
+                        <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+                          <div className="flex items-start justify-between">
+                            <div>
+                              <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-gray-400">
+                                Revenue Growth
+                              </p>
+
+                              <p className="mt-2 text-2xl font-bold tracking-tight text-emerald-600">
+                                +{insightsData.expectedMonthlyGrowth || 0}%
+                              </p>
+
+                              <p className="mt-1 text-[11px] text-gray-500">
+                                Monthly projection
+                              </p>
+                            </div>
+
+                            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50">
+                              <TrendingUp className="h-4 w-4 text-emerald-600" />
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* DELIVERY */}
+
+                        <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+                          <div className="flex items-start justify-between">
+                            <div>
+                              <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-gray-400">
+                                Delivery
+                              </p>
+
+                              <p className="mt-2 text-2xl font-bold tracking-tight text-blue-600">
+                                +{insightsData.expectedDeliveryGrowth || 0}%
+                              </p>
+
+                              <p className="mt-1 text-[11px] text-gray-500">
+                                Online expansion
+                              </p>
+                            </div>
+
+                            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50">
+                              <Bike className="h-4 w-4 text-blue-600" />
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* WEEKEND */}
+
+                        <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+                          <div className="flex items-start justify-between">
+                            <div>
+                              <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-gray-400">
+                                Weekend Boost
+                              </p>
+
+                              <p className="mt-2 text-2xl font-bold tracking-tight text-violet-600">
+                                +{insightsData.weekendSalesIncrease || 0}%
+                              </p>
+
+                              <p className="mt-1 text-[11px] text-gray-500">
+                                Weekend uplift
+                              </p>
+                            </div>
+
+                            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-50">
+                              <Rocket className="h-4 w-4 text-violet-600" />
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* SEASONAL */}
+
+                        <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+                          <div className="flex items-start justify-between">
+                            <div>
+                              <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-gray-400">
+                                Seasonal
+                              </p>
+
+                              <p className="mt-2 text-2xl font-bold tracking-tight text-pink-500">
+                                {insightsData.seasonalImpact || 0}%
+                              </p>
+
+                              <p className="mt-1 text-[11px] text-gray-500">
+                                Seasonal fluctuation
+                              </p>
+                            </div>
+
+                            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-pink-50">
+                              <CalendarRange className="h-4 w-4 text-pink-500" />
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* ================= FORECAST ENGINE ================= */}
+
+                      <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+                        {/* HEADER */}
+
+                        <div className="mb-5 flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-red-50">
+                              <Sparkles className="h-4 w-4 text-red-500" />
+                            </div>
+
+                            <div>
+                              <h3 className="text-[18px] font-semibold text-gray-900">
+                                Business Forecast Engine
+                              </h3>
+
+                              <p className="mt-1 text-[12px] text-gray-500">
+                                Future growth & operational assumptions
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="rounded-full bg-red-50 px-3 py-1 text-[11px] font-semibold text-red-600">
+                            AI Forecast Active
+                          </div>
+                        </div>
+
+                        {/* INPUT GRID */}
+
+                        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
+                          {[
+                            {
+                              label: "Expected Monthly Growth %",
+                              key: "expectedMonthlyGrowth",
+                              placeholder: "10",
+                              icon: TrendingUp,
+                              color: "emerald",
+                            },
+
+                            {
+                              label: "Expected Delivery Growth %",
+                              key: "expectedDeliveryGrowth",
+                              placeholder: "15",
+                              icon: Bike,
+                              color: "blue",
+                            },
+
+                            {
+                              label: "Seasonal Impact %",
+                              key: "seasonalImpact",
+                              placeholder: "20",
+                              icon: CalendarRange,
+                              color: "pink",
+                            },
+
+                            {
+                              label: "Weekend Sales Increase %",
+                              key: "weekendSalesIncrease",
+                              placeholder: "25",
+                              icon: Rocket,
+                              color: "violet",
+                            },
+                          ].map((field) => {
+                            const Icon = field.icon;
+
+                            return (
+                              <div
+                                key={field.key}
+                                className="rounded-xl border border-gray-200 bg-white p-3"
+                              >
+                                {/* TOP */}
+
+                                <div className="mb-3 flex items-center gap-3">
+                                  <div
+                                    className={`flex h-9 w-9 items-center justify-center rounded-xl ${
+                                      field.color === "emerald"
+                                        ? "bg-emerald-50"
+                                        : field.color === "blue"
+                                          ? "bg-blue-50"
+                                          : field.color === "pink"
+                                            ? "bg-pink-50"
+                                            : "bg-violet-50"
+                                    }`}
+                                  >
+                                    <Icon
+                                      className={`h-4 w-4 ${
+                                        field.color === "emerald"
+                                          ? "text-emerald-600"
+                                          : field.color === "blue"
+                                            ? "text-blue-600"
+                                            : field.color === "pink"
+                                              ? "text-pink-500"
+                                              : "text-violet-600"
+                                      }`}
+                                    />
+                                  </div>
+
+                                  <div>
+                                    <label className="text-sm font-medium text-gray-800">
+                                      {field.label}
+                                    </label>
+
+                                    <p className="mt-0.5 text-[11px] text-gray-400">
+                                      Forecast configuration
+                                    </p>
+                                  </div>
+                                </div>
+
+                                {/* INPUT */}
+
+                                <div className="relative">
+                                  <input
+                                    type="number"
+                                    value={insightsData[field.key]}
+                                    onChange={(e) =>
+                                      setInsightsData({
+                                        ...insightsData,
+                                        [field.key]: Number(e.target.value),
+                                      })
+                                    }
+                                    placeholder={field.placeholder}
+                                    className="
+                    w-full
+                    rounded-xl
+                    border
+                    border-gray-200
+                    bg-gray-50
+                    py-2.5
+                    pl-3
+                    pr-8
+                    text-sm
+                    outline-none
+                    transition-all
+                    duration-200
+                    focus:border-red-300
+                    focus:bg-white
+                  "
+                                  />
+
+                                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-gray-400">
+                                    %
+                                  </span>
+                                </div>
+
                                 {/* RANGE */}
+
                                 <input
                                   type="range"
                                   min="0"
@@ -2831,26 +3115,31 @@ export default function Insights() {
                                       [field.key]: Number(e.target.value),
                                     })
                                   }
-                                  className="mt-4 w-full accent-red-500"
+                                  className="mt-3 w-full accent-red-500"
                                 />
                               </div>
                             );
                           })}
+
                           {/* EXPANSION */}
-                          <div className="rounded-2xl border border-gray-100 bg-gray-50/70 p-5 transition-all duration-200 hover:bg-white hover:shadow-sm">
-                            <div className="mb-4 flex items-center gap-3">
-                              <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-red-50">
+
+                          <div className="rounded-xl border border-gray-200 bg-white p-3 md:col-span-2 xl:col-span-1">
+                            <div className="mb-3 flex items-center gap-3">
+                              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-red-50">
                                 <Building2 className="h-4 w-4 text-red-500" />
                               </div>
+
                               <div>
-                                <label className="text-sm font-semibold text-gray-800">
+                                <label className="text-sm font-medium text-gray-800">
                                   Planned Expansion
                                 </label>
-                                <p className="mt-0.5 text-xs text-gray-400">
-                                  Future business scaling strategy
+
+                                <p className="mt-0.5 text-[11px] text-gray-400">
+                                  Future scaling strategy
                                 </p>
                               </div>
                             </div>
+
                             <select
                               value={insightsData.plannedExpansion}
                               onChange={(e) =>
@@ -2859,14 +3148,32 @@ export default function Insights() {
                                   plannedExpansion: e.target.value,
                                 })
                               }
-                              className="w-full rounded-2xl border border-gray-100 bg-white px-4 py-3 text-sm font-medium outline-none transition-all duration-200 focus:shadow-[0_0_0_4px_rgba(255,0,80,0.05)]"
+                              className="
+              w-full
+              rounded-xl
+              border
+              border-gray-200
+              bg-gray-50
+              px-3
+              py-2.5
+              text-sm
+              outline-none
+              transition-all
+              duration-200
+              focus:border-red-300
+              focus:bg-white
+            "
                             >
                               <option value="">Select Expansion</option>
+
                               <option value="NONE">No Expansion</option>
+
                               <option value="NEW_BRANCH">New Branch</option>
+
                               <option value="CLOUD_KITCHEN">
                                 Cloud Kitchen
                               </option>
+
                               <option value="MULTI_CITY">
                                 Multi City Expansion
                               </option>
@@ -2874,22 +3181,25 @@ export default function Insights() {
                           </div>
                         </div>
                       </div>
-                      {/* AI FORECAST PANEL */}
-                      <div className="relative overflow-hidden rounded-2xl border border-emerald-100 bg-gradient-to-r from-emerald-50 to-white p-4">
-                        <div className="absolute -right-10 -top-10 h-32 w-32 rounded-full bg-emerald-100 blur-3xl"></div>
-                        <div className="relative z-10 flex items-start gap-4">
-                          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-500 shadow-lg">
-                            <Sparkles className="h-5 w-5 text-white" />
+
+                      {/* ================= AI INSIGHT ================= */}
+
+                      <div className="rounded-xl border border-emerald-100 bg-emerald-50 p-4">
+                        <div className="flex items-start gap-3">
+                          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500">
+                            <Sparkles className="h-4 w-4 text-white" />
                           </div>
+
                           <div>
-                            <h4 className="text-lg font-semibold text-gray-900">
+                            <h4 className="text-sm font-semibold text-emerald-900">
                               AI Forecast Analysis
                             </h4>
-                            <p className="mt-2 max-w-3xl text-sm leading-7 text-gray-600">
-                              Based on current assumptions, DineInk predicts
-                              strong operational scalability with improving
-                              delivery performance, optimized weekend revenue
-                              growth and controlled inflation impact.
+
+                            <p className="mt-1 text-[13px] leading-6 text-emerald-800">
+                              Based on current assumptions, the restaurant shows
+                              healthy delivery scalability, improving weekend
+                              performance and stable operational growth
+                              potential.
                             </p>
                           </div>
                         </div>

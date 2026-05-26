@@ -58,6 +58,7 @@ import {
   MdCurrencyRupee,
 } from "react-icons/md";
 import { BarChart3, Search, UtensilsCrossed } from "lucide-react";
+import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
 
 const iconMap: any = {
   MdRestaurant,
@@ -129,6 +130,9 @@ const tabs = [
 
 export default function MenuManagement() {
   const [activeTab, setActiveTab] = useState("menu");
+  const [viewMode, setViewMode] = useState("pie");
+
+  const [selectedCategory, setSelectedCategory] = useState("all");
   const [menuItems, setMenuItems] = useState<any[]>([]);
   const [ingredients, setIngredients] = useState<any>({});
   const [restocks, setRestocks] = useState<any[]>([]);
@@ -1433,197 +1437,556 @@ export default function MenuManagement() {
     fetchVendors();
   }, []);
   return (
-    <main className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-red-50/30 px-6 py-6">
+    <main className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-red-50/30 rounded-md">
       <div className="mx-auto space-y-6">
         {/* ================= HERO ================= */}
-        <div className="relative overflow-hidden rounded-2xl border border-gray-200 bg-gradient-to-br from-white to-gray-50 p-5 shadow-sm">
+
+        <div className="relative overflow-hidden rounded-md border border-gray-200 bg-white px-4 py-3 shadow-sm">
           {/* Glow */}
-          <div className="absolute -right-10 -top-10 h-32 w-32 rounded-full bg-red-100/70 blur-3xl" />
-          <div className="relative z-10 flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+          <div className="absolute -right-10 -top-10 h-24 w-24 rounded-full bg-red-100/50 blur-3xl" />
+
+          <div className="relative z-10 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             {/* LEFT */}
-            <div>
-              {/* Badge */}
-              <div className="inline-flex items-center gap-2 rounded-full bg-red-50 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-red-600">
-                MENU OPERATIONS
+            <div className="flex items-center gap-3">
+              {/* ICON */}
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-red-500 to-pink-500 shadow-sm">
+                <UtensilsCrossed className="h-4 w-4 text-white" />
               </div>
-              {/* Title */}
-              <div className="mt-3 flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-red-50">
-                  <UtensilsCrossed className="h-5 w-5 text-red-600" />
-                </div>
-                <div>
-                  <h1 className="text-2xl font-black tracking-tight text-gray-900">
-                    Menu Management
-                  </h1>
-                  <p className="mt-1 text-sm text-gray-500">
-                    Menu items, inventory & stock analytics
-                  </p>
-                </div>
+
+              {/* CONTENT */}
+              <div>
+                {/* TITLE */}
+                <h1 className="text-[22px] font-black leading-none tracking-tight text-gray-900">
+                  Menu Operations
+                </h1>
+
+                {/* SUBTITLE */}
+                <p className="mt-1 text-[12px] text-gray-500">
+                  Menu items, ingredients, stock & analytics
+                </p>
               </div>
             </div>
-            {/* RIGHT */}
-            <div className="flex flex-wrap items-center gap-2">
-              <div className="rounded-full bg-blue-50 px-3 py-1 text-[11px] font-semibold text-blue-600">
-                Live Inventory
+
+            {/* RIGHT STATUS CHIPS */}
+
+            <div className="flex flex-wrap items-center gap-1.5">
+              <div className="rounded-lg border border-blue-100 bg-blue-50 px-2.5 py-1.5">
+                <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-blue-400">
+                  Inventory
+                </p>
+
+                <p className="text-[13px] font-black text-blue-700">Synced</p>
               </div>
-              <div className="rounded-full bg-emerald-50 px-3 py-1 text-[11px] font-semibold text-emerald-600">
-                Stock Synced
+
+              <div className="rounded-lg border border-emerald-100 bg-emerald-50 px-2.5 py-1.5">
+                <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-emerald-400">
+                  Stock
+                </p>
+
+                <p className="text-[13px] font-black text-emerald-700">Live</p>
               </div>
-              <div className="rounded-full bg-orange-50 px-3 py-1 text-[11px] font-semibold text-orange-600">
-                Analytics Enabled
+
+              <div className="rounded-lg border border-orange-100 bg-orange-50 px-2.5 py-1.5">
+                <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-orange-400">
+                  Analytics
+                </p>
+
+                <p className="text-[13px] font-black text-orange-700">
+                  Enabled
+                </p>
               </div>
             </div>
           </div>
         </div>
+
         {/* ================= TABS ================= */}
-        <div className="grid grid-cols-2 gap-4 lg:grid-cols-5">
+
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
           {tabs.map((tab) => {
             const Icon = tab.icon;
+
             const active = activeTab === tab.id;
+
             return (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`group relative overflow-hidden rounded-2xl border p-4 text-left transition-all duration-300 ${
-                  active
-                    ? "border-red-200 bg-gradient-to-br from-red-50 to-rose-50 shadow-[0_10px_30px_rgba(255,0,80,0.08)]"
-                    : "border-gray-200 bg-white hover:-translate-y-1 hover:border-red-100 hover:shadow-lg"
-                }`}
+                className={`
+          group
+          relative
+          overflow-hidden
+          rounded-md
+          border
+          px-4
+          py-3
+          text-left
+          transition-all
+          duration-200
+
+          ${
+            active
+              ? "border-red-200 bg-gradient-to-r from-red-50 to-rose-50 shadow-sm"
+              : "border-gray-200 bg-white hover:border-red-100 hover:bg-red-50/40"
+          }
+        `}
               >
-                {/* Glow */}
+                {/* ACTIVE GLOW */}
                 {active && (
-                  <div className="absolute -right-8 -top-8 h-24 w-24 rounded-full bg-red-100 blur-3xl" />
+                  <div className="absolute -right-8 -top-8 h-20 w-20 rounded-full bg-red-100 blur-3xl" />
                 )}
-                <div className="relative z-10">
-                  {/* Top */}
-                  <div className="flex items-start justify-between">
-                    {/* Icon */}
-                    <div
-                      className={`flex h-11 w-11 items-center justify-center rounded-xl ${active ? "bg-red-100" : "bg-gray-100"}`}
-                    >
-                      <Icon
-                        className={`h-5 w-5 ${
-                          active ? "text-red-600" : "text-gray-500"
-                        }`}
-                      />
-                    </div>
-                    {/* Active Indicator */}
-                    {active && (
-                      <div className="rounded-full bg-red-100 px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-red-600">
-                        Active
-                      </div>
-                    )}
-                  </div>
-                  {/* Title */}
-                  <h3
-                    className={`mt-4 text-base font-bold ${
-                      active ? "text-red-600" : "text-gray-900"
-                    }`}
+
+                <div className="relative z-10 flex items-center gap-3">
+                  {/* ICON */}
+                  <div
+                    className={`
+              flex
+              h-10
+              w-10
+              shrink-0
+              items-center
+              justify-center
+              rounded-xl
+
+              ${
+                active ? "bg-red-100 text-red-600" : "bg-gray-100 text-gray-500"
+              }
+            `}
                   >
-                    {tab.name}
-                  </h3>
-                  {/* Description */}
-                  <p className="mt-1 line-clamp-2 text-xs leading-5 text-gray-500">
-                    {tab.description}
-                  </p>
+                    <Icon className="h-4 w-4" />
+                  </div>
+
+                  {/* TEXT */}
+                  <div className="min-w-0 flex-1">
+                    <p
+                      className={`
+                truncate
+                text-[14px]
+                font-bold
+
+                ${active ? "text-red-600" : "text-gray-900"}
+              `}
+                    >
+                      {tab.name}
+                    </p>
+
+                    <p className="truncate text-[11px] text-gray-500">
+                      {tab.description}
+                    </p>
+                  </div>
+
+                  {/* ACTIVE DOT */}
+                  {active && (
+                    <div className="h-2 w-2 rounded-full bg-red-500" />
+                  )}
                 </div>
               </button>
             );
           })}
         </div>
         {/* ================= CONTENT ================= */}
-        <div className="rounded-2xl border border-white/40 bg-white/80 p-8 shadow-sm backdrop-blur-xl">
+        <div className="rounded-md border border-white/40 bg-white/80 p-8 shadow-sm backdrop-blur-xl">
           {/* MENU */}
           {activeTab === "menu" && (
-            <div className="space-y-6">
-              {/* HEADER */}
-              <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div className="space-y-4">
+              {/* ================= HEADER ================= */}
+
+              <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                {/* LEFT */}
                 <div>
-                  <h2 className="text-2xl font-bold text-gray-900">Menu</h2>
-                  <p className="mt-2 text-sm text-gray-500">
-                    Manage menu items, pricing, availability and categories
+                  <div className="inline-flex items-center gap-2 rounded-full bg-red-50 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-red-600">
+                    Menu Center
+                  </div>
+
+                  <h2 className="mt-2 text-[24px] font-black tracking-tight text-gray-900">
+                    Menu Items
+                  </h2>
+
+                  <p className="mt-1 text-[13px] text-gray-500">
+                    Manage pricing, categories & availability
                   </p>
                 </div>
-                <div className="flex flex-wrap gap-3">
-                  <input
-                    placeholder="Search menu item..."
-                    className="rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm outline-none"
-                  />
-                  <button className="rounded-2xl bg-red-500 px-5 py-3 text-sm font-semibold text-white transition hover:bg-red-600">
-                    + Add Menu Item
+
+                {/* RIGHT */}
+                <div className="flex items-center gap-2">
+                  <button className="h-11 rounded-xl bg-gradient-to-r from-red-500 to-rose-500 px-4 text-[13px] font-semibold text-white shadow-sm transition hover:opacity-90">
+                    + Add Item
                   </button>
                 </div>
               </div>
-              {/* TABLE */}
-              <div className="overflow-hidden rounded-2xl border border-white/40 bg-white shadow-sm">
+
+              {/* ================= TABLE ================= */}
+
+              <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
                 <div className="overflow-x-auto">
                   <table className="min-w-full">
                     {/* HEADER */}
-                    <thead className="border-b border-gray-100 bg-gray-50">
-                      <tr className="text-left">
-                        <th className="px-6 py-4 text-sm font-semibold text-gray-700">
-                          Item Name
+
+                    <thead className="border-b border-gray-100 bg-gray-50/80">
+                      {/* FILTER ROW */}
+
+                      <tr className="border-b border-gray-100 bg-gray-50/70">
+                        {/* ITEM SEARCH */}
+
+                        <th className="px-5 py-3">
+                          <div>
+                            <p className="mb-1.5 text-[10px] font-bold uppercase tracking-[0.14em] text-gray-400">
+                              Item
+                            </p>
+
+                            <input
+                              placeholder="Search item..."
+                              className="
+          h-9
+          w-full
+          rounded-xl
+          border
+          border-gray-200
+          bg-white
+          px-3
+          text-[12px]
+          font-medium
+          text-gray-700
+          outline-none
+          transition-all
+          duration-200
+
+          placeholder:text-gray-400
+
+          hover:border-red-200
+          focus:border-red-300
+          focus:ring-2
+          focus:ring-red-100
+        "
+                            />
+                          </div>
                         </th>
-                        <th className="px-6 py-4 text-sm font-semibold text-gray-700">
-                          Category
+
+                        {/* CATEGORY */}
+
+                        <th className="px-5 py-3">
+                          <div>
+                            <p className="mb-1.5 text-[10px] font-bold uppercase tracking-[0.14em] text-gray-400">
+                              Category
+                            </p>
+
+                            <div className="relative">
+                              <select
+                                className="
+            h-9
+            w-full
+            appearance-none
+            rounded-xl
+            border
+            border-gray-200
+            bg-white
+            pl-3
+            pr-9
+            text-[12px]
+            font-medium
+            text-gray-700
+            outline-none
+            transition-all
+            duration-200
+
+            hover:border-red-200
+            focus:border-red-300
+            focus:ring-2
+            focus:ring-red-100
+          "
+                              >
+                                <option>All Categories</option>
+
+                                <option>Kd Gunta Ponganalu</option>
+
+                                <option>Kd Dosa</option>
+                              </select>
+
+                              {/* CUSTOM ARROW */}
+
+                              <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center">
+                                <svg
+                                  className="h-3.5 w-3.5 text-gray-400"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  viewBox="0 0 24 24"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M19 9l-7 7-7-7"
+                                  />
+                                </svg>
+                              </div>
+                            </div>
+                          </div>
                         </th>
-                        <th className="px-6 py-4 text-sm font-semibold text-gray-700">
-                          Type
+
+                        {/* TYPE */}
+
+                        <th className="px-5 py-3">
+                          <div>
+                            <p className="mb-1.5 text-[10px] font-bold uppercase tracking-[0.14em] text-gray-400">
+                              Type
+                            </p>
+
+                            <div className="relative">
+                              <select
+                                className="
+            h-9
+            w-full
+            appearance-none
+            rounded-xl
+            border
+            border-gray-200
+            bg-white
+            pl-3
+            pr-9
+            text-[12px]
+            font-medium
+            text-gray-700
+            outline-none
+            transition-all
+            duration-200
+
+            hover:border-red-200
+            focus:border-red-300
+            focus:ring-2
+            focus:ring-red-100
+          "
+                              >
+                                <option>All Types</option>
+
+                                <option>Veg</option>
+
+                                <option>Non Veg</option>
+                              </select>
+
+                              {/* CUSTOM ARROW */}
+
+                              <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center">
+                                <svg
+                                  className="h-3.5 w-3.5 text-gray-400"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  viewBox="0 0 24 24"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M19 9l-7 7-7-7"
+                                  />
+                                </svg>
+                              </div>
+                            </div>
+                          </div>
                         </th>
-                        <th className="px-6 py-4 text-sm font-semibold text-gray-700">
-                          Price
+
+                        {/* PRICE */}
+
+                        <th className="px-5 py-3">
+                          <div>
+                            <p className="mb-1.5 text-[10px] font-bold uppercase tracking-[0.14em] text-gray-400">
+                              Price
+                            </p>
+
+                            <div className="relative">
+                              <select
+                                className="
+            h-9
+            w-full
+            appearance-none
+            rounded-xl
+            border
+            border-gray-200
+            bg-white
+            pl-3
+            pr-9
+            text-[12px]
+            font-medium
+            text-gray-700
+            outline-none
+            transition-all
+            duration-200
+
+            hover:border-red-200
+            focus:border-red-300
+            focus:ring-2
+            focus:ring-red-100
+          "
+                              >
+                                <option>Sort Price</option>
+
+                                <option>Low to High</option>
+
+                                <option>High to Low</option>
+                              </select>
+
+                              {/* CUSTOM ARROW */}
+
+                              <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center">
+                                <svg
+                                  className="h-3.5 w-3.5 text-gray-400"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  viewBox="0 0 24 24"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M19 9l-7 7-7-7"
+                                  />
+                                </svg>
+                              </div>
+                            </div>
+                          </div>
                         </th>
-                        <th className="px-6 py-4 text-sm font-semibold text-gray-700">
-                          Status
+
+                        {/* STATUS */}
+
+                        <th className="px-5 py-3">
+                          <div>
+                            <p className="mb-1.5 text-[10px] font-bold uppercase tracking-[0.14em] text-gray-400">
+                              Status
+                            </p>
+
+                            <div className="relative">
+                              <select
+                                className="
+            h-9
+            w-full
+            appearance-none
+            rounded-xl
+            border
+            border-gray-200
+            bg-white
+            pl-3
+            pr-9
+            text-[12px]
+            font-medium
+            text-gray-700
+            outline-none
+            transition-all
+            duration-200
+
+            hover:border-red-200
+            focus:border-red-300
+            focus:ring-2
+            focus:ring-red-100
+          "
+                              >
+                                <option>All Status</option>
+
+                                <option>Available</option>
+
+                                <option>Unavailable</option>
+                              </select>
+
+                              {/* CUSTOM ARROW */}
+
+                              <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center">
+                                <svg
+                                  className="h-3.5 w-3.5 text-gray-400"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  viewBox="0 0 24 24"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M19 9l-7 7-7-7"
+                                  />
+                                </svg>
+                              </div>
+                            </div>
+                          </div>
                         </th>
-                        <th className="px-6 py-4 text-right text-sm font-semibold text-gray-700">
-                          Actions
+
+                        {/* ACTION */}
+
+                        <th className="px-5 py-3">
+                          <p className="mb-1.5 text-[10px] font-bold uppercase tracking-[0.14em] text-gray-400">
+                            Actions
+                          </p>
+
+                          <div className="flex h-9 items-center justify-center rounded-xl border border-dashed border-gray-200 bg-white text-[11px] font-medium text-gray-400">
+                            Controls
+                          </div>
                         </th>
                       </tr>
                     </thead>
+
                     {/* BODY */}
+
                     <tbody>
                       {menuItems?.length ? (
                         menuItems.map((item: any, index: number) => (
                           <tr
                             key={item.id || index}
-                            className="border-b border-gray-50 transition hover:bg-gray-50"
+                            className="border-b border-gray-100 transition hover:bg-gray-50/70"
                           >
-                            {/* NAME */}
-                            <td className="px-4 py-4">
-                              <div>
-                                <p className="font-semibold text-gray-900">
-                                  {item.name}
-                                </p>
-                                <p className="mt-1 text-xs text-gray-400">
-                                  ID: {item.id}
-                                </p>
+                            {/* ITEM */}
+
+                            <td className="px-5 py-4">
+                              <div className="flex items-center gap-3">
+                                {/* IMAGE / AVATAR */}
+
+                                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-red-50 text-[14px] font-bold text-red-600">
+                                  {item.name?.charAt(0)}
+                                </div>
+
+                                {/* INFO */}
+
+                                <div>
+                                  <p className="text-[15px] font-semibold text-gray-900">
+                                    {item.name}
+                                  </p>
+
+                                  <p className="mt-0.5 text-[11px] text-gray-400">
+                                    Item ID #{item.id}
+                                  </p>
+                                </div>
                               </div>
                             </td>
+
                             {/* CATEGORY */}
-                            <td className="px-4 py-4 text-sm text-gray-600">
-                              {item.category?.name || "-"}
+
+                            <td className="px-5 py-4">
+                              <span className="text-[13px] font-medium text-gray-600">
+                                {item.category?.name || "-"}
+                              </span>
                             </td>
+
                             {/* TYPE */}
-                            <td className="px-4 py-4">
+
+                            <td className="px-5 py-4">
                               <span
-                                className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${
+                                className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-semibold ${
                                   item.type === "VEG"
                                     ? "bg-emerald-50 text-emerald-600"
                                     : "bg-red-50 text-red-600"
                                 }`}
                               >
-                                {item.type || "-"}
+                                {item.type === "VEG" ? "Veg" : "Non Veg"}
                               </span>
                             </td>
+
                             {/* PRICE */}
-                            <td className="px-4 py-4 text-sm font-semibold text-gray-900">
-                              ₹{item.price}
+
+                            <td className="px-5 py-4">
+                              <p className="text-[15px] font-black text-gray-900">
+                                ₹{item.price}
+                              </p>
                             </td>
+
                             {/* STATUS */}
-                            <td className="px-4 py-4">
+
+                            <td className="px-5 py-4">
                               <span
-                                className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${
+                                className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-semibold ${
                                   item.isAvailable
                                     ? "bg-emerald-50 text-emerald-600"
                                     : "bg-gray-100 text-gray-500"
@@ -1632,13 +1995,16 @@ export default function MenuManagement() {
                                 {item.isAvailable ? "Available" : "Unavailable"}
                               </span>
                             </td>
+
                             {/* ACTIONS */}
-                            <td className="px-4 py-4">
+
+                            <td className="px-5 py-4">
                               <div className="flex justify-end gap-2">
-                                <button className="rounded-xl border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50">
+                                <button className="rounded-xl border border-gray-200 px-3 py-2 text-[12px] font-semibold text-gray-700 transition hover:bg-gray-50">
                                   Edit
                                 </button>
-                                <button className="rounded-xl bg-red-50 px-4 py-2 text-sm font-medium text-red-600 transition hover:bg-red-100">
+
+                                <button className="rounded-xl bg-red-50 px-3 py-2 text-[12px] font-semibold text-red-600 transition hover:bg-red-100">
                                   Delete
                                 </button>
                               </div>
@@ -1649,7 +2015,7 @@ export default function MenuManagement() {
                         <tr>
                           <td
                             colSpan={6}
-                            className="px-6 py-14 text-center text-sm text-gray-400"
+                            className="px-6 py-16 text-center text-sm text-gray-400"
                           >
                             No menu items found
                           </td>
@@ -1663,105 +2029,163 @@ export default function MenuManagement() {
           )}
           {/* INGREDIENTS */}
           {activeTab === "ingredients" && (
-            <div className="space-y-4">
-              {/* TOP HEADER */}
-              <div className="rounded-2xl border border-white/40 bg-white p-4 shadow-sm backdrop-blur-xl">
-                <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+            <div className="space-y-3">
+              {/* ================= HEADER ================= */}
+
+              <div className="rounded-xl border border-gray-200 bg-white px-4 py-3 shadow-sm">
+                <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
                   {/* LEFT */}
-                  <div className="flex items-start gap-4">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-red-50 shadow-lg shadow-red-200">
-                      <CubeIcon className="h-7 w-7 text-red-600" />
+
+                  <div className="flex items-center gap-3">
+                    {/* ICON */}
+
+                    <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-red-500 to-pink-500 shadow-sm">
+                      <CubeIcon className="h-5 w-5 text-white" />
                     </div>
+
+                    {/* CONTENT */}
+
                     <div>
-                      <h2 className="text-xl font-bold tracking-tight text-gray-900">
+                      <h2 className="text-[24px] font-black tracking-tight text-gray-900">
                         Ingredients
                       </h2>
-                      <p className="mt-1 text-sm text-gray-500">
-                        AI-generated ingredient management workspace
+
+                      <p className="mt-0.5 text-[13px] text-gray-500">
+                        Ingredient inventory & vendor management
                       </p>
+
                       {/* STATS */}
-                      <div className="mt-3 flex flex-wrap items-center gap-3">
-                        <div className="rounded-full bg-red-50 px-3 py-1 text-xs font-semibold text-red-600">
+
+                      <div className="mt-2 flex flex-wrap items-center gap-2">
+                        <div className="rounded-full bg-red-50 px-2.5 py-1 text-[10px] font-semibold text-red-600">
                           AI Generated
                         </div>
-                        <div className="rounded-full bg-indigo-50 px-3 py-1 text-xs font-semibold text-indigo-600">
+
+                        <div className="rounded-full bg-blue-50 px-2.5 py-1 text-[10px] font-semibold text-blue-600">
                           {Object.values(ingredients).flat().length} Ingredients
                         </div>
-                        <div className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-600">
+
+                        <div className="rounded-full bg-emerald-50 px-2.5 py-1 text-[10px] font-semibold text-emerald-600">
                           {Object.keys(ingredients).length} Categories
                         </div>
                       </div>
                     </div>
                   </div>
+
                   {/* ACTIONS */}
-                  <div className="flex flex-wrap items-center gap-3">
-                    {/* GENERATE */}
-                    <div className="flex items-center rounded-xl border border-indigo-100 bg-indigo-50 p-1 shadow-sm">
-                      <button
-                        onClick={downloadVendorTemplate}
-                        className="
-        whitespace-nowrap
-        rounded-lg
-        px-3 py-1.5
-        text-xs font-semibold
-        text-indigo-600
-        transition
-        hover:bg-white
-      "
-                      >
-                        Vendor Template
-                      </button>
 
-                      <label
-                        className="
-        cursor-pointer
-        whitespace-nowrap
-        rounded-lg
-        px-3 py-1.5
-        text-xs font-semibold
-        text-indigo-600
-        transition
-        hover:bg-white
-      "
-                      >
-                        {uploadingVendor ? "Uploading..." : "Upload Vendors"}
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      onClick={downloadVendorTemplate}
+                      className="
+              h-9
+              rounded-xl
+              border
+              border-indigo-100
+              bg-indigo-50
+              px-4
+              text-[12px]
+              font-semibold
+              text-indigo-600
+              transition
+              hover:bg-indigo-100
+            "
+                    >
+                      Vendor Template
+                    </button>
 
-                        <input
-                          type="file"
-                          accept=".xlsx,.xls"
-                          onChange={handleVendorUpload}
-                          className="hidden"
-                        />
-                      </label>
-                    </div>
+                    <label
+                      className="
+              flex
+              h-9
+              cursor-pointer
+              items-center
+              rounded-xl
+              border
+              border-gray-200
+              bg-white
+              px-4
+              text-[12px]
+              font-semibold
+              text-gray-700
+              transition
+              hover:bg-gray-50
+            "
+                    >
+                      {uploadingVendor ? "Uploading..." : "Upload Vendors"}
+
+                      <input
+                        type="file"
+                        accept=".xlsx,.xls"
+                        onChange={handleVendorUpload}
+                        className="hidden"
+                      />
+                    </label>
+
                     <button
                       onClick={handleGenerate}
                       disabled={loading}
-                      className="flex h-11 items-center gap-2 rounded-2xl bg-gradient-to-r from-red-500 to-pink-500 px-5 text-sm font-semibold text-white shadow-lg shadow-red-100 transition-all duration-300 hover:scale-[1.02]"
+                      className="
+              flex
+              h-9
+              items-center
+              gap-2
+              rounded-xl
+              bg-gradient-to-r
+              from-red-500
+              to-pink-500
+              px-4
+              text-[12px]
+              font-semibold
+              text-white
+              shadow-sm
+              transition
+              hover:scale-[1.01]
+            "
                     >
                       <SparklesIcon className="h-4 w-4" />
+
                       {loading ? "Generating..." : "Generate"}
                     </button>
                   </div>
                 </div>
               </div>
-              {/* EMPTY STATE */}
+
+              {/* ================= EMPTY ================= */}
+
               {Object.keys(ingredients).length === 0 && (
-                <div className="flex min-h-[320px] items-center justify-center rounded-2xl border border-dashed border-red-200 bg-red-50/40 p-10">
+                <div className="flex min-h-[240px] items-center justify-center rounded-xl border border-dashed border-red-200 bg-white p-10">
                   <div className="text-center">
-                    <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-2xl bg-gradient-to-br from-red-500 to-pink-500 shadow-[0_20px_50px_rgba(255,0,80,0.25)]">
-                      <SparklesIcon className="h-10 w-10 text-white" />
+                    <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-red-500 to-pink-500">
+                      <SparklesIcon className="h-8 w-8 text-white" />
                     </div>
-                    <h3 className="mt-8 text-xl font-bold text-gray-900">
-                      No Inventory Setup Found
+
+                    <h3 className="mt-5 text-lg font-bold text-gray-900">
+                      No Ingredients Generated
                     </h3>
-                    <p className="mx-auto mt-3 max-w-md text-sm leading-7 text-gray-500">
-                      Generate ingredients automatically using AI based on your
-                      restaurant menu.
+
+                    <p className="mt-2 text-sm text-gray-500">
+                      Generate ingredient inventory automatically from menu
+                      items
                     </p>
+
                     <button
                       onClick={handleGenerate}
-                      className="mt-8 inline-flex items-center gap-2 rounded-2xl bg-gradient-to-r from-red-500 to-pink-500 px-6 py-4 text-sm font-semibold text-white shadow-xl transition-all duration-300 hover:scale-[1.02]"
+                      className="
+              mt-5
+              inline-flex
+              items-center
+              gap-2
+              rounded-xl
+              bg-gradient-to-r
+              from-red-500
+              to-pink-500
+              px-5
+              py-3
+              text-sm
+              font-semibold
+              text-white
+            "
                     >
                       <SparklesIcon className="h-4 w-4" />
                       Generate Ingredients
@@ -1769,84 +2193,124 @@ export default function MenuManagement() {
                   </div>
                 </div>
               )}
-              {/* INVENTORY */}
+
+              {/* ================= INVENTORY ================= */}
+
               {ingredients && Object.keys(ingredients).length > 0 && (
-                <div className="space-y-5">
+                <div className="space-y-3">
                   {Object.entries(ingredients).map(
                     ([category, rawItems]: any) => {
                       const items = Array.isArray(rawItems) ? rawItems : [];
+
                       return (
                         <div
                           key={category}
-                          className="overflow-hidden rounded-xl border border-white/40 bg-white shadow-sm backdrop-blur-xl"
+                          className="overflow-hidden rounded-xl border border-gray-100 bg-white shadow-sm"
                         >
                           {/* CATEGORY HEADER */}
-                          <div className="border-b border-gray-100 bg-red-50/30 px-4 py-3">
-                            <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+
+                          <div className="border-b border-gray-100 px-4 py-3">
+                            <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
                               {/* LEFT */}
-                              <div className="flex items-center gap-4">
-                                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-red-50">
-                                  <FolderIcon className="h-5 w-5 text-red-500" />
+
+                              <div className="flex items-center gap-3">
+                                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-red-50">
+                                  <FolderIcon className="h-4 w-4 text-red-500" />
                                 </div>
+
                                 <div>
-                                  <h3 className="text-lg font-semibold text-gray-900">
+                                  <h3 className="text-[17px] font-bold text-gray-900">
                                     {category}
                                   </h3>
-                                  <div className="mt-1 flex items-center gap-3">
-                                    <p className="text-sm text-gray-500">
+
+                                  <div className="mt-1 flex items-center gap-2">
+                                    <span className="text-[12px] text-gray-500">
                                       {items.length} Ingredients
-                                    </p>
-                                    <div className="rounded-full bg-red-50 px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-red-500">
+                                    </span>
+
+                                    <span className="rounded-full bg-red-50 px-2 py-1 text-[9px] font-semibold uppercase tracking-wide text-red-500">
                                       AI Generated
-                                    </div>
+                                    </span>
                                   </div>
                                 </div>
                               </div>
+
                               {/* ACTION */}
+
                               <button
                                 type="button"
                                 onClick={() => handleAddIngredient(category)}
-                                className="flex items-center gap-2 rounded-2xl border border-red-100 bg-red-50 px-4 py-2 text-sm font-semibold text-red-600 transition hover:bg-red-100"
+                                className="
+                        flex
+                        h-9
+                        items-center
+                        gap-2
+                        rounded-xl
+                        border
+                        border-red-100
+                        bg-red-50
+                        px-4
+                        text-[12px]
+                        font-semibold
+                        text-red-600
+                        transition
+                        hover:bg-red-100
+                      "
                               >
                                 <PlusIcon className="h-4 w-4" />
                                 Add Ingredient
                               </button>
                             </div>
                           </div>
+
                           {/* TABLE */}
+
                           <div className="overflow-x-auto">
                             <table className="min-w-full">
-                              {/* HEADER */}
-                              <thead className="sticky top-0 z-10 border-b border-gray-100 bg-white/90 backdrop-blur-xl">
+                              {/* HEAD */}
+
+                              <thead className="border-b border-gray-100 bg-gray-50/70">
                                 <tr>
                                   {[
                                     "Ingredient",
                                     "Qty",
                                     "Unit",
-                                    "Purchase Price",
-                                    "Price / Unit",
+                                    "Purchase",
+                                    "Unit Price",
                                     "Vendor",
                                     "Action",
                                   ].map((head) => (
                                     <th
                                       key={head}
-                                      className="px-5 py-3 text-left text-[11px] font-bold uppercase tracking-[0.18em] text-gray-400"
+                                      className="
+                              px-4
+                              py-2.5
+                              text-left
+                              text-[10px]
+                              font-bold
+                              uppercase
+                              tracking-[0.12em]
+                              text-gray-400
+                            "
                                     >
                                       {head}
                                     </th>
                                   ))}
                                 </tr>
                               </thead>
+
                               {/* BODY */}
+
                               <tbody>
                                 {items.length > 0 ? (
                                   items.map((item: any, index: number) => (
                                     <tr
                                       key={index}
-                                      className="border-b border-gray-100 transition-all duration-200 hover:bg-gray-50"
+                                      className="border-b border-gray-100 hover:bg-gray-50/40"
                                     >
                                       {/* INGREDIENT */}
-                                      <td className="px-5 py-3">
+
+                                      <td className="px-4 py-2.5">
                                         <input
                                           value={item?.name || ""}
                                           onChange={(e) =>
@@ -1857,11 +2321,28 @@ export default function MenuManagement() {
                                               e.target.value,
                                             )
                                           }
-                                          className="w-full rounded-lg border border-gray-100 bg-gray-50/80 px-4 py-2 text-sm font-medium outline-none transition-all duration-200 focus:border-gray-300 focus:ring-2 focus:ring-red-100 focus:bg-white"
+                                          className="
+                                  h-9
+                                  w-full
+                                  rounded-lg
+                                  border
+                                  border-gray-200
+                                  bg-white
+                                  px-3
+                                  text-[13px]
+                                  font-medium
+                                  outline-none
+                                  transition
+                                  focus:border-red-200
+                                  focus:ring-2
+                                  focus:ring-red-100
+                                "
                                         />
                                       </td>
+
                                       {/* QTY */}
-                                      <td className="px-5 py-3">
+
+                                      <td className="px-4 py-2.5">
                                         <input
                                           type="number"
                                           value={item?.quantity || ""}
@@ -1873,11 +2354,27 @@ export default function MenuManagement() {
                                               e.target.value,
                                             )
                                           }
-                                          className="w-24 rounded-xl border border-gray-100 bg-gray-50/80 px-3 py-2.5 text-sm outline-none transition-all duration-200 focus:border-gray-300 focus:ring-2 focus:ring-red-100 focus:bg-white"
+                                          className="
+                                  h-9
+                                  w-20
+                                  rounded-lg
+                                  border
+                                  border-gray-200
+                                  bg-white
+                                  px-3
+                                  text-[13px]
+                                  outline-none
+                                  transition
+                                  focus:border-red-200
+                                  focus:ring-2
+                                  focus:ring-red-100
+                                "
                                         />
                                       </td>
+
                                       {/* UNIT */}
-                                      <td className="px-5 py-3">
+
+                                      <td className="px-4 py-2.5">
                                         <select
                                           value={item?.unit || "Kg"}
                                           onChange={(e) =>
@@ -1888,7 +2385,20 @@ export default function MenuManagement() {
                                               e.target.value,
                                             )
                                           }
-                                          className="rounded-xl border border-gray-100 bg-gray-50/80 px-3 py-2.5 text-sm outline-none transition-all duration-200 focus:border-gray-300 focus:ring-2 focus:ring-red-100 focus:bg-white"
+                                          className="
+                                  h-9
+                                  rounded-lg
+                                  border
+                                  border-gray-200
+                                  bg-white
+                                  px-3
+                                  text-[13px]
+                                  outline-none
+                                  transition
+                                  focus:border-red-200
+                                  focus:ring-2
+                                  focus:ring-red-100
+                                "
                                         >
                                           <option>Kg</option>
                                           <option>Gram</option>
@@ -1897,8 +2407,10 @@ export default function MenuManagement() {
                                           <option>Piece</option>
                                         </select>
                                       </td>
-                                      {/* PURCHASE PRICE */}
-                                      <td className="px-5 py-3">
+
+                                      {/* PURCHASE */}
+
+                                      <td className="px-4 py-2.5">
                                         <input
                                           type="number"
                                           value={item?.purchasePrice || ""}
@@ -1910,17 +2422,35 @@ export default function MenuManagement() {
                                               e.target.value,
                                             )
                                           }
-                                          className="w-32 rounded-xl border border-gray-100 bg-gray-50/80 px-3 py-2.5 text-sm outline-none transition-all duration-200 focus:border-gray-300 focus:ring-2 focus:ring-red-100 focus:bg-white"
+                                          className="
+                                  h-9
+                                  w-28
+                                  rounded-lg
+                                  border
+                                  border-gray-200
+                                  bg-white
+                                  px-3
+                                  text-[13px]
+                                  outline-none
+                                  transition
+                                  focus:border-red-200
+                                  focus:ring-2
+                                  focus:ring-red-100
+                                "
                                         />
                                       </td>
-                                      {/* PRICE PER UNIT */}
-                                      <td className="px-5 py-3">
-                                        <div className="inline-flex rounded-full bg-red-50 px-3 py-1 text-sm font-semibold text-red-600">
+
+                                      {/* PRICE */}
+
+                                      <td className="px-4 py-2.5">
+                                        <div className="inline-flex rounded-full bg-red-50 px-3 py-1 text-[12px] font-bold text-red-600">
                                           ₹{item?.pricePerUnit || 0}
                                         </div>
                                       </td>
+
                                       {/* VENDOR */}
-                                      <td className="px-5 py-3">
+
+                                      <td className="px-4 py-2.5">
                                         <select
                                           value={
                                             item?.vendor?.[0]?.vendor?.id || ""
@@ -1934,27 +2464,25 @@ export default function MenuManagement() {
                                             )
                                           }
                                           className="
-    min-w-[220px]
-    rounded-xl
-    border
-    border-gray-100
-    bg-gray-50/80
-    px-3
-    py-2.5
-    text-sm
-    font-medium
-    text-gray-700
-    outline-none
-    transition-all
-    duration-200
-    focus:border-gray-300
-    focus:ring-2
-    focus:ring-red-100
-    focus:bg-white
-  "
+                                  h-9
+                                  min-w-[210px]
+                                  rounded-lg
+                                  border
+                                  border-gray-200
+                                  bg-white
+                                  px-3
+                                  text-[13px]
+                                  font-medium
+                                  text-gray-700
+                                  outline-none
+                                  transition
+                                  focus:border-red-200
+                                  focus:ring-2
+                                  focus:ring-red-100
+                                "
                                         >
                                           <option value="">
-                                            🏪 Select Vendor
+                                            Select Vendor
                                           </option>
 
                                           {vendors.map((vendor: any) => (
@@ -1962,14 +2490,16 @@ export default function MenuManagement() {
                                               key={vendor.id}
                                               value={vendor.id}
                                             >
-                                              🧾 {vendor.name} •{" "}
+                                              {vendor.name} •{" "}
                                               {vendor.phone || "No Phone"}
                                             </option>
                                           ))}
                                         </select>
                                       </td>
+
                                       {/* REMOVE */}
-                                      <td className="px-5 py-3">
+
+                                      <td className="px-4 py-2.5">
                                         <button
                                           type="button"
                                           onClick={() =>
@@ -1978,7 +2508,19 @@ export default function MenuManagement() {
                                               index,
                                             )
                                           }
-                                          className="rounded-xl bg-gray-100 hover:bg-red-50 px-3 py-2 text-xs font-semibold text-red-500 transition hover:bg-red-100"
+                                          className="
+                                  rounded-lg
+                                  border
+                                  border-red-100
+                                  bg-red-50
+                                  px-3
+                                  py-2
+                                  text-[11px]
+                                  font-semibold
+                                  text-red-600
+                                  transition
+                                  hover:bg-red-100
+                                "
                                         >
                                           Remove
                                         </button>
@@ -1988,7 +2530,7 @@ export default function MenuManagement() {
                                 ) : (
                                   <tr>
                                     <td
-                                      colSpan={6}
+                                      colSpan={7}
                                       className="px-5 py-10 text-center text-sm text-gray-400"
                                     >
                                       No ingredients found
@@ -2002,11 +2544,29 @@ export default function MenuManagement() {
                       );
                     },
                   )}
-                  {/* FLOATING SAVE */}
-                  <div className="sticky bottom-5 flex justify-end">
+
+                  {/* SAVE */}
+
+                  <div className="flex justify-end">
                     <button
                       onClick={handleSave}
-                      className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-red-500 to-pink-500 px-5 py-3 text-sm font-semibold text-white shadow-[0_20px_50px_rgba(255,0,80,0.25)] transition-all duration-300 hover:scale-[1.02]"
+                      className="
+              flex
+              h-10
+              items-center
+              gap-2
+              rounded-xl
+              bg-gradient-to-r
+              from-red-500
+              to-pink-500
+              px-5
+              text-[13px]
+              font-semibold
+              text-white
+              shadow-sm
+              transition
+              hover:scale-[1.01]
+            "
                     >
                       <CloudArrowUpIcon className="h-4 w-4" />
                       Save Ingredients
@@ -2018,240 +2578,223 @@ export default function MenuManagement() {
           )}
           {/* RESTOCK */}
           {activeTab === "restock" && (
-            <div className="space-y-6">
-              {/* HEADER */}
-              <div className="rounded-2xl border border-white/40 bg-white/80 p-5 shadow-[0_10px_40px_rgba(0,0,0,0.06)] backdrop-blur-xl">
-                <div className="flex flex-col gap-6 xl:flex-row xl:items-center xl:justify-between">
+            <div className="space-y-4">
+              {/* ================= HERO ================= */}
+
+              <div className="rounded-2xl border border-gray-200 bg-white px-5 py-4 shadow-sm">
+                <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
                   {/* LEFT */}
-                  <div>
-                    <div className="inline-flex items-center gap-2 rounded-full bg-red-50 px-4 py-2 text-xs font-bold uppercase tracking-[0.18em] text-red-600">
-                      Inventory Tracking
+
+                  <div className="flex items-start gap-4">
+                    {/* ICON */}
+
+                    <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-red-500 to-pink-500 shadow-sm">
+                      <ArchiveBoxIcon className="h-5 w-5 text-white" />
                     </div>
-                    <h2 className="mt-3 text-2xl font-bold tracking-tight text-gray-900">
-                      Restock Analytics
-                    </h2>
-                    <p className="mt-2 text-sm leading-6 text-gray-500">
-                      Weekly stock movement, purchase analytics & inventory
-                      expense tracking
-                    </p>
-                    {/* TAGS */}
-                    <div className="mt-5 flex flex-wrap gap-3">
-                      <div className="rounded-full bg-red-50 px-2.5 py-1 text-[11px] font-semibold text-red-600">
-                        {restocks.length} Inventory Rows
-                      </div>
-                      <div className="rounded-full bg-blue-50 px-2.5 py-1 text-[11px] font-semibold text-blue-600">
-                        Purchase Analytics
-                      </div>
-                      <div className="rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-600">
-                        Monthly Tracking
-                      </div>
+
+                    {/* CONTENT */}
+
+                    <div>
+                      <h1 className="text-[24px] font-black leading-none tracking-tight text-gray-900">
+                        Restock Analytics
+                      </h1>
+
+                      <p className="mt-1 text-[13px] text-gray-500">
+                        Inventory purchase & stock tracking
+                      </p>
                     </div>
                   </div>
-                  {/* ACTIONS */}
-                  <div className="flex flex-wrap items-center gap-2 lg:flex-nowrap">
-                    {/* VENDOR GROUP */}
-                    {/* <div className="flex items-center rounded-xl border border-indigo-100 bg-indigo-50 p-1 shadow-sm">
-                      <button
-                        onClick={downloadVendorTemplate}
-                        className="
-        whitespace-nowrap
-        rounded-lg
-        px-3 py-1.5
-        text-xs font-semibold
-        text-indigo-600
-        transition
-        hover:bg-white
-      "
-                      >
-                        Vendor Template
-                      </button>
 
-                      <label
-                        className="
-        cursor-pointer
-        whitespace-nowrap
-        rounded-lg
-        px-3 py-1.5
-        text-xs font-semibold
-        text-indigo-600
-        transition
-        hover:bg-white
-      "
-                      >
-                        {uploadingVendor ? "Uploading..." : "Upload Vendors"}
+                  {/* RIGHT KPI CHIPS */}
 
-                        <input
-                          type="file"
-                          accept=".xlsx,.xls"
-                          onChange={handleVendorUpload}
-                          className="hidden"
-                        />
-                      </label>
-                    </div> */}
+                  {/* RIGHT SECTION */}
 
-                    {/* RESTOCK GROUP */}
-                    <div className="flex items-center rounded-xl border border-red-100 bg-red-50 p-1 shadow-sm">
-                      <button
-                        onClick={downloadInventoryTemplate}
-                        className="
-        whitespace-nowrap
-        rounded-lg
-        px-3 py-1.5
-        text-xs font-semibold
-        text-red-600
-        transition
-        hover:bg-red-100
-      "
-                      >
-                        Restock Template
-                      </button>
+                  <div className="flex flex-wrap items-center justify-end gap-3">
+                    {/* KPI GROUP */}
 
-                      <label
-                        className="
-        cursor-pointer
-        whitespace-nowrap
-        rounded-lg
-        px-3 py-1.5
-        text-xs font-semibold
-        text-red-600
-        transition
-        hover:bg-red-100
-      "
-                      >
-                        {uploadingRestock ? "Uploading..." : "Upload Restock"}
-                        <input
-                          type="file"
-                          accept=".xlsx,.xls"
-                          onChange={handleUploadRestockSheet}
-                          className="hidden"
-                        />
-                      </label>
+                    {/* <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-gray-200 bg-gray-50/80 p-2"> */}
+                    {/* FOOD COST */}
+
+                    <div className="flex items-center gap-2 rounded-xl bg-red-50 px-3 py-2">
+                      <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-red-100">
+                        <ChartPieIcon className="h-3.5 w-3.5 text-red-600" />
+                      </div>
+
+                      <div className="leading-none">
+                        <p className="text-[9px] font-bold uppercase tracking-[0.14em] text-red-400">
+                          Food Cost
+                        </p>
+
+                        <p className="mt-1 text-[14px] font-black text-red-700">
+                          {avgFoodCost}%
+                        </p>
+                      </div>
                     </div>
+
+                    {/* INVENTORY */}
+
+                    <div className="flex items-center gap-2 rounded-xl bg-indigo-50 px-3 py-2">
+                      <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-indigo-100">
+                        <ArchiveBoxIcon className="h-3.5 w-3.5 text-indigo-600" />
+                      </div>
+
+                      <div className="leading-none">
+                        <p className="text-[9px] font-bold uppercase tracking-[0.14em] text-indigo-400">
+                          Inventory
+                        </p>
+
+                        <p className="mt-1 text-[14px] font-black text-indigo-700">
+                          ₹{Number(inventoryValue || 0).toLocaleString("en-IN")}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* TURNOVER */}
+
+                    <div className="flex items-center gap-2 rounded-xl bg-emerald-50 px-3 py-2">
+                      <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-100">
+                        <ArrowPathRoundedSquareIcon className="h-3.5 w-3.5 text-emerald-600" />
+                      </div>
+
+                      <div className="leading-none">
+                        <p className="text-[9px] font-bold uppercase tracking-[0.14em] text-emerald-400">
+                          Turnover
+                        </p>
+
+                        <p className="mt-1 text-[14px] font-black text-emerald-700">
+                          {inventoryTurnover}x
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* USAGE */}
+
+                    <div className="flex items-center gap-2 rounded-xl bg-orange-50 px-3 py-2">
+                      <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-orange-100">
+                        <CubeTransparentIcon className="h-3.5 w-3.5 text-orange-600" />
+                      </div>
+
+                      <div className="leading-none">
+                        <p className="text-[9px] font-bold uppercase tracking-[0.14em] text-orange-400">
+                          Usage
+                        </p>
+
+                        <p className="mt-1 text-[14px] font-black text-orange-700">
+                          ₹
+                          {Number(totalConsumptionValue || 0).toLocaleString(
+                            "en-IN",
+                          )}
+                        </p>
+                      </div>
+                    </div>
+                    {/* </div> */}
+
+                    {/* DIVIDER */}
+
+                    <div className="hidden h-10 w-px bg-gray-200 xl:block" />
+
+                    {/* TEMPLATE BUTTON */}
+
+                    <button
+                      onClick={downloadInventoryTemplate}
+                      className="
+      flex
+      h-10
+      items-center
+      rounded-xl
+      border
+      border-red-100
+      bg-white
+      px-4
+      text-[12px]
+      font-semibold
+      text-red-600
+      shadow-sm
+      transition
+      hover:bg-red-50
+    "
+                    >
+                      Restock Template
+                    </button>
+
+                    {/* UPLOAD BUTTON */}
+
+                    <label
+                      className="
+      flex
+      h-10
+      cursor-pointer
+      items-center
+      rounded-xl
+      bg-gradient-to-r
+      from-red-500
+      to-pink-500
+      px-4
+      text-[12px]
+      font-semibold
+      text-white
+      shadow-sm
+      transition
+      hover:scale-[1.02]
+    "
+                    >
+                      {uploadingRestock ? "Uploading..." : "Upload Restock"}
+
+                      <input
+                        type="file"
+                        accept=".xlsx,.xls"
+                        onChange={handleUploadRestockSheet}
+                        className="hidden"
+                      />
+                    </label>
                   </div>
                 </div>
               </div>
-              {/* KPI */}
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-                {[
-                  {
-                    label: "Food Cost %",
-                    value: avgFoodCost,
-                    color: "text-red-600",
-                    bg: "bg-red-50",
-                    icon: ChartPieIcon,
-                    prefix: "",
-                    suffix: "%",
-                  },
 
-                  {
-                    label: "Inventory Value",
-                    value: inventoryValue,
-                    color: "text-indigo-600",
-                    bg: "bg-indigo-50",
-                    icon: ArchiveBoxIcon,
-                    prefix: "₹",
-                    suffix: "",
-                  },
+              {/* ================= TABLE ================= */}
 
-                  {
-                    label: "Inventory Turnover",
-                    value: inventoryTurnover,
-                    color: "text-emerald-600",
-                    bg: "bg-emerald-50",
-                    icon: ArrowPathRoundedSquareIcon,
-                    prefix: "",
-                    suffix: "x",
-                  },
+              <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+                {/* ================= HEADER ================= */}
 
-                  {
-                    label: "Inventory Usage",
-                    value: totalConsumptionValue,
-                    color: "text-orange-500",
-                    bg: "bg-orange-50",
-                    icon: CubeTransparentIcon,
-                    prefix: "₹",
-                    suffix: "",
-                  },
-                ].map((item) => {
-                  const Icon = item.icon;
-                  return (
-                    <div
-                      key={item.label}
-                      className="group relative overflow-hidden rounded-2xl border border-gray-200 bg-gradient-to-br from-white to-gray-50 p-4 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg"
-                    >
-                      {/* Glow */}
-                      <div
-                        className={`absolute -right-10 -top-10 h-24 w-24 rounded-full ${item.bg} blur-3xl opacity-60`}
-                      />
-                      <div className="relative z-10">
-                        {/* Top */}
-                        <div className="flex items-start justify-between">
-                          {/* Icon */}
-                          <div
-                            className={`flex h-11 w-11 items-center justify-center rounded-xl ${item.bg}`}
-                          >
-                            <Icon className={`h-5 w-5 ${item.color}`} />
-                          </div>
-                          {/* Trend */}
-                          <div className="rounded-full bg-gray-100 px-2 py-1 text-[10px] font-bold text-gray-600">
-                            LIVE
-                          </div>
-                        </div>
-                        {/* Label */}
-                        <p className="mt-4 text-sm font-medium text-gray-500">
-                          {item.label}
-                        </p>
-                        {/* Value */}
-                        <p
-                          className={`mt-1 text-2xl font-black tracking-tight ${item.color}`}
-                        >
-                          {item.prefix}
-                          {Number(item.value || 0).toLocaleString("en-IN", {
-                            minimumFractionDigits: 2,
-                            maximumFractionDigits: 2,
-                          })}
-                          {item.suffix}
-                        </p>
-                        {/* Footer */}
-                        <div className="mt-4 flex items-center justify-between">
-                          <p className="text-xs font-medium text-gray-400">
-                            Inventory analytics
-                          </p>
-                          <div
-                            className={`h-2 w-2 rounded-full ${item.bg.replace("bg-", "bg-")}`}
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-              {/* TABLE */}
-              <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-[0_10px_40px_rgba(0,0,0,0.06)]">
-                {/* TOP */}
-                <div className="border-b border-gray-100 bg-red-50/40 px-6 py-4">
-                  <div className="flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between">
+                <div className="border-b border-gray-100 px-5 py-4">
+                  <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
                     {/* LEFT */}
+
                     <div>
-                      <h3 className="text-xl font-bold tracking-tight text-gray-900">
+                      <h3 className="text-[20px] font-black tracking-tight text-gray-900">
                         Inventory Sheet
                       </h3>
-                      <p className="mt-2 text-sm text-gray-500">
-                        Weekly purchase and stock movement tracking
+
+                      <p className="mt-1 text-[12px] text-gray-500">
+                        Weekly stock & purchase tracking
                       </p>
                     </div>
+
                     {/* RIGHT */}
-                    <div className="flex flex-wrap gap-3">
-                      <div className="flex flex-wrap gap-2">
+
+                    <div className="flex items-center gap-3">
+                      {/* WEEK SWITCHER */}
+
+                      <div className="flex items-center rounded-2xl border border-gray-200 bg-gray-50 p-1">
                         {[1, 2, 3, 4, 5].map((week) => (
                           <button
                             key={week}
                             onClick={() => setSelectedWeek(`week${week}`)}
-                            className={`rounded-xl px-4 py-2 text-sm font-semibold transition ${
-                              selectedWeek === `week${week}`
-                                ? "bg-red-500 text-white"
-                                : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                            }`}
+                            className={`
+                min-w-[72px]
+                rounded-xl
+                px-3
+                py-2
+                text-[12px]
+                font-semibold
+                transition-all
+
+                ${
+                  selectedWeek === `week${week}`
+                    ? "bg-gradient-to-r from-red-500 to-pink-500 text-white shadow-sm"
+                    : "text-gray-600 hover:bg-white"
+                }
+              `}
                           >
                             Week {week}
                           </button>
@@ -2260,209 +2803,145 @@ export default function MenuManagement() {
                     </div>
                   </div>
                 </div>
-                {/* TABLE */}
-                <div className="overflow-auto max-h-[75vh]">
-                  <table className="min-w-[1600px] border-separate border-spacing-0 text-sm">
+
+                {/* ================= TABLE ================= */}
+
+                <div className="overflow-auto">
+                  <table className="min-w-full text-sm">
                     {/* HEADER */}
-                    <thead>
-                      {/* GROUP HEADER */}
-                      <tr className="sticky top-0 z-50">
-                        {/* FIXED LEFT AREA */}
-                        <th
-                          colSpan={3}
-                          className="sticky left-0 z-[60] min-w-[520px] border-b border-r border-gray-200 bg-white px-5 py-3"
-                        ></th>
-                        {/* OPENING */}
-                        <th
-                          colSpan={3}
-                          className="border-b border-r border-gray-200 bg-slate-50 px-5 py-3 text-center text-xs font-bold uppercase tracking-[0.25em] text-gray-500"
-                        >
-                          Opening Stock
-                        </th>
-                        {/* WEEK 1 */}
-                        <th
-                          colSpan={5}
-                          className="border-b border-r border-red-100 bg-red-50 px-5 py-3 text-center text-xs font-bold uppercase tracking-[0.25em] text-red-600"
-                        >
-                          {selectedWeek}
-                        </th>
-                        {/* MONTH */}
-                        <th
-                          colSpan={4}
-                          className="border-b bg-indigo-50 px-5 py-3 text-center text-xs font-bold uppercase tracking-[0.25em] text-indigo-600"
-                        >
-                          Monthly
-                        </th>
-                      </tr>
-                      {/* COLUMN HEADER */}
-                      <tr className="sticky top-[48px] z-40">
-                        {/* INGREDIENT */}
-                        <th className="sticky left-0 z-[55] min-w-[240px] whitespace-nowrap border-b border-r border-gray-100 bg-white px-5 py-3 text-left text-[11px] font-bold uppercase tracking-[0.18em] text-gray-400">
-                          Ingredient
-                        </th>
-                        {/* CATEGORY */}
-                        <th className="sticky left-[240px] z-[55] min-w-[160px] whitespace-nowrap border-b border-r border-gray-100 bg-white px-5 py-3 text-left text-[11px] font-bold uppercase tracking-[0.18em] text-gray-400">
-                          Category
-                        </th>
-                        {/* UNIT */}
-                        <th className="sticky left-[400px] z-[55] min-w-[120px] whitespace-nowrap border-b border-r border-gray-100 bg-white px-5 py-3 text-left text-[11px] font-bold uppercase tracking-[0.18em] text-gray-400">
-                          Unit
-                        </th>
+
+                    <thead className="sticky top-0 z-10 bg-gray-50">
+                      <tr>
                         {[
+                          "Ingredient",
+                          "Category",
+                          "Unit",
                           "Opening Qty",
-                          "Opening Price",
                           "Opening Value",
-
                           "Purchase Qty",
-                          "Price",
                           "Expense",
                           "Closing",
-                          "Closing Value",
-
-                          "Purchase",
-                          "Expense",
-                          "Closing",
+                          "Monthly Purchase",
                           "RM Expense",
-                        ].map((head, index) => (
+                        ].map((head) => (
                           <th
-                            key={`${head}-${index}`}
-                            className="whitespace-nowrap border-b border-r border-gray-100 bg-white px-5 py-3 text-left text-[11px] font-bold uppercase tracking-[0.18em] text-gray-400"
+                            key={head}
+                            className="
+                whitespace-nowrap
+                border-b
+                border-gray-100
+                px-4
+                py-3
+                text-left
+                text-[10px]
+                font-bold
+                uppercase
+                tracking-[0.16em]
+                text-gray-400
+              "
                           >
                             {head}
                           </th>
                         ))}
                       </tr>
                     </thead>
+
                     {/* BODY */}
+
                     <tbody>
                       {restocks?.length ? (
                         restocks.map((row: any, index: number) => (
                           <tr
                             key={index}
-                            className={`transition hover:bg-gray-50 ${
-                              index % 2 === 0 ? "bg-white" : "bg-gray-50/40"
-                            }`}
+                            className="
+                border-b
+                border-gray-100
+                transition
+                hover:bg-gray-50/80
+              "
                           >
                             {/* INGREDIENT */}
-                            <td className="sticky left-0 z-40 min-w-[240px] whitespace-nowrap border-b border-r border-gray-100 bg-white px-4 py-3">
+
+                            <td className="px-4 py-3">
                               <div>
-                                <p className="font-semibold text-gray-900">
+                                <p className="text-[14px] font-semibold text-gray-900">
                                   {row.Ingredient}
                                 </p>
-                                <p className="mt-1 text-xs text-gray-400">
+
+                                <p className="mt-0.5 text-[11px] text-gray-400">
                                   Inventory Item
                                 </p>
                               </div>
                             </td>
+
                             {/* CATEGORY */}
-                            <td className="sticky left-[240px] z-40 min-w-[160px] whitespace-nowrap border-b border-r border-gray-100 bg-white px-4 py-3">
-                              <div className="inline-flex rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-700">
+
+                            <td className="px-4 py-3">
+                              <div className="inline-flex rounded-full bg-gray-100 px-2.5 py-1 text-[10px] font-semibold text-gray-700">
                                 {row.Category}
                               </div>
                             </td>
+
                             {/* UNIT */}
-                            <td className="sticky left-[400px] z-40 min-w-[120px] whitespace-nowrap border-b border-r border-gray-100 bg-white px-4 py-3 font-medium text-gray-700">
+
+                            <td className="px-4 py-3 text-[13px] font-medium text-gray-700">
                               {row.Unit}
                             </td>
-                            {/* OPENING QTY */}
-                            <td className="border-b border-r border-gray-100 bg-slate-50 px-4 py-3">
+
+                            {/* OPENING */}
+
+                            <td className="px-4 py-3 text-[13px] text-gray-700">
                               {row.OpeningStockQty}
                             </td>
-                            {/* OPENING PRICE */}
-                            <td className="border-b border-r border-gray-100 px-4 py-3 bg-slate-50">
-                              ₹
-                              {Number(
-                                row.OpeningStockPrice || 0,
-                              ).toLocaleString("en-IN", {
-                                minimumFractionDigits: 2,
-                              })}
-                            </td>
+
                             {/* OPENING VALUE */}
-                            <td className="border-b border-r border-gray-200 px-4 py-3 bg-slate-50 font-semibold text-indigo-600">
+
+                            <td className="px-4 py-3 text-[13px] font-semibold text-indigo-600">
                               ₹
                               {Number(
                                 row.OpeningStockValue || 0,
-                              ).toLocaleString("en-IN", {
-                                minimumFractionDigits: 2,
-                              })}
+                              ).toLocaleString("en-IN")}
                             </td>
-                            {/* PURCHASE QTY */}
-                            <td className="border-b border-r border-red-100 bg-red-50/20 px-4 py-3">
+
+                            {/* PURCHASE */}
+
+                            <td className="px-4 py-3 text-[13px] text-gray-700">
                               {row.Week1PurchaseQty}
                             </td>
-                            {/* PRICE */}
-                            <td className="border-b border-r border-red-100 bg-red-50/20 px-4 py-3">
-                              ₹
-                              {Number(row.Week1Price || 0).toLocaleString(
-                                "en-IN",
-                                {
-                                  minimumFractionDigits: 2,
-                                },
-                              )}
-                            </td>
+
                             {/* EXPENSE */}
-                            <td className="border-b border-r border-red-100 bg-red-50/20 px-4 py-3 font-semibold text-red-600">
+
+                            <td className="px-4 py-3 text-[13px] font-semibold text-red-500">
                               ₹
                               {Number(row.Week1Expense || 0).toLocaleString(
                                 "en-IN",
-                                {
-                                  minimumFractionDigits: 2,
-                                },
                               )}
                             </td>
+
                             {/* CLOSING */}
-                            <td className="border-b border-r border-red-100 bg-red-50/20 px-4 py-3">
-                              ₹
-                              {Number(
-                                row.Week1ClosingStock || 0,
-                              ).toLocaleString("en-IN", {
-                                minimumFractionDigits: 2,
-                              })}
-                            </td>
-                            {/* CLOSING VALUE */}
-                            <td className="border-b border-r border-red-100 bg-red-50/20 px-4 py-3 font-semibold text-emerald-600">
+
+                            <td className="px-4 py-3 text-[13px] font-semibold text-emerald-600">
                               ₹
                               {Number(
                                 row.Week1ClosingValue || 0,
-                              ).toLocaleString("en-IN", {
-                                minimumFractionDigits: 2,
-                              })}
+                              ).toLocaleString("en-IN")}
                             </td>
+
                             {/* MONTH PURCHASE */}
-                            <td className="border-b border-r border-indigo-100 bg-indigo-50/40 px-4 py-3 font-bold text-indigo-600">
+
+                            <td className="px-4 py-3 text-[13px] font-bold text-indigo-600">
                               ₹
                               {Number(
                                 row.TotalPurchaseAmount || 0,
-                              ).toLocaleString("en-IN", {
-                                minimumFractionDigits: 2,
-                              })}
+                              ).toLocaleString("en-IN")}
                             </td>
-                            {/* MONTH EXPENSE */}
-                            <td className="border-b border-r border-indigo-100 bg-indigo-50/20 px-4 py-3 font-medium text-red-500">
-                              ₹
-                              {Number(
-                                row.TotalWeeklyExpense || 0,
-                              ).toLocaleString("en-IN", {
-                                minimumFractionDigits: 2,
-                              })}
-                            </td>
-                            {/* MONTH CLOSING */}
-                            <td className="border-b border-r border-indigo-100 bg-indigo-50/20 px-4 py-3 font-medium text-emerald-600">
-                              ₹
-                              {Number(
-                                row.MonthClosingValue || 0,
-                              ).toLocaleString("en-IN", {
-                                minimumFractionDigits: 2,
-                              })}
-                            </td>
-                            {/* RM EXPENSE */}
-                            <td className="border-b bg-indigo-50/20 px-4 py-3 font-medium text-orange-500">
+
+                            {/* RM */}
+
+                            <td className="px-4 py-3 text-[13px] font-semibold text-orange-500">
                               ₹
                               {Number(row.MonthlyRMExpense || 0).toLocaleString(
                                 "en-IN",
-                                {
-                                  minimumFractionDigits: 2,
-                                },
                               )}
                             </td>
                           </tr>
@@ -2470,7 +2949,7 @@ export default function MenuManagement() {
                       ) : (
                         <tr>
                           <td
-                            colSpan={15}
+                            colSpan={10}
                             className="px-6 py-16 text-center text-sm text-gray-400"
                           >
                             No inventory data available
@@ -2485,203 +2964,252 @@ export default function MenuManagement() {
           )}
           {/* ITEM MAPPING */}
           {activeTab === "mapping" && (
-            <div className="space-y-6">
-              {/* HEADER */}
-              <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+            <div className="space-y-4">
+              {/* ================= HEADER ================= */}
+
+              <div className="rounded-2xl border border-gray-200 bg-white px-5 py-4 shadow-sm">
                 <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
                   {/* LEFT */}
-                  <div>
-                    {/* BADGE */}
-                    <div className="inline-flex items-center gap-2 rounded-full bg-red-50 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-red-600">
-                      Recipe Intelligence
+
+                  <div className="flex items-start gap-4">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-red-500 to-pink-500 shadow-sm">
+                      <MdRestaurantMenu className="text-[24px] text-white" />
                     </div>
-                    {/* TITLE */}
-                    <div className="mt-3 flex items-center gap-3">
-                      {/* ICON */}
-                      <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-red-50">
-                        <MdRestaurantMenu className="text-2xl text-red-600" />
-                      </div>
-                      <div>
-                        <h2 className="text-2xl font-black tracking-tight text-gray-900">
-                          Item Mapping
-                        </h2>
-                        <p className="mt-1 text-sm leading-6 text-gray-500">
-                          Map ingredients to menu items and monitor recipe
-                          costing intelligence
+
+                    <div>
+                      <h2 className="text-[24px] font-black tracking-tight text-gray-900">
+                        Item Mapping
+                      </h2>
+
+                      <p className="mt-1 text-[13px] text-gray-500">
+                        Recipe costing & ingredient intelligence
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* RIGHT */}
+
+                  <div className="flex flex-wrap items-center gap-2">
+                    {/* MENU */}
+
+                    <div className="flex items-center gap-2 rounded-xl border border-indigo-100 bg-indigo-50 px-3 py-2">
+                      <MdRestaurantMenu className="text-indigo-600" />
+
+                      <div className="leading-none">
+                        <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-indigo-400">
+                          Menu
+                        </p>
+
+                        <p className="mt-1 text-[16px] font-black text-indigo-700">
+                          {menuItems.length}
                         </p>
                       </div>
                     </div>
-                    {/* META TAGS */}
-                    <div className="mt-4 flex flex-wrap items-center gap-2">
-                      <div className="rounded-full bg-indigo-50 px-2.5 py-1 text-[11px] font-semibold text-indigo-600">
-                        {menuItems.length} Menu Items
-                      </div>
-                      <div className="rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-600">
-                        {mappedItems.length} Mapped
-                      </div>
-                      <div className="rounded-full bg-red-50 px-2.5 py-1 text-[11px] font-semibold text-red-600">
-                        {unmappedItems.length} Unmapped
+
+                    {/* MAPPED */}
+
+                    <div className="flex items-center gap-2 rounded-xl border border-emerald-100 bg-emerald-50 px-3 py-2">
+                      <MdChecklist className="text-emerald-600" />
+
+                      <div className="leading-none">
+                        <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-emerald-400">
+                          Mapped
+                        </p>
+
+                        <p className="mt-1 text-[16px] font-black text-emerald-700">
+                          {mappedItems.length}
+                        </p>
                       </div>
                     </div>
-                  </div>
-                  {/* RIGHT */}
-                  <div className="flex flex-wrap items-center gap-2">
-                    {/* AI SUGGEST */}
-                    <button
-                      onClick={handleAISuggest}
-                      className="rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-700 shadow-sm transition hover:bg-gray-50"
-                    >
-                      AI Suggest
-                    </button>
-                    {/* SAVE */}
-                    <button
-                      onClick={handleSaveMapping}
-                      className="rounded-xl bg-gradient-to-r from-red-500 to-pink-500 px-5 py-2 text-sm font-semibold text-white shadow-sm transition-all duration-300 hover:scale-[1.02]"
-                    >
-                      Save Changes
-                    </button>
+
+                    {/* UNMAPPED */}
+
+                    <div className="flex items-center gap-2 rounded-xl border border-red-100 bg-red-50 px-3 py-2">
+                      <MdWarningAmber className="text-red-600" />
+
+                      <div className="leading-none">
+                        <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-red-400">
+                          Unmapped
+                        </p>
+
+                        <p className="mt-1 text-[16px] font-black text-red-700">
+                          {unmappedItems.length}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* COST */}
+
+                    <div className="flex items-center gap-2 rounded-xl border border-orange-100 bg-orange-50 px-3 py-2">
+                      <MdCurrencyRupee className="text-orange-600" />
+
+                      <div className="leading-none">
+                        <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-orange-400">
+                          Avg Cost
+                        </p>
+
+                        <p className="mt-1 text-[16px] font-black text-orange-700">
+                          ₹{avgRecipeCost}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* BUTTONS */}
+
+                    <div className="ml-1 flex items-center gap-2">
+                      <button
+                        onClick={handleAISuggest}
+                        className="
+                h-10
+                rounded-xl
+                border
+                border-gray-200
+                bg-white
+                px-4
+                text-[12px]
+                font-semibold
+                text-gray-700
+                shadow-sm
+                transition
+                hover:bg-gray-50
+              "
+                      >
+                        AI Suggest
+                      </button>
+
+                      <button
+                        onClick={handleSaveMapping}
+                        className="
+                h-10
+                rounded-xl
+                bg-gradient-to-r
+                from-red-500
+                to-pink-500
+                px-4
+                text-[12px]
+                font-semibold
+                text-white
+                shadow-sm
+                transition
+                hover:scale-[1.02]
+              "
+                      >
+                        Save Changes
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
-              {/* KPI */}
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-                {[
-                  {
-                    label: "Menu Items",
-                    value: menuItems.length,
-                    color: "text-indigo-600",
-                    bg: "bg-indigo-50",
-                    icon: MdRestaurantMenu,
-                    meta: "Available recipes",
-                  },
-                  {
-                    label: "Mapped Items",
-                    value: mappedItems.length,
-                    color: "text-emerald-600",
-                    bg: "bg-emerald-50",
-                    icon: MdChecklist,
-                    meta: "Ingredients linked",
-                  },
-                  {
-                    label: "Unmapped",
-                    value: unmappedItems.length,
-                    color: "text-red-600",
-                    bg: "bg-red-50",
-                    icon: MdWarningAmber,
-                    meta: "Needs attention",
-                  },
-                  {
-                    label: "Avg Recipe Cost",
-                    value: `₹${avgRecipeCost}`,
-                    color: "text-orange-500",
-                    bg: "bg-orange-50",
-                    icon: MdCurrencyRupee,
-                    meta: "Average preparation cost",
-                  },
-                ].map((item) => (
-                  <div
-                    key={item.label}
-                    className="group relative overflow-hidden rounded-2xl border border-gray-200 bg-white p-3.5 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg"
-                  >
-                    {/* Glow */}
-                    <div
-                      className={`absolute -right-8 -top-8 h-24 w-24 rounded-full ${item.bg} opacity-60 blur-3xl`}
-                    />
-                    <div className="relative z-10">
-                      {/* TOP */}
-                      <div className="flex items-start justify-between">
-                        {/* ICON */}
-                        <div
-                          className={`flex h-11 w-11 items-center justify-center rounded-xl ${item.bg}`}
-                        >
-                          <item.icon className={`text-2xl ${item.color}`} />
-                        </div>
-                        {/* LIVE */}
-                        <div className="rounded-full bg-gray-100 px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-gray-500">
-                          Live
-                        </div>
-                      </div>
-                      {/* LABEL */}
-                      <p className="mt-3 text-sm font-medium text-gray-500">
-                        {item.label}
-                      </p>
-                      {/* VALUE */}
-                      <p
-                        className={`mt-1 text-2xl font-black tracking-tight ${item.color}`}
-                      >
-                        {item.value}
-                      </p>
-                      {/* FOOTER */}
-                      <div className="mt-3 flex items-center justify-between">
-                        <p className="text-xs text-gray-400">{item.meta}</p>
-                        <div
-                          className={`h-2 w-2 rounded-full ${item.bg.replace("bg-", "bg-")}`}
-                        />
-                      </div>
+
+              {/* ================= MAIN ================= */}
+
+              <div className="grid grid-cols-1 gap-4 xl:grid-cols-[280px_1fr]">
+                {/* ================= LEFT ================= */}
+
+                <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+                  {/* SEARCH */}
+
+                  <div className="border-b border-gray-100 p-3">
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+
+                      <input
+                        placeholder="Search menu items..."
+                        className="
+                h-10
+                w-full
+                rounded-xl
+                border
+                border-gray-200
+                bg-gray-50
+                pl-10
+                pr-3
+                text-[13px]
+                outline-none
+                transition
+                focus:border-red-200
+                focus:bg-white
+              "
+                      />
                     </div>
                   </div>
-                ))}
-              </div>
-              {/* MAIN */}
-              <div className="grid grid-cols-1 gap-6 xl:grid-cols-[340px_1fr]">
-                {/* LEFT MENU */}
-                <div className="rounded-2xl border border-gray-200 bg-white shadow-sm ">
-                  {/* SEARCH */}
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-                    <input
-                      placeholder="Search menu items..."
-                      className="w-full rounded-xl border border-gray-200 bg-gray-50 py-2.5 pl-10 pr-4 text-sm outline-none transition focus:border-gray-300 focus:bg-white focus:ring-2 focus:ring-red-100"
-                    />
-                  </div>
+
                   {/* MENU LIST */}
-                  <div className="max-h-[680px] overflow-auto p-4">
+
+                  <div className="max-h-[720px] overflow-auto p-3">
                     <div className="space-y-2">
                       {menuItems.map((item: any) => (
                         <div
                           key={item.id}
-                          className={`cursor-pointer rounded-2xl border p-3 transition-all duration-300 hover:bg-gray-50  ${
-                            selectedMenuItem?.id === item.id
-                              ? "border-red-100 bg-gradient-to-r from-red-50 to-white"
-                              : "border-gray-100 bg-white"
-                          }`}
                           onClick={() => {
                             setSelectedMenuItem(item);
                             setIngredientMappings(
                               item.menuItemIngredients || [],
                             );
                           }}
+                          className={`
+                  cursor-pointer
+                  rounded-2xl
+                  border
+                  p-3
+                  transition-all
+
+                  ${
+                    selectedMenuItem?.id === item.id
+                      ? "border-red-100 bg-red-50"
+                      : "border-gray-100 hover:bg-gray-50"
+                  }
+                `}
                         >
-                          <div className="flex items-start justify-between gap-3">
+                          <div className="flex items-start justify-between gap-2">
                             <div>
-                              <h3 className="font-medium text-gray-900">
+                              <h3 className="text-[14px] font-semibold text-gray-900">
                                 {item.name}
                               </h3>
-                              <p className="mt-1 text-xs text-gray-500">
+
+                              <p className="mt-1 text-[11px] text-gray-500">
                                 {item.category?.name || "No Category"}
                               </p>
                             </div>
+
                             <span
-                              className={`rounded-full px-3 py-1 text-[11px] font-medium ${
-                                item.type === "VEG"
-                                  ? "bg-emerald-100 text-emerald-700"
-                                  : "bg-red-100 text-red-700"
-                              }`}
+                              className={`
+                      rounded-full
+                      px-2.5
+                      py-1
+                      text-[10px]
+                      font-semibold
+
+                      ${
+                        item.type === "VEG"
+                          ? "bg-emerald-100 text-emerald-700"
+                          : "bg-red-100 text-red-700"
+                      }
+                    `}
                             >
                               {item.type}
                             </span>
                           </div>
+
                           <div className="mt-3 flex items-center justify-between">
-                            <p className="text-base font-semibold text-gray-900">
+                            <p className="text-[15px] font-bold text-gray-900">
                               ₹{item.price}
                             </p>
+
                             <span
-                              className={`rounded-full px-3 py-1 text-[11px] font-semibold
-                              ${
-                                item.menuItemIngredients?.length > 0
-                                  ? "bg-emerald-50 text-emerald-600"
-                                  : "bg-red-50 text-red-600"
-                              }`}
+                              className={`
+                      rounded-full
+                      px-2.5
+                      py-1
+                      text-[10px]
+                      font-semibold
+
+                      ${
+                        item.menuItemIngredients?.length > 0
+                          ? "bg-emerald-50 text-emerald-600"
+                          : "bg-red-50 text-red-600"
+                      }
+                    `}
                             >
                               {item.menuItemIngredients?.length > 0
                                 ? "Mapped"
@@ -2693,268 +3221,284 @@ export default function MenuManagement() {
                     </div>
                   </div>
                 </div>
-                {/* RIGHT */}
-                <div className="space-y-6">
-                  {/* TOP CARD */}
-                  <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
-                    <div className="flex flex-col gap-6 xl:flex-row xl:items-center xl:justify-between">
+
+                {/* ================= RIGHT ================= */}
+
+                <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+                  {/* TOP */}
+
+                  <div className="border-b border-gray-100 px-4 py-4">
+                    <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
                       {/* LEFT */}
-                      <div className="flex items-start gap-4">
-                        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-red-50">
+
+                      <div className="flex items-start gap-3">
+                        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-red-50">
                           {(() => {
                             const Icon =
                               iconMap[selectedMenuItem?.category?.icon] ||
                               MdRestaurant;
-                            return <Icon className="text-3xl text-red-500" />;
+
+                            return (
+                              <Icon className="text-[24px] text-red-500" />
+                            );
                           })()}
                         </div>
+
                         <div>
-                          <h2 className="text-2xl font-black tracking-tight text-gray-900">
+                          <h2 className="text-[22px] font-black tracking-tight text-gray-900">
                             {selectedMenuItem?.name || "Select Menu Item"}
                           </h2>
-                          <div className="mt-3 flex flex-wrap gap-3">
-                            <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-700">
+
+                          <div className="mt-2 flex flex-wrap gap-2">
+                            <span className="rounded-full bg-gray-100 px-2.5 py-1 text-[10px] font-semibold text-gray-700">
                               {selectedMenuItem?.category?.name || "Category"}
                             </span>
-                            <span className="rounded-full bg-red-50 px-3 py-1 text-xs font-semibold text-red-600">
+
+                            <span className="rounded-full bg-red-50 px-2.5 py-1 text-[10px] font-semibold text-red-600">
                               ₹{selectedMenuItem?.price || 0}
                             </span>
                           </div>
                         </div>
                       </div>
+
                       {/* ANALYTICS */}
-                      <div className="grid grid-cols-2 gap-3">
-                        <div className="rounded-xl p-3 bg-indigo-50">
-                          <p className="text-[10px] font-semibold uppercase tracking-wide text-indigo-500">
-                            Recipe Cost
-                          </p>
-                          <p className="mt-2 text-xl font-black text-indigo-600">
-                            ₹{totalRecipeCost.toFixed(2)}
-                          </p>
-                        </div>
-                        <div className="rounded-xl p-3 bg-emerald-50 ">
-                          <p className="text-[10px] font-semibold uppercase tracking-wide text-emerald-500">
-                            Margin
-                          </p>
-                          <p className="mt-2 text-xl font-black text-emerald-600">
-                            {margin}%
-                          </p>
-                        </div>
-                        <div className="rounded-xl p-3 bg-orange-50 ">
-                          <p className="text-[10px] font-semibold uppercase tracking-wide text-orange-500">
-                            Prep Time
-                          </p>
-                          <p className="mt-2 text-xl font-black text-orange-500">
-                            {selectedMenuItem?.prepTime || 0}m
-                          </p>
-                        </div>
-                        <div className="rounded-xl p-3 bg-red-50 ">
-                          <p className="text-[10px] font-semibold uppercase tracking-wide text-red-500">
-                            Food Cost
-                          </p>
-                          <p className="mt-2 text-xl font-black text-red-600">
-                            {foodCostPercentage}%
-                          </p>
-                        </div>
+
+                      <div className="flex flex-wrap items-center gap-2">
+                        {[
+                          {
+                            label: "Recipe",
+                            value: `₹${totalRecipeCost.toFixed(2)}`,
+                            bg: "bg-indigo-50",
+                          },
+                          {
+                            label: "Margin",
+                            value: `${margin}%`,
+                            bg: "bg-emerald-50",
+                          },
+                          {
+                            label: "Prep",
+                            value: `${selectedMenuItem?.prepTime || 0}m`,
+                            bg: "bg-orange-50",
+                          },
+                          {
+                            label: "Food Cost",
+                            value: `${foodCostPercentage}%`,
+                            bg: "bg-red-50",
+                          },
+                        ].map((item) => (
+                          <div
+                            key={item.label}
+                            className={`rounded-xl px-3 py-2 ${item.bg}`}
+                          >
+                            <p className="text-[9px] font-bold uppercase tracking-[0.14em] text-gray-400">
+                              {item.label}
+                            </p>
+
+                            <p className="mt-1 text-[16px] font-black text-gray-900">
+                              {item.value}
+                            </p>
+                          </div>
+                        ))}
                       </div>
                     </div>
                   </div>
-                  {/* INGREDIENT TABLE */}
-                  <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
-                    {/* TOP */}
-                    <div className="flex items-center justify-between border-b border-gray-100 p-4">
-                      <div>
-                        <h3 className="text-lg font-black text-gray-900">
-                          Ingredient Mapping
-                        </h3>
-                        <p className="mt-1 text-sm text-gray-500">
-                          Ingredients consumed for this menu item
-                        </p>
-                      </div>
-                      <div className="flex flex-wrap gap-3">
-                        <button
-                          className="rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-700 shadow-sm transition hover:bg-gray-50"
-                          onClick={handleAISuggest}
-                        >
-                          AI Suggest
-                        </button>
-                        <button
-                          className="rounded-xl bg-gradient-to-r from-red-500 to-pink-500 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-red-100 transition-all duration-300 hover:scale-[1.02]"
-                          onClick={handleSaveMapping}
-                        >
-                          Save Changes
-                        </button>
-                        <button
-                          className="flex items-center gap-2 rounded-2xl border border-red-100 bg-red-50 px-4 py-2 text-sm font-semibold text-red-600 transition hover:bg-red-100"
-                          onClick={handleAddMappingIngredient}
-                        >
-                          + Add Ingredient
-                        </button>
-                      </div>
-                    </div>
-                    {/* TABLE */}
-                    <div className="overflow-auto">
-                      <table className="min-w-full">
-                        {/* HEADER */}
-                        <thead className="border-b border-gray-100 bg-gray-50/70">
-                          <tr>
-                            {[
-                              "Ingredient",
-                              "Qty",
-                              "Unit",
-                              "Cost",
-                              "Waste %",
-                              "Actions",
-                            ].map((head) => (
-                              <th
-                                key={head}
-                                className="whitespace-nowrap px-6 py-3 text-left text-[11px] font-bold uppercase tracking-[0.18em] text-gray-400"
-                              >
-                                {head}
-                              </th>
-                            ))}
-                          </tr>
-                        </thead>
-                        {/* BODY */}
-                        <tbody>
-                          {ingredientMappings.map((row, index) => (
-                            <tr
-                              key={index}
-                              className="border-b border-gray-100 transition hover:bg-gray-50"
+
+                  {/* TABLE */}
+
+                  <div className="overflow-auto">
+                    <table className="min-w-full">
+                      <thead className="border-b border-gray-100 bg-gray-50">
+                        <tr>
+                          {[
+                            "Ingredient",
+                            "Qty",
+                            "Unit",
+                            "Cost",
+                            "Waste %",
+                            "Actions",
+                          ].map((head) => (
+                            <th
+                              key={head}
+                              className="
+                      whitespace-nowrap
+                      px-4
+                      py-3
+                      text-left
+                      text-[10px]
+                      font-bold
+                      uppercase
+                      tracking-[0.16em]
+                      text-gray-400
+                    "
                             >
-                              <td className="px-4 py-3">
-                                <select
-                                  value={String(row.ingredientId || "")}
-                                  onChange={(e) => {
-                                    const updated = [...ingredientMappings];
-
-                                    const selectedIngredient =
-                                      allIngredients.find(
-                                        (i: any) =>
-                                          String(i.id) === e.target.value,
-                                      );
-
-                                    updated[index] = {
-                                      ...updated[index],
-                                      ingredientId: Number(e.target.value),
-                                      ingredient: selectedIngredient,
-                                    };
-
-                                    setIngredientMappings(updated);
-                                  }}
-                                  className="w-full rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm outline-none focus:border-gray-300 focus:ring-2 focus:ring-red-100"
-                                >
-                                  <option value="">Select Ingredient</option>
-                                  {allIngredients.map((ingredient: any) => (
-                                    <option
-                                      key={ingredient.id}
-                                      value={String(ingredient.id)}
-                                    >
-                                      {ingredient.name}
-                                    </option>
-                                  ))}
-                                </select>
-                              </td>
-                              <td className="px-4 py-4">
-                                <input
-                                  type="number"
-                                  value={row.quantity || ""}
-                                  onChange={(e) => {
-                                    const updated = [...ingredientMappings];
-                                    updated[index].quantity = e.target.value;
-                                    setIngredientMappings(updated);
-                                  }}
-                                  className="w-24 rounded-lg border border-gray-200 px-3 py-1.5 text-sm outline-none focus:border-gray-300 focus:ring-2 focus:ring-red-100"
-                                />
-                              </td>
-                              <td className="px-4 py-4">
-                                <select
-                                  value={row.unit || "gm"}
-                                  onChange={(e) => {
-                                    const updated = [...ingredientMappings];
-                                    updated[index].unit = e.target.value;
-                                    setIngredientMappings(updated);
-                                  }}
-                                  className="rounded-lg border border-gray-200 px-3 py-1.5 text-sm outline-none focus:border-gray-300 focus:ring-2 focus:ring-red-100"
-                                >
-                                  {["gm", "Kg", "Litre", "ml", "pc"].map(
-                                    (unit) => (
-                                      <option key={unit} value={unit}>
-                                        {unit}
-                                      </option>
-                                    ),
-                                  )}
-                                </select>
-                              </td>
-                              <td className="px-4 py-4 font-medium text-indigo-600">
-                                ₹
-                                {(() => {
-                                  const ingredient = row.ingredient;
-                                  if (!ingredient) return "0.00";
-                                  const qty = Number(row.quantity || 0);
-                                  const pricePerUnit = Number(
-                                    ingredient.pricePerUnit || 0,
-                                  );
-                                  let cost = 0;
-                                  /* WEIGHT */
-                                  if (
-                                    row.unit === "Gram" ||
-                                    row.unit === "gm"
-                                  ) {
-                                    cost = (qty / 1000) * pricePerUnit;
-                                  } else if (row.unit === "Kg") {
-                                    cost = qty * pricePerUnit;
-                                  } else if (
-                                    /* LIQUID */
-                                    row.unit === "Ml" ||
-                                    row.unit === "ml"
-                                  ) {
-                                    cost = (qty / 1000) * pricePerUnit;
-                                  } else if (row.unit === "Litre") {
-                                    cost = qty * pricePerUnit;
-                                  } else if (
-                                    /* PIECE */
-                                    row.unit === "Piece" ||
-                                    row.unit === "pc"
-                                  ) {
-                                    cost = qty * pricePerUnit;
-                                  } else {
-                                    cost = qty * pricePerUnit;
-                                  }
-                                  return cost.toFixed(2);
-                                })()}
-                              </td>
-                              <td className="px-4 py-4">
-                                <input
-                                  type="number"
-                                  value={row.wastage || 0}
-                                  onChange={(e) => {
-                                    const updated = [...ingredientMappings];
-                                    updated[index].wastage = e.target.value;
-                                    setIngredientMappings(updated);
-                                  }}
-                                  className="w-20 rounded-xl border border-gray-200 px-3 py-2 text-sm outline-none focus:border-gray-300 focus:ring-2 focus:ring-red-100"
-                                />
-                              </td>
-                              <td className="px-4 py-4">
-                                <div className="flex gap-2">
-                                  <button
-                                    onClick={() => {
-                                      const updated = ingredientMappings.filter(
-                                        (_: any, i: number) => i !== index,
-                                      );
-                                      setIngredientMappings(updated);
-                                    }}
-                                    className="rounded-xl  px-4 py-2 text-xs font-semibold bg-gray-100 text-red-500 hover:bg-red-50"
-                                  >
-                                    Delete
-                                  </button>
-                                </div>
-                              </td>
-                            </tr>
+                              {head}
+                            </th>
                           ))}
-                        </tbody>
-                      </table>
+                        </tr>
+                      </thead>
+
+                      <tbody>
+                        {ingredientMappings.map((row, index) => (
+                          <tr
+                            key={index}
+                            className="border-b border-gray-100 hover:bg-gray-50"
+                          >
+                            <td className="px-4 py-3">
+                              <select
+                                value={String(row.ingredientId || "")}
+                                className="
+                        h-10
+                        w-full
+                        rounded-xl
+                        border
+                        border-gray-200
+                        bg-white
+                        px-3
+                        text-[13px]
+                        outline-none
+                        focus:border-red-200
+                      "
+                              >
+                                <option value="">Select Ingredient</option>
+
+                                {allIngredients.map((ingredient: any) => (
+                                  <option
+                                    key={ingredient.id}
+                                    value={String(ingredient.id)}
+                                  >
+                                    {ingredient.name}
+                                  </option>
+                                ))}
+                              </select>
+                            </td>
+
+                            <td className="px-4 py-3">
+                              <input
+                                type="number"
+                                value={row.quantity || ""}
+                                className="
+                        h-10
+                        w-24
+                        rounded-xl
+                        border
+                        border-gray-200
+                        px-3
+                        text-[13px]
+                        outline-none
+                        focus:border-red-200
+                      "
+                              />
+                            </td>
+
+                            <td className="px-4 py-3">
+                              <select
+                                value={row.unit || "gm"}
+                                className="
+                        h-10
+                        rounded-xl
+                        border
+                        border-gray-200
+                        px-3
+                        text-[13px]
+                        outline-none
+                        focus:border-red-200
+                      "
+                              >
+                                {["gm", "Kg", "Litre", "ml", "pc"].map(
+                                  (unit) => (
+                                    <option key={unit} value={unit}>
+                                      {unit}
+                                    </option>
+                                  ),
+                                )}
+                              </select>
+                            </td>
+
+                            <td className="px-4 py-3">
+                              <span className="rounded-full bg-indigo-50 px-3 py-1 text-[12px] font-bold text-indigo-600">
+                                ₹0.00
+                              </span>
+                            </td>
+
+                            <td className="px-4 py-3">
+                              <input
+                                type="number"
+                                value={row.wastage || 0}
+                                className="
+                        h-10
+                        w-20
+                        rounded-xl
+                        border
+                        border-gray-200
+                        px-3
+                        text-[13px]
+                        outline-none
+                        focus:border-red-200
+                      "
+                              />
+                            </td>
+
+                            <td className="px-4 py-3">
+                              <button
+                                className="
+                        rounded-xl
+                        bg-red-50
+                        px-3
+                        py-2
+                        text-[12px]
+                        font-semibold
+                        text-red-600
+                        transition
+                        hover:bg-red-100
+                      "
+                              >
+                                Delete
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+
+                    {/* FOOTER */}
+
+                    <div className="flex items-center justify-between border-t border-gray-100 bg-gray-50 px-4 py-3">
+                      <button
+                        onClick={handleAddMappingIngredient}
+                        className="
+                rounded-xl
+                border
+                border-gray-200
+                bg-white
+                px-4
+                py-2
+                text-[12px]
+                font-semibold
+                text-gray-700
+                transition
+                hover:bg-gray-100
+              "
+                      >
+                        + Add Ingredient
+                      </button>
+
+                      <button
+                        onClick={handleSaveMapping}
+                        className="
+                rounded-xl
+                bg-gradient-to-r
+                from-red-500
+                to-pink-500
+                px-4
+                py-2
+                text-[12px]
+                font-semibold
+                text-white
+                shadow-sm
+              "
+                      >
+                        Save Mapping
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -2963,351 +3507,630 @@ export default function MenuManagement() {
           )}
           {/* ANALYTICS */}
           {activeTab === "analytics" && (
-            <div className="space-y-6">
-              {/* HEADER */}
-              <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+            <div className="space-y-4">
+              {/* ================= HEADER ================= */}
+
+              <div className="rounded-2xl border border-gray-200 bg-white px-5 py-4 shadow-sm">
                 <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
                   {/* LEFT */}
-                  <div>
-                    {/* BADGE */}
-                    <div className="inline-flex items-center gap-2 rounded-full bg-indigo-50 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-indigo-600">
-                      Consumption Intelligence
+
+                  <div className="flex items-start gap-4">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-500 shadow-sm">
+                      <BarChart3 className="h-5 w-5 text-white" />
                     </div>
-                    {/* TITLE */}
-                    <div className="mt-3 flex items-center gap-3">
-                      {/* ICON */}
-                      <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-indigo-50">
-                        <BarChart3 className="h-5 w-5 text-indigo-600" />
+
+                    <div>
+                      <h2 className="text-[24px] font-black tracking-tight text-gray-900">
+                        Menu Analytics
+                      </h2>
+
+                      <p className="mt-1 text-[13px] text-gray-500">
+                        Ingredient usage, costing & operational intelligence
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* KPI CHIPS */}
+
+                  <div className="flex flex-wrap items-center gap-2">
+                    {/* FOOD COST */}
+
+                    <div className="flex items-center gap-2 rounded-xl border border-red-100 bg-red-50 px-3 py-2">
+                      <ChartPieIcon className="h-4 w-4 text-red-600" />
+
+                      <div className="leading-none">
+                        <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-red-400">
+                          Food Cost
+                        </p>
+
+                        <p className="mt-1 text-[15px] font-black text-red-700">
+                          {avgFoodCost}%
+                        </p>
                       </div>
+                    </div>
+
+                    {/* INVENTORY */}
+
+                    <div className="flex items-center gap-2 rounded-xl border border-indigo-100 bg-indigo-50 px-3 py-2">
+                      <ArchiveBoxIcon className="h-4 w-4 text-indigo-600" />
+
+                      <div className="leading-none">
+                        <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-indigo-400">
+                          Inventory
+                        </p>
+
+                        <p className="mt-1 text-[15px] font-black text-indigo-700">
+                          ₹
+                          {allIngredients
+                            .reduce((acc: number, item: any) => {
+                              return (
+                                acc +
+                                Number(item.quantity || 0) *
+                                  Number(item.pricePerUnit || 0)
+                              );
+                            }, 0)
+                            .toFixed(0)}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* TURNOVER */}
+
+                    <div className="flex items-center gap-2 rounded-xl border border-emerald-100 bg-emerald-50 px-3 py-2">
+                      <ArrowPathRoundedSquareIcon className="h-4 w-4 text-emerald-600" />
+
+                      <div className="leading-none">
+                        <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-emerald-400">
+                          Turnover
+                        </p>
+
+                        <p className="mt-1 text-[15px] font-black text-emerald-700">
+                          {(
+                            totalConsumptionValue /
+                            Math.max(
+                              allIngredients.reduce(
+                                (acc: number, item: any) => {
+                                  return (
+                                    acc +
+                                    Number(item.quantity || 0) *
+                                      Number(item.pricePerUnit || 0)
+                                  );
+                                },
+                                0,
+                              ),
+                              1,
+                            )
+                          ).toFixed(2)}
+                          x
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* USAGE */}
+
+                    <div className="flex items-center gap-2 rounded-xl border border-orange-100 bg-orange-50 px-3 py-2">
+                      <CubeTransparentIcon className="h-4 w-4 text-orange-600" />
+
+                      <div className="leading-none">
+                        <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-orange-400">
+                          Usage
+                        </p>
+
+                        <p className="mt-1 text-[15px] font-black text-orange-700">
+                          ₹{totalConsumptionValue.toFixed(0)}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* MARGIN */}
+
+                    <div className="flex items-center gap-2 rounded-xl border border-emerald-100 bg-emerald-50 px-3 py-2">
+                      <BanknotesIcon className="h-4 w-4 text-emerald-600" />
+
+                      <div className="leading-none">
+                        <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-emerald-400">
+                          Margin
+                        </p>
+
+                        <p className="mt-1 text-[15px] font-black text-emerald-700">
+                          {avgProfitMargin}%
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* ================= TOP SECTION ================= */}
+
+              <div className="grid grid-cols-1 gap-4 ">
+                {/* ================= ANALYTICS + ALERTS ================= */}
+
+                <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1.2fr_0.8fr]">
+                  {/* ================= LEFT ================= */}
+
+                  <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+                    {/* TOP */}
+
+                    <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+                      {/* TITLE */}
+
                       <div>
-                        <h2 className="text-2xl font-black tracking-tight text-gray-900">
-                          Menu Analytics
-                        </h2>
-                        <p className="mt-1 text-sm leading-6 text-gray-500">
-                          Ingredient usage, costing, wastage & operational
-                          insights
+                        <h3 className="text-[18px] font-black tracking-tight text-gray-900">
+                          Ingredient Intelligence
+                        </h3>
+
+                        <p className="mt-1 text-[12px] text-gray-500">
+                          Usage analytics & inventory distribution
                         </p>
                       </div>
-                    </div>
-                    {/* META TAGS */}
-                    <div className="mt-4 flex flex-wrap items-center gap-2">
-                      <div className="rounded-full bg-indigo-50 px-2.5 py-1 text-[11px] font-semibold text-indigo-600">
-                        Live Analytics
-                      </div>
-                      <div className="rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-600">
-                        Consumption Tracking
-                      </div>
-                      <div className="rounded-full bg-orange-50 px-2.5 py-1 text-[11px] font-semibold text-orange-600">
-                        Cost Intelligence
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              {/* KPI */}
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-6">
-                {[
-                  {
-                    label: "Food Cost %",
-                    value: `${avgFoodCost}%`,
-                    color: "text-red-600",
-                    bg: "bg-red-50",
-                    icon: ChartPieIcon,
-                    meta: "Operational cost",
-                  },
-                  {
-                    label: "Inventory Value",
-                    value: `₹${allIngredients
-                      .reduce((acc: number, item: any) => {
-                        return (
-                          acc +
-                          Number(item.quantity || 0) *
-                            Number(item.pricePerUnit || 0)
-                        );
-                      }, 0)
-                      .toFixed(0)}`,
-                    color: "text-indigo-600",
-                    bg: "bg-indigo-50",
-                    icon: ArchiveBoxIcon,
-                    meta: "Current stock value",
-                  },
-                  {
-                    label: "Inventory Turnover",
-                    value: `${(
-                      totalConsumptionValue /
-                      Math.max(
-                        allIngredients.reduce((acc: number, item: any) => {
-                          return (
-                            acc +
-                            Number(item.quantity || 0) *
-                              Number(item.pricePerUnit || 0)
-                          );
-                        }, 0),
-                        1,
-                      )
-                    ).toFixed(2)}x`,
-                    color: "text-emerald-600",
-                    bg: "bg-emerald-50",
-                    icon: ArrowPathRoundedSquareIcon,
-                    meta: "Stock efficiency",
-                  },
-                  {
-                    label: "Inventory Usage",
-                    value: `₹${totalConsumptionValue.toFixed(0)}`,
-                    color: "text-orange-500",
-                    bg: "bg-orange-50",
-                    icon: CubeTransparentIcon,
-                    meta: "Consumption value",
-                  },
-                  {
-                    label: "Profit Margin",
-                    value: `${avgProfitMargin}%`,
-                    color: "text-emerald-600",
-                    bg: "bg-emerald-50",
-                    icon: BanknotesIcon,
-                    meta: "Profitability health",
-                  },
-                  {
-                    label: "Daily Consumption",
-                    value: `₹${totalConsumptionValue.toFixed(0)}`,
-                    color: "text-orange-500",
-                    bg: "bg-orange-50",
-                    icon: FireIcon,
-                    meta: "Daily operations",
-                  },
-                ].map((item) => {
-                  const Icon = item.icon;
-                  return (
-                    <div
-                      key={item.label}
-                      className="group relative overflow-hidden rounded-2xl border border-gray-200 bg-white p-3.5 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-md"
-                    >
-                      {/* Glow */}
-                      <div
-                        className={`absolute -right-8 -top-8 h-20 w-20 rounded-full ${item.bg} opacity-60 blur-3xl`}
-                      />
-                      <div className="relative z-10">
-                        {/* TOP */}
-                        <div className="flex items-start justify-between">
-                          {/* ICON */}
-                          <div
-                            className={`flex h-10 w-10 items-center justify-center rounded-xl ${item.bg}`}
+
+                      {/* RIGHT */}
+
+                      <div className="flex items-center gap-2">
+                        {/* VIEW TOGGLE */}
+
+                        <div className="flex items-center rounded-xl border border-gray-200 bg-gray-50 p-1">
+                          <button
+                            onClick={() => setViewMode("pie")}
+                            className={`
+              rounded-lg
+              px-3
+              py-1.5
+              text-[11px]
+              font-semibold
+              transition
+
+              ${
+                viewMode === "pie"
+                  ? "bg-white text-red-600 shadow-sm"
+                  : "text-gray-500"
+              }
+            `}
                           >
-                            <Icon className={`h-5 w-5 ${item.color}`} />
-                          </div>
-                          {/* STATUS */}
-                          <div className="rounded-full bg-gray-100 px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-gray-500">
-                            Live
-                          </div>
+                            Pie
+                          </button>
+
+                          <button
+                            onClick={() => setViewMode("table")}
+                            className={`
+              rounded-lg
+              px-3
+              py-1.5
+              text-[11px]
+              font-semibold
+              transition
+
+              ${
+                viewMode === "table"
+                  ? "bg-white text-red-600 shadow-sm"
+                  : "text-gray-500"
+              }
+            `}
+                          >
+                            Table
+                          </button>
                         </div>
-                        {/* LABEL */}
-                        <p className="mt-3 text-xs font-medium text-gray-500">
-                          {item.label}
-                        </p>
-                        {/* VALUE */}
-                        <p
-                          className={`mt-1 text-2xl font-black tracking-tight ${item.color}`}
+
+                        {/* CATEGORY */}
+
+                        <select
+                          value={selectedCategory}
+                          onChange={(e) => setSelectedCategory(e.target.value)}
+                          className="
+            h-9
+            rounded-xl
+            border
+            border-gray-200
+            bg-white
+            px-3
+            text-[12px]
+            font-medium
+            text-gray-700
+            outline-none
+          "
                         >
-                          {item.value}
-                        </p>
-                        {/* FOOTER */}
-                        <div className="mt-3 flex items-center justify-between">
-                          <p className="text-[11px] text-gray-400">
-                            {item.meta}
+                          <option value="all">All Categories</option>
+
+                          <option value="Vegetables">Vegetables</option>
+
+                          <option value="Dairy">Dairy</option>
+
+                          <option value="Spices">Spices</option>
+
+                          <option value="Meat">Meat</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    {/* ================= DATA ================= */}
+
+                    {(() => {
+                      const ingredientData = [
+                        {
+                          ingredient: "Tomato",
+                          usage: 35,
+                          consumed: "12kg",
+                          cost: 3200,
+                          category: "Vegetables",
+                        },
+
+                        {
+                          ingredient: "Onion",
+                          usage: 25,
+                          consumed: "8kg",
+                          cost: 2100,
+                          category: "Vegetables",
+                        },
+
+                        {
+                          ingredient: "Cheese",
+                          usage: 18,
+                          consumed: "5kg",
+                          cost: 4500,
+                          category: "Dairy",
+                        },
+
+                        {
+                          ingredient: "Chicken",
+                          usage: 15,
+                          consumed: "7kg",
+                          cost: 5200,
+                          category: "Meat",
+                        },
+
+                        {
+                          ingredient: "Masala",
+                          usage: 7,
+                          consumed: "2kg",
+                          cost: 1200,
+                          category: "Spices",
+                        },
+                      ];
+
+                      const filteredData =
+                        selectedCategory === "all"
+                          ? ingredientData
+                          : ingredientData.filter(
+                              (i) => i.category === selectedCategory,
+                            );
+
+                      return (
+                        <>
+                          {/* ================= PIE VIEW ================= */}
+
+                          {viewMode === "pie" && (
+                            <>
+                              {/* PIE */}
+
+                              <div className="mt-4 h-[220px] rounded-2xl border border-gray-100 bg-gray-50/40 p-4">
+                                <ResponsiveContainer width="100%" height="100%">
+                                  <PieChart>
+                                    <Pie
+                                      data={filteredData}
+                                      dataKey="usage"
+                                      nameKey="ingredient"
+                                      innerRadius={50}
+                                      outerRadius={80}
+                                      paddingAngle={3}
+                                    >
+                                      {filteredData.map((entry, index) => {
+                                        const COLORS = [
+                                          "#ef4444",
+                                          "#3b82f6",
+                                          "#10b981",
+                                          "#f97316",
+                                          "#ec4899",
+                                        ];
+
+                                        return (
+                                          <Cell
+                                            key={`cell-${index}`}
+                                            fill={COLORS[index % COLORS.length]}
+                                          />
+                                        );
+                                      })}
+                                    </Pie>
+
+                                    <Tooltip />
+                                  </PieChart>
+                                </ResponsiveContainer>
+                              </div>
+
+                              {/* LEGEND */}
+
+                              <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
+                                {filteredData.map((item, index) => {
+                                  const colors = [
+                                    "bg-red-500",
+                                    "bg-blue-500",
+                                    "bg-emerald-500",
+                                    "bg-orange-500",
+                                    "bg-pink-500",
+                                  ];
+
+                                  return (
+                                    <div
+                                      key={index}
+                                      className="
+                        flex
+                        items-center
+                        gap-2
+                        rounded-full
+                        border
+                        border-gray-200
+                        bg-white
+                        px-2.5
+                        py-1.5
+                        shadow-sm
+                      "
+                                    >
+                                      {/* COLOR */}
+
+                                      <div
+                                        className={`h-2.5 w-2.5 rounded-full ${
+                                          colors[index % colors.length]
+                                        }`}
+                                      />
+
+                                      {/* NAME */}
+
+                                      <p className="text-[11px] font-semibold text-gray-700">
+                                        {item.ingredient}
+                                      </p>
+
+                                      {/* VALUE */}
+
+                                      <span className="text-[10px] font-bold text-gray-400">
+                                        {item.usage}%
+                                      </span>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </>
+                          )}
+
+                          {/* ================= TABLE VIEW ================= */}
+
+                          {viewMode === "table" && (
+                            <div className="mt-4 overflow-hidden rounded-2xl border border-gray-100">
+                              <table className="min-w-full">
+                                {/* HEAD */}
+
+                                <thead className="bg-gray-50">
+                                  <tr>
+                                    {[
+                                      "Ingredient",
+                                      "Category",
+                                      "Usage %",
+                                      "Consumed",
+                                      "Cost",
+                                    ].map((head) => (
+                                      <th
+                                        key={head}
+                                        className="
+                          px-4
+                          py-3
+                          text-left
+                          text-[10px]
+                          font-bold
+                          uppercase
+                          tracking-[0.14em]
+                          text-gray-400
+                        "
+                                      >
+                                        {head}
+                                      </th>
+                                    ))}
+                                  </tr>
+                                </thead>
+
+                                {/* BODY */}
+
+                                <tbody>
+                                  {filteredData.map((item, index) => (
+                                    <tr
+                                      key={index}
+                                      className="border-t border-gray-100 hover:bg-gray-50/50"
+                                    >
+                                      <td className="px-4 py-3">
+                                        <p className="text-[13px] font-semibold text-gray-900">
+                                          {item.ingredient}
+                                        </p>
+                                      </td>
+
+                                      <td className="px-4 py-3">
+                                        <span className="rounded-full bg-gray-100 px-2.5 py-1 text-[10px] font-semibold text-gray-700">
+                                          {item.category}
+                                        </span>
+                                      </td>
+
+                                      <td className="px-4 py-3">
+                                        <div className="flex items-center gap-3">
+                                          <div className="h-1.5 w-24 rounded-full bg-gray-100">
+                                            <div
+                                              className="h-1.5 rounded-full bg-red-500"
+                                              style={{
+                                                width: `${item.usage}%`,
+                                              }}
+                                            />
+                                          </div>
+
+                                          <span className="text-[12px] font-semibold text-gray-700">
+                                            {item.usage}%
+                                          </span>
+                                        </div>
+                                      </td>
+
+                                      <td className="px-4 py-3 text-[12px] text-gray-600">
+                                        {item.consumed}
+                                      </td>
+
+                                      <td className="px-4 py-3">
+                                        <span className="rounded-full bg-indigo-50 px-2.5 py-1 text-[11px] font-semibold text-indigo-600">
+                                          ₹{item.cost}
+                                        </span>
+                                      </td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          )}
+                        </>
+                      );
+                    })()}
+                  </div>
+
+                  {/* ================= RIGHT ================= */}
+
+                  <div className="space-y-4">
+                    {/* ALERTS */}
+
+                    <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm h-fit">
+                      {/* TOP */}
+
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h3 className="text-[18px] font-black tracking-tight text-gray-900">
+                            Operational Alerts
+                          </h3>
+
+                          <p className="mt-1 text-[12px] text-gray-500">
+                            Waste & operational monitoring
                           </p>
-                          <div
-                            className={`h-2 w-2 rounded-full ${item.bg.replace(
-                              "bg-",
-                              "bg-",
-                            )}`}
-                          />
+                        </div>
+
+                        <div className="rounded-full bg-red-50 px-3 py-1 text-[10px] font-bold text-red-600">
+                          AI Monitoring
+                        </div>
+                      </div>
+
+                      {/* ALERT */}
+
+                      <div className="mt-4 rounded-xl border border-emerald-100 bg-emerald-50/60 px-4 py-3">
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <p className="text-[14px] font-bold text-gray-900">
+                                Inventory Healthy
+                              </p>
+
+                              <span className="text-[10px] font-semibold text-gray-400">
+                                Live
+                              </span>
+                            </div>
+
+                            <p className="mt-1 text-[12px] text-gray-500">
+                              No operational risks detected
+                            </p>
+                          </div>
+
+                          <div className="h-2.5 w-2.5 rounded-full bg-emerald-500" />
                         </div>
                       </div>
                     </div>
-                  );
-                })}
-              </div>
-              {/* MAIN GRID */}
-              <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
-                {/* TOP INGREDIENTS */}
-                <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
-                  {/* HEADER */}
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="text-lg font-black tracking-tight text-gray-900">
-                        Top Ingredient Usage
-                      </h3>
-                      <p className="mt-1 text-sm text-gray-500">
-                        Most consumed inventory items
-                      </p>
-                    </div>
-                    <div className="rounded-full bg-indigo-50 px-3 py-1 text-[11px] font-semibold text-indigo-600">
-                      Live Tracking
-                    </div>
-                  </div>
-                  {/* LIST */}
-                  <div className="mt-4 space-y-3">
-                    {ingredientAnalytics
-                      .sort((a: any, b: any) => b.consumed - a.consumed)
-                      .slice(0, visibleIngredients)
-                      .map((item: any) => {
-                        const percent = Math.min(
-                          Number((item.consumed / 10).toFixed(0)),
-                          100,
-                        );
-                        return (
-                          <div
-                            key={item.ingredient}
-                            className="rounded-xl border border-gray-100 bg-gray-50/50 p-3 transition-all duration-200 hover:bg-gray-50"
-                          >
-                            {/* TOP */}
-                            <div className="flex items-center justify-between gap-3">
-                              {/* LEFT */}
-                              <div className="min-w-0">
-                                <div className="flex items-center gap-2">
-                                  <p className="truncate text-sm font-semibold text-gray-900">
-                                    {item.ingredient}
-                                  </p>
-                                  {/* STATUS */}
-                                  <div className="rounded-full bg-indigo-50 px-2 py-0.5 text-[10px] font-semibold text-indigo-600">
-                                    Active
-                                  </div>
-                                </div>
-                                <p className="mt-1 text-xs text-gray-500">
-                                  {Math.round(item.consumed)} {item.unit}{" "}
-                                  consumed
-                                </p>
-                              </div>
-                              {/* PERCENT */}
-                              <div className="text-right">
-                                <p className="text-sm font-black text-indigo-600">
-                                  {percent}%
-                                </p>
-                                <p className="mt-0.5 text-[10px] text-gray-400">
-                                  Usage
-                                </p>
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })}
-                  </div>
-                  {ingredientAnalytics.length > 5 && (
-                    <div className="mt-4 flex justify-center">
-                      {visibleIngredients < ingredientAnalytics.length ? (
-                        <button
-                          onClick={() =>
-                            setVisibleIngredients(ingredientAnalytics.length)
-                          }
-                          className="rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-700 shadow-sm transition hover:bg-gray-50"
-                        >
-                          View More
-                        </button>
-                      ) : (
-                        <button
-                          onClick={() => setVisibleIngredients(5)}
-                          className="rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-700 shadow-sm transition hover:bg-gray-50"
-                        >
-                          Show Less
-                        </button>
-                      )}
-                    </div>
-                  )}
-                </div>
-                {/* WASTAGE */}
-                <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
-                  {/* HEADER */}
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="text-lg font-black tracking-tight text-gray-900">
-                        Operational Alerts
-                      </h3>
-                      <p className="mt-1 text-sm text-gray-500">
-                        Waste, mismatch & operational risk monitoring
-                      </p>
-                    </div>
-                    {/* STATUS */}
-                    <div className="rounded-full bg-red-50 px-3 py-1 text-[11px] font-semibold text-red-600">
-                      AI Monitoring
+
+                    {/* KPI GRID */}
+
+                    <div className="grid grid-cols-2 gap-3">
+                      {/* CARD */}
+
+                      <div className="rounded-2xl border border-gray-200 bg-white p-3 shadow-sm">
+                        <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-gray-400">
+                          Highest Usage
+                        </p>
+
+                        <p className="mt-3 text-[20px] font-black text-red-600">
+                          Tomato
+                        </p>
+
+                        <p className="mt-1 text-[11px] text-gray-500">
+                          35% overall usage
+                        </p>
+                      </div>
+
+                      {/* CARD */}
+
+                      <div className="rounded-2xl border border-gray-200 bg-white p-3 shadow-sm">
+                        <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-gray-400">
+                          Fastest Moving
+                        </p>
+
+                        <p className="mt-3 text-[20px] font-black text-emerald-600">
+                          Onion
+                        </p>
+
+                        <p className="mt-1 text-[11px] text-gray-500">
+                          High kitchen demand
+                        </p>
+                      </div>
+
+                      {/* CARD */}
+
+                      <div className="rounded-2xl border border-gray-200 bg-white p-3 shadow-sm">
+                        <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-gray-400">
+                          Lowest Margin
+                        </p>
+
+                        <p className="mt-3 text-[20px] font-black text-orange-600">
+                          Cheese
+                        </p>
+
+                        <p className="mt-1 text-[11px] text-gray-500">
+                          High procurement cost
+                        </p>
+                      </div>
+
+                      {/* CARD */}
+
+                      <div className="rounded-2xl border border-gray-200 bg-white p-3 shadow-sm">
+                        <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-gray-400">
+                          Consumption
+                        </p>
+
+                        <p className="mt-3 text-[20px] font-black text-indigo-600">
+                          ₹16.9k
+                        </p>
+
+                        <p className="mt-1 text-[11px] text-gray-500">
+                          Weekly ingredient spend
+                        </p>
+                      </div>
                     </div>
                   </div>
-                  {/* ALERT LIST */}
-                  <div className="mt-4 space-y-3">
-                    {aiAlerts
-                      .slice(0, visibleAlerts)
-                      .map((alert: any, index: number) => (
-                        <div
-                          key={index}
-                          className="group rounded-xl border border-gray-100 bg-gray-50/60 p-3 transition-all duration-200 hover:bg-gray-50"
-                        >
-                          <div className="flex items-start gap-3">
-                            {/* STATUS DOT */}
-                            <div
-                              className={`mt-1.5 h-2.5 w-2.5 rounded-full ${alert.color}`}
-                            />
-                            {/* CONTENT */}
-                            <div className="min-w-0 flex-1">
-                              {/* TITLE + TAG */}
-                              <div className="flex items-center justify-between gap-3">
-                                <h4 className="text-sm font-semibold text-gray-900">
-                                  {alert.title}
-                                </h4>
-                                <div className="rounded-full bg-white px-2 py-1 text-[10px] font-semibold text-gray-500 shadow-sm">
-                                  Live
-                                </div>
-                              </div>
-                              {/* DESCRIPTION */}
-                              <p className="mt-1 text-xs leading-5 text-gray-500">
-                                {alert.desc}
-                              </p>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                  </div>
-                  {aiAlerts.length > 5 && (
-                    <div className="mt-4 flex justify-center">
-                      {visibleAlerts < aiAlerts.length ? (
-                        <button
-                          onClick={() => setVisibleAlerts(aiAlerts.length)}
-                          className="rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-700 shadow-sm transition hover:bg-gray-50"
-                        >
-                          View More Alerts
-                        </button>
-                      ) : (
-                        <button
-                          onClick={() => setVisibleAlerts(5)}
-                          className="rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-700 shadow-sm transition hover:bg-gray-50"
-                        >
-                          Show Less
-                        </button>
-                      )}
-                    </div>
-                  )}
                 </div>
               </div>
-              {/* BOTTOM TABLE */}
-              <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
-                {/* TOP */}
-                <div className="border-b border-gray-100 p-4">
+
+              {/* ================= TABLE ================= */}
+
+              {/* <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm"> */}
+              {/* HEADER */}
+
+              {/* <div className="border-b border-gray-100 px-4 py-3">
                   <div className="flex items-center justify-between">
                     <div>
-                      <h3 className="text-lg font-black tracking-tight text-gray-900">
+                      <h3 className="text-[18px] font-black tracking-tight text-gray-900">
                         Consumption Analytics
                       </h3>
-                      <p className="mt-1 text-sm text-gray-500">
-                        Daily ingredient consumption insights
+
+                      <p className="mt-1 text-[12px] text-gray-500">
+                        Ingredient consumption intelligence
                       </p>
                     </div>
-                    <span className="rounded-full bg-emerald-50 px-3 py-1 text-[11px] font-semibold text-emerald-600">
+
+                    <span className="rounded-full bg-emerald-50 px-3 py-1 text-[10px] font-semibold text-emerald-600">
                       Auto Calculated
                     </span>
                   </div>
-                </div>
-                {/* TABLE */}
-                <div className="overflow-auto">
+                </div> */}
+
+              {/* TABLE */}
+
+              {/* <div className="overflow-auto">
                   <table className="min-w-full">
-                    {/* HEADER */}
+
                     <thead className="sticky top-0 z-10 border-b border-gray-100 bg-gray-50">
                       <tr>
                         {[
@@ -3317,43 +4140,70 @@ export default function MenuManagement() {
                           "Recipe Cost",
                           "Waste %",
                           "Status",
-                        ].map((head) => (
+                        ].map((head, index) => (
                           <th
-                            key={head}
-                            className="whitespace-nowrap px-6 py-3 text-left text-[11px] font-semibold uppercase tracking-[0.18em] text-gray-400"
+                            key={index}
+                            className="
+                    whitespace-nowrap
+                    px-4
+                    py-2.5
+                    text-left
+                    text-[10px]
+                    font-bold
+                    uppercase
+                    tracking-[0.14em]
+                    text-gray-400
+                  "
                           >
                             {head}
                           </th>
                         ))}
                       </tr>
                     </thead>
-                    {/* BODY */}
+
+
                     <tbody>
-                      {ingredientAnalytics.map((row: any, index: number) => (
+                      {ingredientAnalytics?.map((row: any, index: number) => (
                         <tr
                           key={index}
-                          className="border-b border-gray-100 transition hover:bg-indigo-50/20"
+                          className="border-b border-gray-100 hover:bg-indigo-50/10"
                         >
-                          <td className="px-4 py-3 font-medium text-gray-900">
-                            {row.ingredient}
+                
+
+                          <td className="px-4 py-2.5">
+                            <p className="text-[13px] font-semibold text-gray-900">
+                              {row.ingredient}
+                            </p>
                           </td>
-                          <td className="px-4 py-3 text-gray-600">
+
+
+                          <td className="px-4 py-2.5 text-[12px] text-gray-600">
                             {Math.round(Number(row.consumed || 0))} {row.unit}
                           </td>
-                          <td className="px-4 py-3 text-gray-600">
+
+
+                          <td className="px-4 py-2.5 text-[12px] text-gray-600">
                             {(Number(row.consumed || 0) / 30).toFixed(1)}{" "}
                             {row.unit}
                           </td>
-                          <td className="px-4 py-3 font-medium text-indigo-600">
-                            ₹{Number(row.totalCost || 0).toFixed(0)}
+
+
+                          <td className="px-4 py-2.5">
+                            <span className="rounded-full bg-indigo-50 px-2.5 py-1 text-[11px] font-semibold text-indigo-600">
+                              ₹{Number(row.totalCost || 0).toFixed(0)}
+                            </span>
                           </td>
-                          <td className="px-4 py-3">
-                            <span className="rounded-full bg-orange-50 px-3 py-1 text-xs font-medium text-orange-500">
+
+
+                          <td className="px-4 py-2.5">
+                            <span className="rounded-full bg-orange-50 px-2.5 py-1 text-[11px] font-semibold text-orange-500">
                               0%
                             </span>
                           </td>
-                          <td className="px-4 py-3">
-                            <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-medium text-emerald-600">
+
+
+                          <td className="px-4 py-2.5">
+                            <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-600">
                               Healthy
                             </span>
                           </td>
@@ -3361,8 +4211,8 @@ export default function MenuManagement() {
                       ))}
                     </tbody>
                   </table>
-                </div>
-              </div>
+                </div> */}
+              {/* </div> */}
             </div>
           )}
         </div>

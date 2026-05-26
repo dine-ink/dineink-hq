@@ -10,6 +10,7 @@ import {
   ChartBarIcon,
   MagnifyingGlassIcon,
 } from "@heroicons/react/24/outline";
+import { BarChart3Icon, IndianRupeeIcon, RepeatIcon } from "lucide-react";
 
 export default function Customers() {
   const branches = JSON.parse(localStorage.getItem("branches") || "[]");
@@ -123,140 +124,140 @@ export default function Customers() {
     };
   }, []);
   return (
-    <main className="min-h-screen flex-1 rounded-tl-3xl border border-white/40 bg-gray-50/80 px-6 py-6 backdrop-blur-xl">
-      <div className="mx-auto w-full max-w-[1600px] space-y-5">
-        {/* ================= HERO HEADER ================= */}
+    <main className="h-full flex-1 overflow-auto rounded-md border border-white/40 bg-gray-50/70 backdrop-blur-xl">
+      <div className="mx-auto flex w-full max-w-[1600px] flex-col gap-4">
+        {/* ================= HERO ================= */}
 
-        <div className="relative overflow-hidden rounded-[32px] border border-white/40 bg-gradient-to-br from-white via-white to-red-50 p-5 shadow-[0_10px_40px_rgba(0,0,0,0.06)]">
+        <div className="relative overflow-hidden rounded-xl border border-gray-200 bg-white px-4 py-3 shadow-sm">
           {/* GLOW */}
+          <div className="absolute -right-10 -top-10 h-24 w-24 rounded-full bg-red-100/50 blur-3xl" />
 
-          <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-red-100 blur-3xl"></div>
-
-          <div className="relative z-10 flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+          <div className="relative z-10 flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
             {/* LEFT */}
-
-            <div className="flex items-start gap-4">
-              <div className="flex h-14 w-14 items-center justify-center rounded-3xl bg-gradient-to-br from-red-500 to-pink-500 shadow-[0_10px_30px_rgba(255,0,80,0.25)]">
-                <UsersIcon className="h-7 w-7 text-white" />
+            <div className="flex items-center gap-3">
+              {/* ICON */}
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-red-500 to-pink-500 shadow-sm">
+                <UsersIcon className="h-4 w-4 text-white" />
               </div>
 
+              {/* CONTENT */}
               <div>
-                <div className="inline-flex items-center gap-2 rounded-full border border-red-100 bg-white/80 px-4 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-red-600 shadow-sm">
-                  <div className="h-2 w-2 animate-pulse rounded-full bg-red-500"></div>
-                  Customer Intelligence
-                </div>
-
-                <h1 className="mt-2 text-[40px] font-bold tracking-tight text-gray-900">
+                {/* TITLE */}
+                <h1 className="text-[20px] font-black leading-none tracking-tight text-gray-900">
                   Customer Overview
                 </h1>
 
-                <p className="mt-1 max-w-2xl text-[15px] leading-7 text-gray-500">
-                  Monitor repeat customers, spending behaviour, visit analytics
-                  and customer engagement across your restaurant branches.
+                {/* SUBTITLE */}
+                <p className="mt-1 text-[12px] text-gray-500">
+                  Monitor repeat customers and spending analytics
                 </p>
               </div>
             </div>
 
-            {/* RIGHT */}
+            {/* RIGHT KPI CHIPS */}
 
-            <div className="flex items-center gap-3">
-              <Dropdown
-                value={dateRange}
-                onChange={setDateRange}
-                options={[
-                  {
-                    label: "All Time",
-                    value: "all",
-                  },
-                  {
-                    label: "7 Days",
-                    value: "7days",
-                  },
-                  {
-                    label: "30 Days",
-                    value: "30days",
-                  },
-                ]}
-              />
-            </div>
-          </div>
+            <div className="flex flex-wrap items-center gap-1.5">
+              {/* TOTAL CUSTOMERS */}
+              <div className="flex items-center gap-2 rounded-lg border border-blue-100 bg-blue-50 px-2.5 py-1.5">
+                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-blue-100">
+                  <UsersIcon className="h-3.5 w-3.5 text-blue-600" />
+                </div>
 
-          {/* KPI STRIP */}
+                <div>
+                  <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-blue-400">
+                    Customers
+                  </p>
 
-          <div className="mt-5  ">
-            <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
-              {stats.map((stat) => {
-                const Icon = stat.icon;
+                  <p className="text-[14px] font-black leading-none text-blue-700">
+                    {total || 0}
+                  </p>
+                </div>
+              </div>
 
-                return (
-                  <div
-                    key={stat.name}
-                    className="group relative overflow-hidden rounded-[28px] border border-white/40 bg-white/90 px-5 py-4 shadow-[0_8px_30px_rgba(0,0,0,0.05)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_15px_40px_rgba(255,0,80,0.08)]"
-                  >
-                    {/* GLOW */}
+              {/* REPEAT */}
+              <div className="flex items-center gap-2 rounded-lg border border-emerald-100 bg-emerald-50 px-2.5 py-1.5">
+                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-100">
+                  <RepeatIcon className="h-3.5 w-3.5 text-emerald-600" />
+                </div>
 
-                    <div
-                      className={`absolute -right-10 -top-10 h-28 w-28 rounded-full blur-3xl ${stat.bg}`}
-                    ></div>
+                <div>
+                  <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-emerald-400">
+                    Repeat
+                  </p>
 
-                    <div className="relative z-10 flex items-center justify-between">
-                      <div>
-                        <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">
-                          {stat.name}
-                        </p>
+                  <p className="text-[14px] font-black leading-none text-emerald-700">
+                    {repeat}%
+                  </p>
+                </div>
+              </div>
 
-                        <p
-                          className={`mt-2 text-[34px] font-bold tracking-tight ${stat.text}`}
-                        >
-                          {stat.value}
-                        </p>
-                      </div>
+              {/* AVG SPEND */}
+              <div className="flex items-center gap-2 rounded-lg border border-orange-100 bg-orange-50 px-2.5 py-1.5">
+                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-orange-100">
+                  <IndianRupeeIcon className="h-3.5 w-3.5 text-orange-600" />
+                </div>
 
-                      <div
-                        className={`flex h-14 w-14 items-center justify-center rounded-2xl ${stat.bg}`}
-                      >
-                        <Icon className={`h-7 w-7 ${stat.text}`} />
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
+                <div>
+                  <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-orange-400">
+                    Avg Spend
+                  </p>
+
+                  <p className="text-[14px] font-black leading-none text-orange-700">
+                    ₹{avg}
+                  </p>
+                </div>
+              </div>
+
+              {/* REVENUE */}
+              <div className="flex items-center gap-2 rounded-lg border border-red-100 bg-red-50 px-2.5 py-1.5">
+                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-red-100">
+                  <BarChart3Icon className="h-3.5 w-3.5 text-red-600" />
+                </div>
+
+                <div>
+                  <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-red-400">
+                    Revenue
+                  </p>
+
+                  <p className="text-[14px] font-black leading-none text-red-700">
+                    ₹{revenue}
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
         </div>
 
-        {/* ================= CUSTOMER TABLE ================= */}
+        {/* ================= TABLE ================= */}
+        {/* ================= TABLE ================= */}
 
-        <div className="overflow-hidden rounded-[32px] border border-white/40 bg-white/80 shadow-[0_8px_30px_rgba(0,0,0,0.05)] backdrop-blur-xl">
+        <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
           {/* HEADER */}
 
-          <div className="border-b border-gray-100 px-6 py-4">
-            <div className="flex items-center justify-between gap-4">
+          <div className="border-b border-gray-100 px-4 py-3">
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
               {/* LEFT */}
-
               <div>
-                <div className="inline-flex items-center gap-2 rounded-full bg-red-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-red-600">
+                <div className="inline-flex items-center gap-2 rounded-full bg-red-50 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-red-600">
                   Analytics Table
                 </div>
 
-                <h2 className="mt-3 text-2xl font-bold text-gray-900">
+                <h2 className="mt-2 text-[20px] font-black text-gray-900">
                   Customer Insights
                 </h2>
 
-                <p className="mt-1 text-sm text-gray-500">
-                  Customer list, visit frequency, spending pattern & engagement
-                  analytics
+                <p className="mt-1 text-[12px] text-gray-500">
+                  Visits, spending pattern & engagement analytics
                 </p>
               </div>
 
               {/* SEARCH */}
-
               <div className="relative">
                 <MagnifyingGlassIcon className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
 
                 <input
                   placeholder="Search customer..."
-                  className="h-[46px] w-72 rounded-2xl border border-gray-200 bg-white/90 pl-10 pr-4 text-sm shadow-sm outline-none transition-all duration-200 focus:border-red-400 focus:shadow-[0_0_0_4px_rgba(255,0,80,0.05)]"
+                  className="h-10 w-full rounded-xl border border-gray-200 bg-white pl-10 pr-3 text-[13px] outline-none transition-all focus:border-red-400 lg:w-64"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                 />
@@ -266,94 +267,192 @@ export default function Customers() {
 
           {/* TABLE */}
 
-          <CommonTable
-            title=""
-            subtitle=""
-            data={paginatedCustomers}
-            page={page}
-            totalPages={totalPages}
-            onPageChange={setPage}
-            columns={[
-              {
-                header: "Customer",
-                key: "name",
+          <div className="overflow-x-auto">
+            <table className="min-w-full text-[13px]">
+              {/* TABLE HEAD */}
 
-                render: (c) => (
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-red-500 to-pink-500 text-sm font-bold text-white shadow-sm">
-                      {c.name?.charAt(0)}
-                    </div>
-
-                    <div>
-                      <p className="font-semibold text-gray-900">{c.name}</p>
-
-                      <p className="text-xs text-gray-400">Customer profile</p>
-                    </div>
-                  </div>
-                ),
-              },
-
-              {
-                header: "Phone",
-                key: "phone",
-
-                render: (c) => (
-                  <div className="text-sm font-medium text-gray-700">
-                    {c.phone}
-                  </div>
-                ),
-              },
-
-              {
-                header: "Visits",
-                key: "visits",
-
-                render: (c) => (
-                  <div className="inline-flex rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-600">
-                    {c.visits} Visits
-                  </div>
-                ),
-              },
-
-              {
-                header: "Spend",
-                key: "spend",
-
-                render: (c) => (
-                  <p className="font-semibold text-emerald-600">₹{c.spend}</p>
-                ),
-              },
-
-              {
-                header: "Last Visit",
-                key: "lastVisit",
-
-                render: (c) => (
-                  <div className="text-sm text-gray-500">
-                    {c.lastVisit
-                      ? new Date(c.lastVisit).toLocaleDateString()
-                      : "-"}
-                  </div>
-                ),
-              },
-
-              {
-                header: "Action",
-                key: "action",
-
-                render: (c) => (
-                  <div className="flex justify-end">
-                    <button
-                      onClick={() => setSelectedCustomer(c)}
-                      className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gray-100 transition hover:bg-red-50"
+              <thead className="bg-gray-50">
+                <tr className="border-b border-gray-100">
+                  {[
+                    "Customer",
+                    "Visits",
+                    "Avg Bill",
+                    "Spend",
+                    "Preferred",
+                    "Last Visit",
+                    "Segment",
+                    "Action",
+                  ].map((header) => (
+                    <th
+                      key={header}
+                      className="px-4 py-2 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-gray-400"
                     >
-                      <EyeIcon className="h-4 w-4 text-gray-600 hover:text-red-600" />
-                    </button>
-                  </div>
-                ),
-              },
-            ]}
-          />
+                      {header}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+
+              {/* TABLE BODY */}
+
+              <tbody>
+                {paginatedCustomers.map((c: any) => {
+                  const avgBill = c.visits ? Math.round(c.spend / c.visits) : 0;
+
+                  const preferred = c.bills?.[0]?.orderType || "-";
+
+                  const segment =
+                    c.spend > 5000 ? "VIP" : c.visits > 3 ? "Regular" : "New";
+
+                  return (
+                    <tr
+                      key={c.id}
+                      className="border-b border-gray-100 transition-all hover:bg-gray-50/60"
+                    >
+                      {/* CUSTOMER */}
+
+                      <td className="px-4 py-2">
+                        <div className="flex items-center gap-2.5">
+                          {/* AVATAR */}
+
+                          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-red-500 to-pink-500 text-[11px] font-bold text-white">
+                            {c.name?.charAt(0)}
+                          </div>
+
+                          {/* INFO */}
+
+                          <div>
+                            <p className="text-[13px] font-semibold text-gray-900">
+                              {c.name}
+                            </p>
+
+                            <p className="text-[11px] text-gray-400">
+                              {c.phone}
+                            </p>
+                          </div>
+                        </div>
+                      </td>
+
+                      {/* VISITS */}
+
+                      <td className="px-4 py-2">
+                        <span className="inline-flex rounded-full bg-blue-50 px-2 py-0.5 text-[10px] font-semibold text-blue-600">
+                          {c.visits} Visits
+                        </span>
+                      </td>
+
+                      {/* AVG BILL */}
+
+                      <td className="px-4 py-2">
+                        <p className="text-[13px] font-semibold text-gray-800">
+                          ₹{avgBill}
+                        </p>
+                      </td>
+
+                      {/* SPEND */}
+
+                      <td className="px-4 py-2">
+                        <p className="text-[13px] font-bold text-emerald-600">
+                          ₹{c.spend}
+                        </p>
+                      </td>
+
+                      {/* PREFERRED */}
+
+                      <td className="px-4 py-2">
+                        <span
+                          className={`
+                    inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold
+                    ${
+                      preferred === "DINE_IN"
+                        ? "bg-blue-50 text-blue-600"
+                        : "bg-orange-50 text-orange-600"
+                    }
+                  `}
+                        >
+                          {preferred.replace("_", " ")}
+                        </span>
+                      </td>
+
+                      {/* LAST VISIT */}
+
+                      <td className="px-4 py-2">
+                        <div className="text-[12px] text-gray-500">
+                          {c.lastVisit
+                            ? new Date(c.lastVisit).toLocaleDateString()
+                            : "-"}
+                        </div>
+                      </td>
+
+                      {/* SEGMENT */}
+
+                      <td className="px-4 py-2">
+                        <span
+                          className={`
+                    inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold
+                    ${
+                      segment === "VIP"
+                        ? "bg-purple-50 text-purple-600"
+                        : segment === "Regular"
+                          ? "bg-blue-50 text-blue-600"
+                          : "bg-gray-100 text-gray-600"
+                    }
+                  `}
+                        >
+                          {segment}
+                        </span>
+                      </td>
+
+                      {/* ACTION */}
+
+                      <td className="px-4 py-2">
+                        <button
+                          onClick={() => setSelectedCustomer(c)}
+                          className="flex h-8 w-8 items-center justify-center rounded-lg bg-gray-100 transition hover:bg-red-50"
+                        >
+                          <EyeIcon className="h-4 w-4 text-gray-600 hover:text-red-600" />
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          {/* FOOTER */}
+
+          <div className="flex items-center justify-between border-t border-gray-100 px-4 py-3">
+            <p className="text-[12px] text-gray-500">
+              Showing{" "}
+              <span className="font-semibold text-gray-700">
+                {paginatedCustomers.length}
+              </span>{" "}
+              customers
+            </p>
+
+            <div className="flex items-center gap-2">
+              <button
+                disabled={page === 1}
+                onClick={() => setPage(page - 1)}
+                className="rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-[12px] font-semibold text-gray-700 transition-all hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                Previous
+              </button>
+
+              <div className="rounded-lg bg-red-50 px-3 py-1.5 text-[12px] font-semibold text-red-600">
+                {page} / {totalPages}
+              </div>
+
+              <button
+                disabled={page === totalPages}
+                onClick={() => setPage(page + 1)}
+                className="rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-[12px] font-semibold text-gray-700 transition-all hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                Next
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </main>

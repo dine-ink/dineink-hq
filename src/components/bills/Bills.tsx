@@ -11,7 +11,9 @@ import {
   CreditCardIcon,
   ReceiptPercentIcon,
   ChevronDownIcon,
+  CalendarDaysIcon,
 } from "@heroicons/react/24/outline";
+import { IndianRupeeIcon } from "lucide-react";
 
 type Bill = {
   id: number;
@@ -137,133 +139,108 @@ export default function Bills() {
     };
   }, []);
   return (
-    <main className="min-h-screen rounded-tl-3xl border border-white/40 bg-gray-50/80 px-6 py-6 backdrop-blur-xl">
-      <div className="mx-auto space-y-5">
+    <main className="h-full rounded-md border border-white/40 bg-gray-50/80 backdrop-blur-xl">
+      <div className="mx-auto flex w-full max-w-[1600px] flex-col gap-4">
         {/* ================= HERO ================= */}
 
-        <div className="grid grid-cols-1 gap-5">
-          <div className="relative min-h-[320px] overflow-hidden rounded-[32px] border border-white/40 bg-gradient-to-br from-white via-white to-red-50 px-5 py-4 shadow-[0_10px_40px_rgba(0,0,0,0.06)]">
-            {/* GLOW */}
+        <div className="relative overflow-hidden rounded-xl border border-gray-200 bg-white px-4 py-3 shadow-sm">
+          {/* GLOW */}
+          <div className="absolute -right-10 -top-10 h-24 w-24 rounded-full bg-red-100/50 blur-3xl" />
 
-            <div className="absolute -right-16 -top-16 h-56 w-56 rounded-full bg-red-200/40 blur-3xl"></div>
-
-            <div className="absolute bottom-0 left-0 h-40 w-40 rounded-full bg-pink-100/30 blur-3xl"></div>
-
-            <div className="relative z-10 flex h-full flex-col justify-between gap-3">
-              {/* TOP */}
-
-              <div className="flex items-start justify-between gap-6">
-                {/* LEFT */}
-
-                <div className="flex items-start gap-5">
-                  <div className="flex h-14 w-14 items-center justify-center rounded-3xl bg-gradient-to-br from-red-500 to-pink-500 shadow-[0_15px_40px_rgba(255,0,80,0.25)]">
-                    <ReceiptPercentIcon className="h-7 w-7 text-white" />
-                  </div>
-
-                  <div>
-                    <div className="inline-flex items-center gap-2 rounded-full border border-red-100 bg-white/80 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-red-600 backdrop-blur">
-                      <div className="h-2 w-2 animate-pulse rounded-full bg-red-500"></div>
-                      Billing Intelligence
-                    </div>
-
-                    <h1 className="mt-3 text-[34px] font-bold tracking-tight text-gray-900">
-                      Billing Overview
-                    </h1>
-
-                    <p className="mt-1 max-w-[700px] text-[14px] leading-6 text-gray-500">
-                      Real-time restaurant billing analytics & insights across
-                      revenue, orders, payments and operational performance.
-                    </p>
-                  </div>
-                </div>
-
-                {/* RIGHT */}
-
-                <div className="relative">
-                  <select
-                    value={dateRange}
-                    onChange={(e) => setDateRange(e.target.value)}
-                    className="h-[46px] min-w-[190px] appearance-none rounded-2xl border border-gray-200 bg-white/95 px-5 pr-12 text-sm font-semibold text-gray-700 shadow-[0_4px_15px_rgba(0,0,0,0.04)] outline-none transition-all duration-200 hover:border-red-300 focus:border-red-400 focus:shadow-[0_0_0_4px_rgba(255,0,80,0.06)]"
-                  >
-                    <option value="today">Today</option>
-
-                    <option value="7days">Last 7 Days</option>
-
-                    <option value="30days">Last 30 Days</option>
-                  </select>
-
-                  <ChevronDownIcon className="pointer-events-none absolute right-4 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
-                </div>
+          <div className="relative z-10 flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+            {/* LEFT */}
+            <div className="flex items-center gap-3">
+              {/* ICON */}
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-red-500 to-pink-500 shadow-sm">
+                <ReceiptPercentIcon className="h-4 w-4 text-white" />
               </div>
 
-              {/* METRICS */}
+              {/* CONTENT */}
+              <div>
+                {/* TITLE */}
+                <h1 className="text-[20px] font-black leading-none tracking-tight text-gray-900">
+                  Billing Overview
+                </h1>
 
-              <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-                {/* REVENUE */}
+                {/* SUBTITLE */}
+                <p className="mt-1 text-[12px] text-gray-500">
+                  Revenue, payments and billing analytics
+                </p>
+              </div>
+            </div>
 
-                <div className="rounded-2xl border border-gray-100 bg-white/90 px-4 py-3 shadow-sm">
-                  <p className="text-xs font-medium uppercase tracking-wide text-gray-400">
+            {/* RIGHT KPI CHIPS */}
+
+            <div className="flex flex-wrap items-center gap-1.5">
+              {/* REVENUE */}
+              <div className="flex items-center gap-2 rounded-lg border border-emerald-100 bg-emerald-50 px-2.5 py-1.5">
+                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-100">
+                  <IndianRupeeIcon className="h-3.5 w-3.5 text-emerald-600" />
+                </div>
+
+                <div>
+                  <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-emerald-400">
                     Revenue
                   </p>
 
-                  <p className="mt-2 text-[26px] font-bold text-emerald-600">
+                  <p className="text-[14px] font-black leading-none text-emerald-700">
                     ₹{totalSales.toLocaleString()}
-                  </p>
-                </div>
-
-                {/* ORDERS */}
-
-                <div className="rounded-2xl border border-gray-100 bg-white/90 px-4 py-3 shadow-sm">
-                  <p className="text-xs font-medium uppercase tracking-wide text-gray-400">
-                    Orders
-                  </p>
-
-                  <p className="mt-2 text-[26px] font-bold text-blue-600">
-                    {totalOrders}
-                  </p>
-                </div>
-
-                {/* AVG BILL */}
-
-                <div className="rounded-2xl border border-gray-100 bg-white/90 px-4 py-3 shadow-sm">
-                  <p className="text-xs font-medium uppercase tracking-wide text-gray-400">
-                    Avg Bill
-                  </p>
-
-                  <p className="mt-2 text-[26px] font-bold text-orange-600">
-                    ₹{Math.round(avg).toLocaleString()}
-                  </p>
-                </div>
-
-                {/* BRANCH */}
-
-                <div className="rounded-2xl border border-gray-100 bg-white/90 px-4 py-3 shadow-sm">
-                  <p className="text-xs font-medium uppercase tracking-wide text-gray-400">
-                    Branch
-                  </p>
-
-                  <p className="mt-2 text-[15px] font-bold text-gray-800">
-                    {selectedBranch?.name || "Main Branch"}
                   </p>
                 </div>
               </div>
 
-              {/* STATUS */}
-
-              <div className="flex flex-wrap items-center gap-3 border-t border-gray-100 pt-3">
-                <div className="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1 text-sm font-semibold text-emerald-600">
-                  <div className="h-2 w-2 animate-pulse rounded-full bg-emerald-500"></div>
-                  Live Billing Active
+              {/* ORDERS */}
+              <div className="flex items-center gap-2 rounded-lg border border-blue-100 bg-blue-50 px-2.5 py-1.5">
+                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-blue-100">
+                  <ReceiptPercentIcon className="h-3.5 w-3.5 text-blue-600" />
                 </div>
 
-                <div className="inline-flex items-center gap-2 rounded-full bg-orange-50 px-3 py-1 text-sm font-semibold text-orange-600">
-                  <div className="h-2 w-2 rounded-full bg-orange-500"></div>
-                  {totalOrders} Orders Processed
+                <div>
+                  <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-blue-400">
+                    Orders
+                  </p>
+
+                  <p className="text-[14px] font-black leading-none text-blue-700">
+                    {totalOrders}
+                  </p>
+                </div>
+              </div>
+
+              {/* AVG BILL */}
+              <div className="flex items-center gap-2 rounded-lg border border-orange-100 bg-orange-50 px-2.5 py-1.5">
+                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-orange-100">
+                  <ChartBarIcon className="h-3.5 w-3.5 text-orange-600" />
                 </div>
 
-                <div className="inline-flex items-center gap-2 rounded-full bg-violet-50 px-3 py-1 text-sm font-semibold text-violet-600">
-                  <div className="h-2 w-2 rounded-full bg-violet-500"></div>
-                  Real-Time Insights
+                <div>
+                  <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-orange-400">
+                    Avg Bill
+                  </p>
+
+                  <p className="text-[14px] font-black leading-none text-orange-700">
+                    ₹{Math.round(avg).toLocaleString()}
+                  </p>
+                </div>
+              </div>
+
+              {/* RANGE */}
+              <div className="flex items-center gap-2 rounded-lg border border-red-100 bg-red-50 px-2.5 py-1.5">
+                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-red-100">
+                  <CalendarDaysIcon className="h-3.5 w-3.5 text-red-600" />
+                </div>
+
+                <div>
+                  <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-red-400">
+                    Range
+                  </p>
+
+                  <p className="text-[14px] font-black leading-none text-red-700">
+                    {dateRange === "today"
+                      ? "Today"
+                      : dateRange === "7days"
+                        ? "7 Days"
+                        : "30 Days"}
+                  </p>
                 </div>
               </div>
             </div>
@@ -272,205 +249,237 @@ export default function Bills() {
 
         {/* ================= TABLE ================= */}
 
-        <div className="overflow-hidden rounded-[28px] border border-white/40 bg-white/80 shadow-[0_8px_30px_rgba(0,0,0,0.05)] backdrop-blur-xl">
+        <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
           {/* HEADER */}
 
-          <div className="flex flex-col gap-4 border-b border-gray-100 px-6 py-4 lg:flex-row lg:items-center lg:justify-between">
-            <div>
-              <div className="inline-flex items-center gap-2 rounded-full bg-red-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-red-600">
-                Billing Transactions
+          <div className="border-b border-gray-100 px-4 py-3">
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+              {/* LEFT */}
+              <div>
+                <div className="inline-flex items-center gap-2 rounded-full bg-red-50 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-red-600">
+                  Transactions
+                </div>
+
+                <h2 className="mt-2 text-[20px] font-black text-gray-900">
+                  Recent Bills
+                </h2>
+
+                <p className="mt-1 text-[12px] text-gray-500">
+                  Billing history and payment analytics
+                </p>
               </div>
 
-              <h2 className="mt-3 text-xl font-bold text-gray-900">
-                Recent Bills
-              </h2>
+              {/* SEARCH */}
 
-              <p className="mt-1 text-sm text-gray-500">
-                View billing history, payment methods & customer orders
-              </p>
-            </div>
+              <div className="relative">
+                <MagnifyingGlassIcon className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
 
-            {/* SEARCH */}
-
-            <div className="relative">
-              <MagnifyingGlassIcon className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-
-              <input
-                placeholder="Search bills, customers..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="h-[42px] w-full rounded-2xl border border-gray-200 bg-white pl-10 pr-4 text-sm outline-none transition-all duration-200 focus:border-red-400 focus:shadow-[0_0_0_4px_rgba(255,0,80,0.05)] lg:w-64"
-              />
+                <input
+                  placeholder="Search bills..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="h-10 w-full rounded-xl border border-gray-200 bg-white pl-9 pr-3 text-[13px] outline-none transition-all focus:border-red-400 lg:w-60"
+                />
+              </div>
             </div>
           </div>
 
           {/* TABLE */}
 
-          <CommonTable
-            title=""
-            subtitle=""
-            data={paginatedBills}
-            page={page}
-            totalPages={totalPages}
-            onPageChange={setPage}
-            columns={[
-              {
-                header: "Bill",
+          <div className="overflow-x-auto">
+            <table className="min-w-full text-[13px]">
+              {/* TABLE HEAD */}
 
-                key: "bill",
+              <thead className="bg-gray-50">
+                <tr className="border-b border-gray-100">
+                  {[
+                    "Bill",
+                    "Customer",
+                    "Order",
+                    "Payment",
+                    "Amount",
+                    "Status",
+                    "Date",
+                  ].map((header) => (
+                    <th
+                      key={header}
+                      className="px-4 py-2 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-gray-400"
+                    >
+                      {header}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
 
-                render: (b) => (
-                  <div>
-                    <div className="font-semibold text-gray-900">
-                      {b.orderNo || `#${b.id}`}
-                    </div>
+              {/* TABLE BODY */}
 
-                    <div className="mt-1 text-[11px] text-gray-400">
-                      {b.source}
-                    </div>
-                  </div>
-                ),
-              },
-
-              {
-                header: "Customer",
-
-                key: "customer",
-
-                render: (b) => (
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-red-500 to-pink-500 text-xs font-bold text-white">
-                      {b.customer?.name?.charAt(0) || "C"}
-                    </div>
-
-                    <div>
-                      <div className="font-medium text-gray-900">
-                        {b.customer?.name || "-"}
-                      </div>
-
-                      <div className="text-[11px] text-gray-400">
-                        {b.customer?.phone || "-"}
-                      </div>
-                    </div>
-                  </div>
-                ),
-              },
-
-              {
-                header: "Items",
-
-                key: "items",
-
-                render: (b) => (
-                  <div className="max-w-[180px]">
-                    <div className="truncate text-sm font-medium text-gray-700">
-                      {b.items
-                        ?.slice(0, 2)
-                        ?.map((i: any) => `${i.itemName} x${i.quantity}`)
-                        ?.join(", ")}
-                    </div>
-
-                    {b.items?.length > 2 && (
-                      <div className="mt-1 text-[11px] text-gray-400">
-                        +{b.items.length - 2} more
-                      </div>
-                    )}
-                  </div>
-                ),
-              },
-
-              {
-                header: "Type",
-
-                key: "type",
-
-                render: (b) => (
-                  <span
-                    className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-semibold ${
-                      b.orderType === "DINE_IN"
-                        ? "bg-blue-50 text-blue-600"
-                        : b.orderType === "ONLINE"
-                          ? "bg-violet-50 text-violet-600"
-                          : "bg-orange-50 text-orange-600"
-                    }`}
+              <tbody>
+                {paginatedBills.map((b: any) => (
+                  <tr
+                    key={b.id}
+                    className="border-b border-gray-100 transition-all hover:bg-gray-50/60"
                   >
-                    {b.orderType}
-                  </span>
-                ),
-              },
+                    {/* BILL */}
 
-              {
-                header: "Amount",
+                    <td className="px-4 py-2">
+                      <div>
+                        <div className="font-semibold text-gray-900">
+                          {b.billNo || `#${b.id}`}
+                        </div>
 
-                key: "amount",
+                        <div className="text-[10px] text-gray-400">#{b.id}</div>
+                      </div>
+                    </td>
 
-                render: (b) => (
-                  <div>
-                    <div className="font-bold text-emerald-600">
-                      ₹{b.total?.toLocaleString()}
-                    </div>
+                    {/* CUSTOMER */}
 
-                    <div className="mt-1 text-[11px] text-gray-400">
-                      {b.paymentMethod}
-                    </div>
-                  </div>
-                ),
-              },
+                    <td className="px-4 py-2">
+                      <div className="flex items-center gap-2.5">
+                        {/* AVATAR */}
 
-              {
-                header: "Status",
+                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-red-500 to-pink-500 text-[11px] font-bold text-white">
+                          {b.customer?.name?.charAt(0) || "C"}
+                        </div>
 
-                key: "status",
+                        {/* INFO */}
 
-                render: (b) => (
-                  <div className="flex flex-col gap-1">
-                    <span
-                      className={`inline-flex w-fit rounded-full px-2.5 py-1 text-[10px] font-semibold ${
-                        b.paymentStatus === "PAID"
-                          ? "bg-emerald-50 text-emerald-600"
-                          : "bg-yellow-50 text-yellow-600"
-                      }`}
-                    >
-                      {b.paymentStatus}
-                    </span>
+                        <div>
+                          <div className="font-medium text-gray-900">
+                            {b.customer?.name || "-"}
+                          </div>
 
-                    <span
-                      className={`inline-flex w-fit rounded-full px-2.5 py-1 text-[10px] font-semibold ${
-                        b.orderStatus === "COMPLETED"
-                          ? "bg-emerald-50 text-emerald-600"
-                          : b.orderStatus === "ACTIVE"
-                            ? "bg-orange-50 text-orange-600"
-                            : "bg-red-50 text-red-600"
-                      }`}
-                    >
-                      {b.orderStatus}
-                    </span>
-                  </div>
-                ),
-              },
+                          <div className="text-[10px] text-gray-400">
+                            {b.customer?.phone || "-"}
+                          </div>
+                        </div>
+                      </div>
+                    </td>
 
-              {
-                header: "Date",
+                    {/* ORDER */}
 
-                key: "date",
+                    <td className="px-4 py-2">
+                      <span
+                        className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                          b.orderType === "DINE_IN"
+                            ? "bg-blue-50 text-blue-600"
+                            : b.orderType === "ONLINE"
+                              ? "bg-violet-50 text-violet-600"
+                              : "bg-orange-50 text-orange-600"
+                        }`}
+                      >
+                        {b.orderType?.replace("_", " ")}
+                      </span>
+                    </td>
 
-                render: (b) => (
-                  <div>
-                    <div className="text-sm font-medium text-gray-700">
-                      {new Date(b.createdAt).toLocaleDateString("en-IN")}
-                    </div>
+                    {/* PAYMENT */}
 
-                    <div className="mt-1 text-[11px] text-gray-400">
-                      {new Date(b.createdAt).toLocaleTimeString("en-IN", {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
-                    </div>
-                  </div>
-                ),
-              },
-            ]}
-          />
+                    <td className="px-4 py-2">
+                      <span className="inline-flex rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-semibold text-gray-600">
+                        {b.paymentMethod}
+                      </span>
+                    </td>
+
+                    {/* AMOUNT */}
+
+                    <td className="px-4 py-2">
+                      <div>
+                        <div className="font-bold text-emerald-600">
+                          ₹{b.total?.toLocaleString()}
+                        </div>
+
+                        <div className="text-[10px] text-gray-400">
+                          GST ₹{b.gst || 0}
+                        </div>
+                      </div>
+                    </td>
+
+                    {/* STATUS */}
+
+                    <td className="px-4 py-2">
+                      <div className="flex items-center gap-1.5">
+                        {/* PAYMENT STATUS */}
+
+                        <span
+                          className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                            b.status === "PAID"
+                              ? "bg-emerald-50 text-emerald-600"
+                              : "bg-yellow-50 text-yellow-600"
+                          }`}
+                        >
+                          {b.status}
+                        </span>
+
+                        {/* ORDER STATUS */}
+
+                        <span
+                          className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                            b.orderStatus === "COMPLETED"
+                              ? "bg-blue-50 text-blue-600"
+                              : b.orderStatus === "ACTIVE"
+                                ? "bg-orange-50 text-orange-600"
+                                : "bg-red-50 text-red-600"
+                          }`}
+                        >
+                          {b.orderStatus}
+                        </span>
+                      </div>
+                    </td>
+
+                    {/* DATE */}
+
+                    <td className="px-4 py-2">
+                      <div>
+                        <div className="text-[12px] font-medium text-gray-700">
+                          {new Date(b.createdAt).toLocaleDateString("en-IN")}
+                        </div>
+
+                        <div className="text-[10px] text-gray-400">
+                          {new Date(b.createdAt).toLocaleTimeString("en-IN", {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                        </div>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* FOOTER */}
+
+          <div className="flex items-center justify-between border-t border-gray-100 px-4 py-3">
+            <p className="text-[12px] text-gray-500">
+              Showing{" "}
+              <span className="font-semibold text-gray-700">
+                {paginatedBills.length}
+              </span>{" "}
+              bills
+            </p>
+
+            <div className="flex items-center gap-2">
+              <button
+                disabled={page === 1}
+                onClick={() => setPage(page - 1)}
+                className="rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-[12px] font-semibold text-gray-700 transition-all hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                Previous
+              </button>
+
+              <div className="rounded-lg bg-red-50 px-3 py-1.5 text-[12px] font-semibold text-red-600">
+                {page} / {totalPages}
+              </div>
+
+              <button
+                disabled={page === totalPages}
+                onClick={() => setPage(page + 1)}
+                className="rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-[12px] font-semibold text-gray-700 transition-all hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                Next
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </main>

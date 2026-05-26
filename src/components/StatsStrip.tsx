@@ -3,90 +3,147 @@ import {
   ShoppingBag,
   BarChart3,
   Users,
+  Clock3,
+  Repeat,
 } from "lucide-react";
 
-type Props = { analytics?: any;};
+type Props = {
+  analytics?: any;
+};
 
-export default function StatsStrip({analytics,}: Props) {
+export default function AnalyticsOverview({ analytics }: Props) {
+  const repeatCustomers = analytics?.totalCustomers
+    ? Math.round(
+        (analytics?.repeatCustomersCount / analytics?.totalCustomers) * 100,
+      )
+    : 0;
+
   const stats = [
     {
       name: "Revenue",
-      value: `₹${Math.round(analytics?.totalRevenue || 0,).toLocaleString()}`,
+      value: `₹${Math.round(analytics?.totalRevenue || 0).toLocaleString()}`,
       icon: IndianRupee,
-      gradient:"from-red-500 to-rose-500",
-      bg:"bg-red-50",
-      color:"text-red-600",
-      subtext:"Total sales generated",
+      accent: "bg-red-500",
     },
+
     {
       name: "Orders",
       value: analytics?.totalOrders || 0,
       icon: ShoppingBag,
-      gradient: "from-blue-500 to-indigo-500",
-      bg: "bg-blue-50",
-      color: "text-blue-600",
-      subtext: "Completed orders",
+      accent: "bg-blue-500",
     },
+
     {
       name: "Avg Order",
-      value: `₹${Math.round( analytics?.avgOrderValue || 0, )}`,
+      value: `₹${Math.round(analytics?.avgOrderValue || 0)}`,
       icon: BarChart3,
-      gradient: "from-orange-500 to-amber-500",
-      bg: "bg-orange-50",
-      color: "text-orange-500",
-      subtext: "Average order value",
+      accent: "bg-orange-500",
     },
+
     {
       name: "Customers",
       value: analytics?.totalCustomers || 0,
       icon: Users,
-      gradient: "from-emerald-500 to-teal-500",
-      bg: "bg-emerald-50",
-      color: "text-emerald-600",
-      subtext: "Unique customers",
+      accent: "bg-emerald-500",
+    },
+
+    {
+      name: "Peak Hours",
+      value: analytics?.peakHours || "N/A",
+      icon: Clock3,
+      accent: "bg-violet-500",
+    },
+
+    {
+      name: "Repeat",
+      value: `${repeatCustomers}%`,
+      icon: Repeat,
+      accent: "bg-pink-500",
     },
   ];
+
   return (
-    <div className="mb-5 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-      {stats.map((stat) => {
-        const Icon = stat.icon;
-        return (
-          <div key={stat.name}
-            className="group relative overflow-hidden rounded-2xl border border-gray-200 bg-white p-4 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-md"
-          >
-            {/* Soft Glow */}
-            <div className={`absolute -right-8 -top-8 h-20 w-20 rounded-full ${stat.bg} opacity-60 blur-3xl`} />
-            <div className="relative z-10">
+    <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+      {/* HEADER */}
+
+      <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3">
+        <div>
+          <h2 className="text-[16px] font-bold tracking-tight text-gray-900">
+            Analytics Overview
+          </h2>
+
+          <p className="mt-0.5 text-[12px] text-gray-500">
+            Live operational metrics
+          </p>
+        </div>
+
+        <div className="rounded-full bg-red-50 px-2.5 py-1 text-[10px] font-semibold text-red-600">
+          LIVE
+        </div>
+      </div>
+
+      {/* KPI GRID */}
+
+      <div className="grid grid-cols-2 xl:grid-cols-6">
+        {stats.map((stat, index) => {
+          const Icon = stat.icon;
+
+          return (
+            <div
+              key={stat.name}
+              className={`
+                relative
+                px-4
+                py-4
+
+                ${
+                  index !== stats.length - 1
+                    ? "border-b border-gray-100 xl:border-b-0 xl:border-r"
+                    : ""
+                }
+              `}
+            >
               {/* TOP */}
+
               <div className="flex items-start justify-between">
                 <div>
-                  {/* LABEL */}
-                  <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-gray-500">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-gray-400">
                     {stat.name}
                   </p>
-                  {/* VALUE */}
-                  <h2 className="mt-3 text-3xl font-black tracking-tight text-gray-900">
+
+                  <h3 className="mt-2 text-[20px] font-bold tracking-tight text-gray-900">
                     {stat.value}
-                  </h2>
+                  </h3>
                 </div>
+
                 {/* ICON */}
-                <div className={`flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br ${stat.gradient} shadow-sm`} >
-                  <Icon className="h-5 w-5 text-white" />
+
+                <div
+                  className={`
+                    flex
+                    h-9
+                    w-9
+                    items-center
+                    justify-center
+                    rounded-lg
+                    bg-gray-50
+                  `}
+                >
+                  <Icon className="h-4 w-4 text-gray-600" />
                 </div>
               </div>
-              {/* BOTTOM */}
-              <div className="mt-5 flex items-center justify-between">
-                <p className="text-xs font-medium text-gray-500">
-                  {stat.subtext}
-                </p>
-                <div className={`rounded-full px-2 py-1 text-[10px] font-bold ${stat.bg} ${stat.color}`}>
-                  LIVE
-                </div>
+
+              {/* FOOTER */}
+
+              <div className="mt-4 flex items-center gap-2">
+                <div className={`h-2 w-2 rounded-full ${stat.accent}`} />
+
+                <p className="text-[11px] text-gray-500">Live analytics</p>
               </div>
             </div>
-          </div>
-        );
-      })}
+          );
+        })}
+      </div>
     </div>
   );
 }

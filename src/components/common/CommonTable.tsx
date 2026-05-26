@@ -3,10 +3,7 @@ import React from "react";
 type Column = {
   header: string;
   key: string;
-  render?: (
-    row: any,
-    index: number,
-  ) => React.ReactNode;
+  render?: (row: any, index: number) => React.ReactNode;
 };
 
 type Props = {
@@ -17,9 +14,8 @@ type Props = {
   page?: number;
   totalPages?: number;
   headerAction?: React.ReactNode;
-  onPageChange?: (
-    page: number,
-  ) => void;
+  onPageChange?: (page: number) => void;
+  compact?: boolean;
 };
 
 export default function CommonTable({
@@ -31,6 +27,7 @@ export default function CommonTable({
   totalPages = 1,
   onPageChange,
   headerAction,
+  compact = false,
 }: Props) {
   return (
     <div className="flex h-full flex-col overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
@@ -38,23 +35,15 @@ export default function CommonTable({
       <div className="shrink-0 border-b border-gray-200 bg-white p-6">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h3 className="text-lg font-semibold text-gray-900">
-              {title}
-            </h3>
-            {subtitle && (
-              <p className="text-sm text-gray-500">
-                {subtitle}
-              </p>
-            )}
+            <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
+            {subtitle && <p className="text-sm text-gray-500">{subtitle}</p>}
           </div>
           {headerAction}
         </div>
       </div>
       {/* TABLE HEADER */}
       <div className="shrink-0 border-b border-gray-200 bg-white px-6 py-4">
-        <h2 className="text-base font-semibold text-gray-900">
-          {title} List
-        </h2>
+        <h2 className="text-base font-semibold text-gray-900">{title} List</h2>
       </div>
       {/* SCROLLABLE TABLE */}
       <div className="min-h-0 flex-1 overflow-auto">
@@ -62,64 +51,43 @@ export default function CommonTable({
           {/* STICKY HEADER */}
           <thead className="sticky top-0 z-10 border-b border-gray-200 bg-white text-sm text-gray-900">
             <tr>
-              {columns.map(
-                (col, i) => (
-                  <th
-                    key={i}
-                    className={`py-3 ${
-                      i === 0
-                        ? "pl-6 pr-8"
-                        : "pr-8"
-                    } font-semibold`}
-                  >
-                    {col.header}
-                  </th>
-                ),
-              )}
+              {columns.map((col, i) => (
+                <th
+                  key={i}
+                  className={`py-3 ${
+                    i === 0 ? "pl-6 pr-8" : "pr-8"
+                  } font-semibold`}
+                >
+                  {col.header}
+                </th>
+              ))}
             </tr>
           </thead>
           {/* BODY */}
           <tbody className="divide-y divide-gray-100 bg-white">
             {data?.length ? (
-              data.map(
-                (row, idx) => (
-                  <tr
-                    key={idx}
-                    className="transition hover:bg-gray-50"
-                  >
-                    {columns.map(
-                      (
-                        col,
-                        i,
-                      ) => (
-                        <td
-                          key={i}
-                          className={`py-4 ${
-                            i === 0
-                              ? "pl-6 pr-8 font-medium text-gray-900"
-                              : "pr-8 text-gray-500"
-                          }`}
-                        >
-                          {col.render
-                            ? col.render(
-                                row,
-                                idx,
-                              )
-                            : row[
-                                col.key
-                              ] ?? "-"}
-                        </td>
-                      ),
-                    )}
-                  </tr>
-                ),
-              )
+              data.map((row, idx) => (
+                <tr key={idx} className="transition hover:bg-gray-50">
+                  {columns.map((col, i) => (
+                    <td
+                      key={i}
+                      className={`py-4 ${
+                        i === 0
+                          ? "pl-6 pr-8 font-medium text-gray-900"
+                          : "pr-8 text-gray-500"
+                      }`}
+                    >
+                      {col.render
+                        ? col.render(row, idx)
+                        : (row[col.key] ?? "-")}
+                    </td>
+                  ))}
+                </tr>
+              ))
             ) : (
               <tr>
                 <td
-                  colSpan={
-                    columns.length
-                  }
+                  colSpan={columns.length}
                   className="py-10 text-center text-gray-500"
                 >
                   No data available
@@ -137,25 +105,14 @@ export default function CommonTable({
         <div className="flex gap-2">
           <button
             disabled={page === 1}
-            onClick={() =>
-              onPageChange?.(
-                page - 1,
-              )
-            }
+            onClick={() => onPageChange?.(page - 1)}
             className="rounded-lg border border-gray-200 bg-white px-3 py-1 text-sm font-medium transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
           >
             Prev
           </button>
           <button
-            disabled={
-              page === totalPages ||
-              totalPages === 0
-            }
-            onClick={() =>
-              onPageChange?.(
-                page + 1,
-              )
-            }
+            disabled={page === totalPages || totalPages === 0}
+            onClick={() => onPageChange?.(page + 1)}
             className="rounded-lg border border-gray-200 bg-white px-3 py-1 text-sm font-medium transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
           >
             Next

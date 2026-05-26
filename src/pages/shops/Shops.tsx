@@ -1,6 +1,12 @@
 import { useState, useEffect } from "react";
 import Dropdown from "../../components/common/Dropdown";
 import CommonTable from "@/components/common/CommonTable";
+import {
+  BanknotesIcon,
+  BuildingStorefrontIcon,
+  CheckCircleIcon,
+  ReceiptPercentIcon,
+} from "@heroicons/react/24/outline";
 
 export default function Shops() {
   const [branches, setBranches] = useState<any[]>([]);
@@ -185,176 +191,173 @@ export default function Shops() {
   };
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-red-50/30 px-6 py-6">
-      <div className="mx-auto space-y-4">
-        {/* ================= HEADER ================= */}
-        <div className="relative overflow-visible z-50 rounded-2xl p-5 border border-white/40 bg-white/80 shadow-[0_8px_30px_rgba(0,0,0,0.05)] backdrop-blur-xl">
-          <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-red-100 blur-3xl"></div>
-          <div className="relative z-10 flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between">
-            <div>
-              <div className="inline-flex items-center gap-2 rounded-full bg-red-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-red-600">
-                Restaurant Intelligence
+    <main className="min-h-screen bg-gray-50">
+      <div className="mx-auto flex max-w-[1600px] flex-col gap-4">
+        {/* ================= HERO ================= */}
+
+        <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+          <div className="flex flex-col gap-4 px-4 py-4 xl:flex-row xl:items-center xl:justify-between">
+            {/* LEFT */}
+
+            <div className="flex items-center gap-4">
+              {/* LOGO */}
+
+              <div className="h-14 w-14 overflow-hidden rounded-xl border border-gray-200 bg-gray-100">
+                {branchDetails?.restaurant?.logo ? (
+                  <img
+                    src={`http://localhost:5000${branchDetails.restaurant.logo}`}
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <div className="flex h-full items-center justify-center text-[10px] text-gray-400">
+                    No Logo
+                  </div>
+                )}
               </div>
-              <h1 className="mt-4 text-2xl font-bold tracking-tight text-gray-900">
-                Shops Overview
-              </h1>
-              <p className="mt-2 text-sm text-gray-500">
-                Manage branches, operations, staff and restaurant settings
-              </p>
+
+              {/* INFO */}
+
+              <div>
+                <div className="flex items-center gap-2">
+                  <h1 className="text-[20px] font-bold tracking-tight text-gray-900">
+                    {branchDetails?.restaurant?.name}
+                  </h1>
+
+                  <span className="rounded-full bg-emerald-50 px-2 py-1 text-[10px] font-semibold text-emerald-600">
+                    Active
+                  </span>
+                </div>
+
+                <p className="mt-1 text-[12px] text-gray-500">
+                  {branchDetails?.address}, {branchDetails?.city},{" "}
+                  {branchDetails?.state} - {branchDetails?.pincode}
+                </p>
+
+                <div className="mt-2 flex flex-wrap items-center gap-2">
+                  <div className="rounded-md border border-gray-200 bg-gray-50 px-2 py-1 text-[11px] font-medium text-gray-700">
+                    Branch: {branchDetails?.name}
+                  </div>
+
+                  <div className="rounded-md border border-gray-200 bg-gray-50 px-2 py-1 text-[11px] font-medium text-gray-700">
+                    Tables: {branchDetails?.tables?.length || 0}
+                  </div>
+
+                  <div className="rounded-md border border-gray-200 bg-gray-50 px-2 py-1 text-[11px] font-medium text-gray-700">
+                    Staff: {staff?.length || 0}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* RIGHT */}
+
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setEditMode(!editMode)}
+                className={`rounded-lg px-3 py-2 text-[12px] font-semibold text-white transition-all duration-200 ${
+                  editMode
+                    ? "bg-gray-700 hover:bg-gray-800"
+                    : "bg-red-500 hover:bg-red-600"
+                }`}
+              >
+                {editMode ? "Cancel" : "Edit Branch"}
+              </button>
             </div>
           </div>
-        </div>
-        {/* ================= HERO CARD ================= */}
-        <div className="relative overflow-hidden rounded-2xl border border-white/40 bg-white/80 p-6 shadow-[0_8px_30px_rgba(0,0,0,0.05)] backdrop-blur-xl">
-          {/* BG GLOW */}
-          <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-red-100 blur-3xl"></div>
-          <div className="relative z-10 flex flex-col gap-8 xl:flex-row xl:items-start xl:justify-between">
-            {/* LEFT */}
-            <div className="flex flex-1 flex-col gap-6">
-              {/* TOP */}
-              <div className="flex flex-col gap-5 sm:flex-row sm:items-start">
-                {/* LOGO */}
-                <div className="h-20 w-20 overflow-hidden rounded-3xl border border-gray-100 bg-gray-100 shadow-sm">
-                  {branchDetails?.restaurant?.logo ? (
-                    <img
-                      src={`http://localhost:5000${branchDetails.restaurant.logo}`}
-                      className="h-full w-full object-cover"
-                    />
-                  ) : (
-                    <div className="flex h-full items-center justify-center text-xs text-gray-400">
-                      No Logo
-                    </div>
-                  )}
-                </div>
-                {/* TITLE */}
-                <div>
-                  <h2 className="text-2xl font-bold tracking-tight text-gray-900">
-                    {branchDetails?.restaurant?.name}
-                  </h2>
-                  <p className="mt-2 text-sm leading-6 text-gray-500">
-                    {branchDetails?.address}, {branchDetails?.city},{" "}
-                    {branchDetails?.state} - {branchDetails?.pincode}
-                  </p>
-                </div>
-              </div>
-              {/* INFO + ACTIONS */}
-              <div className="flex flex-col gap-5 xl:flex-row xl:items-start">
-                {/* INFO GRID */}
-                <div className="grid flex-1 grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
-                  <Input
-                    label="Email"
-                    value={branchDetails?.restaurant?.email}
-                    editMode={editMode}
-                    onChange={(e: any) =>
-                      setBranchDetails({
-                        ...branchDetails,
-                        restaurant: {
-                          ...branchDetails.restaurant,
-                          email: e.target.value,
-                        },
-                      })
-                    }
-                  />
-                  <Input
-                    label="Phone"
-                    value={branchDetails?.restaurant?.phone}
-                    editMode={editMode}
-                    onChange={(e: any) =>
-                      setBranchDetails({
-                        ...branchDetails,
-                        restaurant: {
-                          ...branchDetails.restaurant,
-                          phone: e.target.value,
-                        },
-                      })
-                    }
-                  />
-                  <Input
-                    label="Address"
-                    value={branchDetails?.address}
-                    editMode={editMode}
-                    onChange={(e: any) =>
-                      setBranchDetails({
-                        ...branchDetails,
-                        address: e.target.value,
-                      })
-                    }
-                  />
-                  <Input
-                    label="City"
-                    value={branchDetails?.city}
-                    editMode={editMode}
-                    onChange={(e: any) =>
-                      setBranchDetails({
-                        ...branchDetails,
-                        city: e.target.value,
-                      })
-                    }
-                  />
-                  <Input
-                    label="State"
-                    value={branchDetails?.state}
-                    editMode={editMode}
-                    onChange={(e: any) =>
-                      setBranchDetails({
-                        ...branchDetails,
-                        state: e.target.value,
-                      })
-                    }
-                  />
-                  <Input
-                    label="Pincode"
-                    value={branchDetails?.pincode}
-                    editMode={editMode}
-                    onChange={(e: any) =>
-                      setBranchDetails({
-                        ...branchDetails,
-                        pincode: e.target.value,
-                      })
-                    }
-                  />
-                </div>
-                {/* RIGHT PANEL */}
-                <div className="flex min-w-[220px] flex-col gap-4 rounded-2xl border border-gray-100 bg-gray-50/70 p-4">
-                  <div>
-                    <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">
-                      Branch
-                    </p>
-                    <div className="mt-2 inline-flex rounded-2xl bg-gray-100 px-4 py-2 text-sm font-semibold text-gray-700">
-                      {branchDetails?.name}
-                    </div>
-                  </div>
-                  <div>
-                    <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">
-                      Status
-                    </p>
-                    <div className="mt-2 inline-flex rounded-2xl bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-600">
-                      Active
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => setEditMode(!editMode)}
-                    className={`mt-2 rounded-xl px-4 py-2 text-sm font-semibold text-white transition-all duration-200 ${
-                      editMode
-                        ? "bg-gray-700 hover:bg-gray-800"
-                        : "bg-red-500 hover:bg-red-600"
-                    }`}
-                  >
-                    {editMode ? "Cancel Editing" : "Edit Branch"}
-                  </button>
-                </div>
-              </div>
-            </div>
+
+          {/* INFO GRID */}
+
+          <div className="grid grid-cols-1 gap-3 border-t border-gray-100 p-4 md:grid-cols-2 xl:grid-cols-3">
+            <Input
+              label="Email"
+              value={branchDetails?.restaurant?.email}
+              editMode={editMode}
+              onChange={(e: any) =>
+                setBranchDetails({
+                  ...branchDetails,
+                  restaurant: {
+                    ...branchDetails.restaurant,
+                    email: e.target.value,
+                  },
+                })
+              }
+            />
+
+            <Input
+              label="Phone"
+              value={branchDetails?.restaurant?.phone}
+              editMode={editMode}
+              onChange={(e: any) =>
+                setBranchDetails({
+                  ...branchDetails,
+                  restaurant: {
+                    ...branchDetails.restaurant,
+                    phone: e.target.value,
+                  },
+                })
+              }
+            />
+
+            <Input
+              label="Address"
+              value={branchDetails?.address}
+              editMode={editMode}
+              onChange={(e: any) =>
+                setBranchDetails({
+                  ...branchDetails,
+                  address: e.target.value,
+                })
+              }
+            />
+
+            <Input
+              label="City"
+              value={branchDetails?.city}
+              editMode={editMode}
+              onChange={(e: any) =>
+                setBranchDetails({
+                  ...branchDetails,
+                  city: e.target.value,
+                })
+              }
+            />
+
+            <Input
+              label="State"
+              value={branchDetails?.state}
+              editMode={editMode}
+              onChange={(e: any) =>
+                setBranchDetails({
+                  ...branchDetails,
+                  state: e.target.value,
+                })
+              }
+            />
+
+            <Input
+              label="Pincode"
+              value={branchDetails?.pincode}
+              editMode={editMode}
+              onChange={(e: any) =>
+                setBranchDetails({
+                  ...branchDetails,
+                  pincode: e.target.value,
+                })
+              }
+            />
           </div>
         </div>
 
-        {/* ================= TABLES ================= */}
-        <div className="grid grid-cols-1 gap-5 xl:grid-cols-1">
+        {/* ================= STAFF + TABLES ================= */}
+
+        <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
           {/* TABLES */}
-          <div className="overflow-hidden rounded-2xl border border-white/40 bg-white/80 shadow-[0_8px_30px_rgba(0,0,0,0.05)] backdrop-blur-xl">
+
+          <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
             <CommonTable
               title="Tables"
-              subtitle="Manage seating"
+              subtitle="Manage restaurant seating"
+              compact
               data={paginatedTables}
               page={tablesPage}
               totalPages={tablesTotalPages}
@@ -363,7 +366,7 @@ export default function Shops() {
                 editMode && (
                   <button
                     onClick={handleAddTable}
-                    className="rounded-2xl bg-red-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-600"
+                    className="rounded-md bg-red-500 px-3 py-1.5 text-[11px] font-semibold text-white transition hover:bg-red-600"
                   >
                     + Add Table
                   </button>
@@ -371,7 +374,7 @@ export default function Shops() {
               }
               columns={[
                 {
-                  header: "Table Name",
+                  header: "Table",
                   key: "name",
                   render: (t) =>
                     editMode ? (
@@ -379,525 +382,322 @@ export default function Shops() {
                         value={t.name}
                         onChange={(e) => {
                           const updated = [...branchDetails.tables];
+
                           const index = updated.findIndex(
                             (x: any) => x.id === t.id,
                           );
+
                           updated[index].name = e.target.value;
+
                           setBranchDetails({
                             ...branchDetails,
                             tables: updated,
                           });
                         }}
-                        className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm"
+                        className="w-full rounded-lg border border-gray-200 px-2 py-1.5 text-[12px]"
                       />
                     ) : (
-                      t.name
+                      <div>
+                        <p className="text-[13px] font-semibold text-gray-800">
+                          {t.name}
+                        </p>
+
+                        <p className="text-[10px] text-gray-400">
+                          {t.capacity} Seats
+                        </p>
+                      </div>
                     ),
                 },
-                {
-                  header: "Capacity",
-                  key: "capacity",
-                  render: (t) =>
-                    editMode ? (
-                      <input
-                        type="number"
-                        value={t.capacity}
-                        onChange={(e) => {
-                          const updated = [...branchDetails.tables];
-                          const index = updated.findIndex(
-                            (x: any) => x.id === t.id,
-                          );
-                          updated[index].capacity = Number(e.target.value);
-                          setBranchDetails({
-                            ...branchDetails,
-                            tables: updated,
-                          });
-                        }}
-                        className="w-24 rounded-xl border border-gray-200 px-3 py-2 text-sm"
-                      />
-                    ) : (
-                      t.capacity
-                    ),
-                },
+
                 {
                   header: "Status",
                   key: "status",
-                  render: (t) =>
-                    editMode ? (
-                      <select
-                        value={t.status}
-                        onChange={(e) => {
-                          const updated = [...branchDetails.tables];
-                          const index = updated.findIndex(
-                            (x: any) => x.id === t.id,
-                          );
-                          updated[index].status = e.target.value;
-                          setBranchDetails({
-                            ...branchDetails,
-                            tables: updated,
-                          });
-                        }}
-                        className="rounded-xl border border-gray-200 px-3 py-2 text-sm"
-                      >
-                        <option value="AVAILABLE">AVAILABLE</option>
-                        <option value="RESERVED">RESERVED</option>
-                        <option value="OCCUPIED">OCCUPIED</option>
-                      </select>
-                    ) : (
-                      <span
-                        className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${
-                          t.status === "OCCUPIED"
-                            ? "bg-red-100 text-red-700"
-                            : t.status === "RESERVED"
-                              ? "bg-yellow-100 text-yellow-700"
-                              : "bg-green-100 text-green-700"
-                        }`}
-                      >
-                        {t.status || "AVAILABLE"}
-                      </span>
-                    ),
+                  render: (t) => (
+                    <span
+                      className={`inline-flex rounded-full px-2 py-[3px] text-[10px] font-medium ${
+                        t.status === "OCCUPIED"
+                          ? "bg-red-50 text-red-600"
+                          : t.status === "RESERVED"
+                            ? "bg-orange-50 text-orange-600"
+                            : "bg-emerald-50 text-emerald-600"
+                      }`}
+                    >
+                      {t.status || "AVAILABLE"}
+                    </span>
+                  ),
                 },
-                ...(editMode
-                  ? [
-                      {
-                        header: "Actions",
-                        key: "actions",
-                        render: (t: any) => (
-                          <button
-                            onClick={() => handleDeleteTable(t.id)}
-                            className="rounded-lg bg-red-50 px-3 py-1 text-xs font-semibold text-red-600"
-                          >
-                            Delete
-                          </button>
-                        ),
-                      },
-                    ]
-                  : []),
+              ]}
+            />
+          </div>
+
+          {/* STAFF */}
+
+          <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+            <CommonTable
+              title="Staff"
+              subtitle="Restaurant workforce"
+              compact
+              data={paginatedStaff}
+              page={staffPage}
+              totalPages={staffTotalPages}
+              onPageChange={setStaffPage}
+              columns={[
+                {
+                  header: "Staff",
+                  key: "name",
+                  render: (s) => (
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gray-100 text-[12px] font-bold text-gray-700">
+                        {s.name?.charAt(0)}
+                      </div>
+
+                      <div>
+                        <p className="text-[13px] font-semibold text-gray-800">
+                          {s.name}
+                        </p>
+
+                        <p className="text-[10px] text-gray-400">
+                          {s.email || "No email"}
+                        </p>
+                      </div>
+                    </div>
+                  ),
+                },
+
+                {
+                  header: "Role",
+                  key: "role",
+                  render: (s) => (
+                    <span className="inline-flex rounded-full border border-gray-200 bg-white px-2 py-[3px] text-[10px] font-medium text-gray-700">
+                      {s.role}
+                    </span>
+                  ),
+                },
+
+                {
+                  header: "Phone",
+                  key: "phone",
+                  render: (s) => (
+                    <span className="text-[12px] text-gray-600">
+                      {s.phone || "-"}
+                    </span>
+                  ),
+                },
+
+                {
+                  header: "Salary",
+                  key: "salary",
+                  render: (s) => (
+                    <span className="text-[12px] font-semibold text-gray-900">
+                      {s.salary ? `₹${s.salary}` : "-"}
+                    </span>
+                  ),
+                },
               ]}
             />
           </div>
         </div>
-        {/* ================= STAFF ================= */}
-        <div className="overflow-hidden rounded-3xl border border-white/40 bg-white/80 shadow-[0_8px_30px_rgba(0,0,0,0.05)] backdrop-blur-xl">
-          <CommonTable
-            title="Staff"
-            subtitle="Manage team"
-            data={paginatedStaff}
-            page={staffPage}
-            totalPages={staffTotalPages}
-            onPageChange={setStaffPage}
-            headerAction={
-              editMode && (
-                <button
-                  onClick={handleAddStaff}
-                  className="rounded-2xl bg-red-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-600"
-                >
-                  + Add Staff
-                </button>
-              )
-            }
-            columns={[
-              {
-                header: "Name",
-                key: "name",
-                render: (s) =>
-                  editMode ? (
-                    <input
-                      value={s.name}
-                      onChange={(e) => {
-                        const updated = [...staff];
-                        const index = updated.findIndex(
-                          (x: any) => x.id === s.id,
-                        );
-                        updated[index].name = e.target.value;
-                        setStaff(updated);
-                      }}
-                      className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm"
-                    />
-                  ) : (
-                    s.name
-                  ),
-              },
-              {
-                header: "Role",
-                key: "role",
-                render: (s) =>
-                  editMode ? (
-                    <select
-                      value={s.role}
-                      onChange={(e) => {
-                        const updated = [...staff];
-                        const index = updated.findIndex(
-                          (x: any) => x.id === s.id,
-                        );
-                        updated[index].role = e.target.value;
-                        setStaff(updated);
-                      }}
-                      className="rounded-xl border border-gray-200 px-3 py-2 text-sm"
-                    >
-                      <option value="STAFF">STAFF</option>
-                      <option value="MANAGER">MANAGER</option>
-                      <option value="CASHIER">CASHIER</option>
-                    </select>
-                  ) : (
-                    <span className="inline-flex rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-700">
-                      {s.role}
-                    </span>
-                  ),
-              },
-              {
-                header: "Email",
-                key: "email",
-                render: (s) =>
-                  editMode ? (
-                    <input
-                      value={s.email || ""}
-                      onChange={(e) => {
-                        const updated = [...staff];
-                        const index = updated.findIndex(
-                          (x: any) => x.id === s.id,
-                        );
-                        updated[index].email = e.target.value;
-                        setStaff(updated);
-                      }}
-                      className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm"
-                    />
-                  ) : (
-                    s.email || "-"
-                  ),
-              },
-              {
-                header: "Phone",
-                key: "phone",
-                render: (s) =>
-                  editMode ? (
-                    <input
-                      value={s.phone || ""}
-                      onChange={(e) => {
-                        const updated = [...staff];
-                        const index = updated.findIndex(
-                          (x: any) => x.id === s.id,
-                        );
-                        updated[index].phone = e.target.value;
-                        setStaff(updated);
-                      }}
-                      className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm"
-                    />
-                  ) : (
-                    s.phone || "-"
-                  ),
-              },
-              {
-                header: "Salary",
-                key: "salary",
-                render: (s) =>
-                  editMode ? (
-                    <input
-                      type="number"
-                      value={s.salary || 0}
-                      onChange={(e) => {
-                        const updated = [...staff];
-                        const index = updated.findIndex(
-                          (x: any) => x.id === s.id,
-                        );
-                        updated[index].salary = Number(e.target.value);
-                        setStaff(updated);
-                      }}
-                      className="w-28 rounded-xl border border-gray-200 px-3 py-2 text-sm"
-                    />
-                  ) : s.salary ? (
-                    `₹${s.salary}`
-                  ) : (
-                    "-"
-                  ),
-              },
-              {
-                header: "Shift",
-                key: "shift",
-                render: (s) =>
-                  editMode ? (
-                    <input
-                      value={s.shift || ""}
-                      onChange={(e) => {
-                        const updated = [...staff];
-                        const index = updated.findIndex(
-                          (x: any) => x.id === s.id,
-                        );
-                        updated[index].shift = e.target.value;
-                        setStaff(updated);
-                      }}
-                      className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm"
-                    />
-                  ) : (
-                    s.shift || "-"
-                  ),
-              },
-              {
-                header: "Status",
-                key: "isActive",
-                render: (s) => (
-                  <span
-                    className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${
-                      s.isActive
-                        ? "bg-emerald-100 text-emerald-700"
-                        : "bg-red-100 text-red-700"
-                    }`}
+
+        {/* ================= SETTINGS ================= */}
+
+        <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1fr_0.7fr]">
+          {/* BILLING */}
+
+          <div className="space-y-4">
+            {/* BILLING SETTINGS */}
+
+            <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+              {/* HEADER */}
+
+              <div className="border-b border-gray-100 px-4 py-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-[18px] font-bold tracking-tight text-gray-900">
+                      Billing Settings
+                    </h3>
+
+                    <p className="mt-0.5 text-[12px] text-gray-500">
+                      Taxation & billing configuration
+                    </p>
+                  </div>
+
+                  <div className="rounded-md border border-gray-200 bg-gray-50 px-3 py-2">
+                    <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-gray-400">
+                      GST
+                    </p>
+
+                    <p className="text-[16px] font-bold text-gray-900">
+                      {selectedBranch?.billing?.gstPercentage || 0}%
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* CONTENT */}
+
+              <div className="grid grid-cols-1 gap-3 p-3 md:grid-cols-2">
+                {/* GST */}
+
+                <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-gray-400">
+                        GST Percentage
+                      </p>
+
+                      <h4 className="mt-1.5 text-xl font-bold text-gray-900">
+                        {selectedBranch?.billing?.gstPercentage || 0}%
+                      </h4>
+
+                      <p className="mt-1 text-[11px] text-gray-500">
+                        Applied on taxable bills
+                      </p>
+                    </div>
+
+                    <div className="rounded-lg bg-gray-200 p-2">
+                      <ReceiptPercentIcon className="h-4 w-4 text-gray-700" />
+                    </div>
+                  </div>
+                </div>
+
+                {/* SERVICE */}
+
+                <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-gray-400">
+                        Service Charge
+                      </p>
+
+                      <h4 className="mt-1.5 text-xl font-bold text-gray-900">
+                        {selectedBranch?.billing?.serviceCharge || 0}%
+                      </h4>
+
+                      <p className="mt-1 text-[11px] text-gray-500">
+                        Added during checkout
+                      </p>
+                    </div>
+
+                    <div className="rounded-lg bg-gray-200 p-2">
+                      <BanknotesIcon className="h-4 w-4 text-gray-700" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* PAYMENT METHODS */}
+
+            <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+              {/* HEADER */}
+
+              <div className="border-b border-gray-100 px-4 py-3">
+                <h3 className="text-[18px] font-bold tracking-tight text-gray-900">
+                  Payment Methods
+                </h3>
+
+                <p className="mt-0.5 text-[12px] text-gray-500">
+                  Supported payment options
+                </p>
+              </div>
+
+              {/* GRID */}
+
+              <div className="grid grid-cols-2 gap-2 p-3 md:grid-cols-4">
+                {["Cash", "UPI", "Card", "Wallet"].map((method) => (
+                  <div
+                    key={method}
+                    className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-3"
                   >
-                    {s.isActive ? "ACTIVE" : "INACTIVE"}
-                  </span>
-                ),
-              },
-              ...(editMode
-                ? [
-                    {
-                      header: "Actions",
-                      key: "actions",
-                      render: (s: any) => (
-                        <button
-                          onClick={() => handleToggleStaff(s.id)}
-                          className={`rounded-lg px-3 py-1 text-xs font-semibold ${
-                            s.isActive
-                              ? "bg-red-50 text-red-600"
-                              : "bg-emerald-50 text-emerald-600"
-                          }`}
-                        >
-                          {s.isActive ? "Deactivate" : "Activate"}
-                        </button>
-                      ),
-                    },
-                  ]
-                : []),
-            ]}
-          />
-        </div>
-        {/* ================= BILLING ================= */}
-        <div className="rounded-3xl border border-white/40 bg-white/80 p-5 shadow-[0_8px_30px_rgba(0,0,0,0.05)] backdrop-blur-xl">
-          {/* HEADER */}
-          <div className="mb-6">
-            <h3 className="text-xl font-bold text-gray-900">
-              Billing Settings
-            </h3>
-            <p className="mt-1 text-sm text-gray-500">
-              Taxation, billing workflows & payment configuration
-            </p>
-          </div>
-          {/* TOP GRID */}
-          <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
-            <Input
-              label="GST Percentage"
-              value={selectedBranch?.billing?.gstPercentage}
-              editMode={editMode}
-              onChange={(e: any) =>
-                setBranchDetails({
-                  ...branchDetails,
-                  billing: {
-                    ...branchDetails.billing,
-                    gstPercentage: e.target.value,
-                  },
-                })
-              }
-            />
-            <Input
-              label="Service Charge"
-              value={selectedBranch?.billing?.serviceCharge}
-              editMode={editMode}
-              onChange={(e: any) =>
-                setBranchDetails({
-                  ...selectedBranch,
-                  billing: {
-                    ...selectedBranch.billing,
-                    serviceCharge: e.target.value,
-                  },
-                })
-              }
-            />
-            <div className="rounded-2xl border border-gray-100 bg-gray-50/70 p-4">
-              <p className="mb-4 text-xs font-semibold uppercase tracking-wide text-gray-400">
-                Payment Methods
-              </p>
-              <div className="flex flex-wrap gap-3">
-                {["Cash", "UPI", "Card", "Wallet", "Net Banking", "cheque"].map(
-                  (method) => {
-                    const active =
-                      selectedBranch?.billing?.paymentMethods?.includes(method);
-                    return (
-                      <button
-                        key={method}
-                        disabled={!editMode}
-                        onClick={() => {
-                          if (!editMode) return;
-                          const current =
-                            selectedBranch.billing.paymentMethods || [];
-                          const updated = current.includes(method)
-                            ? current.filter((x: string) => x !== method)
-                            : [...current, method];
-                          setBranchDetails({
-                            ...selectedBranch,
-                            billing: {
-                              ...selectedBranch.billing,
-                              paymentMethods: updated,
-                            },
-                          });
-                        }}
-                        className={`rounded-2xl px-4 py-2 text-sm font-semibold transition-all duration-200 ${
-                          active
-                            ? "bg-red-500 text-white"
-                            : "bg-gray-100 text-gray-600"
-                        } ${!editMode ? "cursor-default" : "hover:scale-105"}`}
-                      >
-                        {method}
-                      </button>
-                    );
-                  },
-                )}
+                    <div className="mb-2 h-7 w-7 rounded-lg bg-gray-200" />
+
+                    <h4 className="text-[13px] font-semibold text-gray-900">
+                      {method}
+                    </h4>
+
+                    <p className="mt-0.5 text-[10px] text-gray-500">Enabled</p>
+                  </div>
+                ))}
               </div>
             </div>
           </div>
-          {/* BILLING MODULES */}
-          <div className="mt-8">
-            <h4 className="text-sm font-bold uppercase tracking-wide text-gray-500">
-              Billing Modules
-            </h4>
-            <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-              {[
-                "Table Wise Billing",
-                "Quick Billing",
-                "Takeaway Billing",
-                "Delivery Billing",
-                "QR Ordering",
-                "KOT Billing",
-              ].map((type) => {
-                const active =
-                  selectedBranch?.billing?.billingTypes?.includes(type);
-                return (
-                  <button
-                    key={type}
-                    disabled={!editMode}
-                    onClick={() => {
-                      if (!editMode) return;
-                      const current = selectedBranch.billing.billingTypes || [];
-                      const updated = current.includes(type)
-                        ? current.filter((x: string) => x !== type)
-                        : [...current, type];
-                      setBranchDetails({
-                        ...selectedBranch,
-                        billing: {
-                          ...selectedBranch.billing,
-                          billingTypes: updated,
-                        },
-                      });
-                    }}
-                    className={`rounded-2xl border p-4 text-left transition-all duration-200 ${
-                      active
-                        ? "border-red-500 bg-red-50"
-                        : "border-gray-200 bg-gray-50"
-                    }`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p
-                          className={`text-sm font-semibold ${
-                            active ? "text-red-700" : "text-gray-700"
-                          }`}
-                        >
-                          {type}
-                        </p>
-                        <p className="mt-1 text-xs text-gray-500">
-                          Enable this billing workflow
-                        </p>
-                      </div>
-                      <div
-                        className={`flex h-6 w-6 items-center justify-center rounded-md border text-xs font-bold ${
-                          active
-                            ? "border-red-500 bg-red-500 text-white"
-                            : "border-gray-300 bg-white text-transparent"
-                        }`}
-                      >
-                        ✓
-                      </div>
-                    </div>
-                  </button>
-                );
-              })}
+
+          {/* PREFERENCES */}
+
+          <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+            {/* HEADER */}
+
+            <div className="border-b border-gray-100 px-4 py-3">
+              <h3 className="text-[18px] font-bold tracking-tight text-gray-900">
+                Preferences
+              </h3>
+
+              <p className="mt-0.5 text-[12px] text-gray-500">
+                Billing & workflow controls
+              </p>
             </div>
-          </div>
-          {/* BILLING PREFERENCES */}
-          <div className="mt-8">
-            <h4 className="text-sm font-bold uppercase tracking-wide text-gray-500">
-              Billing Preferences
-            </h4>
-            <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+
+            {/* SETTINGS */}
+
+            <div className="space-y-2 p-3">
               {[
                 {
-                  key: "includeGST",
-                  label: "GST Included In Price",
+                  title: "GST Included",
+                  subtitle: "Tax included in billing",
                 },
+
                 {
-                  key: "enableDiscount",
-                  label: "Enable Discounts",
+                  title: "Enable Discounts",
+                  subtitle: "Allow discounts",
                 },
+
                 {
-                  key: "enableTips",
-                  label: "Enable Customer Tips",
+                  title: "Customer Tips",
+                  subtitle: "Enable tip collection",
                 },
-              ].map((item) => {
-                const active = selectedBranch?.billing?.[item.key];
-                return (
-                  <div
-                    key={item.key}
-                    className={`rounded-3xl border p-5 transition-all duration-200 ${
-                      active
-                        ? "border-emerald-200 bg-emerald-50"
-                        : "border-gray-200 bg-gray-50"
-                    }`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm font-semibold text-gray-900">
-                          {item.label}
-                        </p>
-                        <p className="mt-1 text-xs text-gray-500">
-                          {active ? "Enabled" : "Disabled"}
-                        </p>
-                      </div>
-                      <button
-                        disabled={!editMode}
-                        onClick={() => {
-                          if (!editMode) return;
-                          setBranchDetails({
-                            ...selectedBranch,
-                            billing: {
-                              ...selectedBranch.billing,
-                              [item.key]: !active,
-                            },
-                          });
-                        }}
-                        className={`relative h-7 w-14 rounded-full transition-all duration-200 ${
-                          active ? "bg-emerald-500" : "bg-gray-300"
-                        }`}
-                      >
-                        <div
-                          className={`absolute top-1 h-5 w-5 rounded-full bg-white transition-all duration-200 ${
-                            active ? "left-8" : "left-1"
-                          }`}
-                        />
-                      </button>
+              ].map((item) => (
+                <div
+                  key={item.title}
+                  className="flex items-center justify-between rounded-lg border border-gray-200 bg-gray-50 px-3 py-3"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="h-7 w-7 rounded-lg bg-gray-200" />
+
+                    <div>
+                      <p className="text-[12px] font-semibold text-gray-900">
+                        {item.title}
+                      </p>
+
+                      <p className="text-[10px] text-gray-500">
+                        {item.subtitle}
+                      </p>
                     </div>
                   </div>
-                );
-              })}
+
+                  {/* TOGGLE */}
+
+                  <button className="relative h-5 w-10 rounded-full bg-emerald-500">
+                    <div className="absolute right-0.5 top-0.5 h-4 w-4 rounded-full bg-white shadow-sm" />
+                  </button>
+                </div>
+              ))}
             </div>
           </div>
         </div>
       </div>
+
+      {/* SAVE BAR */}
+
       {editMode && (
-        <div className="sticky bottom-5 z-50 flex justify-end">
-          <button
-            onClick={handleSaveChanges}
-            className="rounded-2xl bg-red-500 px-6 py-3 text-sm font-semibold text-white shadow-lg transition-all duration-200 hover:bg-red-600"
-          >
-            Save Changes
-          </button>
+        <div className="sticky bottom-0 mt-4 border-t border-gray-200 bg-white/95 px-4 py-3 backdrop-blur">
+          <div className="flex justify-end">
+            <button
+              onClick={handleSaveChanges}
+              className="rounded-lg bg-red-500 px-5 py-2 text-[12px] font-semibold text-white transition hover:bg-red-600"
+            >
+              Save Changes
+            </button>
+          </div>
         </div>
       )}
     </main>
