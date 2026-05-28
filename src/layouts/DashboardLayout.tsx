@@ -126,21 +126,9 @@ export default function DashboardLayout() {
           <nav className="flex flex-1 flex-col justify-between px-2 ">
             <div className="space-y-1.5">
               {!collapsed && (
-                <div className="relative mb-2 overflow-hidden rounded-md border border-white/10 bg-gradient-to-br from-white via-white to-gray-100/90 px-2 py-1.5">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      {/* TEXT */}
-                      <div>
-                        <p className="text-[8px] font-bold uppercase tracking-[0.14em] text-red-600">
-                          Main Menu
-                        </p>
-                        <p className="mt-0.5 text-[7px] text-black/80">
-                          Navigation & modules
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+                <p className="mb-1 px-1.5 text-[8px] font-bold uppercase tracking-[0.18em] text-red-200/60">
+                  Main Menu
+                </p>
               )}
               {navigation.map((item) => (
                 <NavLink
@@ -187,69 +175,81 @@ export default function DashboardLayout() {
               ))}
             </div>
             {/* BOTTOM SECTION */}
-            <div className="space-y-3">
+            <div className="space-y-2">
               {/* SECONDARY NAV */}
-              <div className="space-y-2">
-                {/* SECTION CARD */}
+              <div className="space-y-1">
                 {!collapsed && (
-                  <div className="relative overflow-hidden rounded-md border border-white/10 bg-gradient-to-br from-white via-white to-gray-100/90 px-2 py-2">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-[8px] font-bold uppercase tracking-[0.14em] text-red-600">
-                          Preferences
-                        </p>
-                        <p className="mt-0.5 text-[7px] text-black/80">
-                          Settings & account
-                        </p>
-                      </div>
+                  <p className="px-1.5 text-[8px] font-bold uppercase tracking-[0.18em] text-red-200/60">
+                    Preferences
+                  </p>
+                )}
+                {secondaryNavigation.map((item) => (
+                  <NavLink
+                    key={item.name}
+                    to={item.href}
+                    className={({ isActive }) =>
+                      `group flex items-center rounded-md text-sm font-medium transition-all duration-200 ${
+                        collapsed
+                          ? "justify-center px-0 py-2.5"
+                          : "gap-1.5 px-1.5 py-1.5"
+                      } ${
+                        isActive
+                          ? "bg-black/10 text-cyan-200 shadow-lg"
+                          : "text-slate-200 hover:bg-black/10 hover:text-cyan-200 hover:shadow-lg"
+                      }`
+                    }
+                  >
+                    {({ isActive }) => (
+                      <>
+                        <div
+                          className={`flex h-6 w-6 items-center justify-center rounded-xl transition-all duration-200 group-hover:scale-105 ${
+                            isActive
+                              ? "bg-black/20"
+                              : "bg-black/10 group-hover:bg-black/20"
+                          }`}
+                        >
+                          <item.icon
+                            className={`h-3.5 w-3.5 transition ${
+                              isActive
+                                ? "text-cyan-200"
+                                : "text-slate-300 group-hover:text-cyan-200"
+                            }`}
+                          />
+                        </div>
+                        {!collapsed && (
+                          <span className="truncate text-[11px]">
+                            {item.name}
+                          </span>
+                        )}
+                      </>
+                    )}
+                  </NavLink>
+                ))}
+              </div>
+
+              {/* USER INFO */}
+              <div className="border-t border-white/10 pt-2 pb-1">
+                {collapsed ? (
+                  <div className="flex justify-center">
+                    <div className="flex h-7 w-7 items-center justify-center rounded-full bg-white/20 text-[10px] font-bold text-white">
+                      {user?.name?.charAt(0)?.toUpperCase() || "U"}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2 rounded-lg bg-black/10 px-2 py-1.5">
+                    <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white/25 text-[9px] font-bold text-white">
+                      {user?.name?.charAt(0)?.toUpperCase() || "U"}
+                    </div>
+                    <div className="min-w-0 overflow-hidden">
+                      <p className="truncate text-[10px] font-semibold leading-none text-white">
+                        {user?.name || "User"}
+                      </p>
+                      <p className="mt-0.5 truncate text-[8px] leading-none text-red-200/70">
+                        {user?.email || ""}
+                      </p>
                     </div>
                   </div>
                 )}
-                {/* NAV ITEMS */}
-                <div className="space-y-1.5">
-                  {secondaryNavigation.map((item) => (
-                    <NavLink
-                      key={item.name}
-                      to={item.href}
-                      className={({ isActive }) =>
-                        `group flex items-center rounded-md text-sm font-medium transition-all duration-200 ${
-                          collapsed
-                            ? "justify-center px-0 py-2.5"
-                            : "gap-1.5 px-1.5 py-1.5"
-                        } ${
-                          isActive
-                            ? "bg-black/10 text-cyan-200 shadow-lg"
-                            : "text-slate-200 hover:bg-black/10 hover:text-cyan-200 hover:shadow-lg"
-                        }`
-                      }
-                    >
-                      {({ isActive }) => (
-                        <>
-                          <div
-                            className={`flex h-6 w-6 items-center justify-center rounded-xl transition-all duration-200 group-hover:scale-105 ${
-                              isActive
-                                ? "bg-black/20"
-                                : "bg-black/10 group-hover:bg-black/20"
-                            }`}
-                          >
-                            <item.icon
-                              className={`h-3.5 w-3.5 transition ${
-                                isActive
-                                  ? "text-cyan-200"
-                                  : "text-slate-300 group-hover:text-cyan-200"
-                              }`}
-                            />
-                          </div>
-                          {!collapsed && (
-                            <span className="truncate text-[11px]">
-                              {item.name}
-                            </span>
-                          )}
-                        </>
-                      )}
-                    </NavLink>
-                  ))}
-                </div>
               </div>
             </div>
           </nav>

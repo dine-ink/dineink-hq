@@ -274,8 +274,7 @@ export default function RestaurantSetupModal({ open, setOpen }: Props) {
       } else {
         alert(data.message);
       }
-    } catch (err) {
-      console.log(err);
+    } catch {
       alert("Setup failed");
     } finally {
       setLoading(false);

@@ -25,7 +25,6 @@ export default function Login() {
         }),
       });
       const data = await response.json();
-      console.log("data =", data);
       if (data.success) {
         localStorage.setItem("token", data.token);
         localStorage.setItem("user", JSON.stringify(data.user));
@@ -35,8 +34,7 @@ export default function Login() {
       } else {
         alert(data.message);
       }
-    } catch (error) {
-      console.log(error);
+    } catch {
       alert("Login failed");
     } finally {
       setLoading(false);

@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+import { useCallback, useState, useEffect } from "react";
+import { useBranchSync, getSelectedBranch } from "@/hooks/useBranchSync";
 import Dropdown from "../../components/common/Dropdown";
 import CommonTable from "@/components/common/CommonTable";
 import {
@@ -67,25 +68,14 @@ export default function Shops() {
     };
     fetchShops();
   }, []);
-  useEffect(() => {
-    const handleBranchChange = () => {
-      const savedBranch = localStorage.getItem("selectedBranch");
-
-      if (savedBranch) {
-        const branch = JSON.parse(savedBranch);
-
-        setSelectedBranch(branch);
-
-        fetchBranchDetails(branch.id);
-      }
-    };
-
-    window.addEventListener("branchChanged", handleBranchChange);
-
-    return () => {
-      window.removeEventListener("branchChanged", handleBranchChange);
-    };
+  const handleBranchChange = useCallback(() => {
+    const branch = getSelectedBranch();
+    if (branch) {
+      setSelectedBranch(branch);
+      fetchBranchDetails(branch.id);
+    }
   }, []);
+  useBranchSync(handleBranchChange);
   /* ================= FETCH BRANCH ================= */
   const fetchBranchDetails = async (branchId: number) => {
     const token = localStorage.getItem("token");
@@ -116,13 +106,20 @@ export default function Shops() {
   );
   const staffTotalPages = Math.ceil(staff.length / rowsPerPage);
   if (loading) {
-    return <div className="p-6 text-sm">Loading...</div>;
+    return (
+      <div className="flex min-h-[400px] items-center justify-center">
+        <div className="flex flex-col items-center gap-3">
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-gray-200 border-t-red-500" />
+          <p className="text-[12px] text-gray-500">Loading branch details…</p>
+        </div>
+      </div>
+    );
   }
   const handleSaveChanges = async () => {
     try {
       const token = localStorage.getItem("token");
       const res = await fetch(
-        `http://localhost:5000/api/restaurant/branch/${branchDetails.id}`,
+        `${API_URL}/api/restaurant/branch/${branchDetails.id}`,
         {
           method: "PUT",
           headers: {
@@ -138,8 +135,7 @@ export default function Shops() {
         setEditMode(false);
         fetchBranchDetails(branchDetails.id);
       }
-    } catch (err) {
-      console.log(err);
+    } catch {
       alert("Update failed");
     }
   };
@@ -195,21 +191,21 @@ export default function Shops() {
       <div className="mx-auto flex max-w-[1600px] flex-col gap-4">
         {/* ================= HERO ================= */}
 
-        <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
-          <div className="flex flex-col gap-4 px-4 py-4 xl:flex-row xl:items-center xl:justify-between">
+        <div className="overflow-hidden rounded-xl border border-gray-100 bg-gradient-to-r from-white via-white to-gray-50 shadow-sm transition-all duration-200 hover:shadow-md">
+          <div className="flex flex-col gap-3 px-3 py-3 xl:flex-row xl:items-center xl:justify-between">
             {/* LEFT */}
 
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2.5">
               {/* LOGO */}
 
-              <div className="h-14 w-14 overflow-hidden rounded-xl border border-gray-200 bg-gray-100">
+              <div className="h-12 w-12 overflow-hidden rounded-xl border border-gray-200 bg-gradient-to-br from-gray-100 to-gray-200 shadow-sm">
                 {branchDetails?.restaurant?.logo ? (
                   <img
-                    src={`http://localhost:5000${branchDetails.restaurant.logo}`}
+                    src={`${API_URL}${branchDetails.restaurant.logo}`}
                     className="h-full w-full object-cover"
                   />
                 ) : (
-                  <div className="flex h-full items-center justify-center text-[10px] text-gray-400">
+                  <div className="flex h-full items-center justify-center text-[8px] text-gray-400">
                     No Logo
                   </div>
                 )}
@@ -218,31 +214,31 @@ export default function Shops() {
               {/* INFO */}
 
               <div>
-                <div className="flex items-center gap-2">
-                  <h1 className="text-[20px] font-bold tracking-tight text-gray-900">
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <h1 className="text-[17px] font-bold tracking-tight text-gray-900">
                     {branchDetails?.restaurant?.name}
                   </h1>
 
-                  <span className="rounded-full bg-emerald-50 px-2 py-1 text-[10px] font-semibold text-emerald-600">
+                  <span className="rounded-full border border-emerald-100 bg-emerald-50 px-1.5 py-[2px] text-[8px] font-semibold text-emerald-600 shadow-sm">
                     Active
                   </span>
                 </div>
 
-                <p className="mt-1 text-[12px] text-gray-500">
+                <p className="mt-0.5 text-[10px] text-gray-500">
                   {branchDetails?.address}, {branchDetails?.city},{" "}
                   {branchDetails?.state} - {branchDetails?.pincode}
                 </p>
 
-                <div className="mt-2 flex flex-wrap items-center gap-2">
-                  <div className="rounded-md border border-gray-200 bg-gray-50 px-2 py-1 text-[11px] font-medium text-gray-700">
+                <div className="mt-1.5 flex flex-wrap items-center gap-1">
+                  <div className="rounded-md border border-gray-200 bg-white px-2 py-[4px] text-[9px] font-medium text-gray-700 shadow-sm">
                     Branch: {branchDetails?.name}
                   </div>
 
-                  <div className="rounded-md border border-gray-200 bg-gray-50 px-2 py-1 text-[11px] font-medium text-gray-700">
+                  <div className="rounded-md border border-gray-200 bg-white px-2 py-[4px] text-[9px] font-medium text-gray-700 shadow-sm">
                     Tables: {branchDetails?.tables?.length || 0}
                   </div>
 
-                  <div className="rounded-md border border-gray-200 bg-gray-50 px-2 py-1 text-[11px] font-medium text-gray-700">
+                  <div className="rounded-md border border-gray-200 bg-white px-2 py-[4px] text-[9px] font-medium text-gray-700 shadow-sm">
                     Staff: {staff?.length || 0}
                   </div>
                 </div>
@@ -254,10 +250,10 @@ export default function Shops() {
             <div className="flex items-center gap-2">
               <button
                 onClick={() => setEditMode(!editMode)}
-                className={`rounded-lg px-3 py-2 text-[12px] font-semibold text-white transition-all duration-200 ${
+                className={`rounded-lg px-2.5 py-1.5 text-[10px] font-semibold text-white shadow-sm transition-all duration-200 hover:scale-[1.01] ${
                   editMode
                     ? "bg-gray-700 hover:bg-gray-800"
-                    : "bg-red-500 hover:bg-red-600"
+                    : "bg-gradient-to-r from-red-500 to-pink-500 hover:opacity-95"
                 }`}
               >
                 {editMode ? "Cancel" : "Edit Branch"}
@@ -267,87 +263,112 @@ export default function Shops() {
 
           {/* INFO GRID */}
 
-          <div className="grid grid-cols-1 gap-3 border-t border-gray-100 p-4 md:grid-cols-2 xl:grid-cols-3">
-            <Input
-              label="Email"
-              value={branchDetails?.restaurant?.email}
-              editMode={editMode}
-              onChange={(e: any) =>
-                setBranchDetails({
-                  ...branchDetails,
-                  restaurant: {
-                    ...branchDetails.restaurant,
-                    email: e.target.value,
-                  },
-                })
-              }
-            />
+          {/* INFO GRID */}
 
-            <Input
-              label="Phone"
-              value={branchDetails?.restaurant?.phone}
-              editMode={editMode}
-              onChange={(e: any) =>
-                setBranchDetails({
-                  ...branchDetails,
-                  restaurant: {
-                    ...branchDetails.restaurant,
-                    phone: e.target.value,
-                  },
-                })
-              }
-            />
+          <div className="grid grid-cols-1 gap-1.5 border-t border-gray-100 p-2.5 md:grid-cols-2 xl:grid-cols-3">
+            {/* EMAIL */}
 
-            <Input
-              label="Address"
-              value={branchDetails?.address}
-              editMode={editMode}
-              onChange={(e: any) =>
-                setBranchDetails({
-                  ...branchDetails,
-                  address: e.target.value,
-                })
-              }
-            />
+            <div className="rounded-lg border border-gray-100 bg-gray-50/60 px-2 py-1.5">
+              <Input
+                label="Email"
+                value={branchDetails?.restaurant?.email}
+                editMode={editMode}
+                onChange={(e: any) =>
+                  setBranchDetails({
+                    ...branchDetails,
+                    restaurant: {
+                      ...branchDetails.restaurant,
+                      email: e.target.value,
+                    },
+                  })
+                }
+              />
+            </div>
 
-            <Input
-              label="City"
-              value={branchDetails?.city}
-              editMode={editMode}
-              onChange={(e: any) =>
-                setBranchDetails({
-                  ...branchDetails,
-                  city: e.target.value,
-                })
-              }
-            />
+            {/* PHONE */}
 
-            <Input
-              label="State"
-              value={branchDetails?.state}
-              editMode={editMode}
-              onChange={(e: any) =>
-                setBranchDetails({
-                  ...branchDetails,
-                  state: e.target.value,
-                })
-              }
-            />
+            <div className="rounded-lg border border-gray-100 bg-gray-50/60 px-2 py-1.5">
+              <Input
+                label="Phone"
+                value={branchDetails?.restaurant?.phone}
+                editMode={editMode}
+                onChange={(e: any) =>
+                  setBranchDetails({
+                    ...branchDetails,
+                    restaurant: {
+                      ...branchDetails.restaurant,
+                      phone: e.target.value,
+                    },
+                  })
+                }
+              />
+            </div>
 
-            <Input
-              label="Pincode"
-              value={branchDetails?.pincode}
-              editMode={editMode}
-              onChange={(e: any) =>
-                setBranchDetails({
-                  ...branchDetails,
-                  pincode: e.target.value,
-                })
-              }
-            />
+            {/* ADDRESS */}
+
+            <div className="rounded-lg border border-gray-100 bg-gray-50/60 px-2 py-1.5">
+              <Input
+                label="Address"
+                value={branchDetails?.address}
+                editMode={editMode}
+                onChange={(e: any) =>
+                  setBranchDetails({
+                    ...branchDetails,
+                    address: e.target.value,
+                  })
+                }
+              />
+            </div>
+
+            {/* CITY */}
+
+            <div className="rounded-lg border border-gray-100 bg-gray-50/60 px-2 py-1.5">
+              <Input
+                label="City"
+                value={branchDetails?.city}
+                editMode={editMode}
+                onChange={(e: any) =>
+                  setBranchDetails({
+                    ...branchDetails,
+                    city: e.target.value,
+                  })
+                }
+              />
+            </div>
+
+            {/* STATE */}
+
+            <div className="rounded-lg border border-gray-100 bg-gray-50/60 px-2 py-1.5">
+              <Input
+                label="State"
+                value={branchDetails?.state}
+                editMode={editMode}
+                onChange={(e: any) =>
+                  setBranchDetails({
+                    ...branchDetails,
+                    state: e.target.value,
+                  })
+                }
+              />
+            </div>
+
+            {/* PINCODE */}
+
+            <div className="rounded-lg border border-gray-100 bg-gray-50/60 px-2 py-1.5">
+              <Input
+                label="Pincode"
+                value={branchDetails?.pincode}
+                editMode={editMode}
+                onChange={(e: any) =>
+                  setBranchDetails({
+                    ...branchDetails,
+                    pincode: e.target.value,
+                  })
+                }
+              />
+            </div>
           </div>
         </div>
-
         {/* ================= STAFF + TABLES ================= */}
 
         <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
@@ -500,33 +521,33 @@ export default function Shops() {
 
         {/* ================= SETTINGS ================= */}
 
-        <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1fr_0.7fr]">
+        <div className="grid grid-cols-1 gap-2.5 xl:grid-cols-[1fr_0.7fr]">
           {/* BILLING */}
 
-          <div className="space-y-4">
+          <div className="space-y-2.5">
             {/* BILLING SETTINGS */}
 
-            <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+            <div className="overflow-hidden rounded-xl border border-gray-100 bg-white shadow-sm transition-all duration-200 hover:shadow-md">
               {/* HEADER */}
 
-              <div className="border-b border-gray-100 px-4 py-3">
+              <div className="border-b border-gray-100 px-3 py-2.5">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h3 className="text-[18px] font-bold tracking-tight text-gray-900">
+                    <h3 className="text-[14px] font-semibold tracking-tight text-gray-900">
                       Billing Settings
                     </h3>
 
-                    <p className="mt-0.5 text-[12px] text-gray-500">
+                    <p className="mt-0.5 text-[10px] text-gray-500">
                       Taxation & billing configuration
                     </p>
                   </div>
 
-                  <div className="rounded-md border border-gray-200 bg-gray-50 px-3 py-2">
-                    <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-gray-400">
+                  <div className="rounded-lg border border-gray-200 bg-gray-50 px-2.5 py-1.5 shadow-sm">
+                    <p className="text-[8px] font-bold uppercase tracking-[0.12em] text-gray-400">
                       GST
                     </p>
 
-                    <p className="text-[16px] font-bold text-gray-900">
+                    <p className="text-[13px] font-bold text-gray-900">
                       {selectedBranch?.billing?.gstPercentage || 0}%
                     </p>
                   </div>
@@ -535,51 +556,51 @@ export default function Shops() {
 
               {/* CONTENT */}
 
-              <div className="grid grid-cols-1 gap-3 p-3 md:grid-cols-2">
+              <div className="grid grid-cols-1 gap-2 p-2.5 md:grid-cols-2">
                 {/* GST */}
 
-                <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
+                <div className="rounded-lg border border-blue-100 bg-gradient-to-br from-blue-50 to-white p-2.5">
                   <div className="flex items-start justify-between">
                     <div>
-                      <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-gray-400">
+                      <p className="text-[8px] font-bold uppercase tracking-[0.12em] text-gray-400">
                         GST Percentage
                       </p>
 
-                      <h4 className="mt-1.5 text-xl font-bold text-gray-900">
+                      <h4 className="mt-1 text-[18px] font-bold text-gray-900">
                         {selectedBranch?.billing?.gstPercentage || 0}%
                       </h4>
 
-                      <p className="mt-1 text-[11px] text-gray-500">
+                      <p className="mt-0.5 text-[10px] text-gray-500">
                         Applied on taxable bills
                       </p>
                     </div>
 
-                    <div className="rounded-lg bg-gray-200 p-2">
-                      <ReceiptPercentIcon className="h-4 w-4 text-gray-700" />
+                    <div className="rounded-md bg-blue-100 p-1.5">
+                      <ReceiptPercentIcon className="h-3.5 w-3.5 text-blue-700" />
                     </div>
                   </div>
                 </div>
 
                 {/* SERVICE */}
 
-                <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
+                <div className="rounded-lg border border-emerald-100 bg-gradient-to-br from-emerald-50 to-white p-2.5">
                   <div className="flex items-start justify-between">
                     <div>
-                      <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-gray-400">
+                      <p className="text-[8px] font-bold uppercase tracking-[0.12em] text-gray-400">
                         Service Charge
                       </p>
 
-                      <h4 className="mt-1.5 text-xl font-bold text-gray-900">
+                      <h4 className="mt-1 text-[18px] font-bold text-gray-900">
                         {selectedBranch?.billing?.serviceCharge || 0}%
                       </h4>
 
-                      <p className="mt-1 text-[11px] text-gray-500">
+                      <p className="mt-0.5 text-[10px] text-gray-500">
                         Added during checkout
                       </p>
                     </div>
 
-                    <div className="rounded-lg bg-gray-200 p-2">
-                      <BanknotesIcon className="h-4 w-4 text-gray-700" />
+                    <div className="rounded-md bg-emerald-100 p-1.5">
+                      <BanknotesIcon className="h-3.5 w-3.5 text-emerald-700" />
                     </div>
                   </div>
                 </div>
@@ -588,34 +609,39 @@ export default function Shops() {
 
             {/* PAYMENT METHODS */}
 
-            <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+            <div className="overflow-hidden rounded-xl border border-gray-100 bg-white shadow-sm transition-all duration-200 hover:shadow-md">
               {/* HEADER */}
 
-              <div className="border-b border-gray-100 px-4 py-3">
-                <h3 className="text-[18px] font-bold tracking-tight text-gray-900">
+              <div className="border-b border-gray-100 px-3 py-2.5">
+                <h3 className="text-[14px] font-semibold tracking-tight text-gray-900">
                   Payment Methods
                 </h3>
 
-                <p className="mt-0.5 text-[12px] text-gray-500">
+                <p className="mt-0.5 text-[10px] text-gray-500">
                   Supported payment options
                 </p>
               </div>
 
               {/* GRID */}
 
-              <div className="grid grid-cols-2 gap-2 p-3 md:grid-cols-4">
-                {["Cash", "UPI", "Card", "Wallet"].map((method) => (
+              <div className="grid grid-cols-2 gap-2 p-2.5 md:grid-cols-4">
+                {[
+                  { name: "Cash", icon: "💵", bg: "bg-emerald-50", text: "text-emerald-700" },
+                  { name: "UPI", icon: "📱", bg: "bg-violet-50", text: "text-violet-700" },
+                  { name: "Card", icon: "💳", bg: "bg-blue-50", text: "text-blue-700" },
+                  { name: "Wallet", icon: "👛", bg: "bg-orange-50", text: "text-orange-700" },
+                ].map((method) => (
                   <div
-                    key={method}
-                    className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-3"
+                    key={method.name}
+                    className={`rounded-lg border border-gray-100 ${method.bg} px-2.5 py-2.5 transition hover:brightness-95`}
                   >
-                    <div className="mb-2 h-7 w-7 rounded-lg bg-gray-200" />
-
-                    <h4 className="text-[13px] font-semibold text-gray-900">
-                      {method}
+                    <div className="mb-1.5 text-base leading-none">
+                      {method.icon}
+                    </div>
+                    <h4 className={`text-[11px] font-semibold ${method.text}`}>
+                      {method.name}
                     </h4>
-
-                    <p className="mt-0.5 text-[10px] text-gray-500">Enabled</p>
+                    <p className="mt-0.5 text-[9px] text-gray-500">Enabled</p>
                   </div>
                 ))}
               </div>
@@ -624,61 +650,70 @@ export default function Shops() {
 
           {/* PREFERENCES */}
 
-          <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+          <div className="overflow-hidden rounded-xl border border-gray-100 bg-white shadow-sm transition-all duration-200 hover:shadow-md">
             {/* HEADER */}
 
-            <div className="border-b border-gray-100 px-4 py-3">
-              <h3 className="text-[18px] font-bold tracking-tight text-gray-900">
+            <div className="border-b border-gray-100 px-3 py-2.5">
+              <h3 className="text-[14px] font-semibold tracking-tight text-gray-900">
                 Preferences
               </h3>
 
-              <p className="mt-0.5 text-[12px] text-gray-500">
+              <p className="mt-0.5 text-[10px] text-gray-500">
                 Billing & workflow controls
               </p>
             </div>
 
             {/* SETTINGS */}
 
-            <div className="space-y-2 p-3">
+            <div className="space-y-1.5 p-2.5">
               {[
                 {
                   title: "GST Included",
                   subtitle: "Tax included in billing",
+                  icon: "🧾",
+                  on: true,
                 },
-
                 {
                   title: "Enable Discounts",
                   subtitle: "Allow discounts",
+                  icon: "🏷️",
+                  on: false,
                 },
-
                 {
                   title: "Customer Tips",
                   subtitle: "Enable tip collection",
+                  icon: "💰",
+                  on: true,
                 },
               ].map((item) => (
                 <div
                   key={item.title}
-                  className="flex items-center justify-between rounded-lg border border-gray-200 bg-gray-50 px-3 py-3"
+                  className="flex items-center justify-between rounded-lg border border-gray-100 bg-gray-50/70 px-2.5 py-2"
                 >
-                  <div className="flex items-center gap-3">
-                    <div className="h-7 w-7 rounded-lg bg-gray-200" />
-
+                  <div className="flex items-center gap-2.5">
+                    <div className="flex h-6 w-6 items-center justify-center rounded-md bg-white text-sm shadow-sm border border-gray-100">
+                      {item.icon}
+                    </div>
                     <div>
-                      <p className="text-[12px] font-semibold text-gray-900">
+                      <p className="text-[11px] font-semibold text-gray-900">
                         {item.title}
                       </p>
-
-                      <p className="text-[10px] text-gray-500">
-                        {item.subtitle}
-                      </p>
+                      <p className="text-[9px] text-gray-500">{item.subtitle}</p>
                     </div>
                   </div>
 
                   {/* TOGGLE */}
-
-                  <button className="relative h-5 w-10 rounded-full bg-emerald-500">
-                    <div className="absolute right-0.5 top-0.5 h-4 w-4 rounded-full bg-white shadow-sm" />
-                  </button>
+                  <div
+                    className={`relative flex h-5 w-9 cursor-pointer items-center rounded-full transition-colors duration-200 ${
+                      item.on ? "bg-emerald-500" : "bg-gray-300"
+                    }`}
+                  >
+                    <div
+                      className={`absolute h-3.5 w-3.5 rounded-full bg-white shadow transition-all duration-200 ${
+                        item.on ? "left-[18px]" : "left-[2px]"
+                      }`}
+                    />
+                  </div>
                 </div>
               ))}
             </div>

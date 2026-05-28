@@ -9,6 +9,7 @@ const tabs = [
 ];
 
 export default function Settings() {
+  const API_URL = import.meta.env.VITE_API_URL;
   const [activeTab, setActiveTab] = useState("General");
   const [settingsData, setSettingsData] = useState<any>(null);
   const [loading, setLoading] = useState(false);
@@ -24,7 +25,7 @@ export default function Settings() {
       setLoading(true);
       const token = localStorage.getItem("token");
       const user = JSON.parse(localStorage.getItem("user") || "{}");
-      const res = await fetch(`http://localhost:5000/api/restaurant/settings/${user.restaurantId}`,
+      const res = await fetch(`${API_URL}/api/restaurant/settings/${user.restaurantId}`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -36,8 +37,8 @@ export default function Settings() {
         setEditMode(false)
         setSettingsData(data.data);
       }
-    } catch (err) {
-      console.log(err);
+    } catch {
+      // fetch error
     } finally {
       setLoading(false);
     }
@@ -47,7 +48,7 @@ export default function Settings() {
   async () => {
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch(`http://localhost:5000/api/restaurant/branches/update`,
+      const res = await fetch(`${API_URL}/api/restaurant/branches/update`,
         {
           method: "PUT",
           headers: {
@@ -71,11 +72,8 @@ export default function Settings() {
       } else {
         alert(data.message);
       }
-    } catch (err) {
-      console.log(err);
-      alert(
-        "Failed to update branches"
-      );
+    } catch {
+      alert("Failed to update branches");
     }
   };
 
@@ -83,7 +81,7 @@ export default function Settings() {
     try {
       const token = localStorage.getItem("token");
       const updatedOwner = settingsData.users.find((u: any) => u.role === "OWNER");
-      const res = await fetch(`http://localhost:5000/api/restaurant/general/${settingsData.id}`,
+      const res = await fetch(`${API_URL}/api/restaurant/general/${settingsData.id}`,
         {
           method: "PUT",
           headers: {
@@ -126,8 +124,7 @@ export default function Settings() {
       } else {
         alert(data.message);
       }
-    } catch (err) {
-      console.log(err);
+    } catch {
       alert("Failed to update settings");
     }
   };
@@ -140,7 +137,7 @@ export default function Settings() {
         return;
       }
       const token = localStorage.getItem("token");
-      const res = await fetch(`http://localhost:5000/api/auth/change-password`,
+      const res = await fetch(`${API_URL}/api/auth/change-password`,
         {
           method: "PUT",
           headers: {
@@ -170,8 +167,7 @@ export default function Settings() {
       } else {
         alert(data.message);
       }
-    } catch (err) {
-      console.log(err);
+    } catch {
       alert("Password update failed");
     }
   };
@@ -234,7 +230,7 @@ export default function Settings() {
                     <img
                       src={
                         settingsData?.logo
-                          ? `http://localhost:5000${settingsData.logo}`
+                          ? `${API_URL}${settingsData.logo}`
                           : "https://i.pravatar.cc/150?img=12"
                       }
                       alt=""

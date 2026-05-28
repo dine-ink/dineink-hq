@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { useBranchSync, getSelectedBranch } from "@/hooks/useBranchSync";
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
 import ExcelJS from "exceljs";
@@ -166,29 +167,11 @@ export default function MenuManagement() {
       setSelectedBranch(storedBranches[0]);
     }
   }, []);
-  useEffect(() => {
-    const handleBranchChange = () => {
-      const updatedBranches = JSON.parse(
-        localStorage.getItem("branches") || "[]",
-      );
-
-      const updatedSelectedBranch = JSON.parse(
-        localStorage.getItem("selectedBranch") || "null",
-      );
-
-      setBranches(updatedBranches);
-
-      if (updatedSelectedBranch?.id) {
-        setSelectedBranch(updatedSelectedBranch);
-      }
-    };
-
-    window.addEventListener("branchChanged", handleBranchChange);
-
-    return () => {
-      window.removeEventListener("branchChanged", handleBranchChange);
-    };
+  const handleBranchChange = useCallback(() => {
+    setBranches(JSON.parse(localStorage.getItem("branches") || "[]"));
+    setSelectedBranch(getSelectedBranch());
   }, []);
+  useBranchSync(handleBranchChange);
   const allIngredients: any[] = Object.values(
     ingredients || {},
   ).flat() as any[];
@@ -225,8 +208,8 @@ export default function MenuManagement() {
       if (data.success) {
         setBills(data.bills || []);
       }
-    } catch (err) {
-      console.log(err);
+    } catch {
+      // fetch error
     }
   };
 
@@ -402,8 +385,8 @@ export default function MenuManagement() {
         );
         setIngredients(formatted);
       }
-    } catch (err) {
-      console.log(err);
+    } catch {
+      // error silently ignored
     } finally {
       setLoading(false);
     }
@@ -430,8 +413,8 @@ export default function MenuManagement() {
       if (data.success) {
         alert("Ingredients saved successfully");
       }
-    } catch (err) {
-      console.log(err);
+    } catch {
+      // fetch error
     }
   };
 
@@ -877,9 +860,7 @@ export default function MenuManagement() {
       } else {
         alert(data.message || "Failed to save restock");
       }
-    } catch (err) {
-      console.log(err);
-
+    } catch {
       alert("Failed to save restock history");
     }
   };
@@ -981,9 +962,7 @@ export default function MenuManagement() {
           } else {
             alert(result.message || "Vendor upload failed");
           }
-        } catch (err) {
-          console.log(err);
-
+        } catch {
           alert("Failed to process vendor file");
         } finally {
           setUploadingVendor(false);
@@ -991,11 +970,8 @@ export default function MenuManagement() {
       };
 
       reader.readAsArrayBuffer(file);
-    } catch (err) {
-      console.log(err);
-
+    } catch {
       setUploadingVendor(false);
-
       alert("Vendor upload failed");
     }
   };
@@ -1063,8 +1039,8 @@ export default function MenuManagement() {
       } else {
         alert(data.message);
       }
-    } catch (err) {
-      console.log(err);
+    } catch {
+      // mapping error
     } finally {
       setMappingLoading(false);
     }
@@ -1095,8 +1071,8 @@ export default function MenuManagement() {
           setIngredientMappings(data.data[0].menuItemIngredients || []);
         }
       }
-    } catch (err) {
-      console.log(err);
+    } catch {
+      // fetch error
     }
   };
 
@@ -1121,8 +1097,8 @@ export default function MenuManagement() {
       if (data.success) {
         setIngredientMappings(data.data);
       }
-    } catch (err) {
-      console.log(err);
+    } catch {
+      // fetch error
     }
   };
 
@@ -1311,14 +1287,12 @@ export default function MenuManagement() {
           const currentMonth = currentDate.getMonth() + 1;
 
           const currentYear = currentDate.getFullYear();
-          console.log("Restock History:", json.data.restocks);
           const currentMonthRestock = (json.data.restocks || []).find(
             (item: any) =>
               item.month === currentMonth && item.year === currentYear,
           );
           const selectedWeekData =
             currentMonthRestock?.data?.[selectedWeek] || [];
-          console.log("Selected Week Data:", selectedWeekData);
           const formattedRestocks =
             selectedWeekData.map((item: any) => {
               // TOTAL PURCHASE QTY
@@ -1387,8 +1361,8 @@ export default function MenuManagement() {
 
           setCategories(json.data.categories || []);
         }
-      } catch (err) {
-        console.log(err);
+      } catch {
+        // fetch error
       }
     };
     fetchMenuManagement();
@@ -1429,8 +1403,8 @@ export default function MenuManagement() {
       if (result.success) {
         setVendors(result.data || []);
       }
-    } catch (err) {
-      console.log(err);
+    } catch {
+      // fetch error
     }
   };
   useEffect(() => {

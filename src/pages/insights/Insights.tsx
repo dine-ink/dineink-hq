@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+import { useCallback, useState, useEffect } from "react";
+import { useBranchSync, getSelectedBranch } from "@/hooks/useBranchSync";
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
 import ExcelJS from "exceljs";
@@ -35,13 +36,8 @@ import {
   ClipboardList,
   BadgeIndianRupee,
   UserCheck,
-  Goal,
   IndianRupee,
-  BadgeDollarSign,
-  Calculator,
   CalendarRange,
-  ChartNoAxesCombined,
-  FileText,
   Receipt,
   ShieldCheck,
   Rocket,
@@ -72,17 +68,10 @@ export default function Insights() {
     return branches[0] || null;
   };
 
-  useEffect(() => {
-    const handleBranchChange = () => {
-      setSelectedBranch(getCurrentBranch());
-    };
-
-    window.addEventListener("branchChanged", handleBranchChange);
-
-    return () => {
-      window.removeEventListener("branchChanged", handleBranchChange);
-    };
+  const handleBranchChange = useCallback(() => {
+    setSelectedBranch(getSelectedBranch());
   }, []);
+  useBranchSync(handleBranchChange);
 
   const [selectedBranch, setSelectedBranch] = useState<any>(getCurrentBranch());
   const [insightsData, setInsightsData] = useState<any>({
@@ -224,8 +213,8 @@ export default function Insights() {
         if (json.success && json.data) {
           setInsightsData(json.data);
         }
-      } catch (err) {
-        console.log(err);
+      } catch {
+        // fetch error
       }
     };
 
@@ -246,14 +235,11 @@ export default function Insights() {
           const currentDate = new Date();
           const currentMonth = currentDate.getMonth() + 1;
           const currentYear = currentDate.getFullYear();
-          console.log(currentMonth, "---", currentYear, "---", response.data);
           const currentMonthData = response.data.find(
             (item: any) =>
               item.month === currentMonth && item.year === currentYear,
           );
-          console.log(currentMonthData.data);
           if (currentMonthData) {
-            console.log();
             const formattedData = currentMonthData.data.map((item: any) => ({
               Category: item["Category"],
               Ingredient: item["Ingredient"],
@@ -303,8 +289,8 @@ export default function Insights() {
             setRestockHistory([]);
           }
         }
-      } catch (err) {
-        console.log(err);
+      } catch {
+        // fetch error
       }
     };
     fetchInsights();
@@ -324,7 +310,6 @@ export default function Insights() {
         body: user.restaurantId,
       });
       const data = await res.json();
-      console.log("AI RESPONSE:", data);
       if (data.success) {
         const formatted = Object.fromEntries(
           Object.entries(data.data).map(([category, items]) => [
@@ -340,8 +325,8 @@ export default function Insights() {
         );
         setIngredients(formatted);
       }
-    } catch (err) {
-      console.log(err);
+    } catch {
+      // error silently ignored
     } finally {
       setLoading(false);
     }
@@ -367,8 +352,8 @@ export default function Insights() {
       if (data.success) {
         alert("Ingredients saved successfully");
       }
-    } catch (err) {
-      console.log(err);
+    } catch {
+      // error silently ignored
     }
   };
 
@@ -388,8 +373,8 @@ export default function Insights() {
       if (data.success && data.data) {
         setIngredients(data.data);
       }
-    } catch (err) {
-      console.log(err);
+    } catch {
+      // error silently ignored
     }
   };
 
@@ -467,11 +452,9 @@ export default function Insights() {
         }),
       });
 
-      const data = await res.json();
-
-      console.log(data);
-    } catch (err) {
-      console.log(err);
+      await res.json();
+    } catch {
+      // save error — silently ignore
     }
   };
 
@@ -703,7 +686,6 @@ export default function Insights() {
       const worksheet = workbook.Sheets[sheetName];
       const jsonData = XLSX.utils.sheet_to_json(worksheet);
       setRestockHistory(jsonData);
-      console.log("RESTOCK DATA", jsonData);
     };
     reader.readAsArrayBuffer(file);
   };
@@ -728,10 +710,9 @@ export default function Insights() {
           data: restockHistory,
         }),
       });
-      const data = await res.json();
-      console.log(data);
-    } catch (err) {
-      console.log(err);
+      await res.json();
+    } catch {
+      // save error
     }
   };
 
@@ -751,8 +732,8 @@ export default function Insights() {
         if (data.success) {
           setStaffData(data.data);
         }
-      } catch (err) {
-        console.log(err);
+      } catch {
+        // fetch error
       }
     };
     if (currentUser?.restaurantId) {
