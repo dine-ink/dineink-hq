@@ -20,24 +20,14 @@ export default function Reports() {
   ]);
   const getRange = (type: string): [Dayjs | null, Dayjs | null] => {
     switch (type) {
-      case "today":
-        return [dayjs().startOf("day"), dayjs().endOf("day")];
-
-      case "week":
-        return [dayjs().subtract(6, "day"), dayjs().endOf("day")];
-
-      case "month":
-        return [dayjs().startOf("month"), dayjs().endOf("day")];
-
-      case "quarter":
-        return [dayjs().subtract(3, "month"), dayjs().endOf("day")];
-
-      default:
-        return [dayjs().startOf("day"), dayjs().endOf("day")];
+      case "today": return [dayjs().startOf("day"), dayjs().endOf("day")];
+      case "week": return [dayjs().subtract(6, "day"), dayjs().endOf("day")];
+      case "month": return [dayjs().startOf("month"), dayjs().endOf("day")];
+      case "quarter": return [dayjs().subtract(3, "month"), dayjs().endOf("day")];
+      default: return [dayjs().startOf("day"), dayjs().endOf("day")];
     }
   };
 
-  
   return (
     <Box sx={{ maxWidth: 1200, mx: "auto", pt:3 }}>
       {/* HEADER */}
@@ -120,24 +110,6 @@ export default function Reports() {
         <OrdersTable range={range}/>
       </MainCard>
     </Box>
-  );
-}
-
-/* ---------- SMALL COMPONENTS ---------- */
-
-function MiniCard({ title, value, sub }: any) {
-  return (
-    <Card sx={{ p: 2.5, borderRadius: 3 }}>
-      <Typography variant="body2" color="text.secondary">
-        {title}
-      </Typography>
-      <Typography variant="h6" sx={{fontWeight:600}}>
-        {value}
-      </Typography>
-      <Typography variant="caption" color="text.secondary">
-        {sub}
-      </Typography>
-    </Card>
   );
 }
 

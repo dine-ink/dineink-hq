@@ -1357,8 +1357,6 @@ export default function MenuManagement() {
             }) || [];
 
           setRestocks(formattedRestocks);
-          setRestocks(formattedRestocks);
-
           setCategories(json.data.categories || []);
         }
       } catch {
@@ -1485,73 +1483,20 @@ export default function MenuManagement() {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`
-          group
-          relative
-          overflow-hidden
-          rounded-md
-          border
-          px-4
-          py-3
-          text-left
-          transition-all
-          duration-200
-
-          ${
-            active
-              ? "border-red-200 bg-gradient-to-r from-red-50 to-rose-50 shadow-sm"
-              : "border-gray-200 bg-white hover:border-red-100 hover:bg-red-50/40"
-          }
-        `}
+                className={`group relative overflow-hidden rounded-md border px-4 py-3 text-left transition-all duration-200 ${
+                  active ? "border-red-200 bg-gradient-to-r from-red-50 to-rose-50 shadow-sm" : "border-gray-200 bg-white hover:border-red-100 hover:bg-red-50/40"
+                }`}
               >
-                {/* ACTIVE GLOW */}
-                {active && (
-                  <div className="absolute -right-8 -top-8 h-20 w-20 rounded-full bg-red-100 blur-3xl" />
-                )}
-
+                {active && <div className="absolute -right-8 -top-8 h-20 w-20 rounded-full bg-red-100 blur-3xl" />}
                 <div className="relative z-10 flex items-center gap-3">
-                  {/* ICON */}
-                  <div
-                    className={`
-              flex
-              h-10
-              w-10
-              shrink-0
-              items-center
-              justify-center
-              rounded-xl
-
-              ${
-                active ? "bg-red-100 text-red-600" : "bg-gray-100 text-gray-500"
-              }
-            `}
-                  >
+                  <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${active ? "bg-red-100 text-red-600" : "bg-gray-100 text-gray-500"}`}>
                     <Icon className="h-4 w-4" />
                   </div>
-
-                  {/* TEXT */}
                   <div className="min-w-0 flex-1">
-                    <p
-                      className={`
-                truncate
-                text-[14px]
-                font-bold
-
-                ${active ? "text-red-600" : "text-gray-900"}
-              `}
-                    >
-                      {tab.name}
-                    </p>
-
-                    <p className="truncate text-[11px] text-gray-500">
-                      {tab.description}
-                    </p>
+                    <p className={`truncate text-[14px] font-bold ${active ? "text-red-600" : "text-gray-900"}`}>{tab.name}</p>
+                    <p className="truncate text-[11px] text-gray-500">{tab.description}</p>
                   </div>
-
-                  {/* ACTIVE DOT */}
-                  {active && (
-                    <div className="h-2 w-2 rounded-full bg-red-500" />
-                  )}
+                  {active && <div className="h-2 w-2 rounded-full bg-red-500" />}
                 </div>
               </button>
             );

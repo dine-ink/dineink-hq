@@ -263,12 +263,8 @@ export default function DashboardLayout() {
       >
         {/* TOPBAR */}
         <div className="relative flex h-12 shrink-0 items-center justify-between bg-gradient-to-r from-red-600 via-red-500 to-rose-500 px-4">
-          {/* TOPBAR GLOW */}
           <div className="pointer-events-none absolute -top-10 left-1/3 h-40 w-40 rounded-full bg-white/10 blur-3xl"></div>
-
           <div className="pointer-events-none absolute right-0 top-0 h-32 w-32 rounded-full bg-red-300/20 blur-2xl"></div>
-
-          {/* CURVE */}
           <div className="hidden lg:block">
             <div className="absolute -bottom-2 left-0 h-2 w-2 bg-red-600">
               <div className="h-2 w-2 rounded-tl-[24px] bg-gray-100"></div>
@@ -289,36 +285,12 @@ export default function DashboardLayout() {
             <select
               value={selectedBranch?.id || ""}
               onChange={(e) => {
-                const branch = branches.find(
-                  (s: any) => s.id === Number(e.target.value),
-                );
-
+                const branch = branches.find((s: any) => s.id === Number(e.target.value));
                 setSelectedBranch(branch);
-
                 localStorage.setItem("selectedBranch", JSON.stringify(branch));
-
                 window.dispatchEvent(new Event("branchChanged"));
               }}
-              className="
-        hidden lg:flex
-        min-w-[130px]
-        appearance-none
-        rounded-xl
-        border border-white/20
-        bg-white/15
-        px-3 py-1.5
-        text-[12px]
-        font-medium
-        text-white
-        shadow-lg shadow-red-900/10
-        backdrop-blur-xl
-        outline-none
-        transition-all duration-200
-        hover:bg-white/20
-        focus:border-white/40
-        focus:ring-2 focus:ring-white/20
-        cursor-pointer
-      "
+              className="hidden lg:flex min-w-[130px] appearance-none rounded-xl border border-white/20 bg-white/15 px-3 py-1.5 text-[12px] font-medium text-white shadow-lg shadow-red-900/10 backdrop-blur-xl outline-none transition-all duration-200 hover:bg-white/20 focus:border-white/40 focus:ring-2 focus:ring-white/20 cursor-pointer"
               style={{
                 backgroundImage:
                   "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='white' viewBox='0 0 20 20'%3E%3Cpath fill-rule='evenodd' d='M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z' clip-rule='evenodd'/%3E%3C/svg%3E\")",
@@ -346,27 +318,14 @@ export default function DashboardLayout() {
             {/* PROFILE MENU */}
             <Menu as="div" className="relative">
               <MenuButton className="flex items-center gap-1.5 rounded-xl bg-white/10 px-2 py-1 transition hover:bg-white/20">
-                <img
-                  className="h-6 w-6 rounded-full object-cover"
-                  src="https://i.pravatar.cc/40"
-                />
-
+                <img className="h-6 w-6 rounded-full object-cover" src="https://i.pravatar.cc/40" />
                 <ChevronDownIcon className="h-3.5 w-3.5 text-white" />
               </MenuButton>
-
               <MenuItems className="absolute right-0 top-full z-50 mt-2 w-52 overflow-hidden rounded-2xl bg-white shadow-xl ring-1 ring-gray-200">
-                {/* USER INFO */}
                 <div className="border-b border-gray-100 px-4 py-3">
-                  <p className="text-sm font-semibold text-gray-900">
-                    {user?.name}
-                  </p>
-
-                  <p className="mt-1 truncate text-[11px] text-gray-500">
-                    {user?.email}
-                  </p>
+                  <p className="text-sm font-semibold text-gray-900">{user?.name}</p>
+                  <p className="mt-1 truncate text-[11px] text-gray-500">{user?.email}</p>
                 </div>
-
-                {/* MENU ITEMS */}
                 <div className="py-1.5">
                   <MenuItem>
                     <button className="flex w-full items-center gap-2 px-4 py-2 text-left text-[13px] text-gray-700 transition hover:bg-gray-50">
@@ -374,14 +333,12 @@ export default function DashboardLayout() {
                       Help & Support
                     </button>
                   </MenuItem>
-
                   <MenuItem>
                     <button className="flex w-full items-center gap-2 px-4 py-2 text-left text-[13px] text-gray-700 transition hover:bg-gray-50">
                       <ClipboardDocumentListIcon className="h-4 w-4 text-gray-500" />
                       Documentation
                     </button>
                   </MenuItem>
-
                   <MenuItem>
                     <button
                       onClick={() => {

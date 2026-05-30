@@ -1,52 +1,18 @@
 import { Fragment, useState } from "react";
+import { Dialog, DialogPanel, Transition, TransitionChild } from "@headlessui/react";
 import {
-  Dialog,
-  DialogPanel,
-  Transition,
-  TransitionChild,
-} from "@headlessui/react";
-import {
-  BuildingStorefrontIcon,
-  QueueListIcon,
-  Squares2X2Icon,
-  CreditCardIcon,
-  UsersIcon,
-  XMarkIcon,
+  BuildingStorefrontIcon, QueueListIcon, Squares2X2Icon,
+  CreditCardIcon, UsersIcon, XMarkIcon,
 } from "@heroicons/react/24/outline";
 import {
-  MdRestaurant,
-  MdLocalPizza,
-  MdCoffee,
-  MdCake,
-  MdIcecream,
-  MdLunchDining,
-  MdFastfood,
-  MdEmojiFoodBeverage,
-  MdSetMeal,
-  MdBakeryDining,
-  MdLocalBar,
-  MdLiquor,
-  MdRamenDining,
-  MdSoupKitchen,
-  MdRiceBowl,
-  MdDinnerDining,
-  MdEgg,
-  MdKebabDining,
-  MdLocalCafe,
-  MdBrunchDining,
-  MdOutdoorGrill,
-  MdWineBar,
-  MdTapas,
-  MdLocalDining,
-  MdTakeoutDining,
-  MdDeliveryDining,
-  MdStorefront,
-  MdRestaurantMenu,
-  MdFlatware,
-  MdBreakfastDining,
+  MdRestaurant, MdLocalPizza, MdCoffee, MdCake, MdIcecream,
+  MdLunchDining, MdFastfood, MdEmojiFoodBeverage, MdSetMeal,
+  MdBakeryDining, MdLocalBar, MdLiquor, MdRamenDining, MdSoupKitchen,
+  MdRiceBowl, MdDinnerDining, MdKebabDining, MdLocalCafe,
+  MdBrunchDining, MdOutdoorGrill, MdWineBar, MdTapas, MdLocalDining,
+  MdTakeoutDining, MdDeliveryDining, MdStorefront, MdRestaurantMenu,
+  MdFlatware, MdBreakfastDining,
 } from "react-icons/md";
-import FloatingInput from "../ui/FloatingInput";
-import TypeSelect from "../ui/TypeSelect";
 import { SparklesIcon } from "lucide-react";
 
 const tabs = [
@@ -58,27 +24,24 @@ const tabs = [
 ];
 
 type StaffType = {
-  name: string;
-  email: string;
-  phone: string;
-  role: string;
-  hasLogin: boolean;
-  password: string;
-  department?: string;
-  salary?: number;
-  joiningDate?: string;
-  shift?: string;
-  branchId?: number | null;
+  name: string; email: string; phone: string; role: string;
+  hasLogin: boolean; password: string; department?: string;
+  salary?: number; joiningDate?: string; shift?: string; branchId?: number | null;
 };
 
-function classNames(...classes: string[]) {
-  return classes.filter(Boolean).join(" ");
-}
+type BillingType = {
+  billingTypes: string[]; gstPercentage: string; serviceCharge: string;
+  includeGST: boolean; enableDiscount: boolean; enableTips: boolean; paymentMethods: string[];
+};
 
-interface Props {
-  open: boolean;
-  setOpen: (value: boolean) => void;
-}
+type BranchType = {
+  name: string; phone: string; email: string; address: string;
+  city: string; state: string; pincode: string;
+  tables: { name: string; capacity: number }[];
+  tablesCount: number; billing: BillingType;
+};
+
+interface Props { open: boolean; setOpen: (value: boolean) => void; }
 
 const iconOptions = [
   { name: "Restaurant", icon: MdRestaurant },
@@ -113,154 +76,99 @@ const iconOptions = [
   { name: "Dinner", icon: MdDinnerDining },
   { name: "Snacks", icon: MdFastfood },
 ];
+
+const emptyBilling = (): BillingType => ({
+  billingTypes: [], gstPercentage: "", serviceCharge: "",
+  includeGST: false, enableDiscount: true, enableTips: false, paymentMethods: [],
+});
+
+const emptyBranch = (): BranchType => ({
+  name: "", phone: "", email: "", address: "", city: "", state: "", pincode: "",
+  tables: [], tablesCount: 0, billing: emptyBilling(),
+});
+
+const INPUT_CLS = "w-full rounded-2xl border border-gray-200 bg-white px-4 py-3.5 text-sm outline-none transition-all focus:border-red-500 focus:ring-4 focus:ring-red-100";
+const LABEL_CLS = "mb-2 block text-sm font-semibold text-gray-700";
+const BRANCH_INPUT_CLS = "w-full rounded-2xl border border-gray-300 bg-white px-4 py-3 text-sm outline-none transition focus:border-red-500";
+
 export default function RestaurantSetupModal({ open, setOpen }: Props) {
   const API_URL = import.meta.env.VITE_API_URL;
   const [selectedTab, setSelectedTab] = useState(0);
   let user: any = {};
-  try {
-    user = JSON.parse(localStorage.getItem("user") || "{}");
-  } catch {}
+  try { user = JSON.parse(localStorage.getItem("user") || "{}"); } catch {}
+
   const [showIconPicker, setShowIconPicker] = useState<number | null>(null);
-  const [branches, setBranches] = useState([
-    {
-      name: "",
-      phone: "",
-      email: "",
-      address: "",
-      city: "",
-      state: "",
-      pincode: "",
-      tables: [] as { name: string; capacity: number }[],
-      tablesCount: 0,
-      billing: {
-        billingTypes: [],
-        gstPercentage: "",
-        serviceCharge: "",
-        includeGST: false,
-        enableDiscount: true,
-        enableTips: false,
-        paymentMethods: [],
-      },
-    },
-  ]);
-  const [selectedBranchIndex, setSelectedBranchIndex] = useState(0);
-  const currentBranch = branches[selectedBranchIndex];
+  const [branches, setBranches] = useState<BranchType[]>([emptyBranch()]);
   const [categories, setCategories] = useState([
-    {
-      name: "",
-      icon: "",
-      items: [
-        {
-          name: "",
-          price: "",
-          type: "Veg",
-          prepTime: "",
-        },
-      ],
-    },
+    { name: "", icon: "", items: [{ name: "", price: "", type: "Veg", prepTime: "" }] },
   ]);
   const [staff, setStaff] = useState<StaffType[]>([
-    {
-      name: "",
-      email: "",
-      phone: "",
-      role: "STAFF",
-      hasLogin: false,
-      password: "1234",
-      salary: 0,
-      joiningDate: "",
-      shift: "",
-      branchId: null,
-      department: "",
-    },
+    { name: "", email: "", phone: "", role: "STAFF", hasLogin: false, password: "1234",
+      salary: 0, joiningDate: "", shift: "", branchId: null, department: "" },
   ]);
   const [restaurant, setRestaurant] = useState({
-    name: "",
-    email: user.email || "",
-    phone: user.phone || "",
-    address: "",
-    gst: "",
-    logoFile: null as File | null,
+    name: "", email: user.email || "", phone: user.phone || "",
+    address: "", gst: "", logoFile: null as File | null,
   });
-
   const [loading, setLoading] = useState(false);
-  const handleCloseSetup = () => {
-    const confirmed = window.confirm(
-      "If you close now, all setup progress will be lost. Do you really want to close?",
-    );
 
-    if (confirmed) {
+  const updateBranch = (i: number, updates: Partial<BranchType>) =>
+    setBranches(prev => prev.map((b, idx) => idx === i ? { ...b, ...updates } : b));
+
+  const updateBranchBilling = (i: number, updates: Partial<BillingType>) =>
+    setBranches(prev => prev.map((b, idx) =>
+      idx === i ? { ...b, billing: { ...b.billing, ...updates } } : b));
+
+  const updateBranchTable = (bi: number, ti: number, updates: Partial<{ name: string; capacity: number }>) =>
+    setBranches(prev => prev.map((b, i) =>
+      i !== bi ? b : { ...b, tables: b.tables.map((t, j) => j === ti ? { ...t, ...updates } : t) }));
+
+  const updateCategory = (i: number, updates: object) =>
+    setCategories(prev => prev.map((c, idx) => idx === i ? { ...c, ...updates } : c));
+
+  const updateCategoryItem = (ci: number, ii: number, updates: object) =>
+    setCategories(prev => prev.map((c, i) =>
+      i !== ci ? c : { ...c, items: c.items.map((item, j) => j === ii ? { ...item, ...updates } : item) }));
+
+  const updateStaff = (i: number, updates: Partial<StaffType>) =>
+    setStaff(prev => prev.map((s, idx) => idx === i ? { ...s, ...updates } : s));
+
+  const handleCloseSetup = () => {
+    if (window.confirm("If you close now, all setup progress will be lost. Do you really want to close?")) {
       setOpen(false);
     }
   };
+
   const handleSubmitSetup = async () => {
+    if (loading) return;
+    if (!restaurant.name || !restaurant.phone || !restaurant.address || !restaurant.email || !restaurant.gst) {
+      alert("Please fill all required restaurant details");
+      return;
+    }
     try {
-      if (loading) return;
-      const filteredStaff = staff.filter((s) => s.name && s.phone);
-      const filteredBranches = branches
-        .filter((b) => b.name)
-        .map((b) => ({
-          ...b,
-          tables: b.tables || [],
-          billing: b.billing,
-        }));
-      const filteredCategories = categories
-        .filter((cat) => cat.name)
-        .map((cat) => ({
-          name: cat.name,
-          icon: cat.icon,
-          items: cat.items
-            .filter((item) => item.name && item.price)
-            .map((item) => ({
-              name: item.name,
-              price: item.price ? Number(item.price) : 0,
-              type: item.type,
-            })),
-        }));
-      // ✅ validation
-      if (
-        !restaurant.name ||
-        !restaurant.phone ||
-        !restaurant.address ||
-        !restaurant.email ||
-        !restaurant.gst
-      ) {
-        alert("Please fill all required restaurant details");
-        return;
-      }
       setLoading(true);
       const token = localStorage.getItem("token");
       if (!token) {
         alert("Session expired. Please login again.");
-        setLoading(false);
         return;
       }
+      const filteredStaff = staff.filter(s => s.name && s.phone);
+      const filteredBranches = branches.filter(b => b.name).map(b => ({ ...b, tables: b.tables || [], billing: b.billing }));
+      const filteredCategories = categories.filter(cat => cat.name).map(cat => ({
+        name: cat.name, icon: cat.icon,
+        items: cat.items.filter(item => item.name && item.price).map(item => ({
+          name: item.name, price: item.price ? Number(item.price) : 0, type: item.type,
+        })),
+      }));
       const formData = new FormData();
-      // 🔥 attach file
-      if (restaurant.logoFile) {
-        formData.append("logo", restaurant.logoFile);
-      }
-      // 🔥 attach all other data as JSON string
-      formData.append(
-        "data",
-        JSON.stringify({
-          restaurant: {
-            name: restaurant.name,
-            email: restaurant.email,
-            phone: restaurant.phone,
-            address: restaurant.address,
-            gst: restaurant.gst,
-          },
-          branches: filteredBranches,
-          categories: filteredCategories,
-          staff: filteredStaff,
-        }),
-      );
+      if (restaurant.logoFile) formData.append("logo", restaurant.logoFile);
+      formData.append("data", JSON.stringify({
+        restaurant: { name: restaurant.name, email: restaurant.email, phone: restaurant.phone, address: restaurant.address, gst: restaurant.gst },
+        branches: filteredBranches, categories: filteredCategories, staff: filteredStaff,
+      }));
       const res = await fetch(`${API_URL}/api/restaurant/setup`, {
         method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`, // ❌ DO NOT add Content-Type
-        },
+        headers: { Authorization: `Bearer ${token}` },
         body: formData,
       });
       const data = await res.json();
@@ -268,7 +176,6 @@ export default function RestaurantSetupModal({ open, setOpen }: Props) {
         localStorage.setItem("user", JSON.stringify(data.user));
         localStorage.setItem("restaurant", JSON.stringify(data.restaurant));
         localStorage.setItem("branches", JSON.stringify(data.branches));
-        alert("Setup completed");
         setOpen(false);
         window.location.reload();
       } else {
@@ -280,18 +187,14 @@ export default function RestaurantSetupModal({ open, setOpen }: Props) {
       setLoading(false);
     }
   };
+
   return (
     <Transition show={open} as={Fragment}>
       <Dialog onClose={() => {}} className="relative z-50">
-        {/* BACKDROP */}
         <TransitionChild
           as={Fragment}
-          enter="ease-out duration-300"
-          enterFrom="opacity-0"
-          enterTo="opacity-100"
-          leave="ease-in duration-200"
-          leaveFrom="opacity-100"
-          leaveTo="opacity-0"
+          enter="ease-out duration-300" enterFrom="opacity-0" enterTo="opacity-100"
+          leave="ease-in duration-200" leaveFrom="opacity-100" leaveTo="opacity-0"
         >
           <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" />
         </TransitionChild>
@@ -299,37 +202,34 @@ export default function RestaurantSetupModal({ open, setOpen }: Props) {
           <div className="flex min-h-full items-center justify-center p-4">
             <TransitionChild
               as={Fragment}
-              enter="ease-out duration-300"
-              enterFrom="opacity-0 scale-95"
-              enterTo="opacity-100 scale-100"
-              leave="ease-in duration-200"
-              leaveFrom="opacity-100 scale-100"
-              leaveTo="opacity-0 scale-95"
+              enter="ease-out duration-300" enterFrom="opacity-0 scale-95" enterTo="opacity-100 scale-100"
+              leave="ease-in duration-200" leaveFrom="opacity-100 scale-100" leaveTo="opacity-0 scale-95"
             >
-              {/* MAIN PANEL */}
               <DialogPanel className="relative flex h-[95vh] w-full max-w-[1750px] overflow-hidden rounded-[34px] border border-white/40 bg-gradient-to-br from-gray-50 via-white to-red-50/30 shadow-[0_25px_80px_rgba(0,0,0,0.12)] backdrop-blur-2xl">
-                {/* ================= LEFT SIDEBAR ================= */}
+                {loading && (
+                  <div className="absolute inset-0 z-50 flex items-center justify-center rounded-[34px] bg-white/75 backdrop-blur-sm">
+                    <div className="flex flex-col items-center gap-3">
+                      <div className="h-10 w-10 animate-spin rounded-full border-4 border-red-200 border-t-red-600" />
+                      <p className="text-sm font-semibold text-gray-700">Saving your setup...</p>
+                    </div>
+                  </div>
+                )}
+                {/* LEFT SIDEBAR */}
                 <div className="hidden w-[320px] border-r border-white/40 bg-white/70 backdrop-blur-xl lg:flex lg:flex-col">
                   <div className="flex h-full flex-col overflow-hidden p-6">
-                    {/* HEADER */}
                     <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-red-500 to-rose-500 p-6 shadow-[0_20px_50px_rgba(255,0,80,0.18)]">
-                      <div className="absolute -right-10 -top-10 h-32 w-32 rounded-full bg-white/10 blur-3xl"></div>
+                      <div className="absolute -right-10 -top-10 h-32 w-32 rounded-full bg-white/10 blur-3xl" />
                       <div className="relative z-10">
                         <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white/15 backdrop-blur">
                           <SparklesIcon className="h-7 w-7 text-white" />
                         </div>
-                        <h2 className="mt-5 text-xl font-bold text-white">
-                          DineInk Setup
-                        </h2>
-                        <p className="mt-2 text-sm leading-6 text-red-100">
-                          Configure your restaurant ecosystem
-                        </p>
+                        <h2 className="mt-5 text-xl font-bold text-white">DineInk Setup</h2>
+                        <p className="mt-2 text-sm leading-6 text-red-100">Configure your restaurant ecosystem</p>
                         <div className="mt-5 inline-flex rounded-full bg-white/10 px-4 py-1.5 text-xs font-semibold text-white backdrop-blur">
                           AI Guided Setup
                         </div>
                       </div>
                     </div>
-                    {/* NAVIGATION */}
                     <div className="mt-6 flex-1 overflow-y-auto pr-2">
                       <nav className="space-y-3">
                         {tabs.map((tab, index) => (
@@ -342,28 +242,14 @@ export default function RestaurantSetupModal({ open, setOpen }: Props) {
                                 : "border-transparent text-gray-700 hover:bg-white hover:shadow-sm"
                             }`}
                           >
-                            <div
-                              className={`flex h-11 w-11 items-center justify-center rounded-2xl transition ${
-                                selectedTab === index
-                                  ? "bg-red-100"
-                                  : "bg-gray-100 group-hover:bg-red-50"
-                              }`}
-                            >
-                              <tab.icon
-                                className={`h-5 w-5 ${
-                                  selectedTab === index
-                                    ? "text-red-600"
-                                    : "text-gray-500"
-                                }`}
-                              />
+                            <div className={`flex h-11 w-11 items-center justify-center rounded-2xl transition ${
+                              selectedTab === index ? "bg-red-100" : "bg-gray-100 group-hover:bg-red-50"
+                            }`}>
+                              <tab.icon className={`h-5 w-5 ${selectedTab === index ? "text-red-600" : "text-gray-500"}`} />
                             </div>
                             <div>
-                              <p className="text-sm font-semibold">
-                                {tab.name}
-                              </p>
-                              <p className="mt-1 text-xs text-gray-400">
-                                Configure section
-                              </p>
+                              <p className="text-sm font-semibold">{tab.name}</p>
+                              <p className="mt-1 text-xs text-gray-400">Configure section</p>
                             </div>
                           </button>
                         ))}
@@ -371,21 +257,16 @@ export default function RestaurantSetupModal({ open, setOpen }: Props) {
                     </div>
                   </div>
                 </div>
-                {/* ================= RIGHT CONTENT ================= */}
+                {/* RIGHT CONTENT */}
                 <div className="flex flex-1 flex-col overflow-hidden bg-white/40 backdrop-blur-xl">
-                  {/* HEADER */}
                   <div className="border-b border-white/40 bg-white/60 px-8 py-6 backdrop-blur-xl">
                     <div className="flex items-center justify-between">
                       <div>
                         <div className="inline-flex rounded-full bg-red-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-red-600">
                           Restaurant Intelligence
                         </div>
-                        <h3 className="mt-4 text-3xl font-bold tracking-tight text-gray-900">
-                          {tabs[selectedTab].name}
-                        </h3>
-                        <p className="mt-2 text-sm text-gray-500">
-                          Complete this section to continue onboarding
-                        </p>
+                        <h3 className="mt-4 text-3xl font-bold tracking-tight text-gray-900">{tabs[selectedTab].name}</h3>
+                        <p className="mt-2 text-sm text-gray-500">Complete this section to continue onboarding</p>
                       </div>
                       <button
                         onClick={handleCloseSetup}
@@ -395,127 +276,72 @@ export default function RestaurantSetupModal({ open, setOpen }: Props) {
                       </button>
                     </div>
                   </div>
-                  {/* CONTENT */}
                   <div className="flex-1 overflow-y-auto px-8 py-8">
-                    {/* ================= RESTAURANT DETAILS ================= */}
                     {selectedTab === 0 && (
                       <div className="rounded-[30px] border border-white/40 bg-white/80 p-8 shadow-[0_8px_30px_rgba(0,0,0,0.05)] backdrop-blur-xl">
                         <div className="mb-8">
-                          <h2 className="text-2xl font-bold text-gray-900">
-                            Restaurant Details
-                          </h2>
-                          <p className="mt-2 text-sm text-gray-500">
-                            Basic business information and branding
-                          </p>
+                          <h2 className="text-2xl font-bold text-gray-900">Restaurant Details</h2>
+                          <p className="mt-2 text-sm text-gray-500">Basic business information and branding</p>
                         </div>
                         <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-                          {/* RESTAURANT NAME */}
                           <div className="md:col-span-2">
-                            <label className="mb-2 block text-sm font-semibold text-gray-700">
-                              Restaurant Name
-                            </label>
+                            <label className={LABEL_CLS}>Restaurant Name</label>
                             <input
                               type="text"
                               value={restaurant.name}
-                              onChange={(e) =>
-                                setRestaurant({
-                                  ...restaurant,
-                                  name: e.target.value,
-                                })
-                              }
+                              onChange={e => setRestaurant({ ...restaurant, name: e.target.value })}
                               placeholder="Enter restaurant name"
-                              className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3.5 text-sm outline-none transition-all focus:border-red-500 focus:ring-4 focus:ring-red-100"
+                              className={INPUT_CLS}
                             />
                           </div>
-                          {/* EMAIL */}
                           <div>
-                            <label className="mb-2 block text-sm font-semibold text-gray-700">
-                              Email Address
-                            </label>
+                            <label className={LABEL_CLS}>Email Address</label>
                             <input
                               type="email"
                               value={restaurant.email}
-                              onChange={(e) =>
-                                setRestaurant({
-                                  ...restaurant,
-                                  email: e.target.value,
-                                })
-                              }
+                              onChange={e => setRestaurant({ ...restaurant, email: e.target.value })}
                               placeholder="Enter email address"
-                              className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3.5 text-sm outline-none transition-all focus:border-red-500 focus:ring-4 focus:ring-red-100"
+                              className={INPUT_CLS}
                             />
                           </div>
-                          {/* PHONE */}
                           <div>
-                            <label className="mb-2 block text-sm font-semibold text-gray-700">
-                              Phone Number
-                            </label>
+                            <label className={LABEL_CLS}>Phone Number</label>
                             <input
                               type="text"
                               value={restaurant.phone}
-                              onChange={(e) =>
-                                setRestaurant({
-                                  ...restaurant,
-                                  phone: e.target.value,
-                                })
-                              }
+                              onChange={e => setRestaurant({ ...restaurant, phone: e.target.value })}
                               placeholder="Enter phone number"
-                              className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3.5 text-sm outline-none transition-all focus:border-red-500 focus:ring-4 focus:ring-red-100"
+                              className={INPUT_CLS}
                             />
                           </div>
-                          {/* ADDRESS */}
                           <div className="md:col-span-2">
-                            <label className="mb-2 block text-sm font-semibold text-gray-700">
-                              Address
-                            </label>
+                            <label className={LABEL_CLS}>Address</label>
                             <textarea
                               rows={5}
                               value={restaurant.address}
-                              onChange={(e) =>
-                                setRestaurant({
-                                  ...restaurant,
-                                  address: e.target.value,
-                                })
-                              }
+                              onChange={e => setRestaurant({ ...restaurant, address: e.target.value })}
                               placeholder="Enter complete restaurant address"
-                              className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3.5 text-sm outline-none transition-all focus:border-red-500 focus:ring-4 focus:ring-red-100"
+                              className={INPUT_CLS}
                             />
                           </div>
-                          {/* GST */}
                           <div>
-                            <label className="mb-2 block text-sm font-semibold text-gray-700">
-                              GST Number
-                            </label>
+                            <label className={LABEL_CLS}>GST Number</label>
                             <input
                               type="text"
                               value={restaurant.gst}
-                              onChange={(e) =>
-                                setRestaurant({
-                                  ...restaurant,
-                                  gst: e.target.value,
-                                })
-                              }
+                              onChange={e => setRestaurant({ ...restaurant, gst: e.target.value })}
                               placeholder="Enter GST number"
-                              className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3.5 text-sm outline-none transition-all focus:border-red-500 focus:ring-4 focus:ring-red-100"
+                              className={INPUT_CLS}
                             />
                           </div>
-                          {/* LOGO */}
                           <div>
-                            <label className="mb-2 block text-sm font-semibold text-gray-700">
-                              Restaurant Logo
-                            </label>
+                            <label className={LABEL_CLS}>Restaurant Logo</label>
                             <div className="rounded-2xl border border-dashed border-red-300 bg-red-50 p-6 text-center">
                               <input
                                 type="file"
-                                onChange={(e) => {
+                                onChange={e => {
                                   const file = e.target.files?.[0];
-
-                                  if (file) {
-                                    setRestaurant({
-                                      ...restaurant,
-                                      logoFile: file,
-                                    });
-                                  }
+                                  if (file) setRestaurant({ ...restaurant, logoFile: file });
                                 }}
                                 className="block w-full text-sm text-gray-600"
                               />
@@ -526,60 +352,35 @@ export default function RestaurantSetupModal({ open, setOpen }: Props) {
                     )}
                     {selectedTab === 1 && (
                       <div className="space-y-8">
-                        {/* HEADER */}
                         <div className="flex items-center justify-between">
                           <div>
-                            <h2 className="text-3xl font-bold tracking-tight text-gray-900">
-                              Branch Management
-                            </h2>
-                            <p className="mt-2 text-sm text-gray-500">
-                              Configure branch details, seating and operational
-                              setup
-                            </p>
+                            <h2 className="text-3xl font-bold tracking-tight text-gray-900">Branch Management</h2>
+                            <p className="mt-2 text-sm text-gray-500">Configure branch details, seating and operational setup</p>
                           </div>
                           <div className="rounded-2xl border border-red-100 bg-gradient-to-r from-red-50 px-5 py-4 shadow-sm">
-                            <p className="text-xs font-medium uppercase tracking-wide text-red-500">
-                              Total Branches
-                            </p>
-                            <p className="mt-1 text-3xl font-bold text-red-600">
-                              {branches.length}
-                            </p>
+                            <p className="text-xs font-medium uppercase tracking-wide text-red-500">Total Branches</p>
+                            <p className="mt-1 text-3xl font-bold text-red-600">{branches.length}</p>
                           </div>
                         </div>
-                        {/* BRANCHES */}
                         {branches.map((branch, index) => (
-                          <div
-                            key={index}
-                            className="overflow-hidden rounded-[32px] border border-white/40 bg-white/80 shadow-[0_8px_30px_rgba(0,0,0,0.05)] backdrop-blur-xl"
-                          >
-                            {/* TOP HEADER */}
+                          <div key={index} className="overflow-hidden rounded-[32px] border border-white/40 bg-white/80 shadow-[0_8px_30px_rgba(0,0,0,0.05)] backdrop-blur-xl">
                             <div className="relative overflow-hidden border-b border-gray-100 bg-gradient-to-r from-red-500 to-rose-500 px-8 py-7">
-                              <div className="absolute right-0 top-0 h-40 w-40 rounded-full bg-white/10 blur-3xl"></div>
+                              <div className="absolute right-0 top-0 h-40 w-40 rounded-full bg-white/10 blur-3xl" />
                               <div className="relative z-10 flex items-center justify-between">
                                 <div className="flex items-center gap-5">
                                   <div className="flex h-16 w-16 items-center justify-center rounded-3xl bg-white/15 backdrop-blur">
                                     <BuildingStorefrontIcon className="h-8 w-8 text-white" />
                                   </div>
                                   <div>
-                                    <p className="text-xs font-semibold uppercase tracking-[0.2em] text-red-100">
-                                      Restaurant Branch
-                                    </p>
-                                    <h3 className="mt-2 text-2xl font-bold text-white">
-                                      {branch.name || `Branch ${index + 1}`}
-                                    </h3>
-                                    <p className="mt-1 text-sm text-red-100">
-                                      Configure location and table setup
-                                    </p>
+                                    <p className="text-xs font-semibold uppercase tracking-[0.2em] text-red-100">Restaurant Branch</p>
+                                    <h3 className="mt-2 text-2xl font-bold text-white">{branch.name || `Branch ${index + 1}`}</h3>
+                                    <p className="mt-1 text-sm text-red-100">Configure location and table setup</p>
                                   </div>
                                 </div>
                                 {branches.length > 1 && (
                                   <button
                                     type="button"
-                                    onClick={() =>
-                                      setBranches(
-                                        branches.filter((_, i) => i !== index),
-                                      )
-                                    }
+                                    onClick={() => setBranches(branches.filter((_, i) => i !== index))}
                                     className="rounded-2xl bg-white/15 px-5 py-3 text-sm font-semibold text-white backdrop-blur transition hover:bg-white/20"
                                   >
                                     Remove Branch
@@ -587,237 +388,129 @@ export default function RestaurantSetupModal({ open, setOpen }: Props) {
                                 )}
                               </div>
                             </div>
-                            {/* BODY */}
                             <div className="p-8">
-                              {/* SECTION TITLE */}
                               <div className="mb-8 flex items-center justify-between">
                                 <div>
-                                  <h4 className="text-lg font-semibold text-gray-900">
-                                    Branch Information
-                                  </h4>
-                                  <p className="mt-1 text-sm text-gray-500">
-                                    Enter operational and location details
-                                  </p>
+                                  <h4 className="text-lg font-semibold text-gray-900">Branch Information</h4>
+                                  <p className="mt-1 text-sm text-gray-500">Enter operational and location details</p>
                                 </div>
                                 <div className="rounded-2xl bg-gray-50 px-5 py-4">
-                                  <p className="text-xs text-gray-500">
-                                    Tables Configured
-                                  </p>
-                                  <p className="mt-1 text-2xl font-bold text-gray-900">
-                                    {branch.tables?.length || 0}
-                                  </p>
+                                  <p className="text-xs text-gray-500">Tables Configured</p>
+                                  <p className="mt-1 text-2xl font-bold text-gray-900">{branch.tables?.length || 0}</p>
                                 </div>
                               </div>
-                              {/* FORM */}
                               <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-                                {/* BRANCH NAME */}
                                 <div className="md:col-span-2">
-                                  <label className="mb-2 block text-sm font-semibold text-gray-700">
-                                    Branch Name
-                                  </label>
+                                  <label className={LABEL_CLS}>Branch Name</label>
                                   <input
                                     type="text"
                                     value={branch.name}
-                                    onChange={(e) => {
-                                      const updatedBranches = [...branches];
-                                      updatedBranches[index].name =
-                                        e.target.value;
-                                      setBranches(updatedBranches);
-                                    }}
+                                    onChange={e => updateBranch(index, { name: e.target.value })}
                                     placeholder="Enter branch name"
-                                    className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3.5 text-sm outline-none transition-all focus:border-red-500 focus:ring-4 focus:ring-red-100"
+                                    className={INPUT_CLS}
                                   />
                                 </div>
-                                {/* PHONE */}
                                 <div>
-                                  <label className="mb-2 block text-sm font-semibold text-gray-700">
-                                    Branch Phone
-                                  </label>
+                                  <label className={LABEL_CLS}>Branch Phone</label>
                                   <input
                                     type="text"
                                     value={branch.phone}
-                                    onChange={(e) => {
-                                      const updatedBranches = [...branches];
-                                      updatedBranches[index].phone =
-                                        e.target.value;
-                                      setBranches(updatedBranches);
-                                    }}
+                                    onChange={e => updateBranch(index, { phone: e.target.value })}
                                     placeholder="Enter phone number"
-                                    className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3.5 text-sm outline-none transition-all focus:border-red-500 focus:ring-4 focus:ring-red-100"
+                                    className={INPUT_CLS}
                                   />
                                 </div>
-                                {/* EMAIL */}
                                 <div>
-                                  <label className="mb-2 block text-sm font-semibold text-gray-700">
-                                    Branch Email
-                                  </label>
+                                  <label className={LABEL_CLS}>Branch Email</label>
                                   <input
                                     type="email"
                                     value={branch.email}
-                                    onChange={(e) => {
-                                      const updatedBranches = [...branches];
-                                      updatedBranches[index].email =
-                                        e.target.value;
-                                      setBranches(updatedBranches);
-                                    }}
+                                    onChange={e => updateBranch(index, { email: e.target.value })}
                                     placeholder="Enter email address"
-                                    className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3.5 text-sm outline-none transition-all focus:border-red-500 focus:ring-4 focus:ring-red-100"
+                                    className={INPUT_CLS}
                                   />
                                 </div>
-                                {/* ADDRESS */}
                                 <div className="md:col-span-2">
-                                  <label className="mb-2 block text-sm font-semibold text-gray-700">
-                                    Branch Address
-                                  </label>
+                                  <label className={LABEL_CLS}>Branch Address</label>
                                   <textarea
                                     rows={4}
                                     value={branch.address}
-                                    onChange={(e) => {
-                                      const updatedBranches = [...branches];
-                                      updatedBranches[index].address =
-                                        e.target.value;
-                                      setBranches(updatedBranches);
-                                    }}
+                                    onChange={e => updateBranch(index, { address: e.target.value })}
                                     placeholder="Enter branch address"
-                                    className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3.5 text-sm outline-none transition-all focus:border-red-500 focus:ring-4 focus:ring-red-100"
+                                    className={INPUT_CLS}
                                   />
                                 </div>
-                                {/* CITY */}
                                 <div>
-                                  <label className="mb-2 block text-sm font-semibold text-gray-700">
-                                    City
-                                  </label>
+                                  <label className={LABEL_CLS}>City</label>
                                   <input
                                     type="text"
                                     value={branch.city}
-                                    onChange={(e) => {
-                                      const updatedBranches = [...branches];
-                                      updatedBranches[index].city =
-                                        e.target.value;
-                                      setBranches(updatedBranches);
-                                    }}
+                                    onChange={e => updateBranch(index, { city: e.target.value })}
                                     placeholder="Enter city"
-                                    className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3.5 text-sm outline-none transition-all focus:border-red-500 focus:ring-4 focus:ring-red-100"
+                                    className={INPUT_CLS}
                                   />
                                 </div>
-                                {/* STATE */}
                                 <div>
-                                  <label className="mb-2 block text-sm font-semibold text-gray-700">
-                                    State
-                                  </label>
+                                  <label className={LABEL_CLS}>State</label>
                                   <input
                                     type="text"
                                     value={branch.state}
-                                    onChange={(e) => {
-                                      const updatedBranches = [...branches];
-                                      updatedBranches[index].state =
-                                        e.target.value;
-                                      setBranches(updatedBranches);
-                                    }}
+                                    onChange={e => updateBranch(index, { state: e.target.value })}
                                     placeholder="Enter state"
-                                    className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3.5 text-sm outline-none transition-all focus:border-red-500 focus:ring-4 focus:ring-red-100"
+                                    className={INPUT_CLS}
                                   />
                                 </div>
-                                {/* PINCODE */}
                                 <div>
-                                  <label className="mb-2 block text-sm font-semibold text-gray-700">
-                                    Pincode
-                                  </label>
+                                  <label className={LABEL_CLS}>Pincode</label>
                                   <input
                                     type="text"
                                     value={branch.pincode}
-                                    onChange={(e) => {
-                                      const updatedBranches = [...branches];
-                                      updatedBranches[index].pincode =
-                                        e.target.value;
-                                      setBranches(updatedBranches);
-                                    }}
+                                    onChange={e => updateBranch(index, { pincode: e.target.value })}
                                     placeholder="Enter pincode"
-                                    className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3.5 text-sm outline-none transition-all focus:border-red-500 focus:ring-4 focus:ring-red-100"
+                                    className={INPUT_CLS}
                                   />
                                 </div>
-                                {/* TABLE COUNT */}
                                 <div>
-                                  <label className="mb-2 block text-sm font-semibold text-gray-700">
-                                    Number of Tables
-                                  </label>
+                                  <label className={LABEL_CLS}>Number of Tables</label>
                                   <input
                                     type="number"
                                     value={branch.tablesCount}
-                                    onChange={(e) => {
+                                    onChange={e => {
                                       const count = Number(e.target.value);
-                                      const updatedBranches = [...branches];
-                                      updatedBranches[index].tablesCount =
-                                        count;
-                                      updatedBranches[index].tables =
-                                        Array.from({
-                                          length: count,
-                                        }).map((_, i) => ({
-                                          name: `Table ${i + 1}`,
-                                          capacity: 4,
-                                        }));
-                                      setBranches(updatedBranches);
+                                      updateBranch(index, {
+                                        tablesCount: count,
+                                        tables: Array.from({ length: count }, (_, i) => ({ name: `Table ${i + 1}`, capacity: 4 })),
+                                      });
                                     }}
                                     placeholder="Enter number of tables"
-                                    className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3.5 text-sm outline-none transition-all focus:border-red-500 focus:ring-4 focus:ring-red-100"
+                                    className={INPUT_CLS}
                                   />
                                 </div>
                               </div>
-                              {/* TABLES */}
                               {branch.tables?.length > 0 && (
                                 <div className="mt-10">
-                                  <div className="mb-5 flex items-center justify-between">
-                                    <div>
-                                      <h4 className="text-lg font-semibold text-gray-900">
-                                        Seating Configuration
-                                      </h4>
-                                      <p className="mt-1 text-sm text-gray-500">
-                                        Customize table names and seating
-                                        capacity
-                                      </p>
-                                    </div>
+                                  <div className="mb-5">
+                                    <h4 className="text-lg font-semibold text-gray-900">Seating Configuration</h4>
+                                    <p className="mt-1 text-sm text-gray-500">Customize table names and seating capacity</p>
                                   </div>
                                   <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                                     {branch.tables.map((table, tIndex) => (
-                                      <div
-                                        key={tIndex}
-                                        className="rounded-2xl border border-gray-200 bg-gray-50 p-5"
-                                      >
-                                        <div className="mb-4 flex items-center justify-between">
-                                          <div>
-                                            <p className="text-sm font-semibold text-gray-900">
-                                              Table {tIndex + 1}
-                                            </p>
-                                            <p className="text-xs text-gray-500">
-                                              Seating configuration
-                                            </p>
-                                          </div>
+                                      <div key={tIndex} className="rounded-2xl border border-gray-200 bg-gray-50 p-5">
+                                        <div className="mb-4">
+                                          <p className="text-sm font-semibold text-gray-900">Table {tIndex + 1}</p>
+                                          <p className="text-xs text-gray-500">Seating configuration</p>
                                         </div>
                                         <div className="space-y-4">
                                           <input
                                             value={table.name}
-                                            onChange={(e) => {
-                                              const updated = [...branches];
-                                              updated[index].tables[
-                                                tIndex
-                                              ].name = e.target.value;
-                                              setBranches(updated);
-                                            }}
+                                            onChange={e => updateBranchTable(index, tIndex, { name: e.target.value })}
                                             placeholder="Table name"
                                             className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm outline-none transition-all focus:border-red-500 focus:ring-4 focus:ring-red-100"
                                           />
                                           <input
                                             type="number"
                                             value={table.capacity}
-                                            onChange={(e) => {
-                                              const updated = [...branches];
-                                              updated[index].tables[
-                                                tIndex
-                                              ].capacity = Number(
-                                                e.target.value,
-                                              );
-                                              setBranches(updated);
-                                            }}
+                                            onChange={e => updateBranchTable(index, tIndex, { capacity: Number(e.target.value) })}
                                             placeholder="Capacity"
                                             className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm outline-none transition-all focus:border-red-500 focus:ring-4 focus:ring-red-100"
                                           />
@@ -830,35 +523,9 @@ export default function RestaurantSetupModal({ open, setOpen }: Props) {
                             </div>
                           </div>
                         ))}
-                        {/* ADD BRANCH */}
                         <button
                           type="button"
-                          onClick={() =>
-                            setBranches([
-                              ...branches,
-                              {
-                                name: "",
-                                phone: "",
-                                email: "",
-                                address: "",
-                                city: "",
-                                state: "",
-                                pincode: "",
-                                tablesCount: 0,
-                                tables: [],
-
-                                billing: {
-                                  billingTypes: [],
-                                  gstPercentage: "",
-                                  serviceCharge: "",
-                                  includeGST: false,
-                                  enableDiscount: true,
-                                  enableTips: false,
-                                  paymentMethods: [],
-                                },
-                              },
-                            ])
-                          }
+                          onClick={() => setBranches([...branches, emptyBranch()])}
                           className="group flex w-full items-center justify-center gap-3 rounded-[30px] border border-dashed border-red-300 bg-gradient-to-r from-red-50 px-6 py-6 text-sm font-semibold text-red-600 transition hover:shadow-lg"
                         >
                           <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white shadow-sm">
@@ -870,129 +537,71 @@ export default function RestaurantSetupModal({ open, setOpen }: Props) {
                     )}
                     {selectedTab === 2 && (
                       <div className="space-y-8">
-                        {/* HEADER */}
                         <div className="relative overflow-hidden rounded-[30px] border border-red-100 bg-gradient-to-br from-red-500 to-rose-500 p-7 shadow-[0_25px_70px_rgba(255,0,80,0.18)]">
-                          <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-white/10 blur-3xl"></div>
+                          <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-white/10 blur-3xl" />
                           <div className="relative z-10 flex flex-wrap items-center justify-between gap-5">
                             <div>
-                              <p className="text-sm font-medium text-red-100">
-                                MENU MANAGEMENT
-                              </p>
-                              <h2 className="mt-2 text-3xl font-bold text-white">
-                                Configure Menu Categories
-                              </h2>
+                              <p className="text-sm font-medium text-red-100">MENU MANAGEMENT</p>
+                              <h2 className="mt-2 text-3xl font-bold text-white">Configure Menu Categories</h2>
                               <p className="mt-2 max-w-2xl text-sm leading-6 text-red-100">
-                                Organize categories, menu items, pricing and
-                                item types for your restaurant.
+                                Organize categories, menu items, pricing and item types for your restaurant.
                               </p>
                             </div>
                             <div className="rounded-2xl bg-white/10 px-5 py-4 backdrop-blur-xl">
-                              <p className="text-xs text-red-100">
-                                Total Categories
-                              </p>
-                              <p className="mt-1 text-3xl font-bold text-white">
-                                {categories.length}
-                              </p>
+                              <p className="text-xs text-red-100">Total Categories</p>
+                              <p className="mt-1 text-3xl font-bold text-white">{categories.length}</p>
                             </div>
                           </div>
                         </div>
-                        {/* CATEGORY LIST */}
                         <div className="space-y-6">
                           {categories.map((category, index) => (
-                            <div
-                              key={index}
-                              className="overflow-hidden rounded-[28px] border border-gray-200 bg-white shadow-sm transition-all duration-300 hover:shadow-xl"
-                            >
-                              {/* CATEGORY TOP */}
+                            <div key={index} className="overflow-hidden rounded-[28px] border border-gray-200 bg-white shadow-sm transition-all duration-300 hover:shadow-xl">
                               <div className="border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white px-6 py-5">
                                 <div className="flex flex-wrap items-start justify-between gap-4">
                                   <div className="flex flex-1 items-center gap-4">
-                                    {/* ICON */}
                                     <button
                                       type="button"
-                                      onClick={() =>
-                                        setShowIconPicker(
-                                          showIconPicker === index
-                                            ? null
-                                            : index,
-                                        )
-                                      }
+                                      onClick={() => setShowIconPicker(showIconPicker === index ? null : index)}
                                       className="flex h-16 w-16 items-center justify-center rounded-2xl border border-red-100 bg-red-50 transition hover:scale-105"
                                     >
-                                      {category.icon ? (
-                                        (() => {
-                                          const selected = iconOptions.find(
-                                            (item) =>
-                                              item.name === category.icon,
-                                          );
-                                          if (!selected) return null;
-                                          const Icon = selected.icon;
-                                          return (
-                                            <Icon className="h-8 w-8 text-red-600" />
-                                          );
-                                        })()
-                                      ) : (
-                                        <span className="text-xs font-semibold text-red-500">
-                                          ICON
-                                        </span>
-                                      )}
+                                      {category.icon ? (() => {
+                                        const selected = iconOptions.find(item => item.name === category.icon);
+                                        if (!selected) return null;
+                                        const Icon = selected.icon;
+                                        return <Icon className="h-8 w-8 text-red-600" />;
+                                      })() : <span className="text-xs font-semibold text-red-500">ICON</span>}
                                     </button>
-                                    {/* CATEGORY NAME */}
                                     <div className="flex-1">
-                                      <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">
-                                        Category Name
-                                      </p>
+                                      <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">Category Name</p>
                                       <input
                                         type="text"
                                         value={category.name}
-                                        onChange={(e) => {
-                                          const updated = [...categories];
-                                          updated[index].name = e.target.value;
-                                          setCategories(updated);
-                                        }}
+                                        onChange={e => updateCategory(index, { name: e.target.value })}
                                         className="w-full border-0 bg-transparent p-0 text-2xl font-bold text-gray-900 outline-none focus:ring-0"
                                         placeholder={`Category ${index + 1}`}
                                       />
-                                      <p className="mt-1 text-sm text-gray-500">
-                                        {category.items.length} menu items
-                                      </p>
+                                      <p className="mt-1 text-sm text-gray-500">{category.items.length} menu items</p>
                                     </div>
                                   </div>
-                                  {/* REMOVE */}
                                   {categories.length > 1 && (
                                     <button
-                                      onClick={() =>
-                                        setCategories(
-                                          categories.filter(
-                                            (_, i) => i !== index,
-                                          ),
-                                        )
-                                      }
+                                      onClick={() => setCategories(categories.filter((_, i) => i !== index))}
                                       className="rounded-xl border border-red-200 bg-red-50 px-4 py-2 text-sm font-semibold text-red-600 transition hover:bg-red-100"
                                     >
                                       Remove Category
                                     </button>
                                   )}
                                 </div>
-                                {/* ICON GRID */}
                                 {showIconPicker === index && (
                                   <div className="mt-6 rounded-2xl border border-gray-200 bg-gray-50 p-5">
-                                    <p className="mb-4 text-sm font-semibold text-gray-700">
-                                      Select Category Icon
-                                    </p>
+                                    <p className="mb-4 text-sm font-semibold text-gray-700">Select Category Icon</p>
                                     <div className="grid grid-cols-4 gap-3 md:grid-cols-8">
-                                      {iconOptions.map((item) => {
+                                      {iconOptions.map(item => {
                                         const Icon = item.icon;
                                         return (
                                           <button
                                             key={item.name}
-                                            onClick={() => {
-                                              const updated = [...categories];
-                                              updated[index].icon = item.name;
-
-                                              setCategories(updated);
-                                              setShowIconPicker(null);
-                                            }}
+                                            onClick={() => { updateCategory(index, { icon: item.name }); setShowIconPicker(null); }}
                                             className={`flex h-16 items-center justify-center rounded-2xl border transition-all ${
                                               category.icon === item.name
                                                 ? "border-red-500 bg-red-50 shadow-sm"
@@ -1007,153 +616,76 @@ export default function RestaurantSetupModal({ open, setOpen }: Props) {
                                   </div>
                                 )}
                               </div>
-                              {/* ITEMS */}
                               <div className="space-y-4 p-6">
                                 <div className="flex items-center justify-between">
                                   <div>
-                                    <h4 className="text-lg font-semibold text-gray-900">
-                                      Menu Items
-                                    </h4>
-                                    <p className="mt-1 text-sm text-gray-500">
-                                      Add dishes, pricing and item type
-                                    </p>
+                                    <h4 className="text-lg font-semibold text-gray-900">Menu Items</h4>
+                                    <p className="mt-1 text-sm text-gray-500">Add dishes, pricing and item type</p>
                                   </div>
                                   <button
-                                    onClick={() => {
-                                      const updated = [...categories];
-
-                                      updated[index].items.push({
-                                        name: "",
-                                        price: "",
-                                        type: "Veg",
-                                        prepTime: "",
-                                      });
-                                      setCategories(updated);
-                                    }}
+                                    onClick={() => updateCategory(index, {
+                                      items: [...category.items, { name: "", price: "", type: "Veg", prepTime: "" }],
+                                    })}
                                     className="rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-500"
                                   >
                                     + Add Item
                                   </button>
                                 </div>
-                                {/* ITEMS LIST */}
                                 <div className="space-y-4">
                                   {category.items.map((item, iIndex) => (
-                                    <div
-                                      key={iIndex}
-                                      className="rounded-2xl border border-gray-200 bg-gray-50 p-5"
-                                    >
+                                    <div key={iIndex} className="rounded-2xl border border-gray-200 bg-gray-50 p-5">
                                       <div className="grid grid-cols-1 gap-4 xl:grid-cols-12">
-                                        {/* ITEM NAME */}
                                         <div className="xl:col-span-4">
-                                          <label className="mb-2 block text-sm font-medium text-gray-700">
-                                            Item Name
-                                          </label>
+                                          <label className="mb-2 block text-sm font-medium text-gray-700">Item Name</label>
                                           <input
                                             type="text"
                                             value={item.name}
-                                            onChange={(e) => {
-                                              const updated = [...categories];
-
-                                              updated[index].items[
-                                                iIndex
-                                              ].name = e.target.value;
-
-                                              setCategories(updated);
-                                            }}
+                                            onChange={e => updateCategoryItem(index, iIndex, { name: e.target.value })}
                                             placeholder="Enter item name"
-                                            className="w-full rounded-2xl border border-gray-300 bg-white px-4 py-3 text-sm outline-none transition focus:border-red-500"
+                                            className={BRANCH_INPUT_CLS}
                                           />
                                         </div>
-                                        {/* PRICE */}
                                         <div className="xl:col-span-2">
-                                          <label className="mb-2 block text-sm font-medium text-gray-700">
-                                            Price
-                                          </label>
+                                          <label className="mb-2 block text-sm font-medium text-gray-700">Price</label>
                                           <div className="relative">
-                                            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm text-gray-400">
-                                              ₹
-                                            </span>
+                                            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm text-gray-400">₹</span>
                                             <input
                                               type="number"
                                               value={item.price}
-                                              onChange={(e) => {
-                                                const updated = [...categories];
-
-                                                updated[index].items[
-                                                  iIndex
-                                                ].price = e.target.value;
-
-                                                setCategories(updated);
-                                              }}
+                                              onChange={e => updateCategoryItem(index, iIndex, { price: e.target.value })}
                                               placeholder="0"
                                               className="w-full rounded-2xl border border-gray-300 bg-white py-3 pl-9 pr-4 text-sm outline-none transition focus:border-red-500"
                                             />
                                           </div>
                                         </div>
-                                        {/* PREP TIME */}
                                         <div className="xl:col-span-2">
-                                          <label className="mb-2 block text-sm font-medium text-gray-700">
-                                            Prep Time
-                                          </label>
-
+                                          <label className="mb-2 block text-sm font-medium text-gray-700">Prep Time</label>
                                           <div className="relative">
                                             <input
                                               type="number"
                                               value={item.prepTime || ""}
-                                              onChange={(e) => {
-                                                const updated = [...categories];
-
-                                                updated[index].items[
-                                                  iIndex
-                                                ].prepTime = e.target.value;
-
-                                                setCategories(updated);
-                                              }}
+                                              onChange={e => updateCategoryItem(index, iIndex, { prepTime: e.target.value })}
                                               placeholder="10"
                                               className="w-full rounded-2xl border border-gray-300 bg-white py-3 pl-4 pr-12 text-sm outline-none transition focus:border-red-500"
                                             />
-
-                                            <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-medium text-gray-400">
-                                              mins
-                                            </span>
+                                            <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-medium text-gray-400">mins</span>
                                           </div>
                                         </div>
-                                        {/* TYPE */}
                                         <div className="xl:col-span-3">
-                                          <label className="mb-2 block text-sm font-medium text-gray-700">
-                                            Type
-                                          </label>
+                                          <label className="mb-2 block text-sm font-medium text-gray-700">Type</label>
                                           <select
                                             value={item.type}
-                                            onChange={(e) => {
-                                              const updated = [...categories];
-                                              updated[index].items[
-                                                iIndex
-                                              ].type = e.target.value;
-                                              setCategories(updated);
-                                            }}
-                                            className="w-full rounded-2xl border border-gray-300 bg-white px-4 py-3 text-sm outline-none transition focus:border-red-500"
+                                            onChange={e => updateCategoryItem(index, iIndex, { type: e.target.value })}
+                                            className={BRANCH_INPUT_CLS}
                                           >
                                             <option value="Veg">Veg</option>
-                                            <option value="Non Veg">
-                                              Non Veg
-                                            </option>
-                                            <option value="Beverage">
-                                              Beverage
-                                            </option>
+                                            <option value="Non Veg">Non Veg</option>
+                                            <option value="Beverage">Beverage</option>
                                           </select>
                                         </div>
-                                        {/* REMOVE */}
                                         <div className="flex items-end xl:col-span-1">
                                           <button
-                                            onClick={() => {
-                                              const updated = [...categories];
-                                              updated[index].items.splice(
-                                                iIndex,
-                                                1,
-                                              );
-                                              setCategories(updated);
-                                            }}
+                                            onClick={() => updateCategory(index, { items: category.items.filter((_, ii) => ii !== iIndex) })}
                                             className="w-full rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-600 transition hover:bg-red-100"
                                           >
                                             Remove
@@ -1166,25 +698,8 @@ export default function RestaurantSetupModal({ open, setOpen }: Props) {
                               </div>
                             </div>
                           ))}
-                          {/* ADD CATEGORY */}
                           <button
-                            onClick={() =>
-                              setCategories([
-                                ...categories,
-                                {
-                                  name: "",
-                                  icon: "",
-                                  items: [
-                                    {
-                                      name: "",
-                                      price: "",
-                                      type: "Veg",
-                                      prepTime: "",
-                                    },
-                                  ],
-                                },
-                              ])
-                            }
+                            onClick={() => setCategories([...categories, { name: "", icon: "", items: [{ name: "", price: "", type: "Veg", prepTime: "" }] }])}
                             className="flex w-full items-center justify-center gap-3 rounded-[28px] border-2 border-dashed border-red-300 bg-red-50 px-6 py-7 text-base font-semibold text-red-600 transition-all hover:bg-red-100"
                           >
                             + Add New Category
@@ -1194,133 +709,66 @@ export default function RestaurantSetupModal({ open, setOpen }: Props) {
                     )}
                     {selectedTab === 3 && (
                       <div className="space-y-8 pb-24">
-                        {/* HEADER */}
                         <div className="relative overflow-hidden rounded-[30px] bg-gradient-to-br from-red-500 to-rose-500 p-7 shadow-[0_25px_70px_rgba(255,0,80,0.18)]">
-                          <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-white/10 blur-3xl"></div>
+                          <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-white/10 blur-3xl" />
                           <div className="relative z-10 flex flex-wrap items-center justify-between gap-5">
                             <div>
-                              <p className="text-sm font-medium uppercase tracking-wide text-red-100">
-                                BILLING CONFIGURATION
-                              </p>
-                              <h2 className="mt-2 text-3xl font-bold text-white">
-                                Configure Billing Settings
-                              </h2>
+                              <p className="text-sm font-medium uppercase tracking-wide text-red-100">BILLING CONFIGURATION</p>
+                              <h2 className="mt-2 text-3xl font-bold text-white">Configure Billing Settings</h2>
                               <p className="mt-2 max-w-2xl text-sm leading-6 text-red-100">
-                                Setup GST, service charges, payment methods and
-                                billing workflows for every branch.
+                                Setup GST, service charges, payment methods and billing workflows for every branch.
                               </p>
                             </div>
                             <div className="rounded-2xl bg-white/10 px-5 py-4 backdrop-blur-xl">
-                              <p className="text-xs text-red-100">
-                                Total Branches
-                              </p>
-                              <p className="mt-1 text-3xl font-bold text-white">
-                                {branches.length}
-                              </p>
+                              <p className="text-xs text-red-100">Total Branches</p>
+                              <p className="mt-1 text-3xl font-bold text-white">{branches.length}</p>
                             </div>
                           </div>
                         </div>
-                        {/* BRANCHES */}
                         {branches.map((branch, index) => (
-                          <div
-                            key={index}
-                            className="overflow-hidden rounded-[30px] border border-gray-200 bg-white shadow-sm transition-all duration-300 hover:shadow-xl"
-                          >
-                            {/* TOP */}
+                          <div key={index} className="overflow-hidden rounded-[30px] border border-gray-200 bg-white shadow-sm transition-all duration-300 hover:shadow-xl">
                             <div className="border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white px-7 py-6">
                               <div className="flex flex-wrap items-center justify-between gap-4">
                                 <div className="flex items-center gap-4">
                                   <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-red-50">
-                                    <span className="text-xl font-bold text-red-600">
-                                      {index + 1}
-                                    </span>
+                                    <span className="text-xl font-bold text-red-600">{index + 1}</span>
                                   </div>
                                   <div>
-                                    <h2 className="text-2xl font-bold text-gray-900">
-                                      {branch.name || `Branch ${index + 1}`}
-                                    </h2>
-                                    <p className="mt-1 text-sm text-gray-500">
-                                      Configure branch billing operations
-                                    </p>
+                                    <h2 className="text-2xl font-bold text-gray-900">{branch.name || `Branch ${index + 1}`}</h2>
+                                    <p className="mt-1 text-sm text-gray-500">Configure branch billing operations</p>
                                   </div>
                                 </div>
                                 <div className="rounded-2xl border border-red-100 bg-red-50 px-5 py-3">
                                   <p className="text-xs text-gray-500">GST</p>
-                                  <p className="mt-1 text-lg font-bold text-red-600">
-                                    {branch.billing.gstPercentage || 0}%
-                                  </p>
+                                  <p className="mt-1 text-lg font-bold text-red-600">{branch.billing.gstPercentage || 0}%</p>
                                 </div>
                               </div>
                             </div>
                             <div className="space-y-10 p-7">
-                              {/* ================= BILLING TYPES ================= */}
                               <div>
                                 <div className="mb-5">
-                                  <h3 className="text-lg font-bold text-gray-900">
-                                    Billing Modules
-                                  </h3>
-                                  <p className="mt-1 text-sm text-gray-500">
-                                    Select billing systems enabled for this
-                                    branch
-                                  </p>
+                                  <h3 className="text-lg font-bold text-gray-900">Billing Modules</h3>
+                                  <p className="mt-1 text-sm text-gray-500">Select billing systems enabled for this branch</p>
                                 </div>
                                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-                                  {[
-                                    "Table Wise Billing",
-                                    "Quick Billing",
-                                    "Takeaway Billing",
-                                    "Delivery Billing",
-                                    "QR Ordering",
-                                    "KOT Billing",
-                                  ].map((type) => {
-                                    const active =
-                                      branch.billing.billingTypes.includes(
-                                        type,
-                                      );
+                                  {["Table Wise Billing", "Quick Billing", "Takeaway Billing", "Delivery Billing", "QR Ordering", "KOT Billing"].map(type => {
+                                    const active = branch.billing.billingTypes.includes(type);
                                     return (
-                                      <label
-                                        key={type}
-                                        className={`group flex cursor-pointer items-center justify-between rounded-2xl border p-5 transition-all duration-200 ${
-                                          active
-                                            ? "border-red-500 bg-red-50 shadow-sm"
-                                            : "border-gray-200 bg-white hover:border-red-300 hover:bg-red-50"
-                                        }`}
-                                      >
+                                      <label key={type} className={`group flex cursor-pointer items-center justify-between rounded-2xl border p-5 transition-all duration-200 ${
+                                        active ? "border-red-500 bg-red-50 shadow-sm" : "border-gray-200 bg-white hover:border-red-300 hover:bg-red-50"
+                                      }`}>
                                         <div>
-                                          <p
-                                            className={`text-sm font-semibold ${
-                                              active
-                                                ? "text-red-700"
-                                                : "text-gray-800"
-                                            }`}
-                                          >
-                                            {type}
-                                          </p>
-
-                                          <p className="mt-1 text-xs text-gray-500">
-                                            Enable this billing workflow
-                                          </p>
+                                          <p className={`text-sm font-semibold ${active ? "text-red-700" : "text-gray-800"}`}>{type}</p>
+                                          <p className="mt-1 text-xs text-gray-500">Enable this billing workflow</p>
                                         </div>
                                         <input
                                           type="checkbox"
                                           checked={active}
                                           onChange={() => {
-                                            const updated = [...branches];
-                                            const billing =
-                                              updated[index].billing;
-                                            if (
-                                              billing.billingTypes.includes(
-                                                type,
-                                              )
-                                            ) {
-                                              billing.billingTypes =
-                                                billing.billingTypes.filter(
-                                                  (t: string) => t !== type,
-                                                );
-                                            } else {
-                                              billing.billingTypes.push(type);
-                                            }
-                                            setBranches(updated);
+                                            const types = branch.billing.billingTypes;
+                                            updateBranchBilling(index, {
+                                              billingTypes: types.includes(type) ? types.filter(t => t !== type) : [...types, type],
+                                            });
                                           }}
                                           className="h-5 w-5 rounded border-gray-300 text-red-600 focus:ring-red-500"
                                         />
@@ -1329,228 +777,90 @@ export default function RestaurantSetupModal({ open, setOpen }: Props) {
                                   })}
                                 </div>
                               </div>
-                              {/* ================= TAX SECTION ================= */}
                               <div>
                                 <div className="mb-5">
-                                  <h3 className="text-lg font-bold text-gray-900">
-                                    Tax & Service Charges
-                                  </h3>
-                                  <p className="mt-1 text-sm text-gray-500">
-                                    Configure GST and service charge percentages
-                                  </p>
+                                  <h3 className="text-lg font-bold text-gray-900">Tax & Service Charges</h3>
+                                  <p className="mt-1 text-sm text-gray-500">Configure GST and service charge percentages</p>
                                 </div>
                                 <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
-                                  {/* GST */}
                                   <div className="rounded-2xl border border-gray-200 bg-gray-50 p-5">
-                                    <label className="mb-2 block text-sm font-semibold text-gray-700">
-                                      GST Percentage
-                                    </label>
+                                    <label className="mb-2 block text-sm font-semibold text-gray-700">GST Percentage</label>
                                     <div className="relative">
                                       <input
                                         type="number"
                                         value={branch.billing.gstPercentage}
-                                        onChange={(e) => {
-                                          const updated = [...branches];
-
-                                          updated[index].billing.gstPercentage =
-                                            e.target.value;
-
-                                          setBranches(updated);
-                                        }}
+                                        onChange={e => updateBranchBilling(index, { gstPercentage: e.target.value })}
                                         placeholder="5"
                                         className="w-full rounded-2xl border border-gray-300 bg-white px-4 py-4 pr-14 text-lg font-semibold outline-none transition focus:border-red-500"
                                       />
-                                      <span className="absolute right-5 top-1/2 -translate-y-1/2 text-lg font-bold text-gray-400">
-                                        %
-                                      </span>
+                                      <span className="absolute right-5 top-1/2 -translate-y-1/2 text-lg font-bold text-gray-400">%</span>
                                     </div>
                                   </div>
-                                  {/* SERVICE */}
                                   <div className="rounded-2xl border border-gray-200 bg-gray-50 p-5">
-                                    <label className="mb-2 block text-sm font-semibold text-gray-700">
-                                      Service Charge
-                                    </label>
+                                    <label className="mb-2 block text-sm font-semibold text-gray-700">Service Charge</label>
                                     <div className="relative">
                                       <input
                                         type="number"
                                         value={branch.billing.serviceCharge}
-                                        onChange={(e) => {
-                                          const updated = [...branches];
-
-                                          updated[index].billing.serviceCharge =
-                                            e.target.value;
-
-                                          setBranches(updated);
-                                        }}
+                                        onChange={e => updateBranchBilling(index, { serviceCharge: e.target.value })}
                                         placeholder="10"
                                         className="w-full rounded-2xl border border-gray-300 bg-white px-4 py-4 pr-14 text-lg font-semibold outline-none transition focus:border-red-500"
                                       />
-                                      <span className="absolute right-5 top-1/2 -translate-y-1/2 text-lg font-bold text-gray-400">
-                                        %
-                                      </span>
+                                      <span className="absolute right-5 top-1/2 -translate-y-1/2 text-lg font-bold text-gray-400">%</span>
                                     </div>
                                   </div>
                                 </div>
                               </div>
-                              {/* ================= SETTINGS ================= */}
                               <div>
                                 <div className="mb-5">
-                                  <h3 className="text-lg font-bold text-gray-900">
-                                    Billing Preferences
-                                  </h3>
-                                  <p className="mt-1 text-sm text-gray-500">
-                                    Configure pricing and billing behaviors
-                                  </p>
+                                  <h3 className="text-lg font-bold text-gray-900">Billing Preferences</h3>
+                                  <p className="mt-1 text-sm text-gray-500">Configure pricing and billing behaviors</p>
                                 </div>
                                 <div className="space-y-4">
-                                  {/* GST */}
-                                  <label className="flex items-center justify-between rounded-2xl border border-gray-200 bg-gray-50 p-5">
-                                    <div>
-                                      <p className="text-sm font-semibold text-gray-900">
-                                        Include GST In Item Price
-                                      </p>
-                                      <p className="mt-1 text-xs text-gray-500">
-                                        GST will already be included in menu
-                                        pricing
-                                      </p>
-                                    </div>
-                                    <input
-                                      type="checkbox"
-                                      checked={branch.billing.includeGST}
-                                      onChange={() => {
-                                        const updated = [...branches];
-
-                                        updated[index].billing.includeGST =
-                                          !updated[index].billing.includeGST;
-
-                                        setBranches(updated);
-                                      }}
-                                      className="h-5 w-5 rounded border-gray-300 text-red-600 focus:ring-red-500"
-                                    />
-                                  </label>
-                                  {/* DISCOUNT */}
-                                  <label className="flex items-center justify-between rounded-2xl border border-gray-200 bg-gray-50 p-5">
-                                    <div>
-                                      <p className="text-sm font-semibold text-gray-900">
-                                        Enable Discounts
-                                      </p>
-                                      <p className="mt-1 text-xs text-gray-500">
-                                        Staff can apply discounts during billing
-                                      </p>
-                                    </div>
-                                    <input
-                                      type="checkbox"
-                                      checked={branch.billing.enableDiscount}
-                                      onChange={() => {
-                                        const updated = [...branches];
-
-                                        updated[index].billing.enableDiscount =
-                                          !updated[index].billing
-                                            .enableDiscount;
-
-                                        setBranches(updated);
-                                      }}
-                                      className="h-5 w-5 rounded border-gray-300 text-red-600 focus:ring-red-500"
-                                    />
-                                  </label>
-                                  {/* TIPS */}
-                                  <label className="flex items-center justify-between rounded-2xl border border-gray-200 bg-gray-50 p-5">
-                                    <div>
-                                      <p className="text-sm font-semibold text-gray-900">
-                                        Enable Customer Tips
-                                      </p>
-                                      <p className="mt-1 text-xs text-gray-500">
-                                        Customers can add tips during checkout
-                                      </p>
-                                    </div>
-                                    <input
-                                      type="checkbox"
-                                      checked={branch.billing.enableTips}
-                                      onChange={() => {
-                                        const updated = [...branches];
-
-                                        updated[index].billing.enableTips =
-                                          !updated[index].billing.enableTips;
-
-                                        setBranches(updated);
-                                      }}
-                                      className="h-5 w-5 rounded border-gray-300 text-red-600 focus:ring-red-500"
-                                    />
-                                  </label>
+                                  {([
+                                    { key: "includeGST", label: "Include GST In Item Price", desc: "GST will already be included in menu pricing" },
+                                    { key: "enableDiscount", label: "Enable Discounts", desc: "Staff can apply discounts during billing" },
+                                    { key: "enableTips", label: "Enable Customer Tips", desc: "Customers can add tips during checkout" },
+                                  ] as const).map(({ key, label, desc }) => (
+                                    <label key={key} className="flex items-center justify-between rounded-2xl border border-gray-200 bg-gray-50 p-5">
+                                      <div>
+                                        <p className="text-sm font-semibold text-gray-900">{label}</p>
+                                        <p className="mt-1 text-xs text-gray-500">{desc}</p>
+                                      </div>
+                                      <input
+                                        type="checkbox"
+                                        checked={branch.billing[key]}
+                                        onChange={() => updateBranchBilling(index, { [key]: !branch.billing[key] })}
+                                        className="h-5 w-5 rounded border-gray-300 text-red-600 focus:ring-red-500"
+                                      />
+                                    </label>
+                                  ))}
                                 </div>
                               </div>
-                              {/* ================= PAYMENT METHODS ================= */}
                               <div>
                                 <div className="mb-5">
-                                  <h3 className="text-lg font-bold text-gray-900">
-                                    Accepted Payment Methods
-                                  </h3>
-                                  <p className="mt-1 text-sm text-gray-500">
-                                    Select available payment options for
-                                    customers
-                                  </p>
+                                  <h3 className="text-lg font-bold text-gray-900">Accepted Payment Methods</h3>
+                                  <p className="mt-1 text-sm text-gray-500">Select available payment options for customers</p>
                                 </div>
                                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-                                  {[
-                                    "Cash",
-                                    "Card",
-                                    "UPI",
-                                    "Net Banking",
-                                    "Wallet",
-                                    "Cheque",
-                                  ].map((method) => {
-                                    const active =
-                                      branch.billing.paymentMethods.includes(
-                                        method,
-                                      );
+                                  {["Cash", "Card", "UPI", "Net Banking", "Wallet", "Cheque"].map(method => {
+                                    const active = branch.billing.paymentMethods.includes(method);
                                     return (
-                                      <label
-                                        key={method}
-                                        className={`group flex cursor-pointer items-center justify-between rounded-2xl border p-5 transition-all duration-200 ${
-                                          active
-                                            ? "border-red-500 bg-red-50 shadow-sm"
-                                            : "border-gray-200 bg-white hover:border-red-300 hover:bg-red-50"
-                                        }`}
-                                      >
+                                      <label key={method} className={`group flex cursor-pointer items-center justify-between rounded-2xl border p-5 transition-all duration-200 ${
+                                        active ? "border-red-500 bg-red-50 shadow-sm" : "border-gray-200 bg-white hover:border-red-300 hover:bg-red-50"
+                                      }`}>
                                         <div>
-                                          <p
-                                            className={`text-sm font-semibold ${
-                                              active
-                                                ? "text-red-700"
-                                                : "text-gray-800"
-                                            }`}
-                                          >
-                                            {method}
-                                          </p>
-                                          <p className="mt-1 text-xs text-gray-500">
-                                            Accept payments via {method}
-                                          </p>
+                                          <p className={`text-sm font-semibold ${active ? "text-red-700" : "text-gray-800"}`}>{method}</p>
+                                          <p className="mt-1 text-xs text-gray-500">Accept payments via {method}</p>
                                         </div>
                                         <input
                                           type="checkbox"
                                           checked={active}
                                           onChange={() => {
-                                            const updated = [...branches];
-                                            const methods =
-                                              updated[index].billing
-                                                .paymentMethods;
-                                            if (methods.includes(method)) {
-                                              updated[
-                                                index
-                                              ].billing.paymentMethods =
-                                                methods.filter(
-                                                  (item: string) =>
-                                                    item !== method,
-                                                );
-                                            } else {
-                                              updated[
-                                                index
-                                              ].billing.paymentMethods = [
-                                                ...methods,
-                                                method,
-                                              ];
-                                            }
-                                            setBranches(updated);
+                                            const methods = branch.billing.paymentMethods;
+                                            updateBranchBilling(index, {
+                                              paymentMethods: methods.includes(method) ? methods.filter(m => m !== method) : [...methods, method],
+                                            });
                                           }}
                                           className="h-5 w-5 rounded border-gray-300 text-red-600 focus:ring-red-500"
                                         />
@@ -1566,69 +876,41 @@ export default function RestaurantSetupModal({ open, setOpen }: Props) {
                     )}
                     {selectedTab === 4 && (
                       <div className="space-y-8 pb-24">
-                        {/* HEADER */}
                         <div className="relative overflow-hidden rounded-[30px] bg-gradient-to-br from-red-500 to-rose-500 p-7 shadow-[0_25px_70px_rgba(255,0,80,0.18)]">
-                          <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-white/10 blur-3xl"></div>
+                          <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-white/10 blur-3xl" />
                           <div className="relative z-10 flex flex-wrap items-center justify-between gap-5">
                             <div>
-                              <p className="text-sm font-medium uppercase tracking-wide text-red-100">
-                                STAFF MANAGEMENT
-                              </p>
-                              <h2 className="mt-2 text-3xl font-bold text-white">
-                                Configure Restaurant Staff
-                              </h2>
+                              <p className="text-sm font-medium uppercase tracking-wide text-red-100">STAFF MANAGEMENT</p>
+                              <h2 className="mt-2 text-3xl font-bold text-white">Configure Restaurant Staff</h2>
                               <p className="mt-2 max-w-2xl text-sm leading-6 text-red-100">
-                                Add managers, cashiers, kitchen staff and assign
-                                them to restaurant branches.
+                                Add managers, cashiers, kitchen staff and assign them to restaurant branches.
                               </p>
                             </div>
                             <div className="rounded-2xl bg-white/10 px-5 py-4 backdrop-blur-xl">
-                              <p className="text-xs text-red-100">
-                                Total Staff
-                              </p>
-                              <p className="mt-1 text-3xl font-bold text-white">
-                                {staff.length}
-                              </p>
+                              <p className="text-xs text-red-100">Total Staff</p>
+                              <p className="mt-1 text-3xl font-bold text-white">{staff.length}</p>
                             </div>
                           </div>
                         </div>
-                        {/* STAFF LIST */}
                         <div className="space-y-6">
                           {staff.map((s, index) => (
-                            <div
-                              key={index}
-                              className="overflow-hidden rounded-[28px] border border-gray-200 bg-white shadow-sm transition-all duration-300 hover:shadow-xl"
-                            >
-                              {/* TOP */}
+                            <div key={index} className="overflow-hidden rounded-[28px] border border-gray-200 bg-white shadow-sm transition-all duration-300 hover:shadow-xl">
                               <div className="border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white px-6 py-5">
                                 <div className="flex flex-wrap items-center justify-between gap-4">
                                   <div className="flex items-center gap-4">
-                                    {/* AVATAR */}
                                     <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-red-50">
                                       <span className="text-xl font-bold text-red-600">
-                                        {s.name
-                                          ? s.name.charAt(0).toUpperCase()
-                                          : index + 1}
+                                        {s.name ? s.name.charAt(0).toUpperCase() : index + 1}
                                       </span>
                                     </div>
-                                    {/* INFO */}
                                     <div>
-                                      <h3 className="text-xl font-bold text-gray-900">
-                                        {s.name || `Staff ${index + 1}`}
-                                      </h3>
-                                      <p className="mt-1 text-sm text-gray-500">
-                                        {s.role || "STAFF"}
-                                      </p>
+                                      <h3 className="text-xl font-bold text-gray-900">{s.name || `Staff ${index + 1}`}</h3>
+                                      <p className="mt-1 text-sm text-gray-500">{s.role || "STAFF"}</p>
                                     </div>
                                   </div>
-                                  {/* REMOVE */}
                                   {staff.length > 1 && (
                                     <button
-                                      onClick={() =>
-                                        setStaff(
-                                          staff.filter((_, i) => i !== index),
-                                        )
-                                      }
+                                      onClick={() => setStaff(staff.filter((_, i) => i !== index))}
                                       className="rounded-xl border border-red-200 bg-red-50 px-4 py-2 text-sm font-semibold text-red-600 transition hover:bg-red-100"
                                     >
                                       Remove Staff
@@ -1636,94 +918,55 @@ export default function RestaurantSetupModal({ open, setOpen }: Props) {
                                   )}
                                 </div>
                               </div>
-                              {/* FORM */}
                               <div className="p-6">
                                 <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
-                                  {/* NAME */}
                                   <div>
-                                    <label className="mb-2 block text-sm font-semibold text-gray-700">
-                                      Full Name
-                                    </label>
+                                    <label className={LABEL_CLS}>Full Name</label>
                                     <input
                                       placeholder="Enter staff name"
                                       value={s.name}
-                                      onChange={(e) => {
-                                        const updated = [...staff];
-                                        updated[index].name = e.target.value;
-                                        setStaff(updated);
-                                      }}
-                                      className="w-full rounded-2xl border border-gray-300 bg-white px-4 py-3 text-sm outline-none transition focus:border-red-500"
+                                      onChange={e => updateStaff(index, { name: e.target.value })}
+                                      className={BRANCH_INPUT_CLS}
                                     />
                                   </div>
-                                  {/* EMAIL */}
                                   <div>
-                                    <label className="mb-2 block text-sm font-semibold text-gray-700">
-                                      Email Address
-                                    </label>
+                                    <label className={LABEL_CLS}>Email Address</label>
                                     <input
                                       placeholder="Enter email"
                                       value={s.email}
-                                      onChange={(e) => {
-                                        const updated = [...staff];
-                                        updated[index].email = e.target.value;
-                                        setStaff(updated);
-                                      }}
-                                      className="w-full rounded-2xl border border-gray-300 bg-white px-4 py-3 text-sm outline-none transition focus:border-red-500"
+                                      onChange={e => updateStaff(index, { email: e.target.value })}
+                                      className={BRANCH_INPUT_CLS}
                                     />
                                   </div>
-                                  {/* PHONE */}
                                   <div>
-                                    <label className="mb-2 block text-sm font-semibold text-gray-700">
-                                      Phone Number
-                                    </label>
+                                    <label className={LABEL_CLS}>Phone Number</label>
                                     <input
                                       placeholder="Enter phone"
                                       value={s.phone}
-                                      onChange={(e) => {
-                                        const updated = [...staff];
-                                        updated[index].phone = e.target.value;
-                                        setStaff(updated);
-                                      }}
-                                      className="w-full rounded-2xl border border-gray-300 bg-white px-4 py-3 text-sm outline-none transition focus:border-red-500"
+                                      onChange={e => updateStaff(index, { phone: e.target.value })}
+                                      className={BRANCH_INPUT_CLS}
                                     />
                                   </div>
-                                  {/* ROLE */}
                                   <div>
-                                    <label className="mb-2 block text-sm font-semibold text-gray-700">
-                                      Role
-                                    </label>
+                                    <label className={LABEL_CLS}>Role</label>
                                     <select
                                       value={s.role}
-                                      onChange={(e) => {
-                                        const updated = [...staff];
-                                        updated[index].role = e.target.value;
-                                        setStaff(updated);
-                                      }}
-                                      className="w-full rounded-2xl border border-gray-300 bg-white px-4 py-3 text-sm outline-none transition focus:border-red-500"
+                                      onChange={e => updateStaff(index, { role: e.target.value })}
+                                      className={BRANCH_INPUT_CLS}
                                     >
                                       <option value="STAFF">Staff</option>
                                       <option value="MANAGER">Manager</option>
                                       <option value="CASHIER">Cashier</option>
                                     </select>
                                   </div>
-                                  {/* DEPARTMENT */}
                                   <div>
-                                    <label className="mb-2 block text-sm font-semibold text-gray-700">
-                                      Department
-                                    </label>
+                                    <label className={LABEL_CLS}>Department</label>
                                     <select
                                       value={s.department || ""}
-                                      onChange={(e) => {
-                                        const updated = [...staff];
-                                        updated[index].department =
-                                          e.target.value;
-                                        setStaff(updated);
-                                      }}
-                                      className="w-full rounded-2xl border border-gray-300 bg-white px-4 py-3 text-sm outline-none transition focus:border-red-500"
+                                      onChange={e => updateStaff(index, { department: e.target.value })}
+                                      className={BRANCH_INPUT_CLS}
                                     >
-                                      <option value="">
-                                        Select Department
-                                      </option>
+                                      <option value="">Select Department</option>
                                       <option value="KITCHEN">Kitchen</option>
                                       <option value="SERVICE">Service</option>
                                       <option value="CLEANING">Cleaning</option>
@@ -1731,90 +974,49 @@ export default function RestaurantSetupModal({ open, setOpen }: Props) {
                                       <option value="ADMIN">Admin</option>
                                       <option value="SECURITY">Security</option>
                                       <option value="PURCHASE">Purchase</option>
-                                      <option value="MAINTENANCE">
-                                        Maintenance
-                                      </option>
+                                      <option value="MAINTENANCE">Maintenance</option>
                                     </select>
                                   </div>
-                                  {/* LOGIN ACCESS */}
                                   <div>
-                                    <label className="mb-2 block text-sm font-semibold text-gray-700">
-                                      Account Access
-                                    </label>
+                                    <label className={LABEL_CLS}>Account Access</label>
                                     <div className="flex items-center gap-3 rounded-2xl border border-gray-300 bg-white px-4 py-3">
                                       <input
                                         type="checkbox"
                                         checked={s.hasLogin || false}
-                                        onChange={(e) => {
-                                          const updated = [...staff];
-                                          updated[index].hasLogin =
-                                            e.target.checked;
-                                          setStaff(updated);
-                                        }}
+                                        onChange={e => updateStaff(index, { hasLogin: e.target.checked })}
                                         className="h-4 w-4 rounded border-gray-300 text-red-500"
                                       />
-                                      <span className="text-sm font-medium text-gray-700">
-                                        Enable Login Access
-                                      </span>
+                                      <span className="text-sm font-medium text-gray-700">Enable Login Access</span>
                                     </div>
                                   </div>
-                                  {/* SALARY */}
                                   <div>
-                                    <label className="mb-2 block text-sm font-semibold text-gray-700">
-                                      Salary
-                                    </label>
+                                    <label className={LABEL_CLS}>Salary</label>
                                     <div className="relative">
-                                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm text-gray-400">
-                                        ₹
-                                      </span>
+                                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm text-gray-400">₹</span>
                                       <input
                                         type="number"
                                         placeholder="0"
                                         value={s.salary || ""}
-                                        onChange={(e) => {
-                                          const updated = [...staff];
-                                          updated[index].salary = Number(
-                                            e.target.value,
-                                          );
-
-                                          setStaff(updated);
-                                        }}
+                                        onChange={e => updateStaff(index, { salary: Number(e.target.value) })}
                                         className="w-full rounded-2xl border border-gray-300 bg-white py-3 pl-9 pr-4 text-sm outline-none transition focus:border-red-500"
                                       />
                                     </div>
                                   </div>
-                                  {/* JOINING DATE */}
                                   <div>
-                                    <label className="mb-2 block text-sm font-semibold text-gray-700">
-                                      Joining Date
-                                    </label>
+                                    <label className={LABEL_CLS}>Joining Date</label>
                                     <input
                                       type="date"
                                       value={s.joiningDate || ""}
-                                      onChange={(e) => {
-                                        const updated = [...staff];
-
-                                        updated[index].joiningDate =
-                                          e.target.value;
-
-                                        setStaff(updated);
-                                      }}
-                                      className="w-full rounded-2xl border border-gray-300 bg-white px-4 py-3 text-sm outline-none transition focus:border-red-500"
+                                      onChange={e => updateStaff(index, { joiningDate: e.target.value })}
+                                      className={BRANCH_INPUT_CLS}
                                     />
                                   </div>
-                                  {/* SHIFT */}
                                   <div>
-                                    <label className="mb-2 block text-sm font-semibold text-gray-700">
-                                      Shift
-                                    </label>
+                                    <label className={LABEL_CLS}>Shift</label>
                                     <select
                                       value={s.shift || ""}
-                                      onChange={(e) => {
-                                        const updated = [...staff];
-                                        updated[index].shift = e.target.value;
-                                        setStaff(updated);
-                                      }}
-                                      className="w-full rounded-2xl border border-gray-300 bg-white px-4 py-3 text-sm outline-none transition focus:border-red-500"
+                                      onChange={e => updateStaff(index, { shift: e.target.value })}
+                                      className={BRANCH_INPUT_CLS}
                                     >
                                       <option value="">Select Shift</option>
                                       <option value="MORNING">Morning</option>
@@ -1822,27 +1024,16 @@ export default function RestaurantSetupModal({ open, setOpen }: Props) {
                                       <option value="FULL_DAY">Full Day</option>
                                     </select>
                                   </div>
-                                  {/* BRANCH */}
                                   <div>
-                                    <label className="mb-2 block text-sm font-semibold text-gray-700">
-                                      Assign Branch
-                                    </label>
+                                    <label className={LABEL_CLS}>Assign Branch</label>
                                     <select
                                       value={s.branchId ?? ""}
-                                      onChange={(e: any) => {
-                                        const updated = [...staff];
-                                        updated[index].branchId = Number(
-                                          e.target.value,
-                                        );
-                                        setStaff(updated);
-                                      }}
-                                      className="w-full rounded-2xl border border-gray-300 bg-white px-4 py-3 text-sm outline-none transition focus:border-red-500"
+                                      onChange={e => updateStaff(index, { branchId: Number(e.target.value) })}
+                                      className={BRANCH_INPUT_CLS}
                                     >
                                       <option value="">Select Branch</option>
                                       {branches.map((b, i) => (
-                                        <option key={i} value={i}>
-                                          {b.name || `Branch ${i + 1}`}
-                                        </option>
+                                        <option key={i} value={i}>{b.name || `Branch ${i + 1}`}</option>
                                       ))}
                                     </select>
                                   </div>
@@ -1850,22 +1041,9 @@ export default function RestaurantSetupModal({ open, setOpen }: Props) {
                               </div>
                             </div>
                           ))}
-                          {/* ADD BUTTON */}
                           <button
                             type="button"
-                            onClick={() =>
-                              setStaff([
-                                ...staff,
-                                {
-                                  name: "",
-                                  email: "",
-                                  phone: "",
-                                  role: "STAFF",
-                                  password: "1234",
-                                  hasLogin: false,
-                                },
-                              ])
-                            }
+                            onClick={() => setStaff([...staff, { name: "", email: "", phone: "", role: "STAFF", password: "1234", hasLogin: false }])}
                             className="flex w-full items-center justify-center gap-3 rounded-2xl border-2 border-dashed border-red-300 bg-red-50 px-6 py-7 text-base font-semibold text-red-600 transition-all hover:bg-red-100"
                           >
                             + Add New Staff Member
@@ -1874,12 +1052,11 @@ export default function RestaurantSetupModal({ open, setOpen }: Props) {
                       </div>
                     )}
                   </div>
-                  {/* FOOTER */}
                   <div className="border-t border-white/40 bg-white/70 px-8 py-5 backdrop-blur-xl">
                     <div className="flex items-center justify-between">
                       <button
                         disabled={selectedTab === 0}
-                        onClick={() => setSelectedTab((prev) => prev - 1)}
+                        onClick={() => setSelectedTab(prev => prev - 1)}
                         className="rounded-2xl border border-gray-200 bg-white px-6 py-3 text-sm font-semibold text-gray-700 transition hover:bg-gray-50 disabled:opacity-50"
                       >
                         Previous
@@ -1893,20 +1070,10 @@ export default function RestaurantSetupModal({ open, setOpen }: Props) {
                         </button>
                         <button
                           disabled={loading}
-                          onClick={() => {
-                            if (selectedTab === tabs.length - 1) {
-                              handleSubmitSetup();
-                            } else {
-                              setSelectedTab((prev) => prev + 1);
-                            }
-                          }}
+                          onClick={() => selectedTab === tabs.length - 1 ? handleSubmitSetup() : setSelectedTab(prev => prev + 1)}
                           className="rounded-2xl bg-gradient-to-r from-red-500 to-rose-500 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-red-200 transition hover:opacity-95 disabled:opacity-50"
                         >
-                          {loading
-                            ? "Saving..."
-                            : selectedTab === tabs.length - 1
-                              ? "Finish Setup"
-                              : "Next Step"}
+                          {loading ? "Saving..." : selectedTab === tabs.length - 1 ? "Finish Setup" : "Next Step"}
                         </button>
                       </div>
                     </div>

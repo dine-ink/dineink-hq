@@ -1,5 +1,3 @@
-'use client'
-
 import Navbar from '../../components/common/Navbar'
 import HeroSection from '../../components/home/HeroSection'
 import WhyDineInkSection from '../../components/home/WhyDineInkSection'
@@ -8,7 +6,6 @@ import TestimonialsSection from '../../components/home/TestimonialsSection'
 import LaunchSection from '../../components/home/LaunchSection'
 import Footer from '../../components/common/Footer'
 
-
 export default function Home() {
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900">
@@ -16,7 +13,10 @@ export default function Home() {
       <main>
         <HeroSection />
         <div className="mx-auto mt-20 max-w-7xl px-6 lg:px-8">
-          <div className="rounded-3xl bg-white/80 backdrop-blur-sm border border-red-100 shadow-xl p-8">
+          <p className="mb-6 text-center text-sm font-semibold text-red-700 uppercase tracking-widest">
+            Trusted by restaurants across India
+          </p>
+          <div className="rounded-3xl bg-white border border-red-100 shadow-xl p-8">
             <div className="grid grid-cols-2 gap-6 md:grid-cols-4">
               <div className="rounded-2xl bg-red-50 border border-red-100 p-6 text-center">
                 <h3 className="text-3xl font-bold text-red-700">500+</h3>
@@ -42,7 +42,6 @@ export default function Home() {
         <LaunchSection />
         <TestimonialsSection />
       </main>
-      {/* Footer */}
       <Footer />
     </div>
   )

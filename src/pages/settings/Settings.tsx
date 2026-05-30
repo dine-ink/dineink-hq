@@ -44,29 +44,17 @@ export default function Settings() {
     }
   };
 
-  const handleSaveBranches =
-  async () => {
+  const handleSaveBranches = async () => {
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch(`${API_URL}/api/restaurant/branches/update`,
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type":
-              "application/json",
-            Authorization:
-              `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            branches:settingsData.branches,
-          }),
-        }
-      );
+      const res = await fetch(`${API_URL}/api/restaurant/branches/update`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ branches: settingsData.branches }),
+      });
       const data = await res.json();
       if (data.success) {
-        alert(
-          "Branches updated successfully"
-        );
+        alert("Branches updated successfully");
         setBranchEditMode(false);
         fetchSettings();
       } else {
@@ -81,46 +69,26 @@ export default function Settings() {
     try {
       const token = localStorage.getItem("token");
       const updatedOwner = settingsData.users.find((u: any) => u.role === "OWNER");
-      const res = await fetch(`${API_URL}/api/restaurant/general/${settingsData.id}`,
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type":
-              "application/json",
-            Authorization:
-              `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            name: updatedOwner?.name,
-            email: updatedOwner.email,
-            phone: updatedOwner.phone,
-          }),
-        }
-      );
-
+      const res = await fetch(`${API_URL}/api/restaurant/general/${settingsData.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ name: updatedOwner?.name, email: updatedOwner.email, phone: updatedOwner.phone }),
+      });
       const data = await res.json();
-
       if (data.success) {
-        alert(
-          "General settings updated"
-        );
-        setEditMode(false)
-        /* UPDATE LOCAL STORAGE */
+        alert("General settings updated");
+        setEditMode(false);
         const existingUser = JSON.parse(localStorage.getItem("user") || "{}");
         existingUser.name = updatedOwner?.name;
         existingUser.email = updatedOwner?.email;
         existingUser.phone = updatedOwner?.phone;
-        setSettingsData((prev: any) => ({...prev,
-          users: prev.users.map((u: any) => u.role === "OWNER" ? {
-                  ...u,
-                  name: updatedOwner?.name,
-                  email: updatedOwner?.email,
-                  phone: updatedOwner?.phone,
-                }
-              : u
-            ),
+        setSettingsData((prev: any) => ({
+          ...prev,
+          users: prev.users.map((u: any) =>
+            u.role === "OWNER" ? { ...u, name: updatedOwner?.name, email: updatedOwner?.email, phone: updatedOwner?.phone } : u
+          ),
         }));
-        localStorage.setItem("user", JSON.stringify(existingUser) );
+        localStorage.setItem("user", JSON.stringify(existingUser));
       } else {
         alert(data.message);
       }
@@ -131,39 +99,21 @@ export default function Settings() {
 
   const handleUpdatePassword = async () => {
     try {
-      if (
-        settingsData.newPassword !== settingsData.confirmPassword) {
+      if (settingsData.newPassword !== settingsData.confirmPassword) {
         alert("Passwords do not match");
         return;
       }
       const token = localStorage.getItem("token");
-      const res = await fetch(`${API_URL}/api/auth/change-password`,
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type":
-              "application/json",
-            Authorization:
-              `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            currentPassword:
-              settingsData.currentPassword,
-            newPassword:
-              settingsData.newPassword,
-          }),
-        }
-      );
+      const res = await fetch(`${API_URL}/api/auth/change-password`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ currentPassword: settingsData.currentPassword, newPassword: settingsData.newPassword }),
+      });
       const data = await res.json();
       if (data.success) {
         alert("Password updated successfully");
         setPasswordEditMode(false);
-        setSettingsData({
-          ...settingsData,
-          currentPassword: "",
-          newPassword: "",
-          confirmPassword: "",
-        });
+        setSettingsData({ ...settingsData, currentPassword: "", newPassword: "", confirmPassword: "" });
       } else {
         alert(data.message);
       }
@@ -171,8 +121,19 @@ export default function Settings() {
       alert("Password update failed");
     }
   };
+  if (loading) {
+    return (
+      <div className="flex min-h-[400px] items-center justify-center">
+        <div className="flex flex-col items-center gap-3">
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-gray-200 border-t-red-500" />
+          <p className="text-[12px] text-gray-500">Loading settings...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <main className="min-h-screen bg-gray-50 px-6 py-6 border border-gray-200 ">
+    <main className="min-h-screen bg-gray-50 px-6 py-6 border border-gray-200">
       <div className="mx-auto space-y-5">
         {/* HEADER */}
         <div className="shrink-0 rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">

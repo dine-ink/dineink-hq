@@ -742,8 +742,8 @@ export default function Insights() {
   }, [selectedBranch]);
 
   return (
-    <main className="flex  flex-col overflow-hidden bg-[#f5f6fa]  ">
-      <div className="mx-auto flex h-full w-full  flex-col gap-4 overflow-hidden">
+    <main className="flex flex-col overflow-hidden bg-[#f5f6fa]">
+      <div className="mx-auto flex h-full w-full flex-col gap-4 overflow-hidden">
         {/* HEADER */}
         <div className="relative overflow-hidden rounded-md border border-gray-200 bg-white px-4 py-3 shadow-sm">
           {/* Glow */}
@@ -783,21 +783,11 @@ export default function Insights() {
                 <button
                   key={tab}
                   onClick={() => setActiveTab(tab)}
-                  className={`
-          rounded-xl
-          px-3.5
-          py-2
-          text-[12px]
-          font-semibold
-          transition-all
-          duration-200
-
-          ${
-            activeTab === tab
-              ? "bg-gradient-to-r from-red-500 to-pink-500 text-white shadow-md"
-              : "border border-gray-200 bg-gray-50 text-gray-600 hover:border-red-200 hover:bg-red-50 hover:text-red-600"
-          }
-        `}
+                  className={`rounded-xl px-3.5 py-2 text-[12px] font-semibold transition-all duration-200 ${
+                    activeTab === tab
+                      ? "bg-gradient-to-r from-red-500 to-pink-500 text-white shadow-md"
+                      : "border border-gray-200 bg-gray-50 text-gray-600 hover:border-red-200 hover:bg-red-50 hover:text-red-600"
+                  }`}
                 >
                   {tab}
                 </button>
@@ -853,86 +843,23 @@ export default function Insights() {
                 ].map((item) => {
                   const Icon = item.icon;
 
+                  const colorMap: Record<string, { text: string; bg: string; icon: string }> = {
+                    emerald: { text: "text-emerald-500", bg: "bg-emerald-50", icon: "text-emerald-600" },
+                    blue: { text: "text-blue-500", bg: "bg-blue-50", icon: "text-blue-600" },
+                    violet: { text: "text-violet-500", bg: "bg-violet-50", icon: "text-violet-600" },
+                    orange: { text: "text-orange-500", bg: "bg-orange-50", icon: "text-orange-600" },
+                  };
+                  const c = colorMap[item.color] || colorMap.orange;
                   return (
-                    <div
-                      key={item.label}
-                      className="
-          rounded-2xl
-          border
-          border-gray-200
-          bg-white
-          p-3
-          shadow-sm
-        "
-                    >
+                    <div key={item.label} className="rounded-2xl border border-gray-200 bg-white p-3 shadow-sm">
                       <div className="flex items-start justify-between">
                         <div>
-                          <p
-                            className={`
-                text-[10px]
-                font-bold
-                uppercase
-                tracking-[0.14em]
-
-                ${
-                  item.color === "emerald"
-                    ? "text-emerald-500"
-                    : item.color === "blue"
-                      ? "text-blue-500"
-                      : item.color === "violet"
-                        ? "text-violet-500"
-                        : "text-orange-500"
-                }
-              `}
-                          >
-                            {item.label}
-                          </p>
-
-                          <p className="mt-2 text-[22px] font-bold tracking-tight text-gray-900">
-                            {item.value}
-                          </p>
-
-                          <p className="mt-1 text-[11px] text-gray-500">
-                            {item.sub}
-                          </p>
+                          <p className={`text-[10px] font-bold uppercase tracking-[0.14em] ${c.text}`}>{item.label}</p>
+                          <p className="mt-2 text-[22px] font-bold tracking-tight text-gray-900">{item.value}</p>
+                          <p className="mt-1 text-[11px] text-gray-500">{item.sub}</p>
                         </div>
-
-                        <div
-                          className={`
-              flex
-              h-8
-              w-8
-              items-center
-              justify-center
-              rounded-lg
-
-              ${
-                item.color === "emerald"
-                  ? "bg-emerald-50"
-                  : item.color === "blue"
-                    ? "bg-blue-50"
-                    : item.color === "violet"
-                      ? "bg-violet-50"
-                      : "bg-orange-50"
-              }
-            `}
-                        >
-                          <Icon
-                            className={`
-                h-4
-                w-4
-
-                ${
-                  item.color === "emerald"
-                    ? "text-emerald-600"
-                    : item.color === "blue"
-                      ? "text-blue-600"
-                      : item.color === "violet"
-                        ? "text-violet-600"
-                        : "text-orange-600"
-                }
-              `}
-                          />
+                        <div className={`flex h-8 w-8 items-center justify-center rounded-lg ${c.bg}`}>
+                          <Icon className={`h-4 w-4 ${c.icon}`} />
                         </div>
                       </div>
                     </div>
@@ -1922,10 +1849,6 @@ export default function Insights() {
                       </div>
                     </div>
                   )}
-                  {/* ================= LABOUR ================= */}
-
-                  {/* ================= LABOUR ================= */}
-
                   {insightsSection === "Labour" && (
                     <div className="space-y-4">
                       {/* ================= KPI ================= */}

@@ -1,14 +1,8 @@
 import { useCallback, useState, useEffect } from "react";
 import { useBranchSync, getSelectedBranch } from "@/hooks/useBranchSync";
-import Dropdown from "../../components/common/Dropdown";
-import CommonTable from "@/components/common/CommonTable";
-
 import {
   EyeIcon,
   UsersIcon,
-  ArrowPathRoundedSquareIcon,
-  CurrencyRupeeIcon,
-  ChartBarIcon,
   MagnifyingGlassIcon,
 } from "@heroicons/react/24/outline";
 import { BarChart3Icon, IndianRupeeIcon, RepeatIcon } from "lucide-react";
@@ -24,8 +18,8 @@ export default function Customers() {
 
     return branches[0] || null;
   });
-  const [dateRange, setDateRange] = useState("all");
   const [search, setSearch] = useState("");
+  const [loading, setLoading] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState<any>(null);
   const [customers, setCustomers] = useState<any[]>([]);
   const [page, setPage] = useState(1);
@@ -41,45 +35,10 @@ export default function Customers() {
     (page - 1) * rowsPerPage,
     page * rowsPerPage,
   );
-  // ================= STATS =================
   const total = filtered.length;
   const repeat = filtered.filter((c) => c.visits > 1).length;
   const revenue = filtered.reduce((s, c) => s + c.spend, 0);
   const avg = total ? Math.round(revenue / total) : 0;
-  const stats = [
-    {
-      name: "Customers",
-      value: total,
-      icon: UsersIcon,
-      color: "from-blue-500 to-indigo-500",
-      text: "text-blue-600",
-      bg: "bg-blue-50",
-    },
-    {
-      name: "Repeat",
-      value: repeat,
-      icon: ArrowPathRoundedSquareIcon,
-      color: "from-emerald-500 to-teal-500",
-      text: "text-emerald-600",
-      bg: "bg-emerald-50",
-    },
-    {
-      name: "Avg Spend",
-      value: `₹${avg}`,
-      icon: CurrencyRupeeIcon,
-      color: "from-orange-500 to-amber-500",
-      text: "text-orange-600",
-      bg: "bg-orange-50",
-    },
-    {
-      name: "Revenue",
-      value: `₹${revenue}`,
-      icon: ChartBarIcon,
-      color: "from-red-500 to-pink-500",
-      text: "text-red-600",
-      bg: "bg-red-50",
-    },
-  ];
 
   useEffect(() => {
     const controller = new AbortController();
@@ -89,22 +48,19 @@ export default function Customers() {
 
   const fetchCustomers = async (signal?: AbortSignal) => {
     try {
+      setLoading(true);
       const token = localStorage.getItem("token");
       const user = JSON.parse(localStorage.getItem("user") || "{}");
       if (!selectedBranch?.id) return;
-
       let url = `${API_URL}/api/customers/${user.restaurantId}/${selectedBranch.id}/customerByBranch`;
-      if (selectedBranch.id !== 0) {
-        url += `?branchId=${selectedBranch.id}`;
-      }
-      const res = await fetch(url, {
-        signal,
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      if (selectedBranch.id !== 0) url += `?branchId=${selectedBranch.id}`;
+      const res = await fetch(url, { signal, headers: { Authorization: `Bearer ${token}` } });
       const data = await res.json();
       if (data.success) setCustomers(data.customers);
     } catch (err) {
       if (err instanceof DOMException) return;
+    } finally {
+      setLoading(false);
     }
   };
   const handleBranchChange = useCallback(() => {
@@ -112,32 +68,30 @@ export default function Customers() {
   }, []);
   useBranchSync(handleBranchChange);
 
+  if (loading) {
+    return (
+      <div className="flex min-h-[400px] items-center justify-center">
+        <div className="flex flex-col items-center gap-3">
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-gray-200 border-t-red-500" />
+          <p className="text-[12px] text-gray-500">Loading customers...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <main className="h-full flex-1 overflow-auto rounded-xl border border-gray-200 bg-[#f8fafc]">
       <div className="mx-auto flex w-full max-w-[1600px] flex-col gap-2.5">
-        {/* ================= HERO ================= */}
-
         <div className="relative overflow-hidden rounded-2xl border border-gray-100 bg-white px-5 py-4 shadow-sm transition-all duration-200 hover:shadow-md">
-          {/* GLOW */}
-
           <div className="absolute -right-10 -top-10 h-24 w-24 rounded-full bg-red-100/50 blur-3xl" />
-
           <div className="relative z-10 flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-            {/* LEFT */}
-
             <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-red-500 to-pink-500 shadow-sm">
                 <UsersIcon className="h-4 w-4 text-white" />
               </div>
-
               <div>
-                <h1 className="text-[18px] font-bold leading-none tracking-tight text-gray-900">
-                  Customer Overview
-                </h1>
-
-                <p className="mt-1 text-[11px] text-gray-500">
-                  Monitor repeat customers and spending analytics
-                </p>
+                <h1 className="text-[18px] font-bold leading-none tracking-tight text-gray-900">Customer Overview</h1>
+                <p className="mt-1 text-[11px] text-gray-500">Monitor repeat customers and spending analytics</p>
               </div>
             </div>
 

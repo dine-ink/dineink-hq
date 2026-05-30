@@ -151,7 +151,16 @@ export default function Dashboard() {
     fetchAnalytics();
     return () => controller.abort();
   }, [preset, range, selectedBranch?.id]);
-  if (hasRestaurant === null) return null;
+  if (hasRestaurant === null) {
+    return (
+      <div className="flex min-h-[60vh] items-center justify-center">
+        <div className="flex flex-col items-center gap-3">
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-gray-200 border-t-red-500" />
+          <p className="text-[12px] text-gray-500">Loading dashboard...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <>
@@ -313,22 +322,12 @@ export default function Dashboard() {
                       <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-red-500 to-rose-500 shadow-sm">
                         <span className="text-lg font-black text-white">D</span>
                       </div>
-
-                      {/* TITLE */}
                       <div>
                         <div className="flex items-center gap-2">
-                          <h1 className="text-xl font-black tracking-tight text-gray-900">
-                            Restaurant Dashboard
-                          </h1>
-
-                          <div className="rounded-full bg-emerald-50 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-emerald-600">
-                            Live
-                          </div>
+                          <h1 className="text-xl font-black tracking-tight text-gray-900">Restaurant Dashboard</h1>
+                          <div className="rounded-full bg-emerald-50 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-emerald-600">Live</div>
                         </div>
-
-                        <p className="mt-0.5 text-[13px] text-gray-500">
-                          Real-time business analytics & restaurant intelligence
-                        </p>
+                        <p className="mt-0.5 text-[13px] text-gray-500">Real-time business analytics & restaurant intelligence</p>
                       </div>
                     </div>
 
@@ -342,29 +341,15 @@ export default function Dashboard() {
                               key={f}
                               onClick={() => {
                                 setPreset(f);
-
-                                if (f === "custom") {
-                                  setCustomMode(true);
-                                  return;
-                                }
-
+                                if (f === "custom") { setCustomMode(true); return; }
                                 setCustomMode(false);
                                 setRange(getRange(f));
                               }}
-                              className={`
-          h-9
-          rounded-lg
-          px-3
-          text-[11px]
-          font-semibold
-          transition-all
-          duration-200
-          ${
-            preset === f
-              ? "bg-gradient-to-r from-red-500 to-rose-500 text-white shadow-sm"
-              : "border border-gray-200 bg-white text-gray-700 hover:border-red-200 hover:bg-red-50"
-          }
-        `}
+                              className={`h-9 rounded-lg px-3 text-[11px] font-semibold transition-all duration-200 ${
+                                preset === f
+                                  ? "bg-gradient-to-r from-red-500 to-rose-500 text-white shadow-sm"
+                                  : "border border-gray-200 bg-white text-gray-700 hover:border-red-200 hover:bg-red-50"
+                              }`}
                             >
                               {f.charAt(0).toUpperCase() + f.slice(1)}
                             </button>
