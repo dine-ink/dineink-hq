@@ -17,6 +17,9 @@ import Shops from "../pages/shops/Shops";
 import Bills from "../components/bills/Bills";
 import Customers from "../pages/customers/Customers";
 import Reports from "../pages/reports/Report";
+import Attendance from "../pages/attendance/Attendance";
+import CashSessions from "../pages/cash/CashSessions";
+import BranchComparison from "../pages/comparison/BranchComparison";
 import ProtectedRoute from './ProtectedRoute'
 import AuthRoute from './AuthRoute'
 import Insights from "@/pages/insights/Insights";
@@ -68,6 +71,10 @@ export default function AppRoutes() {
           <Route path="customers" element={<Customers/>}/>
           <Route path="insights" element={<Insights />}/>
           <Route path="menu-management" element={<MenuManagement/>}/>
+          <Route path="reports" element={<Reports />}/>
+          <Route path="attendance" element={<Attendance />}/>
+          <Route path="cash" element={<CashSessions />}/>
+          <Route path="comparison" element={<BranchComparison />}/>
         </Route>
 
       </Routes>

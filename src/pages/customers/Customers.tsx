@@ -35,10 +35,19 @@ export default function Customers() {
     (page - 1) * rowsPerPage,
     page * rowsPerPage,
   );
+  const [activeTab, setActiveTab] = useState<"overview" | "churn">("overview");
   const total = filtered.length;
   const repeat = filtered.filter((c) => c.visits > 1).length;
   const revenue = filtered.reduce((s, c) => s + c.spend, 0);
   const avg = total ? Math.round(revenue / total) : 0;
+
+  // Churn analysis
+  const now = new Date();
+  const active = customers.filter(c => c.lastVisit && (now.getTime() - new Date(c.lastVisit).getTime()) / (1000 * 60 * 60 * 24) <= 30);
+  const atRisk = customers.filter(c => c.lastVisit && (now.getTime() - new Date(c.lastVisit).getTime()) / (1000 * 60 * 60 * 24) > 30 && (now.getTime() - new Date(c.lastVisit).getTime()) / (1000 * 60 * 60 * 24) <= 90);
+  const churned = customers.filter(c => !c.lastVisit || (now.getTime() - new Date(c.lastVisit).getTime()) / (1000 * 60 * 60 * 24) > 90);
+  const topCustomers = [...customers].sort((a, b) => b.spend - a.spend).slice(0, 10);
+  const clvAvg = total > 0 ? Math.round(customers.reduce((s, c) => s + Number(c.spend || 0), 0) / total) : 0;
 
   useEffect(() => {
     const controller = new AbortController();
@@ -52,8 +61,7 @@ export default function Customers() {
       const token = localStorage.getItem("token");
       const user = JSON.parse(localStorage.getItem("user") || "{}");
       if (!selectedBranch?.id) return;
-      let url = `${API_URL}/api/customers/${user.restaurantId}/${selectedBranch.id}/customerByBranch`;
-      if (selectedBranch.id !== 0) url += `?branchId=${selectedBranch.id}`;
+      const url = `${API_URL}/api/customers/${user.restaurantId}/customerByBranch?branchId=${selectedBranch.id}`;
       const res = await fetch(url, { signal, headers: { Authorization: `Bearer ${token}` } });
       const data = await res.json();
       if (data.success) setCustomers(data.customers);
@@ -90,92 +98,37 @@ export default function Customers() {
                 <UsersIcon className="h-4 w-4 text-white" />
               </div>
               <div>
-                <h1 className="text-[18px] font-bold leading-none tracking-tight text-gray-900">Customer Overview</h1>
-                <p className="mt-1 text-[11px] text-gray-500">Monitor repeat customers and spending analytics</p>
+                <h1 className="text-[18px] font-bold leading-none tracking-tight text-gray-900">Customers</h1>
+                <p className="mt-1 text-[11px] text-gray-500">Customer analytics, retention and churn intelligence</p>
+              </div>
+              <div className="ml-2 flex rounded-lg border border-gray-200 bg-white overflow-hidden">
+                <button onClick={() => setActiveTab("overview")} className={`px-3 py-1.5 text-[11px] font-semibold transition ${activeTab === "overview" ? "bg-red-500 text-white" : "text-gray-600 hover:bg-gray-50"}`}>Overview</button>
+                <button onClick={() => setActiveTab("churn")} className={`px-3 py-1.5 text-[11px] font-semibold transition ${activeTab === "churn" ? "bg-red-500 text-white" : "text-gray-600 hover:bg-gray-50"}`}>Churn Analysis</button>
               </div>
             </div>
 
-            {/* KPI */}
-
             <div className="flex flex-wrap items-center gap-1.5">
-              {/* CUSTOMERS */}
-
-              <div className="flex items-center gap-2 rounded-xl border border-blue-100 bg-blue-50 px-2.5 py-1.5 shadow-sm">
-                <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-blue-100">
-                  <UsersIcon className="h-3 w-3 text-blue-600" />
+              {[
+                { label: "Customers", value: total, Icon: UsersIcon, cls: "border-blue-100 bg-blue-50", ibg: "bg-blue-100", ico: "text-blue-600", val: "text-blue-700", lbl: "text-blue-400" },
+                { label: "Repeat", value: repeat, Icon: RepeatIcon, cls: "border-emerald-100 bg-emerald-50", ibg: "bg-emerald-100", ico: "text-emerald-600", val: "text-emerald-700", lbl: "text-emerald-400" },
+                { label: "Avg Spend", value: `₹${avg}`, Icon: IndianRupeeIcon, cls: "border-orange-100 bg-orange-50", ibg: "bg-orange-100", ico: "text-orange-600", val: "text-orange-700", lbl: "text-orange-400" },
+                { label: "Revenue", value: `₹${revenue.toLocaleString()}`, Icon: BarChart3Icon, cls: "border-red-100 bg-red-50", ibg: "bg-red-100", ico: "text-red-600", val: "text-red-700", lbl: "text-red-400" },
+              ].map(k => (
+                <div key={k.label} className={`flex items-center gap-2 rounded-xl border px-2.5 py-1.5 shadow-sm ${k.cls}`}>
+                  <div className={`flex h-6 w-6 items-center justify-center rounded-lg ${k.ibg}`}>
+                    <k.Icon className={`h-3 w-3 ${k.ico}`} />
+                  </div>
+                  <div>
+                    <p className={`text-[8px] font-bold uppercase tracking-[0.12em] ${k.lbl}`}>{k.label}</p>
+                    <p className={`text-[13px] font-black leading-none ${k.val}`}>{k.value}</p>
+                  </div>
                 </div>
-
-                <div>
-                  <p className="text-[8px] font-bold uppercase tracking-[0.12em] text-blue-400">
-                    Customers
-                  </p>
-
-                  <p className="text-[13px] font-black leading-none text-blue-700">
-                    {total}
-                  </p>
-                </div>
-              </div>
-
-              {/* REPEAT */}
-
-              <div className="flex items-center gap-2 rounded-xl border border-emerald-100 bg-emerald-50 px-2.5 py-1.5 shadow-sm">
-                <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-emerald-100">
-                  <RepeatIcon className="h-3 w-3 text-emerald-600" />
-                </div>
-
-                <div>
-                  <p className="text-[8px] font-bold uppercase tracking-[0.12em] text-emerald-400">
-                    Repeat
-                  </p>
-
-                  <p className="text-[13px] font-black leading-none text-emerald-700">
-                    {repeat}
-                  </p>
-                </div>
-              </div>
-
-              {/* AVG */}
-
-              <div className="flex items-center gap-2 rounded-xl border border-orange-100 bg-orange-50 px-2.5 py-1.5 shadow-sm">
-                <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-orange-100">
-                  <IndianRupeeIcon className="h-3 w-3 text-orange-600" />
-                </div>
-
-                <div>
-                  <p className="text-[8px] font-bold uppercase tracking-[0.12em] text-orange-400">
-                    Avg Spend
-                  </p>
-
-                  <p className="text-[13px] font-black leading-none text-orange-700">
-                    ₹{avg}
-                  </p>
-                </div>
-              </div>
-
-              {/* REVENUE */}
-
-              <div className="flex items-center gap-2 rounded-xl border border-red-100 bg-red-50 px-2.5 py-1.5 shadow-sm">
-                <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-red-100">
-                  <BarChart3Icon className="h-3 w-3 text-red-600" />
-                </div>
-
-                <div>
-                  <p className="text-[8px] font-bold uppercase tracking-[0.12em] text-red-400">
-                    Revenue
-                  </p>
-
-                  <p className="text-[13px] font-black leading-none text-red-700">
-                    ₹{revenue.toLocaleString()}
-                  </p>
-                </div>
-              </div>
+              ))}
             </div>
           </div>
         </div>
 
-        {/* ================= TABLE ================= */}
-
-        <div className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm transition-all duration-200 hover:shadow-md">
+        {activeTab === "overview" && <div className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm transition-all duration-200 hover:shadow-md">
           {/* HEADER */}
 
           <div className="border-b border-gray-100 px-4 py-2.5">
@@ -203,7 +156,7 @@ export default function Customers() {
 
                 <input
                   placeholder="Search customer..."
-                  className="h-9 w-full rounded-lg border border-gray-200 bg-white pl-8 pr-3 text-[12px] outline-none transition-all focus:border-red-400 lg:w-60"
+                  className="h-9 w-full rounded-xl border border-gray-200 bg-white pl-8 pr-3 text-[12px] outline-none transition-all focus:border-red-400 focus:ring-2 focus:ring-red-100 lg:w-60"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                 />
@@ -245,7 +198,7 @@ export default function Customers() {
                 {paginatedCustomers.map((c: any) => {
                   const avgBill = c.visits ? Math.round(c.spend / c.visits) : 0;
 
-                  const preferred = c.bills?.[0]?.orderType || "-";
+                  const preferred = c.preferredOrderType || "-";
 
                   const segment =
                     c.spend > 5000 ? "VIP" : c.visits > 3 ? "Regular" : "New";
@@ -401,7 +354,130 @@ export default function Customers() {
               </button>
             </div>
           </div>
-        </div>
+        </div>}
+
+        {activeTab === "churn" && (
+          <div className="space-y-3">
+            {/* CHURN KPIs */}
+            <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+              {[
+                { label: "Active", value: active.length, sub: "visited in last 30 days", cls: "border-emerald-100 bg-emerald-50/60", val: "text-emerald-700" },
+                { label: "At Risk", value: atRisk.length, sub: "30–90 days since visit", cls: "border-orange-100 bg-orange-50/60", val: "text-orange-700" },
+                { label: "Churned", value: churned.length, sub: "no visit in 90+ days", cls: "border-red-100 bg-red-50/60", val: "text-red-700" },
+                { label: "Avg CLV", value: `₹${clvAvg.toLocaleString()}`, sub: "customer lifetime value", cls: "border-violet-100 bg-violet-50/60", val: "text-violet-700" },
+              ].map(k => (
+                <div key={k.label} className={`rounded-xl border p-4 ${k.cls}`}>
+                  <p className="text-[10px] font-bold uppercase tracking-wide text-gray-500">{k.label}</p>
+                  <p className={`mt-2 text-[22px] font-bold ${k.val}`}>{k.value}</p>
+                  <p className="mt-1 text-[11px] text-gray-500">{k.sub}</p>
+                </div>
+              ))}
+            </div>
+
+            {/* TOP CUSTOMERS */}
+            <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
+              <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+                <div className="border-b border-gray-100 px-4 py-3">
+                  <h3 className="text-[15px] font-bold text-gray-900">Top 10 Customers by Spend</h3>
+                  <p className="mt-0.5 text-[11px] text-gray-500">Your highest-value customers — never lose these</p>
+                </div>
+                <div className="divide-y divide-gray-50">
+                  {topCustomers.map((c: any, i: number) => (
+                    <div key={c.id} className="flex items-center gap-3 px-4 py-2.5">
+                      <span className="w-5 text-center text-[11px] font-bold text-gray-400">#{i + 1}</span>
+                      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-red-400 to-pink-500 text-[11px] font-bold text-white">
+                        {c.name?.charAt(0)}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[13px] font-semibold text-gray-900 truncate">{c.name}</p>
+                        <p className="text-[10px] text-gray-400">{c.phone} · {c.visits} visits</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-[13px] font-bold text-emerald-600">₹{Number(c.spend || 0).toLocaleString()}</p>
+                        <p className="text-[9px] text-gray-400">₹{c.visits ? Math.round(c.spend / c.visits) : 0} avg</p>
+                      </div>
+                    </div>
+                  ))}
+                  {topCustomers.length === 0 && <div className="py-10 text-center text-[12px] text-gray-400">No customers yet</div>}
+                </div>
+              </div>
+
+              {/* AT-RISK CUSTOMERS */}
+              <div className="overflow-hidden rounded-xl border border-orange-100 bg-white shadow-sm">
+                <div className="border-b border-orange-100 bg-orange-50/40 px-4 py-3">
+                  <h3 className="text-[15px] font-bold text-gray-900">⚠ At-Risk Customers</h3>
+                  <p className="mt-0.5 text-[11px] text-gray-500">Haven't visited in 30–90 days — reach out now before they churn</p>
+                </div>
+                <div className="divide-y divide-gray-50 max-h-[320px] overflow-y-auto">
+                  {atRisk.slice(0, 15).map((c: any) => {
+                    const daysSince = c.lastVisit ? Math.floor((Date.now() - new Date(c.lastVisit).getTime()) / (1000 * 60 * 60 * 24)) : null;
+                    return (
+                      <div key={c.id} className="flex items-center gap-3 px-4 py-2.5">
+                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-orange-100 text-[11px] font-bold text-orange-700">
+                          {c.name?.charAt(0)}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-[13px] font-semibold text-gray-900 truncate">{c.name}</p>
+                          <p className="text-[10px] text-gray-400">{c.phone} · {c.visits} visits · ₹{c.spend} total</p>
+                        </div>
+                        <span className="rounded-full bg-orange-50 px-2 py-0.5 text-[10px] font-bold text-orange-600 whitespace-nowrap">
+                          {daysSince}d ago
+                        </span>
+                      </div>
+                    );
+                  })}
+                  {atRisk.length === 0 && <div className="py-10 text-center text-[12px] text-gray-400">No at-risk customers — great retention!</div>}
+                </div>
+              </div>
+            </div>
+
+            {/* CHURNED CUSTOMERS */}
+            <div className="overflow-hidden rounded-xl border border-red-100 bg-white shadow-sm">
+              <div className="border-b border-red-100 bg-red-50/40 px-4 py-3 flex items-center justify-between">
+                <div>
+                  <h3 className="text-[15px] font-bold text-gray-900">Churned Customers</h3>
+                  <p className="mt-0.5 text-[11px] text-gray-500">No visit in 90+ days — consider a win-back campaign</p>
+                </div>
+                <span className="rounded-full bg-red-100 px-3 py-1 text-[11px] font-bold text-red-700">{churned.length} churned</span>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="min-w-full text-[12px]">
+                  <thead className="bg-gray-50">
+                    <tr className="border-b border-gray-100">
+                      {["Customer", "Phone", "Total Visits", "Total Spend", "Last Visit", "Days Since", "Avg Bill"].map(h => (
+                        <th key={h} className="px-4 py-2 text-left text-[10px] font-bold uppercase tracking-wide text-gray-400">{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {churned.slice(0, 20).map((c: any) => {
+                      const daysSince = c.lastVisit ? Math.floor((Date.now() - new Date(c.lastVisit).getTime()) / (1000 * 60 * 60 * 24)) : null;
+                      return (
+                        <tr key={c.id} className="border-b border-gray-50 hover:bg-red-50/20">
+                          <td className="px-4 py-2.5">
+                            <div className="flex items-center gap-2">
+                              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-red-100 text-[10px] font-bold text-red-600">{c.name?.charAt(0)}</div>
+                              <p className="font-semibold text-gray-900">{c.name}</p>
+                            </div>
+                          </td>
+                          <td className="px-4 py-2.5 text-gray-500">{c.phone}</td>
+                          <td className="px-4 py-2.5 text-gray-700">{c.visits}</td>
+                          <td className="px-4 py-2.5 font-semibold text-gray-900">₹{Number(c.spend || 0).toLocaleString()}</td>
+                          <td className="px-4 py-2.5 text-gray-500">{c.lastVisit ? new Date(c.lastVisit).toLocaleDateString() : "Never"}</td>
+                          <td className="px-4 py-2.5">
+                            <span className="rounded-full bg-red-50 px-2 py-0.5 text-[10px] font-bold text-red-600">{daysSince ? `${daysSince}d` : "—"}</span>
+                          </td>
+                          <td className="px-4 py-2.5 text-gray-600">₹{c.visits ? Math.round(c.spend / c.visits) : 0}</td>
+                        </tr>
+                      );
+                    })}
+                    {churned.length === 0 && <tr><td colSpan={7} className="py-10 text-center text-[12px] text-gray-400">No churned customers — excellent retention!</td></tr>}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </main>
   );

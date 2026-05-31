@@ -110,31 +110,32 @@ export default function Insights() {
     plannedExpansion: "",
     revenue: 0,
   });
+  const n = (v: any) => Number(v) || 0;
   const totalFixedExpenses =
-    insightsData.monthlyRent +
-    insightsData.loanEmi +
-    insightsData.internet +
-    insightsData.phoneBills +
-    insightsData.accounting +
-    insightsData.insurance +
-    insightsData.licenses;
+    n(insightsData.monthlyRent) +
+    n(insightsData.loanEmi) +
+    n(insightsData.internet) +
+    n(insightsData.phoneBills) +
+    n(insightsData.accounting) +
+    n(insightsData.insurance) +
+    n(insightsData.licenses);
   const totalVariableExpenses =
-    insightsData.deliveryCharges +
-    insightsData.packaging +
-    insightsData.paymentGateway +
-    insightsData.aggregatorCommission +
-    insightsData.electricity +
-    insightsData.gas +
-    insightsData.maintenance +
-    insightsData.fuel;
+    n(insightsData.deliveryCharges) +
+    n(insightsData.packaging) +
+    n(insightsData.paymentGateway) +
+    n(insightsData.aggregatorCommission) +
+    n(insightsData.electricity) +
+    n(insightsData.gas) +
+    n(insightsData.maintenance) +
+    n(insightsData.fuel);
   const totalLabourCost =
     staffData?.reduce((sum: number, s: any) => sum + (s.salary || 0), 0) || 0;
   const totalFinanceCost =
-    insightsData.monthlyLoanEmi +
-    insightsData.monthlyInterestPayments +
-    insightsData.caFees +
-    insightsData.insuranceCost +
-    insightsData.otherTaxes;
+    n(insightsData.monthlyLoanEmi) +
+    n(insightsData.monthlyInterestPayments) +
+    n(insightsData.caFees) +
+    n(insightsData.insuranceCost) +
+    n(insightsData.otherTaxes);
   const totalExpenses =
     totalFixedExpenses +
     totalVariableExpenses +
@@ -211,7 +212,12 @@ export default function Insights() {
         const json = await res.json();
 
         if (json.success && json.data) {
-          setInsightsData(json.data);
+          // Normalize null/undefined → 0 for all numeric fields so downstream
+          // arithmetic (totalFixedExpenses + ...) never produces NaN
+          const normalized = Object.fromEntries(
+            Object.entries(json.data).map(([k, v]) => [k, v === null || v === undefined ? 0 : v])
+          );
+          setInsightsData((prev: any) => ({ ...prev, ...normalized }));
         }
       } catch {
         // fetch error
@@ -745,8 +751,7 @@ export default function Insights() {
     <main className="flex flex-col overflow-hidden bg-[#f5f6fa]">
       <div className="mx-auto flex h-full w-full flex-col gap-4 overflow-hidden">
         {/* HEADER */}
-        <div className="relative overflow-hidden rounded-md border border-gray-200 bg-white px-4 py-3 shadow-sm">
-          {/* Glow */}
+        <div className="relative overflow-hidden rounded-xl border border-gray-200 bg-white px-4 py-3 shadow-sm">
           <div className="absolute -right-10 -top-10 h-24 w-24 rounded-full bg-red-100/50 blur-3xl" />
 
           <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
@@ -933,22 +938,11 @@ export default function Insights() {
                           {item.label}
                         </p>
 
-                        <p
-                          className={`
-              text-[16px]
-              font-bold
-
-              ${
-                item.color === "emerald"
-                  ? "text-emerald-600"
-                  : item.color === "red"
-                    ? "text-red-600"
-                    : item.color === "violet"
-                      ? "text-violet-600"
-                      : "text-orange-600"
-              }
-            `}
-                        >
+                        <p className={`text-[16px] font-bold ${
+                          item.color === "emerald" ? "text-emerald-600" :
+                          item.color === "red" ? "text-red-600" :
+                          item.color === "violet" ? "text-violet-600" : "text-orange-600"
+                        }`}>
                           {item.value}
                         </p>
                       </div>
@@ -961,25 +955,17 @@ export default function Insights() {
                 <div className="mt-4">
                   <div className="mb-2 flex items-center justify-between">
                     <p className="text-[11px] text-gray-500">EBITDA Progress</p>
-
                     <p className="text-[11px] font-semibold text-violet-600">
-                      {Math.min(
-                        Math.round(
-                          (Number(ebitdaPercentage) /
-                            insightsData.targetEbitda) *
-                            100,
-                        ),
-                        100,
-                      )}
-                      %
+                      {insightsData.targetEbitda > 0
+                        ? Math.min(Math.round((Number(ebitdaPercentage) / insightsData.targetEbitda) * 100), 100)
+                        : 0}%
                     </p>
                   </div>
-
                   <div className="h-2 overflow-hidden rounded-full bg-gray-100">
                     <div
                       className="h-full rounded-full bg-violet-500"
                       style={{
-                        width: `${Math.min((Number(ebitdaPercentage) / insightsData.targetEbitda) * 100, 100)}%`,
+                        width: `${insightsData.targetEbitda > 0 ? Math.min((Number(ebitdaPercentage) / insightsData.targetEbitda) * 100, 100) : 0}%`,
                       }}
                     />
                   </div>
@@ -1028,103 +1014,31 @@ export default function Insights() {
                     return (
                       <div
                         key={target}
-                        className={`
-            rounded-2xl
-            border
-            p-3
-            shadow-sm
-            transition-all
-
-            ${
-              target >= 20
-                ? "border-emerald-100 bg-emerald-50/40"
-                : target >= 10
-                  ? "border-orange-100 bg-orange-50/40"
-                  : "border-gray-200 bg-gray-50"
-            }
-          `}
+                        className={`rounded-2xl border p-3 shadow-sm transition-all ${
+                          target >= 20 ? "border-emerald-100 bg-emerald-50/40" :
+                          target >= 10 ? "border-orange-100 bg-orange-50/40" : "border-gray-200 bg-gray-50"
+                        }`}
                       >
-                        {/* TOP */}
-
                         <div className="flex items-center justify-between">
-                          <p
-                            className={`
-                text-[10px]
-                font-bold
-                uppercase
-                tracking-[0.14em]
-
-                ${
-                  target >= 20
-                    ? "text-emerald-500"
-                    : target >= 10
-                      ? "text-orange-500"
-                      : "text-gray-500"
-                }
-              `}
-                          >
+                          <p className={`text-[10px] font-bold uppercase tracking-[0.14em] ${
+                            target >= 20 ? "text-emerald-500" : target >= 10 ? "text-orange-500" : "text-gray-500"
+                          }`}>
                             {target}% EBITDA
                           </p>
-
-                          <div
-                            className={`
-                h-2
-                w-2
-                rounded-full
-
-                ${
-                  target >= 20
-                    ? "bg-emerald-500"
-                    : target >= 10
-                      ? "bg-orange-500"
-                      : "bg-gray-400"
-                }
-              `}
-                          />
+                          <div className={`h-2 w-2 rounded-full ${
+                            target >= 20 ? "bg-emerald-500" : target >= 10 ? "bg-orange-500" : "bg-gray-400"
+                          }`} />
                         </div>
-
-                        {/* VALUE */}
-
                         <p className="mt-3 text-[24px] font-bold leading-none tracking-tight text-gray-900">
                           ₹{Math.round(requiredRevenue).toLocaleString()}
                         </p>
-
-                        {/* EXTRA */}
-
-                        <p
-                          className={`
-              mt-2
-              text-[11px]
-              font-semibold
-
-              ${extraNeeded <= 0 ? "text-emerald-600" : "text-red-500"}
-            `}
-                        >
-                          {extraNeeded <= 0
-                            ? "Target achieved"
-                            : `+₹${Math.round(extraNeeded).toLocaleString()}`}
+                        <p className={`mt-2 text-[11px] font-semibold ${extraNeeded <= 0 ? "text-emerald-600" : "text-red-500"}`}>
+                          {extraNeeded <= 0 ? "Target achieved" : `+₹${Math.round(extraNeeded).toLocaleString()}`}
                         </p>
-
-                        {/* BAR */}
-
                         <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/80">
-                          <div
-                            className={`
-                h-full
-                rounded-full
-
-                ${
-                  target >= 20
-                    ? "bg-emerald-500"
-                    : target >= 10
-                      ? "bg-orange-500"
-                      : "bg-gray-500"
-                }
-              `}
-                            style={{
-                              width: `${Math.min(target * 4, 100)}%`,
-                            }}
-                          />
+                          <div className={`h-full rounded-full ${
+                            target >= 20 ? "bg-emerald-500" : target >= 10 ? "bg-orange-500" : "bg-gray-500"
+                          }`} style={{ width: `${Math.min(target * 4, 100)}%` }} />
                         </div>
                       </div>
                     );
@@ -1167,33 +1081,13 @@ export default function Insights() {
                   const Icon = item.icon;
 
                   return (
-                    <div
-                      key={item.label}
-                      className="
-          rounded-2xl
-          border
-          border-gray-200
-          bg-white
-          p-3
-          shadow-sm
-        "
-                    >
+                    <div key={item.label} className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
                       <div className="flex items-start justify-between">
                         <div>
-                          <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-gray-400">
-                            {item.label}
-                          </p>
-
-                          <p className="mt-2 text-[22px] font-bold tracking-tight text-gray-900">
-                            ₹{Math.round(item.value).toLocaleString()}
-                          </p>
-
-                          <p className="mt-1 text-[11px] text-gray-500">
-                            {((item.value / totalExpenses) * 100).toFixed(1)}%
-                            of expenses
-                          </p>
+                          <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-gray-400">{item.label}</p>
+                          <p className="mt-2 text-[22px] font-bold tracking-tight text-gray-900">₹{Math.round(item.value).toLocaleString()}</p>
+                          <p className="mt-1 text-[11px] text-gray-500">{totalExpenses > 0 ? ((item.value / totalExpenses) * 100).toFixed(1) : "0.0"}% of expenses</p>
                         </div>
-
                         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gray-100">
                           <Icon className="h-4 w-4 text-gray-700" />
                         </div>
@@ -1202,158 +1096,6 @@ export default function Insights() {
                   );
                 })}
               </div>
-              {/* TOP PURCHASED INGREDIENTS */}
-              {/* <div className="rounded-2xl border border-white/40 bg-white/70 px-5 py-4 shadow-[0_8px_30px_rgba(0,0,0,0.05)] backdrop-blur-xl">
-                <div className="mb-4 flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-orange-50">
-                    <ShoppingCart className="h-5 w-5 text-orange-600" />
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-semibold text-gray-900">Top Purchased Ingredients</h3>
-                    <p className="mt-1 text-sm text-gray-500">Highest inventory spending this month</p>
-                  </div>
-                </div>
-                <div className="space-y-3">
-                  {topPurchasedIngredients.map((item: any,index: number,) => (
-                      <div
-                        key={index}
-                        className="group relative overflow-hidden rounded-2xl border border-gray-100 bg-white px-4 py-3 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
-                      >
-                        <div className="absolute inset-y-0 left-0 w-1 rounded-full bg-gradient-to-b from-orange-400 to-red-500"></div>
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-4">
-                            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-orange-50 text-sm font-bold text-orange-600">
-                              #{index + 1}
-                            </div>
-                            <div>
-                              <p className="text-sm font-semibold tracking-tight text-gray-900">{item.Ingredient}</p>
-                              <p className="mt-1 text-xs text-gray-400">{item.Category}</p>
-                              <div className="mt-2 inline-flex rounded-full bg-orange-50 px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-orange-600">
-                                High Purchase Volume
-                              </div>
-                            </div>
-                          </div>
-                          <div className="text-right">
-                            <p className="text-base font-bold text-gray-900">
-                              ₹
-                              {Math.round(
-                                Number(
-                                  item.TotalPurchaseAmount ||
-                                    0,
-                                ),
-                              ).toLocaleString()}
-                            </p>
-                            <p className="mt-1 text-xs font-medium text-orange-500">
-                              {item.TotalPurchasedQty}
-                              {" "}
-                              {item.Unit}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    ),
-                  )}
-                </div>
-              </div> */}
-              {/* AI INSIGHTS */}
-              {/* <div className="relative overflow-hidden rounded-2xl border border-violet-100 from-rose-500 to-red-500  p-4 shadow-[0_8px_30px_rgba(124,58,237,0.08)]">
-                <div className="absolute -right-16 -top-16 h-48 w-48 rounded-full bg-red-200/40 blur-3xl"></div>
-                <div className="absolute bottom-0 left-0 h-40 w-40 rounded-full bg-rose-100/40 blur-3xl"></div>
-                <div className="mb-6 flex items-center gap-3">
-                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-red-100 shadow-sm">
-                    <Sparkles className="h-5 w-5 text-red-600" />
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-semibold text-red-900">AI Business Insights</h3>
-                    <p className="mt-1 text-sm text-red-600">Automated operational intelligence</p>
-                  </div>
-                </div>
-                <div className="mt-5 space-y-4"> */}
-
-              {/* FOOD COST */}
-              {/* {Number(
-                    actualFoodCostPercentage,
-                  ) >
-                    insightsData.targetFoodCost && (
-
-                    <div className="rounded-xl bg-white p-4 text-sm text-red-700 shadow-sm">
-
-                      Food cost is above target by{" "}
-                      {(
-                        Number(
-                          actualFoodCostPercentage,
-                        ) -
-                        insightsData.targetFoodCost
-                      ).toFixed(1)}
-                      %. Review ingredient pricing and wastage.
-                    </div>
-                  )} */}
-
-              {/* PRIME COST */}
-              {/* {Number(
-                    primeCostPercentage,
-                  ) >
-                    insightsData.targetPrimeCost && (
-
-                    <div className="rounded-xl bg-white p-4 text-sm text-red-700 shadow-sm">
-
-                      Prime cost exceeds healthy threshold. Labour or food costs need optimization.
-                    </div>
-                  )} */}
-
-              {/* EBITDA */}
-              {/* {Number(
-                    ebitdaPercentage,
-                  ) <
-                    insightsData.targetEbitda && (
-
-                    <div className="rounded-xl bg-white p-4 text-sm text-red-700 shadow-sm">
-
-                      Current EBITDA is below target. Increasing monthly sales or reducing overhead can improve profitability.
-                    </div>
-                  )} */}
-
-              {/* INFLATION */}
-              {/* {inflatedIngredients.length >
-                    0 && (
-
-                    <div className="rounded-xl bg-white p-4 text-sm text-red-700 shadow-sm">
-
-                      {
-                        inflatedIngredients[0]
-                          ?.Ingredient
-                      }
-                      {" "}
-                      purchase price increased during the month. Vendor or market inflation may be impacting margins.
-                    </div>
-                  )} */}
-
-              {/* INVENTORY VALUE */}
-              {/* {inventoryValue >
-                    revenue * 0.4 && (
-
-                    <div className="rounded-xl bg-white p-4 text-sm text-red-700 shadow-sm">
-
-                      Inventory holding value is relatively high compared to monthly sales. Overstocking may affect cash flow.
-                    </div>
-                  )} */}
-
-              {/* HIGH PURCHASE COST */}
-              {/* {topPurchasedIngredients.length >
-                    0 && (
-
-                    <div className="rounded-xl bg-white p-4 text-sm text-red-700 shadow-sm">
-
-                      Highest inventory spending this month was on{" "}
-                      {
-                        topPurchasedIngredients[0]
-                          ?.Ingredient
-                      }
-                      . Monitoring supplier pricing could improve profitability.
-                    </div>
-                  )}
-                </div>
-              </div> */}
             </div>
           )}
 

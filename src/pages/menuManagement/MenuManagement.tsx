@@ -2614,49 +2614,11 @@ export default function MenuManagement() {
 
                     {/* TEMPLATE BUTTON */}
 
-                    <button
-                      onClick={downloadInventoryTemplate}
-                      className="
-      flex
-      h-10
-      items-center
-      rounded-xl
-      border
-      border-red-100
-      bg-white
-      px-4
-      text-[12px]
-      font-semibold
-      text-red-600
-      shadow-sm
-      transition
-      hover:bg-red-50
-    "
-                    >
+                    <button onClick={downloadInventoryTemplate}
+                      className="flex h-10 items-center rounded-xl border border-red-100 bg-white px-4 text-[12px] font-semibold text-red-600 shadow-sm transition hover:bg-red-50">
                       Restock Template
                     </button>
-
-                    {/* UPLOAD BUTTON */}
-
-                    <label
-                      className="
-      flex
-      h-10
-      cursor-pointer
-      items-center
-      rounded-xl
-      bg-gradient-to-r
-      from-red-500
-      to-pink-500
-      px-4
-      text-[12px]
-      font-semibold
-      text-white
-      shadow-sm
-      transition
-      hover:scale-[1.02]
-    "
-                    >
+                    <label className="flex h-10 cursor-pointer items-center rounded-xl bg-gradient-to-r from-red-500 to-pink-500 px-4 text-[12px] font-semibold text-white shadow-sm transition hover:scale-[1.02]">
                       {uploadingRestock ? "Uploading..." : "Upload Restock"}
 
                       <input
@@ -2695,26 +2657,11 @@ export default function MenuManagement() {
                       {/* WEEK SWITCHER */}
 
                       <div className="flex items-center rounded-2xl border border-gray-200 bg-gray-50 p-1">
-                        {[1, 2, 3, 4, 5].map((week) => (
-                          <button
-                            key={week}
-                            onClick={() => setSelectedWeek(`week${week}`)}
-                            className={`
-                min-w-[72px]
-                rounded-xl
-                px-3
-                py-2
-                text-[12px]
-                font-semibold
-                transition-all
-
-                ${
-                  selectedWeek === `week${week}`
-                    ? "bg-gradient-to-r from-red-500 to-pink-500 text-white shadow-sm"
-                    : "text-gray-600 hover:bg-white"
-                }
-              `}
-                          >
+                        {[1, 2, 3, 4, 5].map(week => (
+                          <button key={week} onClick={() => setSelectedWeek(`week${week}`)}
+                            className={`min-w-[64px] rounded-xl px-3 py-2 text-[12px] font-semibold transition-all ${
+                              selectedWeek === `week${week}` ? "bg-gradient-to-r from-red-500 to-pink-500 text-white shadow-sm" : "text-gray-600 hover:bg-white"
+                            }`}>
                             Week {week}
                           </button>
                         ))}
@@ -2743,22 +2690,7 @@ export default function MenuManagement() {
                           "Monthly Purchase",
                           "RM Expense",
                         ].map((head) => (
-                          <th
-                            key={head}
-                            className="
-                whitespace-nowrap
-                border-b
-                border-gray-100
-                px-4
-                py-3
-                text-left
-                text-[10px]
-                font-bold
-                uppercase
-                tracking-[0.16em]
-                text-gray-400
-              "
-                          >
+                          <th key={head} className="whitespace-nowrap border-b border-gray-100 px-4 py-3 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-gray-400">
                             {head}
                           </th>
                         ))}
@@ -2770,15 +2702,7 @@ export default function MenuManagement() {
                     <tbody>
                       {restocks?.length ? (
                         restocks.map((row: any, index: number) => (
-                          <tr
-                            key={index}
-                            className="
-                border-b
-                border-gray-100
-                transition
-                hover:bg-gray-50/80
-              "
-                          >
+                          <tr key={index} className="border-b border-gray-100 transition hover:bg-gray-50/80">
                             {/* INGREDIENT */}
 
                             <td className="px-4 py-3">
@@ -3590,74 +3514,22 @@ export default function MenuManagement() {
                         {/* VIEW TOGGLE */}
 
                         <div className="flex items-center rounded-xl border border-gray-200 bg-gray-50 p-1">
-                          <button
-                            onClick={() => setViewMode("pie")}
-                            className={`
-              rounded-lg
-              px-3
-              py-1.5
-              text-[11px]
-              font-semibold
-              transition
-
-              ${
-                viewMode === "pie"
-                  ? "bg-white text-red-600 shadow-sm"
-                  : "text-gray-500"
-              }
-            `}
-                          >
-                            Pie
-                          </button>
-
-                          <button
-                            onClick={() => setViewMode("table")}
-                            className={`
-              rounded-lg
-              px-3
-              py-1.5
-              text-[11px]
-              font-semibold
-              transition
-
-              ${
-                viewMode === "table"
-                  ? "bg-white text-red-600 shadow-sm"
-                  : "text-gray-500"
-              }
-            `}
-                          >
-                            Table
-                          </button>
+                          {["pie", "table"].map(mode => (
+                            <button key={mode} onClick={() => setViewMode(mode)}
+                              className={`rounded-lg px-3 py-1.5 text-[11px] font-semibold transition ${viewMode === mode ? "bg-white text-red-600 shadow-sm" : "text-gray-500"}`}>
+                              {mode.charAt(0).toUpperCase() + mode.slice(1)}
+                            </button>
+                          ))}
                         </div>
-
-                        {/* CATEGORY */}
-
                         <select
                           value={selectedCategory}
-                          onChange={(e) => setSelectedCategory(e.target.value)}
-                          className="
-            h-9
-            rounded-xl
-            border
-            border-gray-200
-            bg-white
-            px-3
-            text-[12px]
-            font-medium
-            text-gray-700
-            outline-none
-          "
+                          onChange={e => setSelectedCategory(e.target.value)}
+                          className="h-9 rounded-xl border border-gray-200 bg-white px-3 text-[12px] font-medium text-gray-700 outline-none"
                         >
                           <option value="all">All Categories</option>
-
-                          <option value="Vegetables">Vegetables</option>
-
-                          <option value="Dairy">Dairy</option>
-
-                          <option value="Spices">Spices</option>
-
-                          <option value="Meat">Meat</option>
+                          {[...new Set(ingredientAnalytics.map((i: any) => i.category || "Other"))].map(cat => (
+                            <option key={String(cat)} value={String(cat)}>{String(cat)}</option>
+                          ))}
                         </select>
                       </div>
                     </div>
@@ -3665,54 +3537,18 @@ export default function MenuManagement() {
                     {/* ================= DATA ================= */}
 
                     {(() => {
-                      const ingredientData = [
-                        {
-                          ingredient: "Tomato",
-                          usage: 35,
-                          consumed: "12kg",
-                          cost: 3200,
-                          category: "Vegetables",
-                        },
+                      const totalUsage = ingredientAnalytics.reduce((s: number, i: any) => s + Number(i.consumed || 0), 0);
+                      const ingredientData = ingredientAnalytics.map((i: any) => ({
+                        ingredient: i.ingredient,
+                        usage: totalUsage > 0 ? Math.round((Number(i.consumed || 0) / totalUsage) * 100) : 0,
+                        consumed: `${Number(i.consumed || 0).toFixed(2)} ${i.unit || ""}`,
+                        cost: Math.round(Number(i.totalCost || 0)),
+                        category: i.category || "Other",
+                      }));
 
-                        {
-                          ingredient: "Onion",
-                          usage: 25,
-                          consumed: "8kg",
-                          cost: 2100,
-                          category: "Vegetables",
-                        },
-
-                        {
-                          ingredient: "Cheese",
-                          usage: 18,
-                          consumed: "5kg",
-                          cost: 4500,
-                          category: "Dairy",
-                        },
-
-                        {
-                          ingredient: "Chicken",
-                          usage: 15,
-                          consumed: "7kg",
-                          cost: 5200,
-                          category: "Meat",
-                        },
-
-                        {
-                          ingredient: "Masala",
-                          usage: 7,
-                          consumed: "2kg",
-                          cost: 1200,
-                          category: "Spices",
-                        },
-                      ];
-
-                      const filteredData =
-                        selectedCategory === "all"
-                          ? ingredientData
-                          : ingredientData.filter(
-                              (i) => i.category === selectedCategory,
-                            );
+                      const filteredData = selectedCategory === "all"
+                        ? ingredientData
+                        : ingredientData.filter(i => i.category === selectedCategory);
 
                       return (
                         <>
@@ -3733,21 +3569,9 @@ export default function MenuManagement() {
                                       outerRadius={80}
                                       paddingAngle={3}
                                     >
-                                      {filteredData.map((entry, index) => {
-                                        const COLORS = [
-                                          "#ef4444",
-                                          "#3b82f6",
-                                          "#10b981",
-                                          "#f97316",
-                                          "#ec4899",
-                                        ];
-
-                                        return (
-                                          <Cell
-                                            key={`cell-${index}`}
-                                            fill={COLORS[index % COLORS.length]}
-                                          />
-                                        );
+                                      {filteredData.map((_, index) => {
+                                        const COLORS = ["#ef4444", "#3b82f6", "#10b981", "#f97316", "#ec4899"];
+                                        return <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />;
                                       })}
                                     </Pie>
 
@@ -3769,40 +3593,10 @@ export default function MenuManagement() {
                                   ];
 
                                   return (
-                                    <div
-                                      key={index}
-                                      className="
-                        flex
-                        items-center
-                        gap-2
-                        rounded-full
-                        border
-                        border-gray-200
-                        bg-white
-                        px-2.5
-                        py-1.5
-                        shadow-sm
-                      "
-                                    >
-                                      {/* COLOR */}
-
-                                      <div
-                                        className={`h-2.5 w-2.5 rounded-full ${
-                                          colors[index % colors.length]
-                                        }`}
-                                      />
-
-                                      {/* NAME */}
-
-                                      <p className="text-[11px] font-semibold text-gray-700">
-                                        {item.ingredient}
-                                      </p>
-
-                                      {/* VALUE */}
-
-                                      <span className="text-[10px] font-bold text-gray-400">
-                                        {item.usage}%
-                                      </span>
+                                    <div key={index} className="flex items-center gap-2 rounded-full border border-gray-200 bg-white px-2.5 py-1.5 shadow-sm">
+                                      <div className={`h-2.5 w-2.5 rounded-full ${colors[index % colors.length]}`} />
+                                      <p className="text-[11px] font-semibold text-gray-700">{item.ingredient}</p>
+                                      <span className="text-[10px] font-bold text-gray-400">{item.usage}%</span>
                                     </div>
                                   );
                                 })}
@@ -3826,19 +3620,7 @@ export default function MenuManagement() {
                                       "Consumed",
                                       "Cost",
                                     ].map((head) => (
-                                      <th
-                                        key={head}
-                                        className="
-                          px-4
-                          py-3
-                          text-left
-                          text-[10px]
-                          font-bold
-                          uppercase
-                          tracking-[0.14em]
-                          text-gray-400
-                        "
-                                      >
+                                      <th key={head} className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-[0.14em] text-gray-400">
                                         {head}
                                       </th>
                                     ))}
@@ -3951,72 +3733,23 @@ export default function MenuManagement() {
                       </div>
                     </div>
 
-                    {/* KPI GRID */}
-
                     <div className="grid grid-cols-2 gap-3">
-                      {/* CARD */}
-
-                      <div className="rounded-2xl border border-gray-200 bg-white p-3 shadow-sm">
-                        <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-gray-400">
-                          Highest Usage
-                        </p>
-
-                        <p className="mt-3 text-[20px] font-black text-red-600">
-                          Tomato
-                        </p>
-
-                        <p className="mt-1 text-[11px] text-gray-500">
-                          35% overall usage
-                        </p>
-                      </div>
-
-                      {/* CARD */}
-
-                      <div className="rounded-2xl border border-gray-200 bg-white p-3 shadow-sm">
-                        <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-gray-400">
-                          Fastest Moving
-                        </p>
-
-                        <p className="mt-3 text-[20px] font-black text-emerald-600">
-                          Onion
-                        </p>
-
-                        <p className="mt-1 text-[11px] text-gray-500">
-                          High kitchen demand
-                        </p>
-                      </div>
-
-                      {/* CARD */}
-
-                      <div className="rounded-2xl border border-gray-200 bg-white p-3 shadow-sm">
-                        <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-gray-400">
-                          Lowest Margin
-                        </p>
-
-                        <p className="mt-3 text-[20px] font-black text-orange-600">
-                          Cheese
-                        </p>
-
-                        <p className="mt-1 text-[11px] text-gray-500">
-                          High procurement cost
-                        </p>
-                      </div>
-
-                      {/* CARD */}
-
-                      <div className="rounded-2xl border border-gray-200 bg-white p-3 shadow-sm">
-                        <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-gray-400">
-                          Consumption
-                        </p>
-
-                        <p className="mt-3 text-[20px] font-black text-indigo-600">
-                          ₹16.9k
-                        </p>
-
-                        <p className="mt-1 text-[11px] text-gray-500">
-                          Weekly ingredient spend
-                        </p>
-                      </div>
+                      {(() => {
+                        const sorted = [...ingredientAnalytics].sort((a: any, b: any) => Number(b.consumed || 0) - Number(a.consumed || 0));
+                        const costSorted = [...ingredientAnalytics].sort((a: any, b: any) => Number(b.totalCost || 0) - Number(a.totalCost || 0));
+                        return [
+                          { label: "Highest Usage", value: sorted[0]?.ingredient || "—", sub: sorted[0] ? `${Number(sorted[0].consumed || 0).toFixed(1)} ${sorted[0].unit || ""}` : "No data", color: "text-red-600" },
+                          { label: "Fastest Moving", value: sorted[1]?.ingredient || "—", sub: "High kitchen demand", color: "text-emerald-600" },
+                          { label: "Highest Cost", value: costSorted[0]?.ingredient || "—", sub: costSorted[0] ? `₹${Math.round(Number(costSorted[0].totalCost || 0)).toLocaleString()}` : "No data", color: "text-orange-600" },
+                          { label: "Total Consumption", value: `₹${Math.round(totalConsumptionValue).toLocaleString()}`, sub: `${ingredientAnalytics.length} ingredients tracked`, color: "text-indigo-600" },
+                        ].map(c => (
+                          <div key={c.label} className="rounded-xl border border-gray-200 bg-white p-3 shadow-sm">
+                            <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-gray-400">{c.label}</p>
+                            <p className={`mt-2 truncate text-[18px] font-black ${c.color}`}>{c.value}</p>
+                            <p className="mt-1 text-[11px] text-gray-500">{c.sub}</p>
+                          </div>
+                        ));
+                      })()}
                     </div>
                   </div>
                 </div>
