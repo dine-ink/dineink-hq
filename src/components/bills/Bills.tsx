@@ -1,5 +1,5 @@
-import { useCallback, useState, useEffect } from "react";
-import { useBranchSync, getSelectedBranch } from "@/hooks/useBranchSync";
+import { useState, useEffect } from "react";
+import { useAppSelector } from "../../store";
 import {
   ReceiptPercentIcon,
   MagnifyingGlassIcon,
@@ -10,29 +10,24 @@ import { IndianRupeeIcon, ShoppingBagIcon } from "lucide-react";
 
 export default function Bills() {
   const API_URL = import.meta.env.VITE_API_URL;
+  const { selectedBranch } = useAppSelector(s => s.branch);
+  const { user, token } = useAppSelector(s => s.auth);
   const [search, setSearch] = useState("");
   const [bills, setBills] = useState<any[]>([]);
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(false);
   const rowsPerPage = 10;
-  const branches = JSON.parse(localStorage.getItem("branches") || "[]");
-  const [selectedBranch, setSelectedBranch] = useState<any>(() => {
-    const saved = localStorage.getItem("selectedBranch");
-    return saved ? JSON.parse(saved) : branches[0] || null;
-  });
 
   useEffect(() => {
     const controller = new AbortController();
     fetchBills(controller.signal);
     return () => controller.abort();
-  }, [selectedBranch]);
+  }, [selectedBranch?.id]);
 
   const fetchBills = async (signal?: AbortSignal) => {
     try {
       setLoading(true);
-      const token = localStorage.getItem("token");
-      const user = JSON.parse(localStorage.getItem("user") || "{}");
-      if (!selectedBranch?.id) return;
+      if (!selectedBranch?.id || !user?.restaurantId) return;
       const res = await fetch(
         `${API_URL}/api/bills/${user.restaurantId}/${selectedBranch.id}/branchwise`,
         { signal, headers: { Authorization: `Bearer ${token}` } },
@@ -45,9 +40,6 @@ export default function Bills() {
       setLoading(false);
     }
   };
-
-  const handleBranchChange = useCallback(() => { setSelectedBranch(getSelectedBranch()); }, []);
-  useBranchSync(handleBranchChange);
 
   const filtered = bills.filter(b => {
     const s = search.toLowerCase();

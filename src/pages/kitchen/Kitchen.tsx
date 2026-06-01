@@ -1,6 +1,5 @@
-import { useCallback, useEffect, useState } from "react";
-import { useBranchSync, getSelectedBranch } from "@/hooks/useBranchSync";
-import dayjs from "dayjs";
+import { useEffect, useState } from "react";
+import { useAppSelector } from "../../store";
 import {
   BarChart, Bar, LineChart, Line, ResponsiveContainer,
   XAxis, YAxis, CartesianGrid, Tooltip, ReferenceLine,
@@ -28,37 +27,18 @@ function KpiCard({ label, value, sub, color }: { label: string; value: string | 
 
 export default function Kitchen() {
   const API_URL = import.meta.env.VITE_API_URL;
-  const user = JSON.parse(localStorage.getItem("user") || "{}");
-  const branches = JSON.parse(localStorage.getItem("branches") || "[]");
-  const [selectedBranch, setSelectedBranch] = useState<any>(() => {
-    const s = localStorage.getItem("selectedBranch");
-    return s ? JSON.parse(s) : branches[0] || null;
-  });
-  const [preset, setPreset] = useState("week");
+  const { from, to } = useAppSelector(s => s.dateRange);
+  const { selectedBranch } = useAppSelector(s => s.branch);
+  const { user, token } = useAppSelector(s => s.auth);
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState<any>(null);
 
-  const handleBranchChange = useCallback(() => setSelectedBranch(getSelectedBranch()), []);
-  useBranchSync(handleBranchChange);
-
-  const getRange = () => {
-    const now = dayjs();
-    switch (preset) {
-      case "today": return { from: now.format("YYYY-MM-DD"), to: now.format("YYYY-MM-DD") };
-      case "week": return { from: now.subtract(6, "day").format("YYYY-MM-DD"), to: now.format("YYYY-MM-DD") };
-      case "month": return { from: now.startOf("month").format("YYYY-MM-DD"), to: now.format("YYYY-MM-DD") };
-      default: return { from: now.subtract(6, "day").format("YYYY-MM-DD"), to: now.format("YYYY-MM-DD") };
-    }
-  };
-
   useEffect(() => {
     const fetch_ = async () => {
-      if (!user.restaurantId) return;
+      if (!user?.restaurantId) return;
       try {
         setLoading(true);
-        const token = localStorage.getItem("token");
         const h = { Authorization: `Bearer ${token}` };
-        const { from, to } = getRange();
         const branchParam = selectedBranch?.id ? `&branchId=${selectedBranch.id}` : "";
         const res = await fetch(
           `${API_URL}/api/analytics/${user.restaurantId}/kitchen?from=${from}&to=${to}${branchParam}`,
@@ -69,7 +49,7 @@ export default function Kitchen() {
       } catch { /* silent */ } finally { setLoading(false); }
     };
     fetch_();
-  }, [preset, selectedBranch]);
+  }, [from, to, selectedBranch?.id]);
 
   if (loading) {
     return (
@@ -110,14 +90,7 @@ export default function Kitchen() {
                 <p className="mt-0.5 text-[12px] text-gray-500">Order speed, SLA compliance, kitchen throughput and table turn rate</p>
               </div>
             </div>
-            <div className="flex gap-1">
-              {["today", "week", "month"].map(p => (
-                <button key={p} onClick={() => setPreset(p)}
-                  className={`h-8 rounded-lg px-3 text-[11px] font-semibold transition ${preset === p ? "bg-orange-500 text-white shadow-sm" : "border border-gray-200 bg-white text-gray-700 hover:bg-orange-50"}`}>
-                  {p.charAt(0).toUpperCase() + p.slice(1)}
-                </button>
-              ))}
-            </div>
+            <p className="text-[11px] text-gray-400">{from} → {to}</p>
           </div>
         </div>
 

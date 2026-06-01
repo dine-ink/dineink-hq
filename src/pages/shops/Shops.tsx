@@ -1,5 +1,5 @@
-import { useCallback, useState, useEffect, useRef } from "react";
-import { useBranchSync, getSelectedBranch } from "@/hooks/useBranchSync";
+import { useState, useEffect, useRef } from "react";
+import { useAppSelector } from "../../store";
 import CommonTable from "@/components/common/CommonTable";
 import {
   BuildingStorefrontIcon,
@@ -41,11 +41,9 @@ const PAYMENT_METHODS = [
 
 export default function Shops() {
   const API_URL = import.meta.env.VITE_API_URL;
-  const [branches, setBranches] = useState<any[]>([]);
-  const [selectedBranch, setSelectedBranch] = useState<any>(() => {
-    const saved = localStorage.getItem("selectedBranch");
-    return saved ? JSON.parse(saved) : null;
-  });
+  const { selectedBranch } = useAppSelector(s => s.branch);
+  const { token } = useAppSelector(s => s.auth);
+
   const [branchDetails, setBranchDetails] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -59,45 +57,20 @@ export default function Shops() {
   const [tablesPage, setTablesPage] = useState(1);
   const [staffPage, setStaffPage] = useState(1);
 
+  // Fetch branch details whenever the topbar selection changes
   useEffect(() => {
-    const fetchShops = async () => {
+    if (selectedBranch?.id) {
       setLoading(true);
-      try {
-        const token = localStorage.getItem("token");
-        const res = await fetch(`${API_URL}/api/restaurant/shops`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        const json = await res.json();
-        const branchList = json.data?.branches || [];
-        setBranches(branchList);
-        if (branchList.length) {
-          const saved = localStorage.getItem("selectedBranch");
-          let branch = branchList[0];
-          if (saved) {
-            const parsed = JSON.parse(saved);
-            const matched = branchList.find((b: any) => b.id === parsed.id);
-            if (matched) branch = matched;
-          }
-          setSelectedBranch(branch);
-          fetchBranchDetails(branch.id);
-        }
-      } catch { /* silent */ } finally { setLoading(false); }
-    };
-    fetchShops();
-  }, []);
+      fetchBranchDetails(selectedBranch.id).finally(() => setLoading(false));
+    }
+  }, [selectedBranch?.id]);
 
   // Reset logo error state whenever the restaurant logo path changes
   useEffect(() => { setLogoError(false); }, [branchDetails?.restaurant?.logo]);
 
-  const handleBranchChange = useCallback(() => {
-    const branch = getSelectedBranch();
-    if (branch) { setSelectedBranch(branch); fetchBranchDetails(branch.id); }
-  }, []);
-  useBranchSync(handleBranchChange);
-
   const fetchBranchDetails = async (branchId: number) => {
     try {
-      const token = localStorage.getItem("token");
+
       const res = await fetch(`${API_URL}/api/restaurant/branch/${branchId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -123,7 +96,7 @@ export default function Shops() {
   const handleSaveChanges = async () => {
     try {
       setSaving(true);
-      const token = localStorage.getItem("token");
+
 
       // Upload logo first if a new one was selected
       if (logoFile) {

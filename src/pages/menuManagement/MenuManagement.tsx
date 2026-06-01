@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useState } from "react";
-import { useBranchSync, getSelectedBranch } from "@/hooks/useBranchSync";
+import { useEffect, useState } from "react";
+import { useAppSelector } from "../../store";
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
 import ExcelJS from "exceljs";
@@ -148,30 +148,10 @@ export default function MenuManagement() {
   const [uploadingVendor, setUploadingVendor] = useState(false);
   const [uploadingRestock, setUploadingRestock] = useState(false);
   const [vendors, setVendors] = useState<any[]>([]);
-  const [branches, setBranches] = useState<any[]>([]);
+  const { branches, selectedBranch } = useAppSelector(s => s.branch);
+  const { user, token } = useAppSelector(s => s.auth);
   const [selectedWeek, setSelectedWeek] = useState("week1");
-  const [selectedBranch, setSelectedBranch] = useState<any>(null);
   const API_URL = import.meta.env.VITE_API_URL;
-  useEffect(() => {
-    const storedBranches = JSON.parse(localStorage.getItem("branches") || "[]");
-
-    const storedSelectedBranch = JSON.parse(
-      localStorage.getItem("selectedBranch") || "null",
-    );
-
-    setBranches(storedBranches);
-
-    if (storedSelectedBranch?.id) {
-      setSelectedBranch(storedSelectedBranch);
-    } else if (storedBranches.length > 0) {
-      setSelectedBranch(storedBranches[0]);
-    }
-  }, []);
-  const handleBranchChange = useCallback(() => {
-    setBranches(JSON.parse(localStorage.getItem("branches") || "[]"));
-    setSelectedBranch(getSelectedBranch());
-  }, []);
-  useBranchSync(handleBranchChange);
   const allIngredients: any[] = Object.values(
     ingredients || {},
   ).flat() as any[];
@@ -186,9 +166,9 @@ export default function MenuManagement() {
 
   const fetchBills = async () => {
     try {
-      const token = localStorage.getItem("token");
 
-      const user = JSON.parse(localStorage.getItem("user") || "{}");
+
+
 
       if (!selectedBranch?.id) {
         return;
@@ -354,8 +334,7 @@ export default function MenuManagement() {
   const handleGenerate = async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem("token");
-      const user = JSON.parse(localStorage.getItem("user") || "{}");
+
       const res = await fetch(
         `${API_URL}/api/ingredients/generateIngredients`,
         {
@@ -394,8 +373,7 @@ export default function MenuManagement() {
 
   const handleSave = async () => {
     try {
-      const token = localStorage.getItem("token");
-      const user = JSON.parse(localStorage.getItem("user") || "{}");
+
       const restaurantId = user.restaurantId;
       const res = await fetch(`${API_URL}/api/ingredients/saveIngredients`, {
         method: "POST",
@@ -815,9 +793,9 @@ export default function MenuManagement() {
   const saveRestockHistory = async (uploadedData?: any) => {
     try {
       setUploadingRestock(true);
-      const token = localStorage.getItem("token");
 
-      const user = JSON.parse(localStorage.getItem("user") || "{}");
+
+
 
       if (!selectedBranch?.id) {
         alert("Please select branch");
@@ -929,9 +907,9 @@ export default function MenuManagement() {
 
           const jsonData: any = XLSX.utils.sheet_to_json(worksheet);
 
-          const token = localStorage.getItem("token");
+    
 
-          const user = JSON.parse(localStorage.getItem("user") || "{}");
+    
 
           const res = await fetch(
             `${API_URL}/api/ingredients/uploadVendorData`,
@@ -1008,7 +986,7 @@ export default function MenuManagement() {
     try {
       setMappingLoading(true);
 
-      const token = localStorage.getItem("token");
+
       const payload = {
         menuItemId: selectedMenuItem.id,
         ingredients: ingredientMappings.map((item: any) => ({
@@ -1048,8 +1026,7 @@ export default function MenuManagement() {
 
   const fetchMenuItemMappings = async () => {
     try {
-      const token = localStorage.getItem("token");
-      const user = JSON.parse(localStorage.getItem("user") || "{}");
+
       const restaurantId = user.restaurantId;
       const res = await fetch(
         `${API_URL}/api/inventory/${restaurantId}/get-mapped-menu`,
@@ -1078,7 +1055,7 @@ export default function MenuManagement() {
 
   const handleAISuggest = async () => {
     try {
-      const token = localStorage.getItem("token");
+
       const allIngredients = Object.values(ingredients).flat();
       const res = await fetch(
         `${API_URL}/api/ingredients/ai-suggestIngredients`,
@@ -1230,9 +1207,9 @@ export default function MenuManagement() {
   useEffect(() => {
     const fetchMenuManagement = async () => {
       try {
-        const token = localStorage.getItem("token");
+  
 
-        const user = JSON.parse(localStorage.getItem("user") || "{}");
+  
 
         const restaurantId = user.restaurantId;
 
@@ -1377,9 +1354,9 @@ export default function MenuManagement() {
   ).toFixed(2);
   const fetchVendors = async () => {
     try {
-      const token = localStorage.getItem("token");
 
-      const user = JSON.parse(localStorage.getItem("user") || "{}");
+
+
 
       if (!selectedBranch?.id) {
         return;

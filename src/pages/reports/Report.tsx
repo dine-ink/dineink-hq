@@ -1,26 +1,54 @@
-import { useCallback, useEffect, useState } from "react";
-import { useBranchSync, getSelectedBranch } from "@/hooks/useBranchSync";
+import { useEffect, useState } from "react";
+import { useAppSelector } from "../../store";
 import {
-  AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell,
-  LineChart, Line, ResponsiveContainer, CartesianGrid,
-  XAxis, YAxis, Tooltip, Legend,
+  AreaChart,
+  Area,
+  BarChart,
+  Bar,
+  PieChart,
+  Pie,
+  Cell,
+  LineChart,
+  Line,
+  ResponsiveContainer,
+  CartesianGrid,
+  XAxis,
+  YAxis,
+  Tooltip,
+  Legend,
 } from "recharts";
 import dayjs from "dayjs";
+const COLORS = [
+  "#ef4444",
+  "#10b981",
+  "#3b82f6",
+  "#f59e0b",
+  "#8b5cf6",
+  "#ec4899",
+];
 
-const COLORS = ["#ef4444", "#10b981", "#3b82f6", "#f59e0b", "#8b5cf6", "#ec4899"];
-
-const reportTabs = ["P&L Statement", "Tax Report", "Expense Tracker", "Sales Analytics", "Discount Analysis", "Menu Engineering", "Table Analytics", "Waste Report", "Hourly Heatmap", "Day Analysis", "Revenue Forecast"];
+const reportTabs = [
+  "P&L Statement",
+  "Tax Report",
+  "Expense Tracker",
+  "Sales Analytics",
+  "Discount Analysis",
+  "Menu Engineering",
+  "Table Analytics",
+  "Waste Report",
+  "Hourly Heatmap",
+  "Day Analysis",
+  "Revenue Forecast",
+];
 
 export default function Report() {
   const API_URL = import.meta.env.VITE_API_URL;
-  const branches = JSON.parse(localStorage.getItem("branches") || "[]");
-  const [selectedBranch, setSelectedBranch] = useState<any>(() => {
-    const saved = localStorage.getItem("selectedBranch");
-    return saved ? JSON.parse(saved) : branches[0] || null;
-  });
+  const { from, to, preset } = useAppSelector((s) => s.dateRange);
+  const { selectedBranch } = useAppSelector((s) => s.branch);
+  const { user, token } = useAppSelector((s) => s.auth);
+
   const [activeTab, setActiveTab] = useState("P&L Statement");
   const [loading, setLoading] = useState(false);
-  const [preset, setPreset] = useState("month");
   const [reportData, setReportData] = useState<any>(null);
   const [expenses, setExpenses] = useState<any[]>([]);
   const [bills, setBills] = useState<any[]>([]);
@@ -30,44 +58,74 @@ export default function Report() {
   const [heatmapData, setHeatmapData] = useState<any>(null);
   const [forecastData, setForecastData] = useState<any>(null);
 
-  const handleBranchChange = useCallback(() => {
-    setSelectedBranch(getSelectedBranch());
-  }, []);
-  useBranchSync(handleBranchChange);
-
-  const getDateRange = () => {
-    const now = dayjs();
-    switch (preset) {
-      case "today": return { from: now.startOf("day").format("YYYY-MM-DD"), to: now.endOf("day").format("YYYY-MM-DD") };
-      case "week": return { from: now.subtract(6, "day").format("YYYY-MM-DD"), to: now.format("YYYY-MM-DD") };
-      case "month": return { from: now.startOf("month").format("YYYY-MM-DD"), to: now.format("YYYY-MM-DD") };
-      case "quarter": return { from: now.subtract(3, "month").format("YYYY-MM-DD"), to: now.format("YYYY-MM-DD") };
-      default: return { from: now.startOf("month").format("YYYY-MM-DD"), to: now.format("YYYY-MM-DD") };
-    }
-  };
-
   useEffect(() => {
     const fetchReports = async () => {
-      if (!selectedBranch?.id) return;
+      if (!selectedBranch?.id || !user?.restaurantId) return;
       try {
         setLoading(true);
-        const token = localStorage.getItem("token");
-        const user = JSON.parse(localStorage.getItem("user") || "{}");
-        const { from, to } = getDateRange();
         const headers = { Authorization: `Bearer ${token}` };
         const bParam = `branchId=${selectedBranch.id}`;
-        const [analyticsRes, expensesRes, billsRes, menuRes, ordersRes, adjustRes, heatmapRes, forecastRes] = await Promise.all([
-          fetch(`${API_URL}/api/analytics/${user.restaurantId}/restaurantDashboardOverview?${bParam}&range=${preset}&from=${from}&to=${to}`, { headers }),
-          fetch(`${API_URL}/api/reports/expenses?${bParam}&from=${from}&to=${to}`, { headers }),
-          fetch(`${API_URL}/api/bills/${user.restaurantId}/restaurantwise?${bParam}&from=${from}&to=${to}`, { headers }),
-          fetch(`${API_URL}/api/inventory/${user.restaurantId}/menu-management?${bParam}`, { headers }),
-          fetch(`${API_URL}/api/orders/running?${bParam}&from=${from}&to=${to}`, { headers }),
-          fetch(`${API_URL}/api/inventory/adjustments?${bParam}&from=${from}&to=${to}`, { headers }),
-          fetch(`${API_URL}/api/analytics/${user.restaurantId}/hourly-heatmap?${bParam}&from=${from}&to=${to}`, { headers }),
-          fetch(`${API_URL}/api/analytics/${user.restaurantId}/revenue-forecast?${bParam}`, { headers }),
+        const [
+          analyticsRes,
+          expensesRes,
+          billsRes,
+          menuRes,
+          ordersRes,
+          adjustRes,
+          heatmapRes,
+          forecastRes,
+        ] = await Promise.all([
+          fetch(
+            `${API_URL}/api/analytics/${user.restaurantId}/restaurantDashboardOverview?${bParam}&range=${preset}&from=${from}&to=${to}`,
+            { headers },
+          ),
+          fetch(
+            `${API_URL}/api/reports/expenses?${bParam}&from=${from}&to=${to}`,
+            { headers },
+          ),
+          fetch(
+            `${API_URL}/api/bills/${user.restaurantId}/restaurantwise?${bParam}&from=${from}&to=${to}`,
+            { headers },
+          ),
+          fetch(
+            `${API_URL}/api/inventory/${user.restaurantId}/menu-management?${bParam}`,
+            { headers },
+          ),
+          fetch(
+            `${API_URL}/api/orders/running?${bParam}&from=${from}&to=${to}`,
+            { headers },
+          ),
+          fetch(
+            `${API_URL}/api/inventory/adjustments?${bParam}&from=${from}&to=${to}`,
+            { headers },
+          ),
+          fetch(
+            `${API_URL}/api/analytics/${user.restaurantId}/hourly-heatmap?${bParam}&from=${from}&to=${to}`,
+            { headers },
+          ),
+          fetch(
+            `${API_URL}/api/analytics/${user.restaurantId}/revenue-forecast?${bParam}`,
+            { headers },
+          ),
         ]);
-        const [analyticsData, expensesData, billsData, menuData, ordersData, adjustData, heatmapJson, forecastJson] = await Promise.all([
-          analyticsRes.json(), expensesRes.json(), billsRes.json(), menuRes.json(), ordersRes.json(), adjustRes.json(), heatmapRes.json(), forecastRes.json(),
+        const [
+          analyticsData,
+          expensesData,
+          billsData,
+          menuData,
+          ordersData,
+          adjustData,
+          heatmapJson,
+          forecastJson,
+        ] = await Promise.all([
+          analyticsRes.json(),
+          expensesRes.json(),
+          billsRes.json(),
+          menuRes.json(),
+          ordersRes.json(),
+          adjustRes.json(),
+          heatmapRes.json(),
+          forecastRes.json(),
         ]);
         if (analyticsData.success) setReportData(analyticsData.data);
         if (expensesData.success) setExpenses(expensesData.data || []);
@@ -77,12 +135,14 @@ export default function Report() {
         if (adjustData.success) setInventoryAdjustments(adjustData.data || []);
         if (heatmapJson.success) setHeatmapData(heatmapJson.data);
         if (forecastJson.success) setForecastData(forecastJson.data);
-      } catch { /* silent */ } finally {
+      } catch {
+        /* silent */
+      } finally {
         setLoading(false);
       }
     };
     fetchReports();
-  }, [selectedBranch, preset]);
+  }, [selectedBranch?.id, from, to]);
 
   // ===== COMPUTED METRICS =====
   const totalRevenue = bills.reduce((s, b) => s + Number(b.total || 0), 0);
@@ -90,15 +150,27 @@ export default function Report() {
   const totalCGST = bills.reduce((s, b) => s + Number(b.cgst || 0), 0);
   const totalSGST = bills.reduce((s, b) => s + Number(b.sgst || 0), 0);
   const totalGST = totalCGST + totalSGST;
-  const totalServiceCharge = bills.reduce((s, b) => s + Number(b.serviceCharge || 0), 0);
+  const totalServiceCharge = bills.reduce(
+    (s, b) => s + Number(b.serviceCharge || 0),
+    0,
+  );
   const totalExpenses = expenses.reduce((s, e) => s + Number(e.amount || 0), 0);
   const netProfit = totalRevenue - totalGST - totalExpenses;
-  const profitMargin = totalRevenue > 0 ? ((netProfit / totalRevenue) * 100).toFixed(1) : "0";
-  const paidBills = bills.filter(b => b.status === "PAID");
-  const unpaidBills = bills.filter(b => b.status === "UNPAID" || b.status === "PARTIAL");
-  const dineInRevenue = bills.filter(b => b.orderType === "DINE_IN").reduce((s, b) => s + Number(b.total || 0), 0);
-  const takeawayRevenue = bills.filter(b => b.orderType === "TAKEAWAY").reduce((s, b) => s + Number(b.total || 0), 0);
-  const deliveryRevenue = bills.filter(b => b.orderType === "DELIVERY").reduce((s, b) => s + Number(b.total || 0), 0);
+  const profitMargin =
+    totalRevenue > 0 ? ((netProfit / totalRevenue) * 100).toFixed(1) : "0";
+  const paidBills = bills.filter((b) => b.status === "PAID");
+  const unpaidBills = bills.filter(
+    (b) => b.status === "UNPAID" || b.status === "PARTIAL",
+  );
+  const dineInRevenue = bills
+    .filter((b) => b.orderType === "DINE_IN")
+    .reduce((s, b) => s + Number(b.total || 0), 0);
+  const takeawayRevenue = bills
+    .filter((b) => b.orderType === "TAKEAWAY")
+    .reduce((s, b) => s + Number(b.total || 0), 0);
+  const deliveryRevenue = bills
+    .filter((b) => b.orderType === "DELIVERY")
+    .reduce((s, b) => s + Number(b.total || 0), 0);
 
   // Payment method breakdown
   const paymentBreakdown = bills.reduce((acc: any, b) => {
@@ -118,8 +190,9 @@ export default function Report() {
     acc[date].discount += Number(b.discount || 0);
     return acc;
   }, {});
-  const dailyData = Object.values(dailyRevenue).sort((a: any, b: any) =>
-    dayjs(a.date, "DD/MM").valueOf() - dayjs(b.date, "DD/MM").valueOf()
+  const dailyData = Object.values(dailyRevenue).sort(
+    (a: any, b: any) =>
+      dayjs(a.date, "DD/MM").valueOf() - dayjs(b.date, "DD/MM").valueOf(),
   );
 
   // Expense by type
@@ -134,7 +207,7 @@ export default function Report() {
     { name: "Dine In", value: dineInRevenue },
     { name: "Takeaway", value: takeawayRevenue },
     { name: "Delivery", value: deliveryRevenue },
-  ].filter(d => d.value > 0);
+  ].filter((d) => d.value > 0);
 
   if (loading) {
     return (
@@ -155,33 +228,29 @@ export default function Report() {
           <div className="absolute -right-8 -top-8 h-24 w-24 rounded-full bg-red-100/40 blur-3xl" />
           <div className="relative z-10 flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
             <div>
-              <h1 className="text-xl font-black tracking-tight text-gray-900">Financial Reports</h1>
-              <p className="mt-0.5 text-[13px] text-gray-500">P&L, tax, expenses and sales analytics</p>
+              <h1 className="text-xl font-black tracking-tight text-gray-900">
+                Financial Reports
+              </h1>
+              <p className="mt-0.5 text-[13px] text-gray-500">
+                P&L, tax, expenses and sales analytics
+              </p>
             </div>
-            <div className="flex flex-wrap items-center gap-2">
-              {["today", "week", "month", "quarter"].map(p => (
-                <button
-                  key={p}
-                  onClick={() => setPreset(p)}
-                  className={`h-8 rounded-lg px-3 text-[11px] font-semibold transition-all ${
-                    preset === p ? "bg-red-500 text-white shadow-sm" : "border border-gray-200 bg-white text-gray-700 hover:bg-red-50"
-                  }`}
-                >
-                  {p.charAt(0).toUpperCase() + p.slice(1)}
-                </button>
-              ))}
-            </div>
+            <p className="text-[11px] text-gray-400">
+              {from} → {to}
+            </p>
           </div>
         </div>
 
         {/* TABS */}
         <div className="flex flex-wrap gap-2">
-          {reportTabs.map(tab => (
+          {reportTabs.map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
               className={`rounded-xl px-4 py-2 text-[12px] font-semibold transition-all ${
-                activeTab === tab ? "bg-gradient-to-r from-red-500 to-rose-500 text-white shadow-sm" : "border border-gray-200 bg-white text-gray-600 hover:bg-red-50"
+                activeTab === tab
+                  ? "bg-gradient-to-r from-red-500 to-rose-500 text-white shadow-sm"
+                  : "border border-gray-200 bg-white text-gray-600 hover:bg-red-50"
               }`}
             >
               {tab}
@@ -195,14 +264,47 @@ export default function Report() {
             {/* TOP KPIs */}
             <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
               {[
-                { label: "Total Revenue", value: `₹${totalRevenue.toLocaleString()}`, sub: `${paidBills.length} paid bills`, color: "emerald", badge: "+revenue" },
-                { label: "Total Expenses", value: `₹${totalExpenses.toLocaleString()}`, sub: `${expenses.length} expense entries`, color: "red", badge: "outflow" },
-                { label: "GST Collected", value: `₹${totalGST.toLocaleString()}`, sub: `CGST ₹${totalCGST.toLocaleString()} + SGST ₹${totalSGST.toLocaleString()}`, color: "blue", badge: "tax" },
-                { label: "Net Profit", value: `₹${netProfit.toLocaleString()}`, sub: `${profitMargin}% margin`, color: netProfit >= 0 ? "emerald" : "red", badge: `${profitMargin}%` },
-              ].map(item => (
-                <div key={item.label} className={`rounded-xl border p-4 ${item.color === "emerald" ? "border-emerald-100 bg-emerald-50/60" : item.color === "red" ? "border-red-100 bg-red-50/60" : "border-blue-100 bg-blue-50/60"}`}>
-                  <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-gray-500">{item.label}</p>
-                  <p className={`mt-2 text-[22px] font-bold tracking-tight ${item.color === "emerald" ? "text-emerald-700" : item.color === "red" ? "text-red-700" : "text-blue-700"}`}>{item.value}</p>
+                {
+                  label: "Total Revenue",
+                  value: `₹${totalRevenue.toLocaleString()}`,
+                  sub: `${paidBills.length} paid bills`,
+                  color: "emerald",
+                  badge: "+revenue",
+                },
+                {
+                  label: "Total Expenses",
+                  value: `₹${totalExpenses.toLocaleString()}`,
+                  sub: `${expenses.length} expense entries`,
+                  color: "red",
+                  badge: "outflow",
+                },
+                {
+                  label: "GST Collected",
+                  value: `₹${totalGST.toLocaleString()}`,
+                  sub: `CGST ₹${totalCGST.toLocaleString()} + SGST ₹${totalSGST.toLocaleString()}`,
+                  color: "blue",
+                  badge: "tax",
+                },
+                {
+                  label: "Net Profit",
+                  value: `₹${netProfit.toLocaleString()}`,
+                  sub: `${profitMargin}% margin`,
+                  color: netProfit >= 0 ? "emerald" : "red",
+                  badge: `${profitMargin}%`,
+                },
+              ].map((item) => (
+                <div
+                  key={item.label}
+                  className={`rounded-xl border p-4 ${item.color === "emerald" ? "border-emerald-100 bg-emerald-50/60" : item.color === "red" ? "border-red-100 bg-red-50/60" : "border-blue-100 bg-blue-50/60"}`}
+                >
+                  <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-gray-500">
+                    {item.label}
+                  </p>
+                  <p
+                    className={`mt-2 text-[22px] font-bold tracking-tight ${item.color === "emerald" ? "text-emerald-700" : item.color === "red" ? "text-red-700" : "text-blue-700"}`}
+                  >
+                    {item.value}
+                  </p>
                   <p className="mt-1 text-[11px] text-gray-500">{item.sub}</p>
                 </div>
               ))}
@@ -211,59 +313,123 @@ export default function Report() {
             {/* P&L TABLE */}
             <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
               <div className="border-b border-gray-100 px-4 py-3">
-                <h3 className="text-[15px] font-bold text-gray-900">Income & Expenditure Statement</h3>
-                <p className="mt-0.5 text-[11px] text-gray-500">Detailed breakdown of revenue and costs</p>
+                <h3 className="text-[15px] font-bold text-gray-900">
+                  Income & Expenditure Statement
+                </h3>
+                <p className="mt-0.5 text-[11px] text-gray-500">
+                  Detailed breakdown of revenue and costs
+                </p>
               </div>
               <div className="p-4">
                 <table className="w-full text-sm">
                   <tbody>
                     <tr className="border-b border-gray-100">
-                      <td colSpan={2} className="py-2 text-[11px] font-bold uppercase tracking-wide text-gray-400">REVENUE</td>
+                      <td
+                        colSpan={2}
+                        className="py-2 text-[11px] font-bold uppercase tracking-wide text-gray-400"
+                      >
+                        REVENUE
+                      </td>
                     </tr>
                     {[
-                      { label: "Gross Revenue (Billed)", value: totalRevenue + totalDiscount, positive: true },
-                      { label: "(-) Discounts Given", value: -totalDiscount, positive: false },
-                      { label: "Net Revenue", value: totalRevenue, positive: true, bold: true },
-                      { label: "Service Charges Collected", value: totalServiceCharge, positive: true },
-                    ].map(row => (
+                      {
+                        label: "Gross Revenue (Billed)",
+                        value: totalRevenue + totalDiscount,
+                        positive: true,
+                      },
+                      {
+                        label: "(-) Discounts Given",
+                        value: -totalDiscount,
+                        positive: false,
+                      },
+                      {
+                        label: "Net Revenue",
+                        value: totalRevenue,
+                        positive: true,
+                        bold: true,
+                      },
+                      {
+                        label: "Service Charges Collected",
+                        value: totalServiceCharge,
+                        positive: true,
+                      },
+                    ].map((row) => (
                       <tr key={row.label} className="border-b border-gray-50">
-                        <td className={`py-2 pl-4 text-[13px] ${row.bold ? "font-bold text-gray-900" : "text-gray-600"}`}>{row.label}</td>
-                        <td className={`py-2 pr-4 text-right text-[13px] font-semibold ${row.positive ? "text-emerald-600" : "text-red-600"}`}>
-                          {row.value < 0 ? `-₹${Math.abs(row.value).toLocaleString()}` : `₹${row.value.toLocaleString()}`}
+                        <td
+                          className={`py-2 pl-4 text-[13px] ${row.bold ? "font-bold text-gray-900" : "text-gray-600"}`}
+                        >
+                          {row.label}
+                        </td>
+                        <td
+                          className={`py-2 pr-4 text-right text-[13px] font-semibold ${row.positive ? "text-emerald-600" : "text-red-600"}`}
+                        >
+                          {row.value < 0
+                            ? `-₹${Math.abs(row.value).toLocaleString()}`
+                            : `₹${row.value.toLocaleString()}`}
                         </td>
                       </tr>
                     ))}
                     <tr className="border-b border-gray-100">
-                      <td colSpan={2} className="pb-2 pt-4 text-[11px] font-bold uppercase tracking-wide text-gray-400">TAX DEDUCTIONS</td>
+                      <td
+                        colSpan={2}
+                        className="pb-2 pt-4 text-[11px] font-bold uppercase tracking-wide text-gray-400"
+                      >
+                        TAX DEDUCTIONS
+                      </td>
                     </tr>
                     {[
                       { label: "CGST", value: -totalCGST },
                       { label: "SGST", value: -totalSGST },
                       { label: "Total GST", value: -totalGST, bold: true },
-                    ].map(row => (
+                    ].map((row) => (
                       <tr key={row.label} className="border-b border-gray-50">
-                        <td className={`py-2 pl-4 text-[13px] ${row.bold ? "font-bold text-gray-900" : "text-gray-600"}`}>{row.label}</td>
+                        <td
+                          className={`py-2 pl-4 text-[13px] ${row.bold ? "font-bold text-gray-900" : "text-gray-600"}`}
+                        >
+                          {row.label}
+                        </td>
                         <td className="py-2 pr-4 text-right text-[13px] font-semibold text-red-600">
                           -₹{Math.abs(row.value).toLocaleString()}
                         </td>
                       </tr>
                     ))}
                     <tr className="border-b border-gray-100">
-                      <td colSpan={2} className="pb-2 pt-4 text-[11px] font-bold uppercase tracking-wide text-gray-400">OPERATING EXPENSES</td>
+                      <td
+                        colSpan={2}
+                        className="pb-2 pt-4 text-[11px] font-bold uppercase tracking-wide text-gray-400"
+                      >
+                        OPERATING EXPENSES
+                      </td>
                     </tr>
-                    {Object.entries(expenseByType).map(([type, amount]: any) => (
-                      <tr key={type} className="border-b border-gray-50">
-                        <td className="py-2 pl-4 text-[13px] text-gray-600">{type}</td>
-                        <td className="py-2 pr-4 text-right text-[13px] font-semibold text-red-600">-₹{Number(amount).toLocaleString()}</td>
-                      </tr>
-                    ))}
+                    {Object.entries(expenseByType).map(
+                      ([type, amount]: any) => (
+                        <tr key={type} className="border-b border-gray-50">
+                          <td className="py-2 pl-4 text-[13px] text-gray-600">
+                            {type}
+                          </td>
+                          <td className="py-2 pr-4 text-right text-[13px] font-semibold text-red-600">
+                            -₹{Number(amount).toLocaleString()}
+                          </td>
+                        </tr>
+                      ),
+                    )}
                     <tr className="border-b border-gray-100">
-                      <td className="py-2 pl-4 text-[13px] font-bold text-gray-900">Total Expenses</td>
-                      <td className="py-2 pr-4 text-right text-[13px] font-bold text-red-600">-₹{totalExpenses.toLocaleString()}</td>
+                      <td className="py-2 pl-4 text-[13px] font-bold text-gray-900">
+                        Total Expenses
+                      </td>
+                      <td className="py-2 pr-4 text-right text-[13px] font-bold text-red-600">
+                        -₹{totalExpenses.toLocaleString()}
+                      </td>
                     </tr>
-                    <tr className={`${netProfit >= 0 ? "bg-emerald-50" : "bg-red-50"} rounded-lg`}>
-                      <td className="py-3 pl-4 text-[15px] font-black text-gray-900">NET PROFIT / LOSS</td>
-                      <td className={`py-3 pr-4 text-right text-[15px] font-black ${netProfit >= 0 ? "text-emerald-600" : "text-red-600"}`}>
+                    <tr
+                      className={`${netProfit >= 0 ? "bg-emerald-50" : "bg-red-50"} rounded-lg`}
+                    >
+                      <td className="py-3 pl-4 text-[15px] font-black text-gray-900">
+                        NET PROFIT / LOSS
+                      </td>
+                      <td
+                        className={`py-3 pr-4 text-right text-[15px] font-black ${netProfit >= 0 ? "text-emerald-600" : "text-red-600"}`}
+                      >
                         {netProfit >= 0 ? "+" : ""}₹{netProfit.toLocaleString()}
                       </td>
                     </tr>
@@ -276,48 +442,117 @@ export default function Report() {
             <div className="grid grid-cols-1 gap-3 xl:grid-cols-3">
               <div className="xl:col-span-2 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
                 <div className="border-b border-gray-100 px-4 py-3">
-                  <h3 className="text-[15px] font-bold text-gray-900">Daily Revenue vs Expenses</h3>
+                  <h3 className="text-[15px] font-bold text-gray-900">
+                    Daily Revenue vs Expenses
+                  </h3>
                 </div>
                 <div className="p-3">
                   {dailyData.length > 1 ? (
                     <ResponsiveContainer width="100%" height={200}>
                       <AreaChart data={dailyData}>
                         <defs>
-                          <linearGradient id="revGrad" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="#ef4444" stopOpacity={0.15} />
-                            <stop offset="95%" stopColor="#ef4444" stopOpacity={0} />
+                          <linearGradient
+                            id="revGrad"
+                            x1="0"
+                            y1="0"
+                            x2="0"
+                            y2="1"
+                          >
+                            <stop
+                              offset="5%"
+                              stopColor="#ef4444"
+                              stopOpacity={0.15}
+                            />
+                            <stop
+                              offset="95%"
+                              stopColor="#ef4444"
+                              stopOpacity={0}
+                            />
                           </linearGradient>
                         </defs>
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                        <XAxis dataKey="date" tick={{ fontSize: 10, fill: "#6b7280" }} axisLine={false} tickLine={false} />
-                        <YAxis tick={{ fontSize: 10, fill: "#6b7280" }} axisLine={false} tickLine={false} />
+                        <CartesianGrid
+                          strokeDasharray="3 3"
+                          vertical={false}
+                          stroke="#f1f5f9"
+                        />
+                        <XAxis
+                          dataKey="date"
+                          tick={{ fontSize: 10, fill: "#6b7280" }}
+                          axisLine={false}
+                          tickLine={false}
+                        />
+                        <YAxis
+                          tick={{ fontSize: 10, fill: "#6b7280" }}
+                          axisLine={false}
+                          tickLine={false}
+                        />
                         <Tooltip />
-                        <Area type="monotone" dataKey="revenue" name="Revenue" stroke="#ef4444" strokeWidth={2} fill="url(#revGrad)" />
-                        <Area type="monotone" dataKey="discount" name="Discount Lost" stroke="#f59e0b" strokeWidth={1.5} fill="none" strokeDasharray="4 2" />
+                        <Area
+                          type="monotone"
+                          dataKey="revenue"
+                          name="Revenue"
+                          stroke="#ef4444"
+                          strokeWidth={2}
+                          fill="url(#revGrad)"
+                        />
+                        <Area
+                          type="monotone"
+                          dataKey="discount"
+                          name="Discount Lost"
+                          stroke="#f59e0b"
+                          strokeWidth={1.5}
+                          fill="none"
+                          strokeDasharray="4 2"
+                        />
                       </AreaChart>
                     </ResponsiveContainer>
                   ) : (
-                    <div className="flex h-[200px] items-center justify-center text-[12px] text-gray-400">Not enough data for this period</div>
+                    <div className="flex h-[200px] items-center justify-center text-[12px] text-gray-400">
+                      Not enough data for this period
+                    </div>
                   )}
                 </div>
               </div>
               <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
                 <div className="border-b border-gray-100 px-4 py-3">
-                  <h3 className="text-[15px] font-bold text-gray-900">Order Type Mix</h3>
+                  <h3 className="text-[15px] font-bold text-gray-900">
+                    Order Type Mix
+                  </h3>
                 </div>
                 <div className="p-3">
                   {orderTypePieData.length > 0 ? (
                     <ResponsiveContainer width="100%" height={200}>
                       <PieChart>
-                        <Pie data={orderTypePieData} cx="50%" cy="45%" innerRadius={40} outerRadius={70} paddingAngle={3} dataKey="value">
-                          {orderTypePieData.map((_, i) => <Cell key={i} fill={COLORS[i]} />)}
+                        <Pie
+                          data={orderTypePieData}
+                          cx="50%"
+                          cy="45%"
+                          innerRadius={40}
+                          outerRadius={70}
+                          paddingAngle={3}
+                          dataKey="value"
+                        >
+                          {orderTypePieData.map((_, i) => (
+                            <Cell key={i} fill={COLORS[i]} />
+                          ))}
                         </Pie>
-                        <Tooltip formatter={(v: any) => `₹${Number(v).toLocaleString()}`} />
-                        <Legend verticalAlign="bottom" height={20} iconType="circle" wrapperStyle={{ fontSize: "11px" }} />
+                        <Tooltip
+                          formatter={(v: any) =>
+                            `₹${Number(v).toLocaleString()}`
+                          }
+                        />
+                        <Legend
+                          verticalAlign="bottom"
+                          height={20}
+                          iconType="circle"
+                          wrapperStyle={{ fontSize: "11px" }}
+                        />
                       </PieChart>
                     </ResponsiveContainer>
                   ) : (
-                    <div className="flex h-[200px] items-center justify-center text-[12px] text-gray-400">No order data</div>
+                    <div className="flex h-[200px] items-center justify-center text-[12px] text-gray-400">
+                      No order data
+                    </div>
                   )}
                 </div>
               </div>
@@ -332,12 +567,28 @@ export default function Report() {
               {[
                 { label: "Total CGST", value: totalCGST, color: "blue" },
                 { label: "Total SGST", value: totalSGST, color: "violet" },
-                { label: "Total GST", value: totalGST, color: "red", bold: true },
-                { label: "Taxable Revenue", value: totalRevenue - totalGST, color: "emerald" },
-              ].map(item => (
-                <div key={item.label} className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-                  <p className="text-[10px] font-bold uppercase tracking-wide text-gray-400">{item.label}</p>
-                  <p className={`mt-2 text-[20px] font-bold ${item.color === "emerald" ? "text-emerald-600" : item.color === "blue" ? "text-blue-600" : item.color === "violet" ? "text-violet-600" : "text-red-600"}`}>
+                {
+                  label: "Total GST",
+                  value: totalGST,
+                  color: "red",
+                  bold: true,
+                },
+                {
+                  label: "Taxable Revenue",
+                  value: totalRevenue - totalGST,
+                  color: "emerald",
+                },
+              ].map((item) => (
+                <div
+                  key={item.label}
+                  className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm"
+                >
+                  <p className="text-[10px] font-bold uppercase tracking-wide text-gray-400">
+                    {item.label}
+                  </p>
+                  <p
+                    className={`mt-2 text-[20px] font-bold ${item.color === "emerald" ? "text-emerald-600" : item.color === "blue" ? "text-blue-600" : item.color === "violet" ? "text-violet-600" : "text-red-600"}`}
+                  >
                     ₹{Number(item.value).toLocaleString()}
                   </p>
                 </div>
@@ -346,49 +597,119 @@ export default function Report() {
 
             <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
               <div className="border-b border-gray-100 px-4 py-3">
-                <h3 className="text-[15px] font-bold text-gray-900">GST Breakdown by Bill</h3>
-                <p className="mt-0.5 text-[11px] text-gray-500">Individual bill-wise tax detail for GST filing</p>
+                <h3 className="text-[15px] font-bold text-gray-900">
+                  GST Breakdown by Bill
+                </h3>
+                <p className="mt-0.5 text-[11px] text-gray-500">
+                  Individual bill-wise tax detail for GST filing
+                </p>
               </div>
               <div className="overflow-x-auto">
                 <table className="min-w-full text-[12px]">
                   <thead className="bg-gray-50">
                     <tr className="border-b border-gray-100">
-                      {["Bill No", "Date", "Order Type", "Subtotal", "CGST", "SGST", "Total GST", "Total", "Status"].map(h => (
-                        <th key={h} className="px-4 py-2 text-left text-[10px] font-bold uppercase tracking-wide text-gray-400">{h}</th>
+                      {[
+                        "Bill No",
+                        "Date",
+                        "Order Type",
+                        "Subtotal",
+                        "CGST",
+                        "SGST",
+                        "Total GST",
+                        "Total",
+                        "Status",
+                      ].map((h) => (
+                        <th
+                          key={h}
+                          className="px-4 py-2 text-left text-[10px] font-bold uppercase tracking-wide text-gray-400"
+                        >
+                          {h}
+                        </th>
                       ))}
                     </tr>
                   </thead>
                   <tbody>
                     {bills.slice(0, 20).map((b: any) => (
-                      <tr key={b.id} className="border-b border-gray-50 hover:bg-gray-50/60">
-                        <td className="px-4 py-2 font-semibold text-gray-900">{b.billNo}</td>
-                        <td className="px-4 py-2 text-gray-500">{new Date(b.createdAt).toLocaleDateString()}</td>
-                        <td className="px-4 py-2">
-                          <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-medium text-gray-700">{b.orderType}</span>
+                      <tr
+                        key={b.id}
+                        className="border-b border-gray-50 hover:bg-gray-50/60"
+                      >
+                        <td className="px-4 py-2 font-semibold text-gray-900">
+                          {b.billNo}
                         </td>
-                        <td className="px-4 py-2 text-gray-700">₹{Number(b.subtotal || 0).toLocaleString()}</td>
-                        <td className="px-4 py-2 text-blue-600">₹{Number(b.cgst || 0).toLocaleString()}</td>
-                        <td className="px-4 py-2 text-violet-600">₹{Number(b.sgst || 0).toLocaleString()}</td>
-                        <td className="px-4 py-2 font-semibold text-red-600">₹{(Number(b.cgst || 0) + Number(b.sgst || 0)).toLocaleString()}</td>
-                        <td className="px-4 py-2 font-bold text-gray-900">₹{Number(b.total || 0).toLocaleString()}</td>
+                        <td className="px-4 py-2 text-gray-500">
+                          {new Date(b.createdAt).toLocaleDateString()}
+                        </td>
                         <td className="px-4 py-2">
-                          <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${b.status === "PAID" ? "bg-emerald-50 text-emerald-600" : "bg-red-50 text-red-600"}`}>{b.status}</span>
+                          <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-medium text-gray-700">
+                            {b.orderType}
+                          </span>
+                        </td>
+                        <td className="px-4 py-2 text-gray-700">
+                          ₹{Number(b.subtotal || 0).toLocaleString()}
+                        </td>
+                        <td className="px-4 py-2 text-blue-600">
+                          ₹{Number(b.cgst || 0).toLocaleString()}
+                        </td>
+                        <td className="px-4 py-2 text-violet-600">
+                          ₹{Number(b.sgst || 0).toLocaleString()}
+                        </td>
+                        <td className="px-4 py-2 font-semibold text-red-600">
+                          ₹
+                          {(
+                            Number(b.cgst || 0) + Number(b.sgst || 0)
+                          ).toLocaleString()}
+                        </td>
+                        <td className="px-4 py-2 font-bold text-gray-900">
+                          ₹{Number(b.total || 0).toLocaleString()}
+                        </td>
+                        <td className="px-4 py-2">
+                          <span
+                            className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${b.status === "PAID" ? "bg-emerald-50 text-emerald-600" : "bg-red-50 text-red-600"}`}
+                          >
+                            {b.status}
+                          </span>
                         </td>
                       </tr>
                     ))}
                     {bills.length === 0 && (
-                      <tr><td colSpan={9} className="py-10 text-center text-[12px] text-gray-400">No bills found for this period</td></tr>
+                      <tr>
+                        <td
+                          colSpan={9}
+                          className="py-10 text-center text-[12px] text-gray-400"
+                        >
+                          No bills found for this period
+                        </td>
+                      </tr>
                     )}
                   </tbody>
                   {bills.length > 0 && (
                     <tfoot className="border-t border-gray-200 bg-red-50/60">
                       <tr>
-                        <td colSpan={3} className="px-4 py-3 text-[12px] font-bold text-gray-900">TOTALS</td>
-                        <td className="px-4 py-3 text-[12px] font-bold text-gray-900">₹{bills.reduce((s, b) => s + Number(b.subtotal || 0), 0).toLocaleString()}</td>
-                        <td className="px-4 py-3 text-[12px] font-bold text-blue-600">₹{totalCGST.toLocaleString()}</td>
-                        <td className="px-4 py-3 text-[12px] font-bold text-violet-600">₹{totalSGST.toLocaleString()}</td>
-                        <td className="px-4 py-3 text-[12px] font-bold text-red-600">₹{totalGST.toLocaleString()}</td>
-                        <td className="px-4 py-3 text-[12px] font-bold text-gray-900">₹{totalRevenue.toLocaleString()}</td>
+                        <td
+                          colSpan={3}
+                          className="px-4 py-3 text-[12px] font-bold text-gray-900"
+                        >
+                          TOTALS
+                        </td>
+                        <td className="px-4 py-3 text-[12px] font-bold text-gray-900">
+                          ₹
+                          {bills
+                            .reduce((s, b) => s + Number(b.subtotal || 0), 0)
+                            .toLocaleString()}
+                        </td>
+                        <td className="px-4 py-3 text-[12px] font-bold text-blue-600">
+                          ₹{totalCGST.toLocaleString()}
+                        </td>
+                        <td className="px-4 py-3 text-[12px] font-bold text-violet-600">
+                          ₹{totalSGST.toLocaleString()}
+                        </td>
+                        <td className="px-4 py-3 text-[12px] font-bold text-red-600">
+                          ₹{totalGST.toLocaleString()}
+                        </td>
+                        <td className="px-4 py-3 text-[12px] font-bold text-gray-900">
+                          ₹{totalRevenue.toLocaleString()}
+                        </td>
                         <td />
                       </tr>
                     </tfoot>
@@ -404,23 +725,51 @@ export default function Report() {
           <div className="space-y-3">
             <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
               <div className="rounded-xl border border-red-100 bg-red-50/60 p-4">
-                <p className="text-[10px] font-bold uppercase tracking-wide text-gray-500">Total Expenses</p>
-                <p className="mt-2 text-[22px] font-bold text-red-700">₹{totalExpenses.toLocaleString()}</p>
-                <p className="mt-1 text-[11px] text-gray-500">{expenses.length} entries</p>
+                <p className="text-[10px] font-bold uppercase tracking-wide text-gray-500">
+                  Total Expenses
+                </p>
+                <p className="mt-2 text-[22px] font-bold text-red-700">
+                  ₹{totalExpenses.toLocaleString()}
+                </p>
+                <p className="mt-1 text-[11px] text-gray-500">
+                  {expenses.length} entries
+                </p>
               </div>
               <div className="rounded-xl border border-orange-100 bg-orange-50/60 p-4">
-                <p className="text-[10px] font-bold uppercase tracking-wide text-gray-500">Expense Categories</p>
-                <p className="mt-2 text-[22px] font-bold text-orange-700">{Object.keys(expenseByType).length}</p>
+                <p className="text-[10px] font-bold uppercase tracking-wide text-gray-500">
+                  Expense Categories
+                </p>
+                <p className="mt-2 text-[22px] font-bold text-orange-700">
+                  {Object.keys(expenseByType).length}
+                </p>
                 <p className="mt-1 text-[11px] text-gray-500">Distinct types</p>
               </div>
               <div className="rounded-xl border border-blue-100 bg-blue-50/60 p-4">
-                <p className="text-[10px] font-bold uppercase tracking-wide text-gray-500">Avg per Entry</p>
-                <p className="mt-2 text-[22px] font-bold text-blue-700">₹{expenses.length ? Math.round(totalExpenses / expenses.length).toLocaleString() : 0}</p>
-                <p className="mt-1 text-[11px] text-gray-500">Per expense logged</p>
+                <p className="text-[10px] font-bold uppercase tracking-wide text-gray-500">
+                  Avg per Entry
+                </p>
+                <p className="mt-2 text-[22px] font-bold text-blue-700">
+                  ₹
+                  {expenses.length
+                    ? Math.round(
+                        totalExpenses / expenses.length,
+                      ).toLocaleString()
+                    : 0}
+                </p>
+                <p className="mt-1 text-[11px] text-gray-500">
+                  Per expense logged
+                </p>
               </div>
               <div className="rounded-xl border border-gray-200 bg-gray-50/60 p-4">
-                <p className="text-[10px] font-bold uppercase tracking-wide text-gray-500">Expense / Revenue</p>
-                <p className="mt-2 text-[22px] font-bold text-gray-900">{totalRevenue > 0 ? ((totalExpenses / totalRevenue) * 100).toFixed(1) : 0}%</p>
+                <p className="text-[10px] font-bold uppercase tracking-wide text-gray-500">
+                  Expense / Revenue
+                </p>
+                <p className="mt-2 text-[22px] font-bold text-gray-900">
+                  {totalRevenue > 0
+                    ? ((totalExpenses / totalRevenue) * 100).toFixed(1)
+                    : 0}
+                  %
+                </p>
                 <p className="mt-1 text-[11px] text-gray-500">Cost ratio</p>
               </div>
             </div>
@@ -429,45 +778,96 @@ export default function Report() {
               {/* EXPENSE BY TYPE */}
               <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
                 <div className="border-b border-gray-100 px-4 py-3">
-                  <h3 className="text-[15px] font-bold text-gray-900">Expense by Category</h3>
+                  <h3 className="text-[15px] font-bold text-gray-900">
+                    Expense by Category
+                  </h3>
                 </div>
                 {Object.keys(expenseByType).length > 0 ? (
                   <div className="p-3">
                     <ResponsiveContainer width="100%" height={220}>
-                      <BarChart data={Object.entries(expenseByType).map(([k, v]) => ({ type: k, amount: v }))} layout="vertical">
-                        <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f1f5f9" />
-                        <XAxis type="number" tick={{ fontSize: 10, fill: "#6b7280" }} axisLine={false} tickLine={false} />
-                        <YAxis dataKey="type" type="category" tick={{ fontSize: 10, fill: "#6b7280" }} axisLine={false} tickLine={false} width={90} />
-                        <Tooltip formatter={(v: any) => `₹${Number(v).toLocaleString()}`} />
-                        <Bar dataKey="amount" fill="#ef4444" radius={[0, 4, 4, 0]} />
+                      <BarChart
+                        data={Object.entries(expenseByType).map(([k, v]) => ({
+                          type: k,
+                          amount: v,
+                        }))}
+                        layout="vertical"
+                      >
+                        <CartesianGrid
+                          strokeDasharray="3 3"
+                          horizontal={false}
+                          stroke="#f1f5f9"
+                        />
+                        <XAxis
+                          type="number"
+                          tick={{ fontSize: 10, fill: "#6b7280" }}
+                          axisLine={false}
+                          tickLine={false}
+                        />
+                        <YAxis
+                          dataKey="type"
+                          type="category"
+                          tick={{ fontSize: 10, fill: "#6b7280" }}
+                          axisLine={false}
+                          tickLine={false}
+                          width={90}
+                        />
+                        <Tooltip
+                          formatter={(v: any) =>
+                            `₹${Number(v).toLocaleString()}`
+                          }
+                        />
+                        <Bar
+                          dataKey="amount"
+                          fill="#ef4444"
+                          radius={[0, 4, 4, 0]}
+                        />
                       </BarChart>
                     </ResponsiveContainer>
                   </div>
                 ) : (
-                  <div className="flex h-[220px] items-center justify-center text-[12px] text-gray-400">No expense data found</div>
+                  <div className="flex h-[220px] items-center justify-center text-[12px] text-gray-400">
+                    No expense data found
+                  </div>
                 )}
               </div>
 
               {/* EXPENSE LIST */}
               <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
                 <div className="border-b border-gray-100 px-4 py-3">
-                  <h3 className="text-[15px] font-bold text-gray-900">Recent Expenses</h3>
+                  <h3 className="text-[15px] font-bold text-gray-900">
+                    Recent Expenses
+                  </h3>
                 </div>
                 <div className="divide-y divide-gray-50">
                   {expenses.slice(0, 8).map((e: any) => (
-                    <div key={e.id} className="flex items-center justify-between px-4 py-2.5">
+                    <div
+                      key={e.id}
+                      className="flex items-center justify-between px-4 py-2.5"
+                    >
                       <div>
-                        <p className="text-[13px] font-semibold text-gray-900">{e.title}</p>
+                        <p className="text-[13px] font-semibold text-gray-900">
+                          {e.title}
+                        </p>
                         <div className="mt-0.5 flex items-center gap-2">
-                          <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[9px] font-medium text-gray-600">{e.expenseType}</span>
-                          <span className="text-[10px] text-gray-400">{new Date(e.expenseDate || e.createdAt).toLocaleDateString()}</span>
+                          <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[9px] font-medium text-gray-600">
+                            {e.expenseType}
+                          </span>
+                          <span className="text-[10px] text-gray-400">
+                            {new Date(
+                              e.expenseDate || e.createdAt,
+                            ).toLocaleDateString()}
+                          </span>
                         </div>
                       </div>
-                      <p className="text-[14px] font-bold text-red-600">₹{Number(e.amount).toLocaleString()}</p>
+                      <p className="text-[14px] font-bold text-red-600">
+                        ₹{Number(e.amount).toLocaleString()}
+                      </p>
                     </div>
                   ))}
                   {expenses.length === 0 && (
-                    <div className="py-10 text-center text-[12px] text-gray-400">No expenses logged for this period</div>
+                    <div className="py-10 text-center text-[12px] text-gray-400">
+                      No expenses logged for this period
+                    </div>
                   )}
                 </div>
               </div>
@@ -482,29 +882,49 @@ export default function Report() {
             <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
               <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
                 <div className="border-b border-gray-100 px-4 py-3">
-                  <h3 className="text-[15px] font-bold text-gray-900">Payment Method Revenue</h3>
+                  <h3 className="text-[15px] font-bold text-gray-900">
+                    Payment Method Revenue
+                  </h3>
                 </div>
                 <div className="divide-y divide-gray-50">
-                  {Object.entries(paymentBreakdown).map(([method, data]: any) => {
-                    const pct = totalRevenue > 0 ? Math.round((data.amount / totalRevenue) * 100) : 0;
-                    return (
-                      <div key={method} className="px-4 py-3">
-                        <div className="flex items-center justify-between">
-                          <p className="text-[13px] font-semibold text-gray-900">{method}</p>
-                          <div className="text-right">
-                            <p className="text-[13px] font-bold text-gray-900">₹{data.amount.toLocaleString()}</p>
-                            <p className="text-[10px] text-gray-400">{data.count} bills</p>
+                  {Object.entries(paymentBreakdown).map(
+                    ([method, data]: any) => {
+                      const pct =
+                        totalRevenue > 0
+                          ? Math.round((data.amount / totalRevenue) * 100)
+                          : 0;
+                      return (
+                        <div key={method} className="px-4 py-3">
+                          <div className="flex items-center justify-between">
+                            <p className="text-[13px] font-semibold text-gray-900">
+                              {method}
+                            </p>
+                            <div className="text-right">
+                              <p className="text-[13px] font-bold text-gray-900">
+                                ₹{data.amount.toLocaleString()}
+                              </p>
+                              <p className="text-[10px] text-gray-400">
+                                {data.count} bills
+                              </p>
+                            </div>
                           </div>
+                          <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-gray-100">
+                            <div
+                              className="h-full rounded-full bg-red-500 transition-all"
+                              style={{ width: `${pct}%` }}
+                            />
+                          </div>
+                          <p className="mt-1 text-[10px] text-gray-400">
+                            {pct}% of total revenue
+                          </p>
                         </div>
-                        <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-gray-100">
-                          <div className="h-full rounded-full bg-red-500 transition-all" style={{ width: `${pct}%` }} />
-                        </div>
-                        <p className="mt-1 text-[10px] text-gray-400">{pct}% of total revenue</p>
-                      </div>
-                    );
-                  })}
+                      );
+                    },
+                  )}
                   {Object.keys(paymentBreakdown).length === 0 && (
-                    <div className="py-10 text-center text-[12px] text-gray-400">No payment data for this period</div>
+                    <div className="py-10 text-center text-[12px] text-gray-400">
+                      No payment data for this period
+                    </div>
                   )}
                 </div>
               </div>
@@ -512,25 +932,63 @@ export default function Report() {
               {/* ORDER TYPE SPLIT */}
               <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
                 <div className="border-b border-gray-100 px-4 py-3">
-                  <h3 className="text-[15px] font-bold text-gray-900">Order Channel Performance</h3>
+                  <h3 className="text-[15px] font-bold text-gray-900">
+                    Order Channel Performance
+                  </h3>
                 </div>
                 <div className="space-y-3 p-4">
                   {[
-                    { label: "Dine In", value: dineInRevenue, count: bills.filter(b => b.orderType === "DINE_IN").length, color: "text-red-600", bg: "bg-red-500" },
-                    { label: "Takeaway", value: takeawayRevenue, count: bills.filter(b => b.orderType === "TAKEAWAY").length, color: "text-orange-600", bg: "bg-orange-500" },
-                    { label: "Delivery", value: deliveryRevenue, count: bills.filter(b => b.orderType === "DELIVERY").length, color: "text-blue-600", bg: "bg-blue-500" },
-                  ].map(row => {
-                    const pct = totalRevenue > 0 ? Math.round((row.value / totalRevenue) * 100) : 0;
+                    {
+                      label: "Dine In",
+                      value: dineInRevenue,
+                      count: bills.filter((b) => b.orderType === "DINE_IN")
+                        .length,
+                      color: "text-red-600",
+                      bg: "bg-red-500",
+                    },
+                    {
+                      label: "Takeaway",
+                      value: takeawayRevenue,
+                      count: bills.filter((b) => b.orderType === "TAKEAWAY")
+                        .length,
+                      color: "text-orange-600",
+                      bg: "bg-orange-500",
+                    },
+                    {
+                      label: "Delivery",
+                      value: deliveryRevenue,
+                      count: bills.filter((b) => b.orderType === "DELIVERY")
+                        .length,
+                      color: "text-blue-600",
+                      bg: "bg-blue-500",
+                    },
+                  ].map((row) => {
+                    const pct =
+                      totalRevenue > 0
+                        ? Math.round((row.value / totalRevenue) * 100)
+                        : 0;
                     return (
                       <div key={row.label}>
                         <div className="flex items-center justify-between">
-                          <p className="text-[13px] font-semibold text-gray-900">{row.label}</p>
-                          <p className={`text-[13px] font-bold ${row.color}`}>₹{row.value.toLocaleString()} <span className="text-[10px] text-gray-400">({row.count} bills)</span></p>
+                          <p className="text-[13px] font-semibold text-gray-900">
+                            {row.label}
+                          </p>
+                          <p className={`text-[13px] font-bold ${row.color}`}>
+                            ₹{row.value.toLocaleString()}{" "}
+                            <span className="text-[10px] text-gray-400">
+                              ({row.count} bills)
+                            </span>
+                          </p>
                         </div>
                         <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-gray-100">
-                          <div className={`h-full rounded-full ${row.bg} transition-all`} style={{ width: `${pct}%` }} />
+                          <div
+                            className={`h-full rounded-full ${row.bg} transition-all`}
+                            style={{ width: `${pct}%` }}
+                          />
                         </div>
-                        <p className="mt-0.5 text-[10px] text-gray-400">{pct}% of revenue</p>
+                        <p className="mt-0.5 text-[10px] text-gray-400">
+                          {pct}% of revenue
+                        </p>
                       </div>
                     );
                   })}
@@ -542,17 +1000,35 @@ export default function Report() {
             <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
               <div className="border-b border-gray-100 px-4 py-3 flex items-center justify-between">
                 <div>
-                  <h3 className="text-[15px] font-bold text-gray-900">Bills Summary</h3>
-                  <p className="mt-0.5 text-[11px] text-gray-500">Payment status breakdown</p>
+                  <h3 className="text-[15px] font-bold text-gray-900">
+                    Bills Summary
+                  </h3>
+                  <p className="mt-0.5 text-[11px] text-gray-500">
+                    Payment status breakdown
+                  </p>
                 </div>
                 <div className="flex gap-3">
                   <div className="rounded-lg bg-emerald-50 px-3 py-2 text-center">
-                    <p className="text-[11px] font-semibold text-emerald-700">{paidBills.length} Paid</p>
-                    <p className="text-[10px] text-gray-400">₹{paidBills.reduce((s, b) => s + Number(b.total || 0), 0).toLocaleString()}</p>
+                    <p className="text-[11px] font-semibold text-emerald-700">
+                      {paidBills.length} Paid
+                    </p>
+                    <p className="text-[10px] text-gray-400">
+                      ₹
+                      {paidBills
+                        .reduce((s, b) => s + Number(b.total || 0), 0)
+                        .toLocaleString()}
+                    </p>
                   </div>
                   <div className="rounded-lg bg-red-50 px-3 py-2 text-center">
-                    <p className="text-[11px] font-semibold text-red-700">{unpaidBills.length} Unpaid</p>
-                    <p className="text-[10px] text-gray-400">₹{unpaidBills.reduce((s, b) => s + Number(b.total || 0), 0).toLocaleString()}</p>
+                    <p className="text-[11px] font-semibold text-red-700">
+                      {unpaidBills.length} Unpaid
+                    </p>
+                    <p className="text-[10px] text-gray-400">
+                      ₹
+                      {unpaidBills
+                        .reduce((s, b) => s + Number(b.total || 0), 0)
+                        .toLocaleString()}
+                    </p>
                   </div>
                 </div>
               </div>
@@ -560,27 +1036,81 @@ export default function Report() {
                 <table className="min-w-full text-[12px]">
                   <thead className="bg-gray-50">
                     <tr className="border-b border-gray-100">
-                      {["Bill No", "Customer", "Order Type", "Payment", "Subtotal", "GST", "Discount", "Total", "Status"].map(h => (
-                        <th key={h} className="px-4 py-2 text-left text-[10px] font-bold uppercase tracking-wide text-gray-400">{h}</th>
+                      {[
+                        "Bill No",
+                        "Customer",
+                        "Order Type",
+                        "Payment",
+                        "Subtotal",
+                        "GST",
+                        "Discount",
+                        "Total",
+                        "Status",
+                      ].map((h) => (
+                        <th
+                          key={h}
+                          className="px-4 py-2 text-left text-[10px] font-bold uppercase tracking-wide text-gray-400"
+                        >
+                          {h}
+                        </th>
                       ))}
                     </tr>
                   </thead>
                   <tbody>
                     {bills.slice(0, 15).map((b: any) => (
-                      <tr key={b.id} className="border-b border-gray-50 hover:bg-gray-50/60">
-                        <td className="px-4 py-2 font-semibold text-gray-900">{b.billNo}</td>
-                        <td className="px-4 py-2 text-gray-600">{b.customer?.name || "Guest"}</td>
-                        <td className="px-4 py-2"><span className="rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-medium text-gray-700">{b.orderType}</span></td>
-                        <td className="px-4 py-2 text-gray-600">{b.paymentMethod}</td>
-                        <td className="px-4 py-2 text-gray-700">₹{Number(b.subtotal || 0).toLocaleString()}</td>
-                        <td className="px-4 py-2 text-red-600">₹{(Number(b.cgst || 0) + Number(b.sgst || 0)).toLocaleString()}</td>
-                        <td className="px-4 py-2 text-orange-600">{Number(b.discount || 0) > 0 ? `-₹${Number(b.discount).toLocaleString()}` : "-"}</td>
-                        <td className="px-4 py-2 font-bold text-gray-900">₹{Number(b.total || 0).toLocaleString()}</td>
-                        <td className="px-4 py-2"><span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${b.status === "PAID" ? "bg-emerald-50 text-emerald-600" : "bg-red-50 text-red-600"}`}>{b.status}</span></td>
+                      <tr
+                        key={b.id}
+                        className="border-b border-gray-50 hover:bg-gray-50/60"
+                      >
+                        <td className="px-4 py-2 font-semibold text-gray-900">
+                          {b.billNo}
+                        </td>
+                        <td className="px-4 py-2 text-gray-600">
+                          {b.customer?.name || "Guest"}
+                        </td>
+                        <td className="px-4 py-2">
+                          <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-medium text-gray-700">
+                            {b.orderType}
+                          </span>
+                        </td>
+                        <td className="px-4 py-2 text-gray-600">
+                          {b.paymentMethod}
+                        </td>
+                        <td className="px-4 py-2 text-gray-700">
+                          ₹{Number(b.subtotal || 0).toLocaleString()}
+                        </td>
+                        <td className="px-4 py-2 text-red-600">
+                          ₹
+                          {(
+                            Number(b.cgst || 0) + Number(b.sgst || 0)
+                          ).toLocaleString()}
+                        </td>
+                        <td className="px-4 py-2 text-orange-600">
+                          {Number(b.discount || 0) > 0
+                            ? `-₹${Number(b.discount).toLocaleString()}`
+                            : "-"}
+                        </td>
+                        <td className="px-4 py-2 font-bold text-gray-900">
+                          ₹{Number(b.total || 0).toLocaleString()}
+                        </td>
+                        <td className="px-4 py-2">
+                          <span
+                            className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${b.status === "PAID" ? "bg-emerald-50 text-emerald-600" : "bg-red-50 text-red-600"}`}
+                          >
+                            {b.status}
+                          </span>
+                        </td>
                       </tr>
                     ))}
                     {bills.length === 0 && (
-                      <tr><td colSpan={9} className="py-10 text-center text-[12px] text-gray-400">No bills for this period</td></tr>
+                      <tr>
+                        <td
+                          colSpan={9}
+                          className="py-10 text-center text-[12px] text-gray-400"
+                        >
+                          No bills for this period
+                        </td>
+                      </tr>
                     )}
                   </tbody>
                 </table>
@@ -594,14 +1124,43 @@ export default function Report() {
           <div className="space-y-3">
             <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
               {[
-                { label: "Total Discounts Given", value: `₹${totalDiscount.toLocaleString()}`, sub: "Revenue you gave away", color: "red" },
-                { label: "Bills with Discount", value: bills.filter(b => Number(b.discount) > 0).length, sub: `out of ${bills.length} total bills`, color: "orange" },
-                { label: "Avg Discount per Bill", value: `₹${bills.filter(b => Number(b.discount) > 0).length ? Math.round(totalDiscount / bills.filter(b => Number(b.discount) > 0).length).toLocaleString() : 0}`, sub: "when discount applied", color: "blue" },
-                { label: "Discount % of Revenue", value: `${totalRevenue > 0 ? ((totalDiscount / (totalRevenue + totalDiscount)) * 100).toFixed(1) : 0}%`, sub: "revenue lost to discounts", color: "violet" },
-              ].map(item => (
-                <div key={item.label} className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-                  <p className="text-[10px] font-bold uppercase tracking-wide text-gray-400">{item.label}</p>
-                  <p className={`mt-2 text-[20px] font-bold ${item.color === "red" ? "text-red-600" : item.color === "orange" ? "text-orange-600" : item.color === "blue" ? "text-blue-600" : "text-violet-600"}`}>{item.value}</p>
+                {
+                  label: "Total Discounts Given",
+                  value: `₹${totalDiscount.toLocaleString()}`,
+                  sub: "Revenue you gave away",
+                  color: "red",
+                },
+                {
+                  label: "Bills with Discount",
+                  value: bills.filter((b) => Number(b.discount) > 0).length,
+                  sub: `out of ${bills.length} total bills`,
+                  color: "orange",
+                },
+                {
+                  label: "Avg Discount per Bill",
+                  value: `₹${bills.filter((b) => Number(b.discount) > 0).length ? Math.round(totalDiscount / bills.filter((b) => Number(b.discount) > 0).length).toLocaleString() : 0}`,
+                  sub: "when discount applied",
+                  color: "blue",
+                },
+                {
+                  label: "Discount % of Revenue",
+                  value: `${totalRevenue > 0 ? ((totalDiscount / (totalRevenue + totalDiscount)) * 100).toFixed(1) : 0}%`,
+                  sub: "revenue lost to discounts",
+                  color: "violet",
+                },
+              ].map((item) => (
+                <div
+                  key={item.label}
+                  className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm"
+                >
+                  <p className="text-[10px] font-bold uppercase tracking-wide text-gray-400">
+                    {item.label}
+                  </p>
+                  <p
+                    className={`mt-2 text-[20px] font-bold ${item.color === "red" ? "text-red-600" : item.color === "orange" ? "text-orange-600" : item.color === "blue" ? "text-blue-600" : "text-violet-600"}`}
+                  >
+                    {item.value}
+                  </p>
                   <p className="mt-1 text-[11px] text-gray-500">{item.sub}</p>
                 </div>
               ))}
@@ -609,39 +1168,96 @@ export default function Report() {
 
             <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
               <div className="border-b border-gray-100 px-4 py-3">
-                <h3 className="text-[15px] font-bold text-gray-900">Bills with Discounts Applied</h3>
-                <p className="mt-0.5 text-[11px] text-gray-500">Track every discount given — identify patterns and prevent abuse</p>
+                <h3 className="text-[15px] font-bold text-gray-900">
+                  Bills with Discounts Applied
+                </h3>
+                <p className="mt-0.5 text-[11px] text-gray-500">
+                  Track every discount given — identify patterns and prevent
+                  abuse
+                </p>
               </div>
               <div className="overflow-x-auto">
                 <table className="min-w-full text-[12px]">
                   <thead className="bg-gray-50">
                     <tr className="border-b border-gray-100">
-                      {["Bill No", "Date", "Customer", "Order Type", "Gross Total", "Discount", "Net Total", "Discount %"].map(h => (
-                        <th key={h} className="px-4 py-2 text-left text-[10px] font-bold uppercase tracking-wide text-gray-400">{h}</th>
+                      {[
+                        "Bill No",
+                        "Date",
+                        "Customer",
+                        "Order Type",
+                        "Gross Total",
+                        "Discount",
+                        "Net Total",
+                        "Discount %",
+                      ].map((h) => (
+                        <th
+                          key={h}
+                          className="px-4 py-2 text-left text-[10px] font-bold uppercase tracking-wide text-gray-400"
+                        >
+                          {h}
+                        </th>
                       ))}
                     </tr>
                   </thead>
                   <tbody>
-                    {bills.filter(b => Number(b.discount) > 0).slice(0, 20).map((b: any) => {
-                      const gross = Number(b.total || 0) + Number(b.discount || 0);
-                      const discountPct = gross > 0 ? ((Number(b.discount) / gross) * 100).toFixed(1) : "0";
-                      return (
-                        <tr key={b.id} className="border-b border-gray-50 hover:bg-orange-50/30">
-                          <td className="px-4 py-2 font-semibold text-gray-900">{b.billNo}</td>
-                          <td className="px-4 py-2 text-gray-500">{new Date(b.createdAt).toLocaleDateString()}</td>
-                          <td className="px-4 py-2 text-gray-600">{b.customer?.name || "Guest"}</td>
-                          <td className="px-4 py-2"><span className="rounded-full bg-gray-100 px-2 py-0.5 text-[10px] text-gray-700">{b.orderType}</span></td>
-                          <td className="px-4 py-2 text-gray-700">₹{gross.toLocaleString()}</td>
-                          <td className="px-4 py-2 font-bold text-orange-600">-₹{Number(b.discount).toLocaleString()}</td>
-                          <td className="px-4 py-2 font-bold text-gray-900">₹{Number(b.total || 0).toLocaleString()}</td>
-                          <td className="px-4 py-2">
-                            <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${Number(discountPct) > 20 ? "bg-red-50 text-red-600" : "bg-orange-50 text-orange-600"}`}>{discountPct}%</span>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                    {bills.filter(b => Number(b.discount) > 0).length === 0 && (
-                      <tr><td colSpan={8} className="py-10 text-center text-[12px] text-gray-400">No discounts given in this period</td></tr>
+                    {bills
+                      .filter((b) => Number(b.discount) > 0)
+                      .slice(0, 20)
+                      .map((b: any) => {
+                        const gross =
+                          Number(b.total || 0) + Number(b.discount || 0);
+                        const discountPct =
+                          gross > 0
+                            ? ((Number(b.discount) / gross) * 100).toFixed(1)
+                            : "0";
+                        return (
+                          <tr
+                            key={b.id}
+                            className="border-b border-gray-50 hover:bg-orange-50/30"
+                          >
+                            <td className="px-4 py-2 font-semibold text-gray-900">
+                              {b.billNo}
+                            </td>
+                            <td className="px-4 py-2 text-gray-500">
+                              {new Date(b.createdAt).toLocaleDateString()}
+                            </td>
+                            <td className="px-4 py-2 text-gray-600">
+                              {b.customer?.name || "Guest"}
+                            </td>
+                            <td className="px-4 py-2">
+                              <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[10px] text-gray-700">
+                                {b.orderType}
+                              </span>
+                            </td>
+                            <td className="px-4 py-2 text-gray-700">
+                              ₹{gross.toLocaleString()}
+                            </td>
+                            <td className="px-4 py-2 font-bold text-orange-600">
+                              -₹{Number(b.discount).toLocaleString()}
+                            </td>
+                            <td className="px-4 py-2 font-bold text-gray-900">
+                              ₹{Number(b.total || 0).toLocaleString()}
+                            </td>
+                            <td className="px-4 py-2">
+                              <span
+                                className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${Number(discountPct) > 20 ? "bg-red-50 text-red-600" : "bg-orange-50 text-orange-600"}`}
+                              >
+                                {discountPct}%
+                              </span>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    {bills.filter((b) => Number(b.discount) > 0).length ===
+                      0 && (
+                      <tr>
+                        <td
+                          colSpan={8}
+                          className="py-10 text-center text-[12px] text-gray-400"
+                        >
+                          No discounts given in this period
+                        </td>
+                      </tr>
                     )}
                   </tbody>
                 </table>
@@ -651,387 +1267,864 @@ export default function Report() {
         )}
 
         {/* ===== MENU ENGINEERING ===== */}
-        {activeTab === "Menu Engineering" && (() => {
-          // Build item sales map from BillItems
-          const itemSales: Record<string, { name: string; qty: number; revenue: number; price: number }> = {};
-          bills.forEach((b: any) => {
-            (b.items || []).forEach((item: any) => {
-              const id = item.menuItemId || item.itemName;
-              if (!itemSales[id]) itemSales[id] = { name: item.itemName, qty: 0, revenue: 0, price: Number(item.price || 0) };
-              itemSales[id].qty += Number(item.quantity || 0);
-              itemSales[id].revenue += Number(item.total || 0);
+        {activeTab === "Menu Engineering" &&
+          (() => {
+            // Build item sales map from BillItems
+            const itemSales: Record<
+              string,
+              { name: string; qty: number; revenue: number; price: number }
+            > = {};
+            bills.forEach((b: any) => {
+              (b.items || []).forEach((item: any) => {
+                const id = item.menuItemId || item.itemName;
+                if (!itemSales[id])
+                  itemSales[id] = {
+                    name: item.itemName,
+                    qty: 0,
+                    revenue: 0,
+                    price: Number(item.price || 0),
+                  };
+                itemSales[id].qty += Number(item.quantity || 0);
+                itemSales[id].revenue += Number(item.total || 0);
+              });
             });
-          });
 
-          // Compute food cost from menuItemIngredients
-          const itemsWithCost = menuItems.map((mi: any) => {
-            const sales = itemSales[mi.id] || { name: mi.name, qty: 0, revenue: 0, price: Number(mi.price || 0) };
-            const recipeCost = (mi.menuItemIngredients || []).reduce((acc: number, m: any) => {
-              const ing = m.ingredient;
-              if (!ing) return acc;
-              const qty = Number(m.quantity || 0);
-              const price = Number(ing.pricePerUnit || 0);
-              const mu = m.unit?.toLowerCase();
-              const iu = ing.unit?.toLowerCase();
-              let cost = qty * price;
-              if (iu === "kg" && (mu === "gram" || mu === "gm")) cost = (qty / 1000) * price;
-              else if (iu === "litre" && mu === "ml") cost = (qty / 1000) * price;
-              return acc + cost;
-            }, 0);
-            const sellingPrice = Number(mi.price || 0);
-            const margin = sellingPrice > 0 ? ((sellingPrice - recipeCost) / sellingPrice) * 100 : 0;
-            return { ...mi, ...sales, recipeCost, margin };
-          });
+            // Compute food cost from menuItemIngredients
+            const itemsWithCost = menuItems.map((mi: any) => {
+              const sales = itemSales[mi.id] || {
+                name: mi.name,
+                qty: 0,
+                revenue: 0,
+                price: Number(mi.price || 0),
+              };
+              const recipeCost = (mi.menuItemIngredients || []).reduce(
+                (acc: number, m: any) => {
+                  const ing = m.ingredient;
+                  if (!ing) return acc;
+                  const qty = Number(m.quantity || 0);
+                  const price = Number(ing.pricePerUnit || 0);
+                  const mu = m.unit?.toLowerCase();
+                  const iu = ing.unit?.toLowerCase();
+                  let cost = qty * price;
+                  if (iu === "kg" && (mu === "gram" || mu === "gm"))
+                    cost = (qty / 1000) * price;
+                  else if (iu === "litre" && mu === "ml")
+                    cost = (qty / 1000) * price;
+                  return acc + cost;
+                },
+                0,
+              );
+              const sellingPrice = Number(mi.price || 0);
+              const margin =
+                sellingPrice > 0
+                  ? ((sellingPrice - recipeCost) / sellingPrice) * 100
+                  : 0;
+              return { ...mi, ...sales, recipeCost, margin };
+            });
 
-          const medianQty = itemsWithCost.length > 0 ? itemsWithCost.map(i => i.qty).sort((a, b) => a - b)[Math.floor(itemsWithCost.length / 2)] : 0;
-          const medianMargin = itemsWithCost.length > 0 ? itemsWithCost.map(i => i.margin).sort((a, b) => a - b)[Math.floor(itemsWithCost.length / 2)] : 50;
+            const medianQty =
+              itemsWithCost.length > 0
+                ? itemsWithCost.map((i) => i.qty).sort((a, b) => a - b)[
+                    Math.floor(itemsWithCost.length / 2)
+                  ]
+                : 0;
+            const medianMargin =
+              itemsWithCost.length > 0
+                ? itemsWithCost.map((i) => i.margin).sort((a, b) => a - b)[
+                    Math.floor(itemsWithCost.length / 2)
+                  ]
+                : 50;
 
-          const classify = (item: any) => {
-            const highQty = item.qty >= medianQty;
-            const highMargin = item.margin >= medianMargin;
-            if (highQty && highMargin) return { label: "Star", color: "bg-emerald-100 text-emerald-700 border-emerald-200", dot: "bg-emerald-500", tip: "Promote heavily — high demand, high profit" };
-            if (!highQty && highMargin) return { label: "Puzzle", color: "bg-blue-100 text-blue-700 border-blue-200", dot: "bg-blue-500", tip: "Good margin but needs better visibility" };
-            if (highQty && !highMargin) return { label: "Plowhorse", color: "bg-orange-100 text-orange-700 border-orange-200", dot: "bg-orange-500", tip: "Popular but low margin — reprice or reduce cost" };
-            return { label: "Dog", color: "bg-red-100 text-red-700 border-red-200", dot: "bg-red-500", tip: "Low demand, low margin — consider removing" };
-          };
+            const classify = (item: any) => {
+              const highQty = item.qty >= medianQty;
+              const highMargin = item.margin >= medianMargin;
+              if (highQty && highMargin)
+                return {
+                  label: "Star",
+                  color: "bg-emerald-100 text-emerald-700 border-emerald-200",
+                  dot: "bg-emerald-500",
+                  tip: "Promote heavily — high demand, high profit",
+                };
+              if (!highQty && highMargin)
+                return {
+                  label: "Puzzle",
+                  color: "bg-blue-100 text-blue-700 border-blue-200",
+                  dot: "bg-blue-500",
+                  tip: "Good margin but needs better visibility",
+                };
+              if (highQty && !highMargin)
+                return {
+                  label: "Plowhorse",
+                  color: "bg-orange-100 text-orange-700 border-orange-200",
+                  dot: "bg-orange-500",
+                  tip: "Popular but low margin — reprice or reduce cost",
+                };
+              return {
+                label: "Dog",
+                color: "bg-red-100 text-red-700 border-red-200",
+                dot: "bg-red-500",
+                tip: "Low demand, low margin — consider removing",
+              };
+            };
 
-          const quadrants = { Star: [] as any[], Puzzle: [] as any[], Plowhorse: [] as any[], Dog: [] as any[] };
-          itemsWithCost.forEach(item => {
-            const c = classify(item);
-            (quadrants as any)[c.label].push({ ...item, cls: c });
-          });
+            const quadrants = {
+              Star: [] as any[],
+              Puzzle: [] as any[],
+              Plowhorse: [] as any[],
+              Dog: [] as any[],
+            };
+            itemsWithCost.forEach((item) => {
+              const c = classify(item);
+              (quadrants as any)[c.label].push({ ...item, cls: c });
+            });
 
-          return (
-            <div className="space-y-3">
-              <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
-                {[
-                  { label: "Stars", count: quadrants.Star.length, desc: "High qty · High margin", color: "bg-emerald-50 border-emerald-100 text-emerald-700" },
-                  { label: "Puzzles", count: quadrants.Puzzle.length, desc: "Low qty · High margin", color: "bg-blue-50 border-blue-100 text-blue-700" },
-                  { label: "Plowhorses", count: quadrants.Plowhorse.length, desc: "High qty · Low margin", color: "bg-orange-50 border-orange-100 text-orange-700" },
-                  { label: "Dogs", count: quadrants.Dog.length, desc: "Low qty · Low margin", color: "bg-red-50 border-red-100 text-red-700" },
-                ].map(k => (
-                  <div key={k.label} className={`rounded-xl border p-4 ${k.color.split(" ").slice(0, 2).join(" ")}`}>
-                    <p className={`text-[22px] font-black ${k.color.split(" ")[2]}`}>{k.count}</p>
-                    <p className="mt-1 text-[13px] font-bold text-gray-900">{k.label}</p>
-                    <p className="mt-0.5 text-[11px] text-gray-500">{k.desc}</p>
-                  </div>
-                ))}
-              </div>
-              <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
-                {(Object.entries(quadrants) as [string, any[]][]).map(([label, items]) => {
-                  const colors: Record<string, string> = { Star: "border-emerald-200 bg-emerald-50/40", Puzzle: "border-blue-200 bg-blue-50/40", Plowhorse: "border-orange-200 bg-orange-50/40", Dog: "border-red-200 bg-red-50/40" };
-                  const tips: Record<string, string> = { Star: "Promote on menu, push to customers, protect margins", Puzzle: "Better photos, staff recommendations, combo deals", Plowhorse: "Increase price by 5–10% or reduce recipe cost", Dog: "Remove, rename, or run as a special to test demand" };
-                  return (
-                    <div key={label} className={`overflow-hidden rounded-xl border ${colors[label]} shadow-sm`}>
-                      <div className="flex items-center gap-3 px-4 py-3">
-                        <div>
-                          <h3 className="text-[15px] font-bold text-gray-900">{label}s ({items.length})</h3>
-                          <p className="mt-0.5 text-[11px] text-gray-500">{tips[label]}</p>
+            return (
+              <div className="space-y-3">
+                <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+                  {[
+                    {
+                      label: "Stars",
+                      count: quadrants.Star.length,
+                      desc: "High qty · High margin",
+                      color:
+                        "bg-emerald-50 border-emerald-100 text-emerald-700",
+                    },
+                    {
+                      label: "Puzzles",
+                      count: quadrants.Puzzle.length,
+                      desc: "Low qty · High margin",
+                      color: "bg-blue-50 border-blue-100 text-blue-700",
+                    },
+                    {
+                      label: "Plowhorses",
+                      count: quadrants.Plowhorse.length,
+                      desc: "High qty · Low margin",
+                      color: "bg-orange-50 border-orange-100 text-orange-700",
+                    },
+                    {
+                      label: "Dogs",
+                      count: quadrants.Dog.length,
+                      desc: "Low qty · Low margin",
+                      color: "bg-red-50 border-red-100 text-red-700",
+                    },
+                  ].map((k) => (
+                    <div
+                      key={k.label}
+                      className={`rounded-xl border p-4 ${k.color.split(" ").slice(0, 2).join(" ")}`}
+                    >
+                      <p
+                        className={`text-[22px] font-black ${k.color.split(" ")[2]}`}
+                      >
+                        {k.count}
+                      </p>
+                      <p className="mt-1 text-[13px] font-bold text-gray-900">
+                        {k.label}
+                      </p>
+                      <p className="mt-0.5 text-[11px] text-gray-500">
+                        {k.desc}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+                <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
+                  {(Object.entries(quadrants) as [string, any[]][]).map(
+                    ([label, items]) => {
+                      const colors: Record<string, string> = {
+                        Star: "border-emerald-200 bg-emerald-50/40",
+                        Puzzle: "border-blue-200 bg-blue-50/40",
+                        Plowhorse: "border-orange-200 bg-orange-50/40",
+                        Dog: "border-red-200 bg-red-50/40",
+                      };
+                      const tips: Record<string, string> = {
+                        Star: "Promote on menu, push to customers, protect margins",
+                        Puzzle:
+                          "Better photos, staff recommendations, combo deals",
+                        Plowhorse:
+                          "Increase price by 5–10% or reduce recipe cost",
+                        Dog: "Remove, rename, or run as a special to test demand",
+                      };
+                      return (
+                        <div
+                          key={label}
+                          className={`overflow-hidden rounded-xl border ${colors[label]} shadow-sm`}
+                        >
+                          <div className="flex items-center gap-3 px-4 py-3">
+                            <div>
+                              <h3 className="text-[15px] font-bold text-gray-900">
+                                {label}s ({items.length})
+                              </h3>
+                              <p className="mt-0.5 text-[11px] text-gray-500">
+                                {tips[label]}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="overflow-x-auto">
+                            <table className="min-w-full text-[12px]">
+                              <thead className="bg-white/60">
+                                <tr className="border-b border-white/60">
+                                  {[
+                                    "Item",
+                                    "Category",
+                                    "Sold",
+                                    "Revenue",
+                                    "Food Cost",
+                                    "Margin",
+                                  ].map((h) => (
+                                    <th
+                                      key={h}
+                                      className="px-3 py-2 text-left text-[10px] font-bold uppercase tracking-wide text-gray-400"
+                                    >
+                                      {h}
+                                    </th>
+                                  ))}
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {items.slice(0, 6).map((item: any) => (
+                                  <tr
+                                    key={item.id}
+                                    className="border-b border-white/40 hover:bg-white/50"
+                                  >
+                                    <td className="px-3 py-2 font-semibold text-gray-900">
+                                      {item.name}
+                                    </td>
+                                    <td className="px-3 py-2 text-gray-500">
+                                      {item.category?.name || "—"}
+                                    </td>
+                                    <td className="px-3 py-2 font-bold text-gray-900">
+                                      {item.qty}
+                                    </td>
+                                    <td className="px-3 py-2 text-gray-700">
+                                      ₹
+                                      {Math.round(
+                                        item.revenue,
+                                      ).toLocaleString()}
+                                    </td>
+                                    <td className="px-3 py-2 text-gray-600">
+                                      ₹{item.recipeCost.toFixed(2)}
+                                    </td>
+                                    <td className="px-3 py-2">
+                                      <span
+                                        className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${item.margin >= 60 ? "bg-emerald-100 text-emerald-700" : item.margin >= 40 ? "bg-orange-100 text-orange-700" : "bg-red-100 text-red-700"}`}
+                                      >
+                                        {item.margin.toFixed(1)}%
+                                      </span>
+                                    </td>
+                                  </tr>
+                                ))}
+                                {items.length === 0 && (
+                                  <tr>
+                                    <td
+                                      colSpan={6}
+                                      className="px-3 py-6 text-center text-[11px] text-gray-400"
+                                    >
+                                      No items in this quadrant
+                                    </td>
+                                  </tr>
+                                )}
+                              </tbody>
+                            </table>
+                          </div>
                         </div>
-                      </div>
-                      <div className="overflow-x-auto">
-                        <table className="min-w-full text-[12px]">
-                          <thead className="bg-white/60">
-                            <tr className="border-b border-white/60">
-                              {["Item", "Category", "Sold", "Revenue", "Food Cost", "Margin"].map(h => (
-                                <th key={h} className="px-3 py-2 text-left text-[10px] font-bold uppercase tracking-wide text-gray-400">{h}</th>
-                              ))}
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {items.slice(0, 6).map((item: any) => (
-                              <tr key={item.id} className="border-b border-white/40 hover:bg-white/50">
-                                <td className="px-3 py-2 font-semibold text-gray-900">{item.name}</td>
-                                <td className="px-3 py-2 text-gray-500">{item.category?.name || "—"}</td>
-                                <td className="px-3 py-2 font-bold text-gray-900">{item.qty}</td>
-                                <td className="px-3 py-2 text-gray-700">₹{Math.round(item.revenue).toLocaleString()}</td>
-                                <td className="px-3 py-2 text-gray-600">₹{item.recipeCost.toFixed(2)}</td>
-                                <td className="px-3 py-2">
-                                  <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${item.margin >= 60 ? "bg-emerald-100 text-emerald-700" : item.margin >= 40 ? "bg-orange-100 text-orange-700" : "bg-red-100 text-red-700"}`}>
-                                    {item.margin.toFixed(1)}%
-                                  </span>
-                                </td>
-                              </tr>
-                            ))}
-                            {items.length === 0 && (
-                              <tr><td colSpan={6} className="px-3 py-6 text-center text-[11px] text-gray-400">No items in this quadrant</td></tr>
-                            )}
-                          </tbody>
-                        </table>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          );
-        })()}
-
-        {/* ===== TABLE ANALYTICS ===== */}
-        {activeTab === "Table Analytics" && (() => {
-          // Compute table turn metrics from running orders
-          const tableMap: Record<string, { tableId: string; tableName: string; orders: number; totalMins: number; revenue: number }> = {};
-          runningOrders.forEach((o: any) => {
-            if (!o.tableId) return;
-            const key = String(o.tableId);
-            if (!tableMap[key]) tableMap[key] = { tableId: key, tableName: o.table?.name || `Table ${key}`, orders: 0, totalMins: 0, revenue: 0 };
-            tableMap[key].orders++;
-            if (o.startedAt && o.completedAt) {
-              const mins = dayjs(o.completedAt).diff(dayjs(o.startedAt), "minute");
-              if (mins > 0 && mins < 300) tableMap[key].totalMins += mins;
-            }
-            tableMap[key].revenue += Number(o.finalAmount || o.totalAmount || 0);
-          });
-
-          const tableData = Object.values(tableMap).map(t => ({
-            ...t,
-            avgTurnMins: t.orders > 0 ? Math.round(t.totalMins / t.orders) : 0,
-            avgRevenue: t.orders > 0 ? Math.round(t.revenue / t.orders) : 0,
-          })).sort((a, b) => b.revenue - a.revenue);
-
-          const totalTableOrders = runningOrders.filter((o: any) => o.tableId).length;
-          const quickServiceOrders = runningOrders.filter((o: any) => !o.tableId).length;
-          const avgTurnTime = tableData.length > 0 ? Math.round(tableData.reduce((s, t) => s + t.avgTurnMins, 0) / tableData.length) : 0;
-          const totalTableRevenue = tableData.reduce((s, t) => s + t.revenue, 0);
-
-          return (
-            <div className="space-y-3">
-              <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
-                {[
-                  { label: "Tables Active", value: tableData.length, sub: "tables with orders", cls: "border-blue-100 bg-blue-50/60", val: "text-blue-700" },
-                  { label: "Avg Turn Time", value: `${avgTurnTime}m`, sub: "per table per order", cls: "border-orange-100 bg-orange-50/60", val: "text-orange-700" },
-                  { label: "Table Revenue", value: `₹${totalTableRevenue.toLocaleString()}`, sub: "dine-in channel", cls: "border-emerald-100 bg-emerald-50/60", val: "text-emerald-700" },
-                  { label: "Quick Orders", value: quickServiceOrders, sub: "no table assigned", cls: "border-violet-100 bg-violet-50/60", val: "text-violet-700" },
-                ].map(k => (
-                  <div key={k.label} className={`rounded-xl border p-4 ${k.cls}`}>
-                    <p className="text-[10px] font-bold uppercase tracking-wide text-gray-500">{k.label}</p>
-                    <p className={`mt-2 text-[22px] font-bold ${k.val}`}>{k.value}</p>
-                    <p className="mt-1 text-[11px] text-gray-500">{k.sub}</p>
-                  </div>
-                ))}
-              </div>
-              <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
-                <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
-                  <div className="border-b border-gray-100 px-4 py-3">
-                    <h3 className="text-[15px] font-bold text-gray-900">Revenue by Table</h3>
-                  </div>
-                  <div className="p-3">
-                    {tableData.length > 0 ? (
-                      <ResponsiveContainer width="100%" height={220}>
-                        <BarChart data={tableData.slice(0, 12)}>
-                          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                          <XAxis dataKey="tableName" tick={{ fontSize: 9, fill: "#6b7280" }} axisLine={false} tickLine={false} />
-                          <YAxis tick={{ fontSize: 9, fill: "#6b7280" }} axisLine={false} tickLine={false} />
-                          <Tooltip formatter={(v: any) => `₹${Number(v).toLocaleString()}`} />
-                          <Bar dataKey="revenue" name="Revenue" fill="#ef4444" radius={[3, 3, 0, 0]} />
-                        </BarChart>
-                      </ResponsiveContainer>
-                    ) : (
-                      <div className="flex h-[220px] items-center justify-center text-[12px] text-gray-400">No table order data available</div>
-                    )}
-                  </div>
-                </div>
-                <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
-                  <div className="border-b border-gray-100 px-4 py-3">
-                    <h3 className="text-[15px] font-bold text-gray-900">Avg Turn Time by Table</h3>
-                    <p className="mt-0.5 text-[11px] text-gray-500">Minutes from order start to completion</p>
-                  </div>
-                  <div className="p-3">
-                    {tableData.filter(t => t.avgTurnMins > 0).length > 0 ? (
-                      <ResponsiveContainer width="100%" height={220}>
-                        <BarChart data={tableData.filter(t => t.avgTurnMins > 0).slice(0, 12)}>
-                          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                          <XAxis dataKey="tableName" tick={{ fontSize: 9, fill: "#6b7280" }} axisLine={false} tickLine={false} />
-                          <YAxis tick={{ fontSize: 9, fill: "#6b7280" }} axisLine={false} tickLine={false} />
-                          <Tooltip formatter={(v: any) => `${v} mins`} />
-                          <Bar dataKey="avgTurnMins" name="Avg Turn (mins)" fill="#3b82f6" radius={[3, 3, 0, 0]} />
-                        </BarChart>
-                      </ResponsiveContainer>
-                    ) : (
-                      <div className="flex h-[220px] items-center justify-center text-[12px] text-gray-400">No turn time data (need order start/end timestamps)</div>
-                    )}
-                  </div>
-                </div>
-              </div>
-              <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
-                <div className="border-b border-gray-100 px-4 py-3">
-                  <h3 className="text-[15px] font-bold text-gray-900">Table Performance Summary</h3>
-                </div>
-                <div className="overflow-x-auto">
-                  <table className="min-w-full text-[12px]">
-                    <thead className="bg-gray-50">
-                      <tr className="border-b border-gray-100">
-                        {["Table", "Orders", "Avg Turn Time", "Total Revenue", "Avg Revenue/Order", "Performance"].map(h => (
-                          <th key={h} className="px-4 py-2 text-left text-[10px] font-bold uppercase tracking-wide text-gray-400">{h}</th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {tableData.map((t: any) => {
-                        const perf = t.revenue > (totalTableRevenue / Math.max(tableData.length, 1)) ? "High" : "Low";
-                        return (
-                          <tr key={t.tableId} className="border-b border-gray-50 hover:bg-gray-50/60">
-                            <td className="px-4 py-2.5 font-semibold text-gray-900">{t.tableName}</td>
-                            <td className="px-4 py-2.5 text-gray-700">{t.orders}</td>
-                            <td className="px-4 py-2.5 text-gray-600">{t.avgTurnMins > 0 ? `${t.avgTurnMins}m` : "—"}</td>
-                            <td className="px-4 py-2.5 font-bold text-gray-900">₹{t.revenue.toLocaleString()}</td>
-                            <td className="px-4 py-2.5 text-gray-600">₹{t.avgRevenue.toLocaleString()}</td>
-                            <td className="px-4 py-2.5">
-                              <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-semibold ${perf === "High" ? "bg-emerald-50 text-emerald-600" : "bg-gray-100 text-gray-500"}`}>{perf}</span>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                      {tableData.length === 0 && (
-                        <tr><td colSpan={6} className="py-12 text-center text-[12px] text-gray-400">No table orders found for this period</td></tr>
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </div>
-          );
-        })()}
-
-        {/* ===== WASTE REPORT ===== */}
-        {activeTab === "Waste Report" && (() => {
-          const byType = inventoryAdjustments.reduce((acc: any, a: any) => {
-            const t = a.adjustmentType || "UNKNOWN";
-            if (!acc[t]) acc[t] = { type: t, count: 0, items: [] };
-            acc[t].count++;
-            acc[t].items.push(a);
-            return acc;
-          }, {});
-          const totalAdjustments = inventoryAdjustments.length;
-          const wastageItems = inventoryAdjustments.filter((a: any) => a.adjustmentType === "WASTAGE" || a.adjustmentType === "EXPIRED");
-          const damageItems = inventoryAdjustments.filter((a: any) => a.adjustmentType === "DAMAGE");
-          const wastageByIngredient = inventoryAdjustments.reduce((acc: any, a: any) => {
-            const name = a.ingredient?.name || "Unknown";
-            if (!acc[name]) acc[name] = { name, qty: 0, adjustments: 0 };
-            acc[name].qty += Number(a.quantity || 0);
-            acc[name].adjustments++;
-            return acc;
-          }, {});
-          const topWaste = Object.values(wastageByIngredient).sort((a: any, b: any) => b.qty - a.qty).slice(0, 10);
-
-          return (
-            <div className="space-y-3">
-              <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
-                {[
-                  { label: "Total Adjustments", value: totalAdjustments, sub: "this period", cls: "border-gray-200 bg-gray-50/60", val: "text-gray-700" },
-                  { label: "Wastage / Expired", value: wastageItems.length, sub: "items wasted", cls: "border-orange-100 bg-orange-50/60", val: "text-orange-700" },
-                  { label: "Damage", value: damageItems.length, sub: "items damaged", cls: "border-red-100 bg-red-50/60", val: "text-red-700" },
-                  { label: "Unique Ingredients", value: Object.keys(wastageByIngredient).length, sub: "affected", cls: "border-violet-100 bg-violet-50/60", val: "text-violet-700" },
-                ].map(k => (
-                  <div key={k.label} className={`rounded-xl border p-4 ${k.cls}`}>
-                    <p className="text-[10px] font-bold uppercase tracking-wide text-gray-500">{k.label}</p>
-                    <p className={`mt-2 text-[22px] font-bold ${k.val}`}>{k.value}</p>
-                    <p className="mt-1 text-[11px] text-gray-500">{k.sub}</p>
-                  </div>
-                ))}
-              </div>
-              <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
-                <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
-                  <div className="border-b border-gray-100 px-4 py-3">
-                    <h3 className="text-[15px] font-bold text-gray-900">Top Wasted Ingredients</h3>
-                    <p className="mt-0.5 text-[11px] text-gray-500">By total quantity adjusted</p>
-                  </div>
-                  {topWaste.length > 0 ? (
-                    <div className="p-3">
-                      <ResponsiveContainer width="100%" height={230}>
-                        <BarChart data={topWaste} layout="vertical">
-                          <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f1f5f9" />
-                          <XAxis type="number" tick={{ fontSize: 10, fill: "#6b7280" }} axisLine={false} tickLine={false} />
-                          <YAxis dataKey="name" type="category" tick={{ fontSize: 10, fill: "#6b7280" }} axisLine={false} tickLine={false} width={100} />
-                          <Tooltip />
-                          <Bar dataKey="qty" name="Qty Wasted" fill="#f59e0b" radius={[0, 4, 4, 0]} />
-                        </BarChart>
-                      </ResponsiveContainer>
-                    </div>
-                  ) : (
-                    <div className="flex h-[230px] items-center justify-center text-[12px] text-gray-400">No inventory adjustments for this period</div>
+                      );
+                    },
                   )}
                 </div>
+              </div>
+            );
+          })()}
+
+        {/* ===== TABLE ANALYTICS ===== */}
+        {activeTab === "Table Analytics" &&
+          (() => {
+            // Compute table turn metrics from running orders
+            const tableMap: Record<
+              string,
+              {
+                tableId: string;
+                tableName: string;
+                orders: number;
+                totalMins: number;
+                revenue: number;
+              }
+            > = {};
+            runningOrders.forEach((o: any) => {
+              if (!o.tableId) return;
+              const key = String(o.tableId);
+              if (!tableMap[key])
+                tableMap[key] = {
+                  tableId: key,
+                  tableName: o.table?.name || `Table ${key}`,
+                  orders: 0,
+                  totalMins: 0,
+                  revenue: 0,
+                };
+              tableMap[key].orders++;
+              if (o.startedAt && o.completedAt) {
+                const mins = dayjs(o.completedAt).diff(
+                  dayjs(o.startedAt),
+                  "minute",
+                );
+                if (mins > 0 && mins < 300) tableMap[key].totalMins += mins;
+              }
+              tableMap[key].revenue += Number(
+                o.finalAmount || o.totalAmount || 0,
+              );
+            });
+
+            const tableData = Object.values(tableMap)
+              .map((t) => ({
+                ...t,
+                avgTurnMins:
+                  t.orders > 0 ? Math.round(t.totalMins / t.orders) : 0,
+                avgRevenue: t.orders > 0 ? Math.round(t.revenue / t.orders) : 0,
+              }))
+              .sort((a, b) => b.revenue - a.revenue);
+
+            const totalTableOrders = runningOrders.filter(
+              (o: any) => o.tableId,
+            ).length;
+            const quickServiceOrders = runningOrders.filter(
+              (o: any) => !o.tableId,
+            ).length;
+            const avgTurnTime =
+              tableData.length > 0
+                ? Math.round(
+                    tableData.reduce((s, t) => s + t.avgTurnMins, 0) /
+                      tableData.length,
+                  )
+                : 0;
+            const totalTableRevenue = tableData.reduce(
+              (s, t) => s + t.revenue,
+              0,
+            );
+
+            return (
+              <div className="space-y-3">
+                <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+                  {[
+                    {
+                      label: "Tables Active",
+                      value: tableData.length,
+                      sub: "tables with orders",
+                      cls: "border-blue-100 bg-blue-50/60",
+                      val: "text-blue-700",
+                    },
+                    {
+                      label: "Avg Turn Time",
+                      value: `${avgTurnTime}m`,
+                      sub: "per table per order",
+                      cls: "border-orange-100 bg-orange-50/60",
+                      val: "text-orange-700",
+                    },
+                    {
+                      label: "Table Revenue",
+                      value: `₹${totalTableRevenue.toLocaleString()}`,
+                      sub: "dine-in channel",
+                      cls: "border-emerald-100 bg-emerald-50/60",
+                      val: "text-emerald-700",
+                    },
+                    {
+                      label: "Quick Orders",
+                      value: quickServiceOrders,
+                      sub: "no table assigned",
+                      cls: "border-violet-100 bg-violet-50/60",
+                      val: "text-violet-700",
+                    },
+                  ].map((k) => (
+                    <div
+                      key={k.label}
+                      className={`rounded-xl border p-4 ${k.cls}`}
+                    >
+                      <p className="text-[10px] font-bold uppercase tracking-wide text-gray-500">
+                        {k.label}
+                      </p>
+                      <p className={`mt-2 text-[22px] font-bold ${k.val}`}>
+                        {k.value}
+                      </p>
+                      <p className="mt-1 text-[11px] text-gray-500">{k.sub}</p>
+                    </div>
+                  ))}
+                </div>
+                <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
+                  <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+                    <div className="border-b border-gray-100 px-4 py-3">
+                      <h3 className="text-[15px] font-bold text-gray-900">
+                        Revenue by Table
+                      </h3>
+                    </div>
+                    <div className="p-3">
+                      {tableData.length > 0 ? (
+                        <ResponsiveContainer width="100%" height={220}>
+                          <BarChart data={tableData.slice(0, 12)}>
+                            <CartesianGrid
+                              strokeDasharray="3 3"
+                              vertical={false}
+                              stroke="#f1f5f9"
+                            />
+                            <XAxis
+                              dataKey="tableName"
+                              tick={{ fontSize: 9, fill: "#6b7280" }}
+                              axisLine={false}
+                              tickLine={false}
+                            />
+                            <YAxis
+                              tick={{ fontSize: 9, fill: "#6b7280" }}
+                              axisLine={false}
+                              tickLine={false}
+                            />
+                            <Tooltip
+                              formatter={(v: any) =>
+                                `₹${Number(v).toLocaleString()}`
+                              }
+                            />
+                            <Bar
+                              dataKey="revenue"
+                              name="Revenue"
+                              fill="#ef4444"
+                              radius={[3, 3, 0, 0]}
+                            />
+                          </BarChart>
+                        </ResponsiveContainer>
+                      ) : (
+                        <div className="flex h-[220px] items-center justify-center text-[12px] text-gray-400">
+                          No table order data available
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+                    <div className="border-b border-gray-100 px-4 py-3">
+                      <h3 className="text-[15px] font-bold text-gray-900">
+                        Avg Turn Time by Table
+                      </h3>
+                      <p className="mt-0.5 text-[11px] text-gray-500">
+                        Minutes from order start to completion
+                      </p>
+                    </div>
+                    <div className="p-3">
+                      {tableData.filter((t) => t.avgTurnMins > 0).length > 0 ? (
+                        <ResponsiveContainer width="100%" height={220}>
+                          <BarChart
+                            data={tableData
+                              .filter((t) => t.avgTurnMins > 0)
+                              .slice(0, 12)}
+                          >
+                            <CartesianGrid
+                              strokeDasharray="3 3"
+                              vertical={false}
+                              stroke="#f1f5f9"
+                            />
+                            <XAxis
+                              dataKey="tableName"
+                              tick={{ fontSize: 9, fill: "#6b7280" }}
+                              axisLine={false}
+                              tickLine={false}
+                            />
+                            <YAxis
+                              tick={{ fontSize: 9, fill: "#6b7280" }}
+                              axisLine={false}
+                              tickLine={false}
+                            />
+                            <Tooltip formatter={(v: any) => `${v} mins`} />
+                            <Bar
+                              dataKey="avgTurnMins"
+                              name="Avg Turn (mins)"
+                              fill="#3b82f6"
+                              radius={[3, 3, 0, 0]}
+                            />
+                          </BarChart>
+                        </ResponsiveContainer>
+                      ) : (
+                        <div className="flex h-[220px] items-center justify-center text-[12px] text-gray-400">
+                          No turn time data (need order start/end timestamps)
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
                 <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
                   <div className="border-b border-gray-100 px-4 py-3">
-                    <h3 className="text-[15px] font-bold text-gray-900">By Adjustment Type</h3>
+                    <h3 className="text-[15px] font-bold text-gray-900">
+                      Table Performance Summary
+                    </h3>
                   </div>
-                  <div className="divide-y divide-gray-50">
-                    {Object.values(byType).map((t: any) => (
-                      <div key={t.type} className="flex items-center justify-between px-4 py-3">
-                        <div>
-                          <span className={`rounded-md px-2 py-0.5 text-[10px] font-bold ${
-                            t.type === "WASTAGE" ? "bg-orange-100 text-orange-700" :
-                            t.type === "DAMAGE" ? "bg-red-100 text-red-700" :
-                            t.type === "EXPIRED" ? "bg-yellow-100 text-yellow-700" :
-                            "bg-gray-100 text-gray-700"
-                          }`}>{t.type}</span>
-                        </div>
-                        <p className="text-[14px] font-bold text-gray-900">{t.count} entries</p>
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full text-[12px]">
+                      <thead className="bg-gray-50">
+                        <tr className="border-b border-gray-100">
+                          {[
+                            "Table",
+                            "Orders",
+                            "Avg Turn Time",
+                            "Total Revenue",
+                            "Avg Revenue/Order",
+                            "Performance",
+                          ].map((h) => (
+                            <th
+                              key={h}
+                              className="px-4 py-2 text-left text-[10px] font-bold uppercase tracking-wide text-gray-400"
+                            >
+                              {h}
+                            </th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {tableData.map((t: any) => {
+                          const perf =
+                            t.revenue >
+                            totalTableRevenue / Math.max(tableData.length, 1)
+                              ? "High"
+                              : "Low";
+                          return (
+                            <tr
+                              key={t.tableId}
+                              className="border-b border-gray-50 hover:bg-gray-50/60"
+                            >
+                              <td className="px-4 py-2.5 font-semibold text-gray-900">
+                                {t.tableName}
+                              </td>
+                              <td className="px-4 py-2.5 text-gray-700">
+                                {t.orders}
+                              </td>
+                              <td className="px-4 py-2.5 text-gray-600">
+                                {t.avgTurnMins > 0 ? `${t.avgTurnMins}m` : "—"}
+                              </td>
+                              <td className="px-4 py-2.5 font-bold text-gray-900">
+                                ₹{t.revenue.toLocaleString()}
+                              </td>
+                              <td className="px-4 py-2.5 text-gray-600">
+                                ₹{t.avgRevenue.toLocaleString()}
+                              </td>
+                              <td className="px-4 py-2.5">
+                                <span
+                                  className={`rounded-full px-2.5 py-0.5 text-[10px] font-semibold ${perf === "High" ? "bg-emerald-50 text-emerald-600" : "bg-gray-100 text-gray-500"}`}
+                                >
+                                  {perf}
+                                </span>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                        {tableData.length === 0 && (
+                          <tr>
+                            <td
+                              colSpan={6}
+                              className="py-12 text-center text-[12px] text-gray-400"
+                            >
+                              No table orders found for this period
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
+
+        {/* ===== WASTE REPORT ===== */}
+        {activeTab === "Waste Report" &&
+          (() => {
+            const byType = inventoryAdjustments.reduce((acc: any, a: any) => {
+              const t = a.adjustmentType || "UNKNOWN";
+              if (!acc[t]) acc[t] = { type: t, count: 0, items: [] };
+              acc[t].count++;
+              acc[t].items.push(a);
+              return acc;
+            }, {});
+            const totalAdjustments = inventoryAdjustments.length;
+            const wastageItems = inventoryAdjustments.filter(
+              (a: any) =>
+                a.adjustmentType === "WASTAGE" ||
+                a.adjustmentType === "EXPIRED",
+            );
+            const damageItems = inventoryAdjustments.filter(
+              (a: any) => a.adjustmentType === "DAMAGE",
+            );
+            const wastageByIngredient = inventoryAdjustments.reduce(
+              (acc: any, a: any) => {
+                const name = a.ingredient?.name || "Unknown";
+                if (!acc[name]) acc[name] = { name, qty: 0, adjustments: 0 };
+                acc[name].qty += Number(a.quantity || 0);
+                acc[name].adjustments++;
+                return acc;
+              },
+              {},
+            );
+            const topWaste = Object.values(wastageByIngredient)
+              .sort((a: any, b: any) => b.qty - a.qty)
+              .slice(0, 10);
+
+            return (
+              <div className="space-y-3">
+                <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+                  {[
+                    {
+                      label: "Total Adjustments",
+                      value: totalAdjustments,
+                      sub: "this period",
+                      cls: "border-gray-200 bg-gray-50/60",
+                      val: "text-gray-700",
+                    },
+                    {
+                      label: "Wastage / Expired",
+                      value: wastageItems.length,
+                      sub: "items wasted",
+                      cls: "border-orange-100 bg-orange-50/60",
+                      val: "text-orange-700",
+                    },
+                    {
+                      label: "Damage",
+                      value: damageItems.length,
+                      sub: "items damaged",
+                      cls: "border-red-100 bg-red-50/60",
+                      val: "text-red-700",
+                    },
+                    {
+                      label: "Unique Ingredients",
+                      value: Object.keys(wastageByIngredient).length,
+                      sub: "affected",
+                      cls: "border-violet-100 bg-violet-50/60",
+                      val: "text-violet-700",
+                    },
+                  ].map((k) => (
+                    <div
+                      key={k.label}
+                      className={`rounded-xl border p-4 ${k.cls}`}
+                    >
+                      <p className="text-[10px] font-bold uppercase tracking-wide text-gray-500">
+                        {k.label}
+                      </p>
+                      <p className={`mt-2 text-[22px] font-bold ${k.val}`}>
+                        {k.value}
+                      </p>
+                      <p className="mt-1 text-[11px] text-gray-500">{k.sub}</p>
+                    </div>
+                  ))}
+                </div>
+                <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
+                  <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+                    <div className="border-b border-gray-100 px-4 py-3">
+                      <h3 className="text-[15px] font-bold text-gray-900">
+                        Top Wasted Ingredients
+                      </h3>
+                      <p className="mt-0.5 text-[11px] text-gray-500">
+                        By total quantity adjusted
+                      </p>
+                    </div>
+                    {topWaste.length > 0 ? (
+                      <div className="p-3">
+                        <ResponsiveContainer width="100%" height={230}>
+                          <BarChart data={topWaste} layout="vertical">
+                            <CartesianGrid
+                              strokeDasharray="3 3"
+                              horizontal={false}
+                              stroke="#f1f5f9"
+                            />
+                            <XAxis
+                              type="number"
+                              tick={{ fontSize: 10, fill: "#6b7280" }}
+                              axisLine={false}
+                              tickLine={false}
+                            />
+                            <YAxis
+                              dataKey="name"
+                              type="category"
+                              tick={{ fontSize: 10, fill: "#6b7280" }}
+                              axisLine={false}
+                              tickLine={false}
+                              width={100}
+                            />
+                            <Tooltip />
+                            <Bar
+                              dataKey="qty"
+                              name="Qty Wasted"
+                              fill="#f59e0b"
+                              radius={[0, 4, 4, 0]}
+                            />
+                          </BarChart>
+                        </ResponsiveContainer>
                       </div>
-                    ))}
-                    {Object.keys(byType).length === 0 && (
-                      <div className="py-10 text-center text-[12px] text-gray-400">No inventory adjustments recorded</div>
+                    ) : (
+                      <div className="flex h-[230px] items-center justify-center text-[12px] text-gray-400">
+                        No inventory adjustments for this period
+                      </div>
                     )}
                   </div>
-                </div>
-              </div>
-              <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
-                <div className="border-b border-gray-100 px-4 py-3">
-                  <h3 className="text-[15px] font-bold text-gray-900">Adjustment Log</h3>
-                  <p className="mt-0.5 text-[11px] text-gray-500">Every inventory write-down with reason and staff responsible</p>
-                </div>
-                <div className="overflow-x-auto">
-                  <table className="min-w-full text-[12px]">
-                    <thead className="bg-gray-50">
-                      <tr className="border-b border-gray-100">
-                        {["Date", "Ingredient", "Type", "Quantity", "Reason", "Updated By"].map(h => (
-                          <th key={h} className="px-4 py-2 text-left text-[10px] font-bold uppercase tracking-wide text-gray-400">{h}</th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {inventoryAdjustments.slice(0, 20).map((a: any) => (
-                        <tr key={a.id} className="border-b border-gray-50 hover:bg-gray-50/60">
-                          <td className="px-4 py-2.5 text-gray-500">{dayjs(a.createdAt).format("DD MMM YYYY")}</td>
-                          <td className="px-4 py-2.5 font-semibold text-gray-900">{a.ingredient?.name || "—"}</td>
-                          <td className="px-4 py-2.5">
-                            <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-semibold ${
-                              a.adjustmentType === "WASTAGE" ? "bg-orange-50 text-orange-600" :
-                              a.adjustmentType === "DAMAGE" ? "bg-red-50 text-red-600" :
-                              a.adjustmentType === "EXPIRED" ? "bg-yellow-50 text-yellow-600" :
-                              "bg-gray-100 text-gray-600"
-                            }`}>{a.adjustmentType}</span>
-                          </td>
-                          <td className="px-4 py-2.5 font-bold text-gray-900">{Number(a.quantity || 0).toFixed(2)} {a.ingredient?.unit || ""}</td>
-                          <td className="px-4 py-2.5 text-gray-600 max-w-[180px] truncate">{a.reason || "—"}</td>
-                          <td className="px-4 py-2.5 text-gray-500">{a.updatedBy?.name || "—"}</td>
-                        </tr>
+                  <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+                    <div className="border-b border-gray-100 px-4 py-3">
+                      <h3 className="text-[15px] font-bold text-gray-900">
+                        By Adjustment Type
+                      </h3>
+                    </div>
+                    <div className="divide-y divide-gray-50">
+                      {Object.values(byType).map((t: any) => (
+                        <div
+                          key={t.type}
+                          className="flex items-center justify-between px-4 py-3"
+                        >
+                          <div>
+                            <span
+                              className={`rounded-md px-2 py-0.5 text-[10px] font-bold ${
+                                t.type === "WASTAGE"
+                                  ? "bg-orange-100 text-orange-700"
+                                  : t.type === "DAMAGE"
+                                    ? "bg-red-100 text-red-700"
+                                    : t.type === "EXPIRED"
+                                      ? "bg-yellow-100 text-yellow-700"
+                                      : "bg-gray-100 text-gray-700"
+                              }`}
+                            >
+                              {t.type}
+                            </span>
+                          </div>
+                          <p className="text-[14px] font-bold text-gray-900">
+                            {t.count} entries
+                          </p>
+                        </div>
                       ))}
-                      {inventoryAdjustments.length === 0 && (
-                        <tr><td colSpan={6} className="py-12 text-center text-[12px] text-gray-400">No inventory adjustments logged. Use the Operations page to record wastage and damage.</td></tr>
+                      {Object.keys(byType).length === 0 && (
+                        <div className="py-10 text-center text-[12px] text-gray-400">
+                          No inventory adjustments recorded
+                        </div>
                       )}
-                    </tbody>
-                  </table>
+                    </div>
+                  </div>
+                </div>
+                <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+                  <div className="border-b border-gray-100 px-4 py-3">
+                    <h3 className="text-[15px] font-bold text-gray-900">
+                      Adjustment Log
+                    </h3>
+                    <p className="mt-0.5 text-[11px] text-gray-500">
+                      Every inventory write-down with reason and staff
+                      responsible
+                    </p>
+                  </div>
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full text-[12px]">
+                      <thead className="bg-gray-50">
+                        <tr className="border-b border-gray-100">
+                          {[
+                            "Date",
+                            "Ingredient",
+                            "Type",
+                            "Quantity",
+                            "Reason",
+                            "Updated By",
+                          ].map((h) => (
+                            <th
+                              key={h}
+                              className="px-4 py-2 text-left text-[10px] font-bold uppercase tracking-wide text-gray-400"
+                            >
+                              {h}
+                            </th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {inventoryAdjustments.slice(0, 20).map((a: any) => (
+                          <tr
+                            key={a.id}
+                            className="border-b border-gray-50 hover:bg-gray-50/60"
+                          >
+                            <td className="px-4 py-2.5 text-gray-500">
+                              {dayjs(a.createdAt).format("DD MMM YYYY")}
+                            </td>
+                            <td className="px-4 py-2.5 font-semibold text-gray-900">
+                              {a.ingredient?.name || "—"}
+                            </td>
+                            <td className="px-4 py-2.5">
+                              <span
+                                className={`rounded-full px-2.5 py-0.5 text-[10px] font-semibold ${
+                                  a.adjustmentType === "WASTAGE"
+                                    ? "bg-orange-50 text-orange-600"
+                                    : a.adjustmentType === "DAMAGE"
+                                      ? "bg-red-50 text-red-600"
+                                      : a.adjustmentType === "EXPIRED"
+                                        ? "bg-yellow-50 text-yellow-600"
+                                        : "bg-gray-100 text-gray-600"
+                                }`}
+                              >
+                                {a.adjustmentType}
+                              </span>
+                            </td>
+                            <td className="px-4 py-2.5 font-bold text-gray-900">
+                              {Number(a.quantity || 0).toFixed(2)}{" "}
+                              {a.ingredient?.unit || ""}
+                            </td>
+                            <td className="px-4 py-2.5 text-gray-600 max-w-[180px] truncate">
+                              {a.reason || "—"}
+                            </td>
+                            <td className="px-4 py-2.5 text-gray-500">
+                              {a.updatedBy?.name || "—"}
+                            </td>
+                          </tr>
+                        ))}
+                        {inventoryAdjustments.length === 0 && (
+                          <tr>
+                            <td
+                              colSpan={6}
+                              className="py-12 text-center text-[12px] text-gray-400"
+                            >
+                              No inventory adjustments logged. Use the
+                              Operations page to record wastage and damage.
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
               </div>
-            </div>
-          );
-        })()}
+            );
+          })()}
 
         {/* ===== HOURLY HEATMAP ===== */}
         {activeTab === "Hourly Heatmap" && (
           <div className="space-y-3">
             <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
               {[
-                { label: "Peak Hour", value: heatmapData?.peakHour?.label || "—", sub: `₹${(heatmapData?.peakHour?.revenue || 0).toLocaleString()} revenue`, color: "red" },
-                { label: "Best Day", value: heatmapData?.peakDay?.name || "—", sub: `₹${(heatmapData?.peakDay?.revenue || 0).toLocaleString()} revenue`, color: "emerald" },
-                { label: "Peak Hour Orders", value: heatmapData?.peakHour?.orders || 0, sub: "orders in that hour", color: "blue" },
-                { label: "Best Day Orders", value: heatmapData?.peakDay?.orders || 0, sub: "orders on that day", color: "orange" },
-              ].map(k => (
-                <div key={k.label} className={`rounded-xl border p-4 ${k.color === "red" ? "border-red-100 bg-red-50/60" : k.color === "emerald" ? "border-emerald-100 bg-emerald-50/60" : k.color === "blue" ? "border-blue-100 bg-blue-50/60" : "border-orange-100 bg-orange-50/60"}`}>
-                  <p className="text-[10px] font-bold uppercase tracking-wide text-gray-500">{k.label}</p>
-                  <p className={`mt-2 text-[20px] font-bold ${k.color === "red" ? "text-red-700" : k.color === "emerald" ? "text-emerald-700" : k.color === "blue" ? "text-blue-700" : "text-orange-700"}`}>{k.value}</p>
+                {
+                  label: "Peak Hour",
+                  value: heatmapData?.peakHour?.label || "—",
+                  sub: `₹${(heatmapData?.peakHour?.revenue || 0).toLocaleString()} revenue`,
+                  color: "red",
+                },
+                {
+                  label: "Best Day",
+                  value: heatmapData?.peakDay?.name || "—",
+                  sub: `₹${(heatmapData?.peakDay?.revenue || 0).toLocaleString()} revenue`,
+                  color: "emerald",
+                },
+                {
+                  label: "Peak Hour Orders",
+                  value: heatmapData?.peakHour?.orders || 0,
+                  sub: "orders in that hour",
+                  color: "blue",
+                },
+                {
+                  label: "Best Day Orders",
+                  value: heatmapData?.peakDay?.orders || 0,
+                  sub: "orders on that day",
+                  color: "orange",
+                },
+              ].map((k) => (
+                <div
+                  key={k.label}
+                  className={`rounded-xl border p-4 ${k.color === "red" ? "border-red-100 bg-red-50/60" : k.color === "emerald" ? "border-emerald-100 bg-emerald-50/60" : k.color === "blue" ? "border-blue-100 bg-blue-50/60" : "border-orange-100 bg-orange-50/60"}`}
+                >
+                  <p className="text-[10px] font-bold uppercase tracking-wide text-gray-500">
+                    {k.label}
+                  </p>
+                  <p
+                    className={`mt-2 text-[20px] font-bold ${k.color === "red" ? "text-red-700" : k.color === "emerald" ? "text-emerald-700" : k.color === "blue" ? "text-blue-700" : "text-orange-700"}`}
+                  >
+                    {k.value}
+                  </p>
                   <p className="mt-1 text-[11px] text-gray-500">{k.sub}</p>
                 </div>
               ))}
@@ -1040,41 +2133,110 @@ export default function Report() {
             <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
               <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
                 <div className="border-b border-gray-100 px-4 py-3">
-                  <h3 className="text-[15px] font-bold text-gray-900">Revenue by Hour of Day</h3>
-                  <p className="mt-0.5 text-[11px] text-gray-500">Which hour generates most revenue across all days</p>
+                  <h3 className="text-[15px] font-bold text-gray-900">
+                    Revenue by Hour of Day
+                  </h3>
+                  <p className="mt-0.5 text-[11px] text-gray-500">
+                    Which hour generates most revenue across all days
+                  </p>
                 </div>
                 <div className="p-3">
-                  {heatmapData?.hourlyData?.filter((h: any) => h.revenue > 0).length > 0 ? (
+                  {heatmapData?.hourlyData?.filter((h: any) => h.revenue > 0)
+                    .length > 0 ? (
                     <ResponsiveContainer width="100%" height={230}>
-                      <BarChart data={(heatmapData.hourlyData || []).filter((h: any) => h.hour >= 6 && h.hour <= 23)}>
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                        <XAxis dataKey="label" tick={{ fontSize: 9, fill: "#6b7280" }} axisLine={false} tickLine={false} interval={2} />
-                        <YAxis tick={{ fontSize: 9, fill: "#6b7280" }} axisLine={false} tickLine={false} tickFormatter={v => `₹${(v/1000).toFixed(0)}k`} />
-                        <Tooltip formatter={(v: any) => `₹${Number(v).toLocaleString()}`} />
-                        <Bar dataKey="revenue" name="Revenue" fill="#ef4444" radius={[4, 4, 0, 0]} />
+                      <BarChart
+                        data={(heatmapData.hourlyData || []).filter(
+                          (h: any) => h.hour >= 6 && h.hour <= 23,
+                        )}
+                      >
+                        <CartesianGrid
+                          strokeDasharray="3 3"
+                          vertical={false}
+                          stroke="#f1f5f9"
+                        />
+                        <XAxis
+                          dataKey="label"
+                          tick={{ fontSize: 9, fill: "#6b7280" }}
+                          axisLine={false}
+                          tickLine={false}
+                          interval={2}
+                        />
+                        <YAxis
+                          tick={{ fontSize: 9, fill: "#6b7280" }}
+                          axisLine={false}
+                          tickLine={false}
+                          tickFormatter={(v) => `₹${(v / 1000).toFixed(0)}k`}
+                        />
+                        <Tooltip
+                          formatter={(v: any) =>
+                            `₹${Number(v).toLocaleString()}`
+                          }
+                        />
+                        <Bar
+                          dataKey="revenue"
+                          name="Revenue"
+                          fill="#ef4444"
+                          radius={[4, 4, 0, 0]}
+                        />
                       </BarChart>
                     </ResponsiveContainer>
-                  ) : <div className="flex h-[230px] items-center justify-center text-[12px] text-gray-400">No hourly data</div>}
+                  ) : (
+                    <div className="flex h-[230px] items-center justify-center text-[12px] text-gray-400">
+                      No hourly data
+                    </div>
+                  )}
                 </div>
               </div>
 
               <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
                 <div className="border-b border-gray-100 px-4 py-3">
-                  <h3 className="text-[15px] font-bold text-gray-900">Revenue by Day of Week</h3>
-                  <p className="mt-0.5 text-[11px] text-gray-500">Which day is strongest across the period</p>
+                  <h3 className="text-[15px] font-bold text-gray-900">
+                    Revenue by Day of Week
+                  </h3>
+                  <p className="mt-0.5 text-[11px] text-gray-500">
+                    Which day is strongest across the period
+                  </p>
                 </div>
                 <div className="p-3">
-                  {heatmapData?.dailyData?.filter((d: any) => d.revenue > 0).length > 0 ? (
+                  {heatmapData?.dailyData?.filter((d: any) => d.revenue > 0)
+                    .length > 0 ? (
                     <ResponsiveContainer width="100%" height={230}>
                       <BarChart data={heatmapData.dailyData}>
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                        <XAxis dataKey="short" tick={{ fontSize: 10, fill: "#6b7280" }} axisLine={false} tickLine={false} />
-                        <YAxis tick={{ fontSize: 9, fill: "#6b7280" }} axisLine={false} tickLine={false} tickFormatter={v => `₹${(v/1000).toFixed(0)}k`} />
-                        <Tooltip formatter={(v: any) => `₹${Number(v).toLocaleString()}`} />
-                        <Bar dataKey="revenue" name="Revenue" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                        <CartesianGrid
+                          strokeDasharray="3 3"
+                          vertical={false}
+                          stroke="#f1f5f9"
+                        />
+                        <XAxis
+                          dataKey="short"
+                          tick={{ fontSize: 10, fill: "#6b7280" }}
+                          axisLine={false}
+                          tickLine={false}
+                        />
+                        <YAxis
+                          tick={{ fontSize: 9, fill: "#6b7280" }}
+                          axisLine={false}
+                          tickLine={false}
+                          tickFormatter={(v) => `₹${(v / 1000).toFixed(0)}k`}
+                        />
+                        <Tooltip
+                          formatter={(v: any) =>
+                            `₹${Number(v).toLocaleString()}`
+                          }
+                        />
+                        <Bar
+                          dataKey="revenue"
+                          name="Revenue"
+                          fill="#3b82f6"
+                          radius={[4, 4, 0, 0]}
+                        />
                       </BarChart>
                     </ResponsiveContainer>
-                  ) : <div className="flex h-[230px] items-center justify-center text-[12px] text-gray-400">No daily data</div>}
+                  ) : (
+                    <div className="flex h-[230px] items-center justify-center text-[12px] text-gray-400">
+                      No daily data
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -1082,40 +2244,85 @@ export default function Report() {
             {/* Heatmap Grid */}
             <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
               <div className="border-b border-gray-100 px-4 py-3">
-                <h3 className="text-[15px] font-bold text-gray-900">Revenue Heatmap — Day × Hour</h3>
-                <p className="mt-0.5 text-[11px] text-gray-500">Darker red = higher revenue in that time slot</p>
+                <h3 className="text-[15px] font-bold text-gray-900">
+                  Revenue Heatmap — Day × Hour
+                </h3>
+                <p className="mt-0.5 text-[11px] text-gray-500">
+                  Darker red = higher revenue in that time slot
+                </p>
               </div>
               <div className="overflow-x-auto p-4">
-                {heatmapData?.heatmapGrid?.length > 0 ? (() => {
-                  const hours = [6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23];
-                  const days = heatmapData.dailyData || [];
-                  const maxRev = Math.max(...heatmapData.heatmapGrid.map((c: any) => c.revenue), 1);
-                  const cell = (day: number, h: number) => {
-                    const c = heatmapData.heatmapGrid.find((g: any) => g.day === day && g.h === h);
-                    const intensity = c ? Math.round((c.revenue / maxRev) * 100) : 0;
-                    return <td key={h} title={`₹${(c?.revenue || 0).toLocaleString()}`}
-                      className="border border-white p-0"
-                      style={{ background: intensity === 0 ? "#f9fafb" : `rgba(239,68,68,${0.1 + intensity * 0.009})`, width: 32, height: 24 }} />;
-                  };
-                  return (
-                    <table className="text-[9px]">
-                      <thead>
-                        <tr>
-                          <th className="w-14 pr-2 text-right text-gray-400" />
-                          {hours.map(h => <th key={h} className="w-8 text-center text-gray-400 font-normal">{h === 12 ? "12P" : h > 12 ? `${h-12}P` : `${h}A`}</th>)}
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {days.map((d: any) => (
-                          <tr key={d.day}>
-                            <td className="pr-2 text-right text-[10px] font-semibold text-gray-600">{d.short}</td>
-                            {hours.map(h => cell(d.day, h))}
+                {heatmapData?.heatmapGrid?.length > 0 ? (
+                  (() => {
+                    const hours = [
+                      6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20,
+                      21, 22, 23,
+                    ];
+                    const days = heatmapData.dailyData || [];
+                    const maxRev = Math.max(
+                      ...heatmapData.heatmapGrid.map((c: any) => c.revenue),
+                      1,
+                    );
+                    const cell = (day: number, h: number) => {
+                      const c = heatmapData.heatmapGrid.find(
+                        (g: any) => g.day === day && g.h === h,
+                      );
+                      const intensity = c
+                        ? Math.round((c.revenue / maxRev) * 100)
+                        : 0;
+                      return (
+                        <td
+                          key={h}
+                          title={`₹${(c?.revenue || 0).toLocaleString()}`}
+                          className="border border-white p-0"
+                          style={{
+                            background:
+                              intensity === 0
+                                ? "#f9fafb"
+                                : `rgba(239,68,68,${0.1 + intensity * 0.009})`,
+                            width: 32,
+                            height: 24,
+                          }}
+                        />
+                      );
+                    };
+                    return (
+                      <table className="text-[9px]">
+                        <thead>
+                          <tr>
+                            <th className="w-14 pr-2 text-right text-gray-400" />
+                            {hours.map((h) => (
+                              <th
+                                key={h}
+                                className="w-8 text-center text-gray-400 font-normal"
+                              >
+                                {h === 12
+                                  ? "12P"
+                                  : h > 12
+                                    ? `${h - 12}P`
+                                    : `${h}A`}
+                              </th>
+                            ))}
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  );
-                })() : <div className="py-8 text-center text-[12px] text-gray-400">No heatmap data for this period</div>}
+                        </thead>
+                        <tbody>
+                          {days.map((d: any) => (
+                            <tr key={d.day}>
+                              <td className="pr-2 text-right text-[10px] font-semibold text-gray-600">
+                                {d.short}
+                              </td>
+                              {hours.map((h) => cell(d.day, h))}
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    );
+                  })()
+                ) : (
+                  <div className="py-8 text-center text-[12px] text-gray-400">
+                    No heatmap data for this period
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -1126,52 +2333,113 @@ export default function Report() {
           <div className="space-y-3">
             <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
               <div className="border-b border-gray-100 px-4 py-3">
-                <h3 className="text-[15px] font-bold text-gray-900">Day of Week — Full Breakdown</h3>
-                <p className="mt-0.5 text-[11px] text-gray-500">Revenue, order count and avg bill for each day of the week</p>
+                <h3 className="text-[15px] font-bold text-gray-900">
+                  Day of Week — Full Breakdown
+                </h3>
+                <p className="mt-0.5 text-[11px] text-gray-500">
+                  Revenue, order count and avg bill for each day of the week
+                </p>
               </div>
               <div className="overflow-x-auto">
                 <table className="min-w-full text-[12px]">
                   <thead className="bg-gray-50">
                     <tr className="border-b border-gray-100">
-                      {["Day", "Revenue", "Orders", "Avg Bill", "Revenue Share", "Performance"].map(h => (
-                        <th key={h} className="px-4 py-2.5 text-left text-[10px] font-bold uppercase tracking-wide text-gray-400">{h}</th>
+                      {[
+                        "Day",
+                        "Revenue",
+                        "Orders",
+                        "Avg Bill",
+                        "Revenue Share",
+                        "Performance",
+                      ].map((h) => (
+                        <th
+                          key={h}
+                          className="px-4 py-2.5 text-left text-[10px] font-bold uppercase tracking-wide text-gray-400"
+                        >
+                          {h}
+                        </th>
                       ))}
                     </tr>
                   </thead>
                   <tbody>
                     {(heatmapData?.dailyData || []).map((d: any) => {
-                      const totalRev = (heatmapData?.dailyData || []).reduce((s: number, x: any) => s + x.revenue, 0) || 1;
+                      const totalRev =
+                        (heatmapData?.dailyData || []).reduce(
+                          (s: number, x: any) => s + x.revenue,
+                          0,
+                        ) || 1;
                       const pct = Math.round((d.revenue / totalRev) * 100);
-                      const isTop = d.revenue === Math.max(...(heatmapData?.dailyData || []).map((x: any) => x.revenue));
+                      const isTop =
+                        d.revenue ===
+                        Math.max(
+                          ...(heatmapData?.dailyData || []).map(
+                            (x: any) => x.revenue,
+                          ),
+                        );
                       return (
-                        <tr key={d.day} className={`border-b border-gray-50 hover:bg-gray-50/60 ${isTop ? "bg-emerald-50/30" : ""}`}>
+                        <tr
+                          key={d.day}
+                          className={`border-b border-gray-50 hover:bg-gray-50/60 ${isTop ? "bg-emerald-50/30" : ""}`}
+                        >
                           <td className="px-4 py-3">
                             <div className="flex items-center gap-2">
-                              {isTop && <span className="rounded-full bg-emerald-100 px-1.5 py-0.5 text-[8px] font-bold text-emerald-700">BEST</span>}
-                              <p className="font-bold text-gray-900">{d.name}</p>
+                              {isTop && (
+                                <span className="rounded-full bg-emerald-100 px-1.5 py-0.5 text-[8px] font-bold text-emerald-700">
+                                  BEST
+                                </span>
+                              )}
+                              <p className="font-bold text-gray-900">
+                                {d.name}
+                              </p>
                             </div>
                           </td>
-                          <td className="px-4 py-3 font-bold text-gray-900">₹{d.revenue.toLocaleString()}</td>
-                          <td className="px-4 py-3 text-gray-700">{d.orders}</td>
-                          <td className="px-4 py-3 text-gray-600">₹{d.avgBill.toLocaleString()}</td>
+                          <td className="px-4 py-3 font-bold text-gray-900">
+                            ₹{d.revenue.toLocaleString()}
+                          </td>
+                          <td className="px-4 py-3 text-gray-700">
+                            {d.orders}
+                          </td>
+                          <td className="px-4 py-3 text-gray-600">
+                            ₹{d.avgBill.toLocaleString()}
+                          </td>
                           <td className="px-4 py-3">
                             <div className="flex items-center gap-2">
                               <div className="h-2 w-28 overflow-hidden rounded-full bg-gray-100">
-                                <div className="h-full rounded-full bg-red-500" style={{ width: `${pct}%` }} />
+                                <div
+                                  className="h-full rounded-full bg-red-500"
+                                  style={{ width: `${pct}%` }}
+                                />
                               </div>
-                              <span className="text-[11px] font-semibold text-gray-600">{pct}%</span>
+                              <span className="text-[11px] font-semibold text-gray-600">
+                                {pct}%
+                              </span>
                             </div>
                           </td>
                           <td className="px-4 py-3">
-                            <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-semibold ${d.revenue === 0 ? "bg-gray-100 text-gray-400" : pct >= 20 ? "bg-emerald-50 text-emerald-600" : pct >= 12 ? "bg-blue-50 text-blue-600" : "bg-gray-100 text-gray-500"}`}>
-                              {d.revenue === 0 ? "No Data" : pct >= 20 ? "Peak Day" : pct >= 12 ? "Busy" : "Slow Day"}
+                            <span
+                              className={`rounded-full px-2.5 py-0.5 text-[10px] font-semibold ${d.revenue === 0 ? "bg-gray-100 text-gray-400" : pct >= 20 ? "bg-emerald-50 text-emerald-600" : pct >= 12 ? "bg-blue-50 text-blue-600" : "bg-gray-100 text-gray-500"}`}
+                            >
+                              {d.revenue === 0
+                                ? "No Data"
+                                : pct >= 20
+                                  ? "Peak Day"
+                                  : pct >= 12
+                                    ? "Busy"
+                                    : "Slow Day"}
                             </span>
                           </td>
                         </tr>
                       );
                     })}
                     {!heatmapData?.dailyData?.length && (
-                      <tr><td colSpan={6} className="py-10 text-center text-[12px] text-gray-400">No day analysis data for this period</td></tr>
+                      <tr>
+                        <td
+                          colSpan={6}
+                          className="py-10 text-center text-[12px] text-gray-400"
+                        >
+                          No day analysis data for this period
+                        </td>
+                      </tr>
                     )}
                   </tbody>
                 </table>
@@ -1185,14 +2453,46 @@ export default function Report() {
           <div className="space-y-3">
             <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
               {[
-                { label: "Last 7-Day Avg", value: `₹${(forecastData?.summary?.avg7 || 0).toLocaleString()}`, sub: "daily average", color: "blue" },
-                { label: "Prev 7-Day Avg", value: `₹${(forecastData?.summary?.avgPrev7 || 0).toLocaleString()}`, sub: "comparison period", color: "gray" },
-                { label: "Growth Rate", value: `${forecastData?.summary?.growthPercent >= 0 ? "+" : ""}${forecastData?.summary?.growthPercent || 0}%`, sub: "week over week", color: (forecastData?.summary?.growthPercent || 0) >= 0 ? "emerald" : "red" },
-                { label: "Forecast (7 days)", value: `₹${(forecastData?.summary?.forecastTotal || 0).toLocaleString()}`, sub: "predicted next week", color: "violet" },
-              ].map(k => (
-                <div key={k.label} className={`rounded-xl border p-4 ${k.color === "blue" ? "border-blue-100 bg-blue-50/60" : k.color === "emerald" ? "border-emerald-100 bg-emerald-50/60" : k.color === "red" ? "border-red-100 bg-red-50/60" : k.color === "violet" ? "border-violet-100 bg-violet-50/60" : "border-gray-200 bg-gray-50"}`}>
-                  <p className="text-[10px] font-bold uppercase tracking-wide text-gray-500">{k.label}</p>
-                  <p className={`mt-2 text-[20px] font-bold ${k.color === "blue" ? "text-blue-700" : k.color === "emerald" ? "text-emerald-700" : k.color === "red" ? "text-red-700" : k.color === "violet" ? "text-violet-700" : "text-gray-700"}`}>{k.value}</p>
+                {
+                  label: "Last 7-Day Avg",
+                  value: `₹${(forecastData?.summary?.avg7 || 0).toLocaleString()}`,
+                  sub: "daily average",
+                  color: "blue",
+                },
+                {
+                  label: "Prev 7-Day Avg",
+                  value: `₹${(forecastData?.summary?.avgPrev7 || 0).toLocaleString()}`,
+                  sub: "comparison period",
+                  color: "gray",
+                },
+                {
+                  label: "Growth Rate",
+                  value: `${forecastData?.summary?.growthPercent >= 0 ? "+" : ""}${forecastData?.summary?.growthPercent || 0}%`,
+                  sub: "week over week",
+                  color:
+                    (forecastData?.summary?.growthPercent || 0) >= 0
+                      ? "emerald"
+                      : "red",
+                },
+                {
+                  label: "Forecast (7 days)",
+                  value: `₹${(forecastData?.summary?.forecastTotal || 0).toLocaleString()}`,
+                  sub: "predicted next week",
+                  color: "violet",
+                },
+              ].map((k) => (
+                <div
+                  key={k.label}
+                  className={`rounded-xl border p-4 ${k.color === "blue" ? "border-blue-100 bg-blue-50/60" : k.color === "emerald" ? "border-emerald-100 bg-emerald-50/60" : k.color === "red" ? "border-red-100 bg-red-50/60" : k.color === "violet" ? "border-violet-100 bg-violet-50/60" : "border-gray-200 bg-gray-50"}`}
+                >
+                  <p className="text-[10px] font-bold uppercase tracking-wide text-gray-500">
+                    {k.label}
+                  </p>
+                  <p
+                    className={`mt-2 text-[20px] font-bold ${k.color === "blue" ? "text-blue-700" : k.color === "emerald" ? "text-emerald-700" : k.color === "red" ? "text-red-700" : k.color === "violet" ? "text-violet-700" : "text-gray-700"}`}
+                  >
+                    {k.value}
+                  </p>
                   <p className="mt-1 text-[11px] text-gray-500">{k.sub}</p>
                 </div>
               ))}
@@ -1201,39 +2501,116 @@ export default function Report() {
             {/* History + Forecast chart */}
             <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
               <div className="border-b border-gray-100 px-4 py-3">
-                <h3 className="text-[15px] font-bold text-gray-900">30-Day History + 7-Day Forecast</h3>
-                <p className="mt-0.5 text-[11px] text-gray-500">Solid line = actual · Dashed area = predicted range (±15%)</p>
+                <h3 className="text-[15px] font-bold text-gray-900">
+                  30-Day History + 7-Day Forecast
+                </h3>
+                <p className="mt-0.5 text-[11px] text-gray-500">
+                  Solid line = actual · Dashed area = predicted range (±15%)
+                </p>
               </div>
               <div className="p-3">
-                {forecastData?.history?.length > 0 ? (() => {
-                  const combined = [
-                    ...(forecastData.history || []).map((d: any) => ({ ...d, type: "actual" })),
-                    ...(forecastData.forecast || []).map((d: any) => ({ date: d.date, revenue: d.predicted, lower: d.lower, upper: d.upper, type: "forecast" })),
-                  ];
-                  return (
-                    <ResponsiveContainer width="100%" height={260}>
-                      <AreaChart data={combined}>
-                        <defs>
-                          <linearGradient id="fg" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.12} />
-                            <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0} />
-                          </linearGradient>
-                          <linearGradient id="ag" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="#ef4444" stopOpacity={0.12} />
-                            <stop offset="95%" stopColor="#ef4444" stopOpacity={0} />
-                          </linearGradient>
-                        </defs>
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                        <XAxis dataKey="date" tick={{ fontSize: 9, fill: "#6b7280" }} axisLine={false} tickLine={false} interval={4} />
-                        <YAxis tick={{ fontSize: 9, fill: "#6b7280" }} axisLine={false} tickLine={false} tickFormatter={v => `₹${(v/1000).toFixed(0)}k`} />
-                        <Tooltip formatter={(v: any) => `₹${Number(v).toLocaleString()}`} />
-                        <Area type="monotone" dataKey="revenue" stroke="#ef4444" strokeWidth={2} fill="url(#ag)" name="Actual Revenue" />
-                        <Area type="monotone" dataKey="upper" stroke="#8b5cf6" strokeWidth={1} strokeDasharray="4 2" fill="url(#fg)" name="Upper Forecast" />
-                        <Line type="monotone" dataKey="lower" stroke="#8b5cf6" strokeWidth={1} strokeDasharray="4 2" dot={false} name="Lower Forecast" />
-                      </AreaChart>
-                    </ResponsiveContainer>
-                  );
-                })() : <div className="flex h-[260px] items-center justify-center text-[12px] text-gray-400">Not enough historical data for forecast</div>}
+                {forecastData?.history?.length > 0 ? (
+                  (() => {
+                    const combined = [
+                      ...(forecastData.history || []).map((d: any) => ({
+                        ...d,
+                        type: "actual",
+                      })),
+                      ...(forecastData.forecast || []).map((d: any) => ({
+                        date: d.date,
+                        revenue: d.predicted,
+                        lower: d.lower,
+                        upper: d.upper,
+                        type: "forecast",
+                      })),
+                    ];
+                    return (
+                      <ResponsiveContainer width="100%" height={260}>
+                        <AreaChart data={combined}>
+                          <defs>
+                            <linearGradient id="fg" x1="0" y1="0" x2="0" y2="1">
+                              <stop
+                                offset="5%"
+                                stopColor="#8b5cf6"
+                                stopOpacity={0.12}
+                              />
+                              <stop
+                                offset="95%"
+                                stopColor="#8b5cf6"
+                                stopOpacity={0}
+                              />
+                            </linearGradient>
+                            <linearGradient id="ag" x1="0" y1="0" x2="0" y2="1">
+                              <stop
+                                offset="5%"
+                                stopColor="#ef4444"
+                                stopOpacity={0.12}
+                              />
+                              <stop
+                                offset="95%"
+                                stopColor="#ef4444"
+                                stopOpacity={0}
+                              />
+                            </linearGradient>
+                          </defs>
+                          <CartesianGrid
+                            strokeDasharray="3 3"
+                            vertical={false}
+                            stroke="#f1f5f9"
+                          />
+                          <XAxis
+                            dataKey="date"
+                            tick={{ fontSize: 9, fill: "#6b7280" }}
+                            axisLine={false}
+                            tickLine={false}
+                            interval={4}
+                          />
+                          <YAxis
+                            tick={{ fontSize: 9, fill: "#6b7280" }}
+                            axisLine={false}
+                            tickLine={false}
+                            tickFormatter={(v) => `₹${(v / 1000).toFixed(0)}k`}
+                          />
+                          <Tooltip
+                            formatter={(v: any) =>
+                              `₹${Number(v).toLocaleString()}`
+                            }
+                          />
+                          <Area
+                            type="monotone"
+                            dataKey="revenue"
+                            stroke="#ef4444"
+                            strokeWidth={2}
+                            fill="url(#ag)"
+                            name="Actual Revenue"
+                          />
+                          <Area
+                            type="monotone"
+                            dataKey="upper"
+                            stroke="#8b5cf6"
+                            strokeWidth={1}
+                            strokeDasharray="4 2"
+                            fill="url(#fg)"
+                            name="Upper Forecast"
+                          />
+                          <Line
+                            type="monotone"
+                            dataKey="lower"
+                            stroke="#8b5cf6"
+                            strokeWidth={1}
+                            strokeDasharray="4 2"
+                            dot={false}
+                            name="Lower Forecast"
+                          />
+                        </AreaChart>
+                      </ResponsiveContainer>
+                    );
+                  })()
+                ) : (
+                  <div className="flex h-[260px] items-center justify-center text-[12px] text-gray-400">
+                    Not enough historical data for forecast
+                  </div>
+                )}
               </div>
             </div>
 
@@ -1241,16 +2618,39 @@ export default function Report() {
             <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
               <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
                 <div className="border-b border-gray-100 px-4 py-3">
-                  <h3 className="text-[15px] font-bold text-gray-900">Last 4 Weeks Revenue</h3>
+                  <h3 className="text-[15px] font-bold text-gray-900">
+                    Last 4 Weeks Revenue
+                  </h3>
                 </div>
                 <div className="p-3">
                   <ResponsiveContainer width="100%" height={180}>
                     <BarChart data={forecastData?.weeklyRevenue || []}>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                      <XAxis dataKey="week" tick={{ fontSize: 10, fill: "#6b7280" }} axisLine={false} tickLine={false} />
-                      <YAxis tick={{ fontSize: 9, fill: "#6b7280" }} axisLine={false} tickLine={false} tickFormatter={v => `₹${(v/1000).toFixed(0)}k`} />
-                      <Tooltip formatter={(v: any) => `₹${Number(v).toLocaleString()}`} />
-                      <Bar dataKey="revenue" name="Revenue" fill="#ef4444" radius={[4, 4, 0, 0]} />
+                      <CartesianGrid
+                        strokeDasharray="3 3"
+                        vertical={false}
+                        stroke="#f1f5f9"
+                      />
+                      <XAxis
+                        dataKey="week"
+                        tick={{ fontSize: 10, fill: "#6b7280" }}
+                        axisLine={false}
+                        tickLine={false}
+                      />
+                      <YAxis
+                        tick={{ fontSize: 9, fill: "#6b7280" }}
+                        axisLine={false}
+                        tickLine={false}
+                        tickFormatter={(v) => `₹${(v / 1000).toFixed(0)}k`}
+                      />
+                      <Tooltip
+                        formatter={(v: any) => `₹${Number(v).toLocaleString()}`}
+                      />
+                      <Bar
+                        dataKey="revenue"
+                        name="Revenue"
+                        fill="#ef4444"
+                        radius={[4, 4, 0, 0]}
+                      />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
@@ -1258,21 +2658,37 @@ export default function Report() {
 
               <div className="overflow-hidden rounded-xl border border-violet-100 bg-white shadow-sm">
                 <div className="border-b border-violet-100 bg-violet-50/40 px-4 py-3">
-                  <h3 className="text-[15px] font-bold text-gray-900">7-Day Revenue Forecast</h3>
-                  <p className="mt-0.5 text-[11px] text-gray-500">Based on 7-day rolling average + growth rate</p>
+                  <h3 className="text-[15px] font-bold text-gray-900">
+                    7-Day Revenue Forecast
+                  </h3>
+                  <p className="mt-0.5 text-[11px] text-gray-500">
+                    Based on 7-day rolling average + growth rate
+                  </p>
                 </div>
                 <div className="divide-y divide-gray-50">
                   {(forecastData?.forecast || []).map((f: any) => (
-                    <div key={f.date} className="flex items-center justify-between px-4 py-2.5">
-                      <p className="text-[12px] font-semibold text-gray-900">{f.date}</p>
+                    <div
+                      key={f.date}
+                      className="flex items-center justify-between px-4 py-2.5"
+                    >
+                      <p className="text-[12px] font-semibold text-gray-900">
+                        {f.date}
+                      </p>
                       <div className="text-right">
-                        <p className="text-[13px] font-bold text-violet-700">₹{f.predicted.toLocaleString()}</p>
-                        <p className="text-[10px] text-gray-400">₹{f.lower.toLocaleString()} – ₹{f.upper.toLocaleString()}</p>
+                        <p className="text-[13px] font-bold text-violet-700">
+                          ₹{f.predicted.toLocaleString()}
+                        </p>
+                        <p className="text-[10px] text-gray-400">
+                          ₹{f.lower.toLocaleString()} – ₹
+                          {f.upper.toLocaleString()}
+                        </p>
                       </div>
                     </div>
                   ))}
                   {!forecastData?.forecast?.length && (
-                    <div className="py-8 text-center text-[12px] text-gray-400">No forecast data available</div>
+                    <div className="py-8 text-center text-[12px] text-gray-400">
+                      No forecast data available
+                    </div>
                   )}
                 </div>
               </div>

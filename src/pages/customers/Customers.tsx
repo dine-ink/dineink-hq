@@ -1,5 +1,5 @@
-import { useCallback, useState, useEffect } from "react";
-import { useBranchSync, getSelectedBranch } from "@/hooks/useBranchSync";
+import { useState, useEffect } from "react";
+import { useAppSelector } from "../../store";
 import {
   EyeIcon,
   UsersIcon,
@@ -8,16 +8,8 @@ import {
 import { BarChart3Icon, IndianRupeeIcon, RepeatIcon } from "lucide-react";
 
 export default function Customers() {
-  const branches = JSON.parse(localStorage.getItem("branches") || "[]");
-  const [selectedBranch, setSelectedBranch] = useState<any>(() => {
-    const savedBranch = localStorage.getItem("selectedBranch");
-
-    if (savedBranch) {
-      return JSON.parse(savedBranch);
-    }
-
-    return branches[0] || null;
-  });
+  const { selectedBranch } = useAppSelector(s => s.branch);
+  const { user, token } = useAppSelector(s => s.auth);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState<any>(null);
@@ -60,9 +52,7 @@ export default function Customers() {
   const fetchCustomers = async (signal?: AbortSignal) => {
     try {
       setLoading(true);
-      const token = localStorage.getItem("token");
-      const user = JSON.parse(localStorage.getItem("user") || "{}");
-      if (!selectedBranch?.id) return;
+      if (!selectedBranch?.id || !user?.restaurantId) return;
       const url = `${API_URL}/api/customers/${user.restaurantId}/customerByBranch?branchId=${selectedBranch.id}`;
       const res = await fetch(url, { signal, headers: { Authorization: `Bearer ${token}` } });
       const data = await res.json();
@@ -73,10 +63,6 @@ export default function Customers() {
       setLoading(false);
     }
   };
-  const handleBranchChange = useCallback(() => {
-    setSelectedBranch(getSelectedBranch());
-  }, []);
-  useBranchSync(handleBranchChange);
 
   // Fetch RFM data when tab is selected
   useEffect(() => {
@@ -84,8 +70,6 @@ export default function Customers() {
     const fetchRFM = async () => {
       try {
         setRfmLoading(true);
-        const token = localStorage.getItem("token");
-        const user = JSON.parse(localStorage.getItem("user") || "{}");
         const res = await fetch(
           `${API_URL}/api/analytics/${user.restaurantId}/customer-rfm?branchId=${selectedBranch.id}`,
           { headers: { Authorization: `Bearer ${token}` } },

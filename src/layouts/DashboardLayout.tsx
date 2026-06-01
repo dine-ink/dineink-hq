@@ -28,7 +28,13 @@ import {
   ChevronRightIcon,
   ArrowsRightLeftIcon,
   FireIcon,
+  ArrowDownTrayIcon,
 } from "@heroicons/react/24/outline";
+import { useAppDispatch, useAppSelector } from "../store";
+import { setSelectedBranch } from "../store/slices/branchSlice";
+import { setPreset, setCustomRange } from "../store/slices/dateRangeSlice";
+import type { Preset } from "../store/slices/dateRangeSlice";
+import { generateAndDownloadFullReport } from "../utils/generateFullReport";
 
 const NAV = [
   { name: "Dashboard", href: "/dashboard", icon: HomeIcon },
@@ -60,25 +66,70 @@ const navLinkCls = (isActive: boolean, collapsed: boolean) =>
 const iconCls = (isActive: boolean) =>
   `h-4 w-4 shrink-0 transition ${isActive ? "text-white" : "text-white/60 group-hover:text-white"}`;
 
+const PRESETS: { key: Preset; label: string }[] = [
+  { key: "today", label: "Today" },
+  { key: "week", label: "7D" },
+  { key: "month", label: "30D" },
+  { key: "quarter", label: "90D" },
+  { key: "custom", label: "Custom" },
+];
+
 export default function DashboardLayout() {
   const navigate = useNavigate();
-  const branches = JSON.parse(localStorage.getItem("branches") || "[]");
-  const user = JSON.parse(localStorage.getItem("user") || "{}");
+  const dispatch = useAppDispatch();
+
+  // Redux state
+  const { branches, selectedBranch } = useAppSelector((s) => s.branch);
+  const { user, token } = useAppSelector((s) => s.auth);
+  const { preset, from, to } = useAppSelector((s) => s.dateRange);
+
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
-  const [selectedBranch, setSelectedBranch] = useState(branches[0]);
+  const [showCustomPicker, setShowCustomPicker] = useState(false);
+  const [customFrom, setCustomFrom] = useState(from);
+  const [customTo, setCustomTo] = useState(to);
+  const [downloading, setDownloading] = useState(false);
 
-  const handleBranchChange = (branchId: number) => {
-    const branch = branches.find((b: any) => b.id === branchId);
-    if (!branch) return;
-    setSelectedBranch(branch);
-    localStorage.setItem("selectedBranch", JSON.stringify(branch));
-    window.dispatchEvent(new Event("branchChanged"));
+  const handlePresetClick = (p: Preset) => {
+    if (p === "custom") {
+      setShowCustomPicker((v) => !v);
+    } else {
+      setShowCustomPicker(false);
+      dispatch(setPreset(p));
+    }
+  };
+
+  const handleCustomApply = () => {
+    if (customFrom && customTo) {
+      dispatch(setCustomRange({ from: customFrom, to: customTo }));
+      setShowCustomPicker(false);
+    }
+  };
+
+  const handleDownload = async () => {
+    if (!user?.restaurantId || !selectedBranch?.id || !token) return;
+    try {
+      setDownloading(true);
+      await generateAndDownloadFullReport({
+        restaurantName: user?.name || "Restaurant",
+        branchName: selectedBranch?.name || "Branch",
+        from,
+        to,
+        restaurantId: user.restaurantId,
+        branchId: selectedBranch.id,
+        token,
+        apiUrl: import.meta.env.VITE_API_URL,
+      });
+    } catch (e) {
+      console.error("Report download failed", e);
+    } finally {
+      setDownloading(false);
+    }
   };
 
   return (
     <div className="min-h-screen bg-gray-100">
-      {/* ── MOBILE SIDEBAR ───────────────────────────────────────────── */}
+      {/* ── MOBILE SIDEBAR ─────────────────────────────────── */}
       <Dialog
         open={sidebarOpen}
         onClose={setSidebarOpen}
@@ -118,12 +169,13 @@ export default function DashboardLayout() {
         </div>
       </Dialog>
 
-      {/* ── DESKTOP SIDEBAR ──────────────────────────────────────────── */}
+      {/* ── DESKTOP SIDEBAR ────────────────────────────────── */}
       <div
         className={`hidden lg:fixed lg:inset-y-0 lg:z-30 lg:flex lg:flex-col transition-all duration-300 ${collapsed ? "lg:w-[60px]" : "lg:w-[152px]"}`}
       >
         <div className="relative flex h-full flex-col overflow-hidden bg-gradient-to-b from-red-600 via-red-500 to-rose-600">
-          {/* Logo + collapse toggle */}
+          <div className="pointer-events-none absolute -top-16 -left-8 h-48 w-48 rounded-full bg-white/10 blur-3xl" />
+          <div className="pointer-events-none absolute bottom-0 right-0 h-40 w-40 rounded-full bg-black/10 blur-3xl" />
           <div className="relative flex h-12 shrink-0 items-center justify-between px-3">
             <button
               onClick={() => setCollapsed(!collapsed)}
@@ -150,8 +202,6 @@ export default function DashboardLayout() {
               </button>
             )}
           </div>
-
-          {/* Navigation */}
           <nav className="flex flex-1 flex-col justify-between overflow-y-auto px-2 pb-2">
             <div className="space-y-0.5">
               {!collapsed && (
@@ -178,7 +228,6 @@ export default function DashboardLayout() {
                 </NavLink>
               ))}
             </div>
-
             <div className="space-y-1">
               {!collapsed && (
                 <p className="mb-1 px-1.5 text-[8px] font-bold uppercase tracking-[0.2em] text-red-300/60">
@@ -202,8 +251,6 @@ export default function DashboardLayout() {
                   )}
                 </NavLink>
               ))}
-
-              {/* User card */}
               <div className="mt-2 border-t border-white/10 pt-2">
                 {collapsed ? (
                   <div className="flex justify-center">
@@ -226,28 +273,26 @@ export default function DashboardLayout() {
                     </div>
                   </div>
                 )}
+                {collapsed && (
+                  <button
+                    onClick={() => setCollapsed(false)}
+                    className="mt-1 flex w-full items-center justify-center py-1.5 text-white/50 hover:text-white transition"
+                  >
+                    <ChevronRightIcon className="h-3.5 w-3.5" />
+                  </button>
+                )}
               </div>
-
-              {/* Expand button when collapsed */}
-              {collapsed && (
-                <button
-                  onClick={() => setCollapsed(false)}
-                  className="mt-1 flex w-full items-center justify-center py-1.5 text-white/50 hover:text-white transition"
-                >
-                  <ChevronRightIcon className="h-3.5 w-3.5" />
-                </button>
-              )}
             </div>
           </nav>
         </div>
       </div>
 
-      {/* ── MAIN AREA ────────────────────────────────────────────────── */}
+      {/* ── MAIN AREA ──────────────────────────────────────── */}
       <div
         className={`flex h-screen flex-col overflow-hidden transition-all duration-300 ${collapsed ? "lg:pl-[60px]" : "lg:pl-[152px]"}`}
       >
         {/* TOP BAR */}
-        <header className="relative z-20 flex h-12 shrink-0 items-center justify-between bg-gradient-to-r from-red-600 via-red-500 to-rose-500 px-4 ">
+        <header className="relative z-20 shrink-0 bg-gradient-to-r from-red-600 via-red-500 to-rose-500 shadow-sm">
           <div className="pointer-events-none absolute inset-0 overflow-hidden">
             <div className="absolute -top-8 left-1/3 h-32 w-32 rounded-full bg-white/10 blur-3xl" />
             <div className="absolute right-0 top-0 h-24 w-24 rounded-full bg-red-300/20 blur-2xl" />
@@ -259,89 +304,163 @@ export default function DashboardLayout() {
             </div>
           </div>
 
-          <button
-            onClick={() => setSidebarOpen(true)}
-            className="relative text-white lg:hidden"
-          >
-            <Bars3Icon className="h-5 w-5" />
-          </button>
-
-          <div className="relative ml-auto flex items-center gap-2">
-            {/* Branch selector */}
-            {branches.length > 0 && (
-              <select
-                value={selectedBranch?.id || ""}
-                onChange={(e) => handleBranchChange(Number(e.target.value))}
-                className="hidden lg:flex min-w-[130px] cursor-pointer appearance-none rounded-xl border border-white/20 bg-white/15 px-3 py-1.5 text-[12px] font-semibold text-white backdrop-blur-xl outline-none transition hover:bg-white/20 focus:border-white/40"
-                style={{
-                  backgroundImage:
-                    "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='white' viewBox='0 0 20 20'%3E%3Cpath fill-rule='evenodd' d='M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z' clip-rule='evenodd'/%3E%3C/svg%3E\")",
-                  backgroundRepeat: "no-repeat",
-                  backgroundPosition: "right 10px center",
-                  backgroundSize: "12px",
-                  paddingRight: "30px",
-                }}
-              >
-                {branches.map((b: any) => (
-                  <option
-                    key={b.id}
-                    value={b.id}
-                    className="bg-white text-gray-900"
-                  >
-                    {b.name}
-                  </option>
-                ))}
-              </select>
-            )}
-
-            {/* Notification bell */}
-            <button className="flex h-8 w-8 items-center justify-center rounded-xl bg-white/10 text-white transition hover:bg-white/20">
-              <BellIcon className="h-4 w-4" />
+          {/* Top row: mobile menu + branch + notifications + profile */}
+          <div className="relative flex h-11 items-center justify-between px-4">
+            <button
+              onClick={() => setSidebarOpen(true)}
+              className="relative text-white lg:hidden"
+            >
+              <Bars3Icon className="h-5 w-5" />
             </button>
-
-            {/* Profile */}
-            <Menu as="div" className="relative">
-              <MenuButton className="flex items-center gap-1.5 rounded-xl bg-white/10 px-2 py-1 transition hover:bg-white/20">
-                <div className="flex h-6 w-6 items-center justify-center rounded-full bg-white/30 text-[10px] font-black text-white">
-                  {user?.name?.charAt(0)?.toUpperCase() || "U"}
-                </div>
-                <ChevronDownIcon className="h-3 w-3 text-white/70" />
-              </MenuButton>
-              <MenuItems className="absolute right-0 top-full z-50 mt-2 w-52 overflow-hidden rounded-2xl bg-white shadow-xl ring-1 ring-gray-200/80">
-                <div className="border-b border-gray-100 px-4 py-3">
-                  <p className="text-[13px] font-bold text-gray-900">
-                    {user?.name}
-                  </p>
-                  <p className="mt-0.5 truncate text-[11px] text-gray-400">
-                    {user?.email}
-                  </p>
-                </div>
-                <div className="py-1.5">
-                  <MenuItem>
+            {/* ── GLOBAL DATE FILTER BAR ─────────────────────── */}
+            <div className="relative border-t border-white/10 px-4 py-1.5">
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="flex items-center gap-0.5 rounded-xl border border-white/15 bg-white/10 p-0.5 backdrop-blur">
+                  {PRESETS.map((p) => (
                     <button
-                      onClick={() => navigate("/dashboard/settings")}
-                      className="flex w-full items-center gap-2.5 px-4 py-2 text-left text-[13px] text-gray-700 transition hover:bg-gray-50"
+                      key={p.key}
+                      onClick={() => handlePresetClick(p.key)}
+                      className={`rounded-lg px-3 py-1 text-[11px] font-bold transition-all ${
+                        preset === p.key
+                          ? "bg-white text-red-600 shadow-sm"
+                          : "text-white/70 hover:text-white hover:bg-white/10"
+                      }`}
                     >
-                      <Cog6ToothIcon className="h-4 w-4 text-gray-400" />
-                      Account Settings
+                      {p.label}
                     </button>
-                  </MenuItem>
-                  <div className="my-1 border-t border-gray-100" />
-                  <MenuItem>
+                  ))}
+                </div>
+
+                {/* Show selected range */}
+                <span className="text-[10px] text-white/50">
+                  {from} → {to}
+                </span>
+
+                {/* Custom date picker — inline below the pills */}
+                {showCustomPicker && (
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="date"
+                      value={customFrom}
+                      onChange={(e) => setCustomFrom(e.target.value)}
+                      className="h-7 rounded-lg border border-white/20 bg-white/15 px-2 text-[11px] text-white outline-none focus:border-white/40 backdrop-blur"
+                    />
+                    <span className="text-[10px] text-white/60">→</span>
+                    <input
+                      type="date"
+                      value={customTo}
+                      onChange={(e) => setCustomTo(e.target.value)}
+                      className="h-7 rounded-lg border border-white/20 bg-white/15 px-2 text-[11px] text-white outline-none focus:border-white/40 backdrop-blur"
+                    />
                     <button
-                      onClick={() => {
-                        localStorage.clear();
-                        window.location.href = "/login";
-                      }}
-                      className="flex w-full items-center gap-2.5 px-4 py-2 text-left text-[13px] font-semibold text-red-600 transition hover:bg-red-50"
+                      onClick={handleCustomApply}
+                      className="rounded-lg bg-white px-3 py-1 text-[11px] font-bold text-red-600 transition hover:bg-red-50"
+                    >
+                      Apply
+                    </button>
+                    <button
+                      onClick={() => setShowCustomPicker(false)}
+                      className="text-white/50 hover:text-white transition"
                     >
                       <XMarkIcon className="h-4 w-4" />
-                      Sign Out
                     </button>
-                  </MenuItem>
-                </div>
-              </MenuItems>
-            </Menu>
+                  </div>
+                )}
+              </div>
+            </div>
+            <div className="relative ml-auto flex items-center gap-2">
+              {/* Branch selector */}
+              {branches.length > 0 && (
+                <select
+                  value={selectedBranch?.id || ""}
+                  onChange={(e) => {
+                    const b = branches.find(
+                      (b: any) => b.id === Number(e.target.value),
+                    );
+                    if (b) dispatch(setSelectedBranch(b));
+                  }}
+                  className="hidden lg:flex min-w-[120px] cursor-pointer appearance-none rounded-xl border border-white/20 bg-white/15 px-3 py-1 text-[12px] font-semibold text-white backdrop-blur-xl outline-none transition hover:bg-white/20 focus:border-white/40"
+                  style={{
+                    backgroundImage:
+                      "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='white' viewBox='0 0 20 20'%3E%3Cpath fill-rule='evenodd' d='M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z' clip-rule='evenodd'/%3E%3C/svg%3E\")",
+                    backgroundRepeat: "no-repeat",
+                    backgroundPosition: "right 8px center",
+                    backgroundSize: "12px",
+                    paddingRight: "28px",
+                  }}
+                >
+                  {branches.map((b: any) => (
+                    <option
+                      key={b.id}
+                      value={b.id}
+                      className="bg-white text-gray-900"
+                    >
+                      {b.name}
+                    </option>
+                  ))}
+                </select>
+              )}
+              {/* Download Report */}
+              <button
+                onClick={handleDownload}
+                disabled={downloading}
+                title="Download full report as Excel"
+                className="hidden lg:flex items-center gap-1.5 rounded-xl border border-white/20 bg-white/10 px-3 py-1 text-[11px] font-semibold text-white backdrop-blur-xl transition hover:bg-white/20 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {downloading ? (
+                  <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                ) : (
+                  <ArrowDownTrayIcon className="h-3.5 w-3.5" />
+                )}
+                {downloading ? "Generating..." : "Export"}
+              </button>
+
+              <button className="flex h-7 w-7 items-center justify-center rounded-xl bg-white/10 text-white transition hover:bg-white/20">
+                <BellIcon className="h-4 w-4" />
+              </button>
+              <Menu as="div" className="relative">
+                <MenuButton className="flex items-center gap-1.5 rounded-xl bg-white/10 px-2 py-1 transition hover:bg-white/20">
+                  <div className="flex h-6 w-6 items-center justify-center rounded-full bg-white/30 text-[10px] font-black text-white">
+                    {user?.name?.charAt(0)?.toUpperCase() || "U"}
+                  </div>
+                  <ChevronDownIcon className="h-3 w-3 text-white/70" />
+                </MenuButton>
+                <MenuItems className="absolute right-0 top-full z-50 mt-2 w-52 overflow-hidden rounded-2xl bg-white shadow-xl ring-1 ring-gray-200/80">
+                  <div className="border-b border-gray-100 px-4 py-3">
+                    <p className="text-[13px] font-bold text-gray-900">
+                      {user?.name}
+                    </p>
+                    <p className="mt-0.5 truncate text-[11px] text-gray-400">
+                      {user?.email}
+                    </p>
+                  </div>
+                  <div className="py-1.5">
+                    <MenuItem>
+                      <button
+                        onClick={() => navigate("/dashboard/settings")}
+                        className="flex w-full items-center gap-2.5 px-4 py-2 text-left text-[13px] text-gray-700 transition hover:bg-gray-50"
+                      >
+                        <Cog6ToothIcon className="h-4 w-4 text-gray-400" />
+                        Account Settings
+                      </button>
+                    </MenuItem>
+                    <div className="my-1 border-t border-gray-100" />
+                    <MenuItem>
+                      <button
+                        onClick={() => {
+                          localStorage.clear();
+                          window.location.href = "/login";
+                        }}
+                        className="flex w-full items-center gap-2.5 px-4 py-2 text-left text-[13px] font-semibold text-red-600 transition hover:bg-red-50"
+                      >
+                        <XMarkIcon className="h-4 w-4" />
+                        Sign Out
+                      </button>
+                    </MenuItem>
+                  </div>
+                </MenuItems>
+              </Menu>
+            </div>
           </div>
         </header>
 

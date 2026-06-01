@@ -1,5 +1,5 @@
-import { useCallback, useState, useEffect } from "react";
-import { useBranchSync, getSelectedBranch } from "@/hooks/useBranchSync";
+import { useState, useEffect } from "react";
+import { useAppSelector } from "../../store";
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
 import ExcelJS from "exceljs";
@@ -49,31 +49,17 @@ import React from "react";
 const tabs = ["Overview", "Insights Setup"];
 
 export default function Insights() {
+  const { selectedBranch } = useAppSelector(s => s.branch);
+  const { user, token } = useAppSelector(s => s.auth);
+  const currentUser = user; // alias kept for existing code that uses currentUser
+  const API_URL = import.meta.env.VITE_API_URL;
+
   const [activeTab, setActiveTab] = useState("Overview");
   const [staffData, setStaffData] = useState<any[]>([]);
-  const currentUser = JSON.parse(localStorage.getItem("user") || "{}");
   const [insightsSection, setInsightsSection] = useState("Fixed Expenses");
   const [ingredients, setIngredients] = useState<any>({});
   const [loading, setLoading] = useState(false);
   const [restockHistory, setRestockHistory] = useState<any[]>([]);
-  const branches = JSON.parse(localStorage.getItem("branches") || "[]");
-  const API_URL = import.meta.env.VITE_API_URL;
-  const getCurrentBranch = () => {
-    const savedBranch = localStorage.getItem("selectedBranch");
-
-    if (savedBranch) {
-      return JSON.parse(savedBranch);
-    }
-
-    return branches[0] || null;
-  };
-
-  const handleBranchChange = useCallback(() => {
-    setSelectedBranch(getSelectedBranch());
-  }, []);
-  useBranchSync(handleBranchChange);
-
-  const [selectedBranch, setSelectedBranch] = useState<any>(getCurrentBranch());
   const [insightsData, setInsightsData] = useState<any>({
     monthlyRent: 0,
     loanEmi: 0,
@@ -194,9 +180,9 @@ export default function Insights() {
   useEffect(() => {
     const fetchInsights = async () => {
       try {
-        const token = localStorage.getItem("token");
 
-        const user = JSON.parse(localStorage.getItem("user") || "{}");
+
+
 
         if (!selectedBranch?.id) return;
 
@@ -226,8 +212,8 @@ export default function Insights() {
 
     const fetchRestockHistory = async () => {
       try {
-        const user = JSON.parse(localStorage.getItem("user") || "{}");
-        const token = localStorage.getItem("token");
+
+
         const res = await fetch(
           `${API_URL}/api/inventory/${user.restaurantId}/get-restock-history`,
           {
@@ -725,7 +711,7 @@ export default function Insights() {
   useEffect(() => {
     const fetchStaff = async () => {
       try {
-        const token = localStorage.getItem("token");
+
         const res = await fetch(
           `${API_URL}/api/restaurant/staff/${currentUser.restaurantId}/${selectedBranch.id}`,
           {

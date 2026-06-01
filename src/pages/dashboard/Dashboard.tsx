@@ -1,12 +1,9 @@
-import { useCallback, useEffect, useState } from "react";
-import { useBranchSync, getSelectedBranch } from "@/hooks/useBranchSync";
-import dayjs, { Dayjs } from "dayjs";
+import { useEffect, useState } from "react";
+import dayjs from "dayjs";
 import RestaurantSetupModal from "../../components/dashboard/RestaurantSetupModal";
-import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
-import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
-import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import StatsStrip from "@/components/StatsStrip";
 import CommonTable from "@/components/common/CommonTable";
+import { useAppSelector } from "../../store";
 import {
   ResponsiveContainer, AreaChart, Area, CartesianGrid, XAxis, YAxis,
   Tooltip, BarChart, Bar, PieChart, Pie, Cell, Legend,
@@ -17,19 +14,43 @@ const CHART_CARD = "overflow-hidden rounded-xl border border-gray-200 bg-white s
 
 export default function Dashboard() {
   const API_URL = import.meta.env.VITE_API_URL;
+
+  // Global state from Redux
+  const { from, to, preset } = useAppSelector(s => s.dateRange);
+  const { selectedBranch } = useAppSelector(s => s.branch);
+  const { user, token } = useAppSelector(s => s.auth);
+
   const [showSetupModal, setShowSetupModal] = useState(false);
   const [hasRestaurant, setHasRestaurant] = useState<boolean | null>(null);
   const [analytics, setAnalytics] = useState<any>(null);
-  const [preset, setPreset] = useState("today");
-  const [customMode, setCustomMode] = useState(false);
-  const [range, setRange] = useState<[Dayjs | null, Dayjs | null]>([
-    dayjs().startOf("day"), dayjs().endOf("day"),
-  ]);
-  const branches = JSON.parse(localStorage.getItem("branches") || "[]");
-  const [selectedBranch, setSelectedBranch] = useState<any>(() => {
-    const s = localStorage.getItem("selectedBranch");
-    return s ? JSON.parse(s) : branches[0] || null;
-  });
+
+  const isSingleDay = from === to;
+
+  const hourlyChartData = (() => {
+    const hourly = analytics?.hourlyAnalytics;
+    if (!hourly) return [];
+    return Array.from({ length: 24 }, (_, h) => ({
+      label: h === 0 ? "12 AM" : h < 12 ? `${h} AM` : h === 12 ? "12 PM" : `${h - 12} PM`,
+      revenue: hourly[String(h)]?.revenue || 0,
+      orders: hourly[String(h)]?.orders || 0,
+    }));
+  })();
+
+  const chartData = (() => {
+    if (!from || !to) return [];
+    const data = [];
+    let d = dayjs(from);
+    const end = dayjs(to);
+    while (d.isBefore(end) || d.isSame(end, "day")) {
+      const fmt = `${d.date()}/${d.month() + 1}/${d.year()}`;
+      data.push({ date: fmt, revenue: analytics?.revenueByDate?.[fmt] || 0, orders: analytics?.ordersByDate?.[fmt] || 0 });
+      d = d.add(1, "day");
+    }
+    return data;
+  })();
+
+  const hasRevenueData = isSingleDay ? hourlyChartData.some(h => h.revenue > 0) : chartData.some(d => d.revenue > 0);
+  const hasOrderData = isSingleDay ? hourlyChartData.some(h => h.orders > 0) : chartData.some(d => d.orders > 0);
 
   const onlineRevenue = analytics?.recentOrders?.filter((o: any) => o.orderType === "ONLINE").reduce((s: number, o: any) => s + o.total, 0) || 0;
   const dineInRevenue = analytics?.recentOrders?.filter((o: any) => o.orderType === "DINE_IN").reduce((s: number, o: any) => s + o.total, 0) || 0;
@@ -37,37 +58,12 @@ export default function Dashboard() {
   const onlinePercent = totalRevenue ? Math.round((onlineRevenue / totalRevenue) * 100) : 0;
   const dineInPercent = totalRevenue ? Math.round((dineInRevenue / totalRevenue) * 100) : 0;
 
-  const handleBranchChange = useCallback(() => { setSelectedBranch(getSelectedBranch()); }, []);
-  useBranchSync(handleBranchChange);
-
-  const getRange = (type: string): [Dayjs | null, Dayjs | null] => {
-    switch (type) {
-      case "week": return [dayjs().subtract(6, "day"), dayjs().endOf("day")];
-      case "month": return [dayjs().startOf("month"), dayjs().endOf("day")];
-      case "quarter": return [dayjs().subtract(3, "month"), dayjs().endOf("day")];
-      default: return [dayjs().startOf("day"), dayjs().endOf("day")];
-    }
-  };
-
-  const chartData = (() => {
-    const start = range[0]?.toDate();
-    const end = range[1]?.toDate();
-    if (!start || !end) return [];
-    const data = [];
-    for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-      const fmt = `${d.getDate()}/${d.getMonth() + 1}/${d.getFullYear()}`;
-      data.push({ date: fmt, revenue: analytics?.revenueByDate?.[fmt] || 0, orders: analytics?.ordersByDate?.[fmt] || 0 });
-    }
-    return data;
-  })();
-
   useEffect(() => {
     const ctrl = new AbortController();
     const { signal } = ctrl;
 
     const fetchDashboard = async () => {
       try {
-        const token = localStorage.getItem("token");
         const res = await fetch(`${API_URL}/api/restaurant/my-restaurant`, { signal, headers: { Authorization: `Bearer ${token}` } });
         const data = await res.json();
         if (data.success) {
@@ -79,11 +75,9 @@ export default function Dashboard() {
 
     const fetchAnalytics = async () => {
       try {
-        const token = localStorage.getItem("token");
-        const user = JSON.parse(localStorage.getItem("user") || "{}");
-        if (!selectedBranch?.id) return;
+        if (!selectedBranch?.id || !user?.restaurantId) return;
         const res = await fetch(
-          `${API_URL}/api/analytics/${user.restaurantId}/restaurantDashboardOverview?branchId=${selectedBranch.id}&range=${preset}&from=${range[0]?.format("YYYY-MM-DD")}&to=${range[1]?.format("YYYY-MM-DD")}`,
+          `${API_URL}/api/analytics/${user.restaurantId}/restaurantDashboardOverview?branchId=${selectedBranch.id}&range=${preset}&from=${from}&to=${to}`,
           { signal, headers: { Authorization: `Bearer ${token}` } },
         );
         const data = await res.json();
@@ -94,7 +88,7 @@ export default function Dashboard() {
     fetchDashboard();
     fetchAnalytics();
     return () => ctrl.abort();
-  }, [preset, range, selectedBranch?.id]);
+  }, [preset, from, to, selectedBranch?.id]);
 
   if (hasRestaurant === null) {
     return (
@@ -107,7 +101,6 @@ export default function Dashboard() {
     );
   }
 
-  // ── NO RESTAURANT ───────────────────────────────────────────────────────────
   if (!hasRestaurant) {
     return (
       <>
@@ -129,7 +122,7 @@ export default function Dashboard() {
                   Set up your restaurant to unlock billing, menu management, staff operations and AI-powered analytics.
                 </p>
                 <button onClick={() => setShowSetupModal(true)}
-                  className="mt-8 rounded-2xl bg-white px-8 py-3.5 text-sm font-bold text-red-600 shadow-xl transition hover:scale-[1.02] hover:shadow-2xl">
+                  className="mt-8 rounded-2xl bg-white px-8 py-3.5 text-sm font-bold text-red-600 shadow-xl transition hover:scale-[1.02]">
                   Setup Your Restaurant →
                 </button>
                 <p className="mt-3 text-[12px] text-red-200">Takes less than 5 minutes</p>
@@ -154,88 +147,56 @@ export default function Dashboard() {
     );
   }
 
-  // ── FULL DASHBOARD ──────────────────────────────────────────────────────────
   return (
     <main className="min-h-screen bg-gray-100">
       <div className="mx-auto flex flex-col gap-3">
 
-        {/* ── HEADER ─────────────────────────────────────────── */}
+        {/* Header — filter lives in topbar now */}
         <div className="relative overflow-hidden rounded-xl border border-gray-200 bg-white px-4 py-3 shadow-sm">
           <div className="absolute -right-8 -top-8 h-24 w-24 rounded-full bg-red-100/40 blur-3xl" />
-          <div className="relative z-10 flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-red-500 to-rose-500 shadow-sm">
-                <span className="text-lg font-black text-white">D</span>
-              </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <h1 className="text-xl font-black tracking-tight text-gray-900">Restaurant Dashboard</h1>
-                  <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-emerald-600">Live</span>
-                </div>
-                <p className="mt-0.5 text-[12px] text-gray-500">Real-time analytics & restaurant intelligence</p>
-              </div>
+          <div className="relative z-10 flex items-center gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-red-500 to-rose-500 shadow-sm">
+              <span className="text-lg font-black text-white">D</span>
             </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <div className="flex flex-wrap gap-1">
-                {["today", "week", "month", "quarter", "custom"].map(f => (
-                  <button key={f} onClick={() => {
-                    setPreset(f);
-                    if (f === "custom") { setCustomMode(true); return; }
-                    setCustomMode(false);
-                    setRange(getRange(f));
-                  }}
-                    className={`h-8 rounded-lg px-3 text-[11px] font-semibold transition-all ${
-                      preset === f ? "bg-gradient-to-r from-red-500 to-rose-500 text-white shadow-sm" : "border border-gray-200 bg-white text-gray-700 hover:border-red-200 hover:bg-red-50"
-                    }`}
-                  >
-                    {f.charAt(0).toUpperCase() + f.slice(1)}
-                  </button>
-                ))}
+            <div>
+              <div className="flex items-center gap-2">
+                <h1 className="text-xl font-black tracking-tight text-gray-900">Restaurant Dashboard</h1>
+                <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-emerald-600">Live</span>
               </div>
-              {customMode && (
-                <LocalizationProvider dateAdapter={AdapterDayjs}>
-                  <div className="flex gap-1">
-                    {[
-                      { label: "From", val: range[0], onChange: (v: any) => setRange([v, range[1]]) },
-                      { label: "To", val: range[1], onChange: (v: any) => setRange([range[0], v]) },
-                    ].map(dp => (
-                      <DatePicker key={dp.label} label={dp.label} value={dp.val} onChange={dp.onChange}
-                        slotProps={{ textField: { size: "small", sx: {
-                          width: 115,
-                          "& .MuiOutlinedInput-root": { borderRadius: "10px", background: "white", fontSize: "12px", height: "32px" },
-                          "& .MuiInputLabel-root": { fontSize: "12px", top: "-4px" },
-                        }}}}
-                      />
-                    ))}
-                  </div>
-                </LocalizationProvider>
-              )}
+              <p className="mt-0.5 text-[12px] text-gray-500">{from} → {to}</p>
             </div>
           </div>
         </div>
 
-        {/* ── KPI STRIP ──────────────────────────────────────── */}
         <StatsStrip analytics={analytics} />
 
-        {/* ── CHARTS ─────────────────────────────────────────── */}
         <div className="grid grid-cols-1 gap-3 xl:grid-cols-12">
-          {/* Revenue Trend */}
           <div className={`xl:col-span-7 ${CHART_CARD}`}>
             <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3">
               <div>
                 <h3 className="text-[15px] font-bold text-gray-900">Revenue Trend</h3>
-                <p className="mt-0.5 text-[11px] text-gray-500">Daily revenue overview for selected period</p>
+                <p className="mt-0.5 text-[11px] text-gray-500">{isSingleDay ? "Hourly revenue breakdown" : "Daily revenue overview"}</p>
               </div>
-              <span className="rounded-full bg-red-50 px-2.5 py-1 text-[10px] font-semibold text-red-600">Live</span>
+              <span className="rounded-full bg-red-50 px-2.5 py-1 text-[10px] font-semibold text-red-600">{isSingleDay ? "Hourly" : "Live"}</span>
             </div>
             <div className="p-3">
-              {chartData.length <= 1 ? (
-                <div className="flex h-[200px] items-center justify-center">
-                  <div className="text-center">
-                    <p className="text-[13px] font-semibold text-gray-600">Not enough data</p>
+              {!hasRevenueData ? (
+                <div className="flex h-[200px] items-center justify-center text-center">
+                  <div>
+                    <p className="text-[13px] font-semibold text-gray-600">No revenue data yet</p>
                     <p className="mt-1 text-[11px] text-gray-400">Revenue will appear once orders are placed</p>
                   </div>
                 </div>
+              ) : isSingleDay ? (
+                <ResponsiveContainer width="100%" height={200}>
+                  <BarChart data={hourlyChartData}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                    <XAxis dataKey="label" tick={{ ...TICK, fontSize: 9 }} axisLine={false} tickLine={false} interval={2} />
+                    <YAxis tick={TICK} axisLine={false} tickLine={false} />
+                    <Tooltip formatter={(v: any) => `₹${Number(v).toLocaleString()}`} />
+                    <Bar dataKey="revenue" name="Revenue" fill="#ef4444" radius={[3, 3, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
               ) : (
                 <ResponsiveContainer width="100%" height={200}>
                   <AreaChart data={chartData}>
@@ -246,7 +207,14 @@ export default function Dashboard() {
                       </linearGradient>
                     </defs>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                    <XAxis dataKey="date" tick={TICK} axisLine={false} tickLine={false} />
+                    <XAxis
+                      dataKey="date"
+                      tick={TICK}
+                      axisLine={false}
+                      tickLine={false}
+                      interval={Math.max(1, Math.ceil(chartData.length / 7))}
+                      tickFormatter={(v: string) => v.split("/").slice(0, 2).join("/")}
+                    />
                     <YAxis tick={TICK} axisLine={false} tickLine={false} />
                     <Tooltip />
                     <Area type="monotone" dataKey="revenue" stroke="#ef4444" strokeWidth={2} fill="url(#rg)" />
@@ -256,20 +224,26 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* Orders Bar */}
           <div className={`xl:col-span-3 ${CHART_CARD}`}>
             <div className="border-b border-gray-100 px-4 py-3">
               <h3 className="text-[15px] font-bold text-gray-900">Orders</h3>
-              <p className="mt-0.5 text-[11px] text-gray-500">Daily order count</p>
+              <p className="mt-0.5 text-[11px] text-gray-500">{isSingleDay ? "Orders by hour" : "Daily order count"}</p>
             </div>
             <div className="p-3">
-              {chartData.length <= 1 ? (
-                <div className="flex h-[200px] items-center justify-center text-[12px] text-gray-400">No data yet</div>
+              {!hasOrderData ? (
+                <div className="flex h-[200px] items-center justify-center text-[12px] text-gray-400">No orders yet</div>
               ) : (
                 <ResponsiveContainer width="100%" height={200}>
-                  <BarChart data={chartData}>
+                  <BarChart data={isSingleDay ? hourlyChartData : chartData}>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                    <XAxis dataKey="date" tick={{ ...TICK, fontSize: 9 }} axisLine={false} tickLine={false} />
+                    <XAxis
+                      dataKey={isSingleDay ? "label" : "date"}
+                      tick={{ ...TICK, fontSize: 9 }}
+                      axisLine={false}
+                      tickLine={false}
+                      interval={isSingleDay ? 2 : Math.max(1, Math.ceil(chartData.length / 6))}
+                      tickFormatter={isSingleDay ? undefined : (v: string) => v.split("/").slice(0, 2).join("/")}
+                    />
                     <YAxis tick={{ ...TICK, fontSize: 9 }} axisLine={false} tickLine={false} />
                     <Tooltip />
                     <Bar dataKey="orders" radius={[4, 4, 0, 0]} fill="#f43f5e" />
@@ -279,7 +253,6 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* Order Split Pie */}
           <div className={`xl:col-span-2 ${CHART_CARD}`}>
             <div className="border-b border-gray-100 px-4 py-3">
               <h3 className="text-[15px] font-bold text-gray-900">Order Split</h3>
@@ -305,9 +278,7 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* ── INSIGHTS GRID ──────────────────────────────────── */}
         <div className="grid grid-cols-1 gap-3 xl:grid-cols-12">
-          {/* Live Orders */}
           <div className={`xl:col-span-4 ${CHART_CARD} p-3`}>
             <div className="mb-3 flex items-start justify-between">
               <div>
@@ -337,13 +308,10 @@ export default function Dashboard() {
                     <button className="rounded-lg bg-red-500 px-2.5 py-1 text-[10px] font-bold text-white transition hover:bg-red-600">Accept</button>
                   </div>
                 </div>
-              )) || (
-                <div className="flex h-[120px] items-center justify-center text-[12px] text-gray-400">No live orders</div>
-              )}
+              )) || <div className="flex h-[120px] items-center justify-center text-[12px] text-gray-400">No live orders</div>}
             </div>
           </div>
 
-          {/* Payment Split */}
           <div className={`xl:col-span-3 ${CHART_CARD} p-3`}>
             <div className="mb-3">
               <div className="inline-flex rounded-full bg-gray-100 px-2 py-1 text-[9px] font-bold uppercase tracking-wide text-gray-600">Analytics</div>
@@ -351,33 +319,30 @@ export default function Dashboard() {
               <p className="mt-0.5 text-[11px] text-gray-500">Revenue by payment method</p>
             </div>
             <div className="space-y-2">
-              {Object.entries(analytics?.paymentSplit || {}).length > 0 ? Object.entries(analytics?.paymentSplit || {}).map(([key, value]: any) => {
-                const max = Math.max(...Object.values(analytics?.paymentSplit || {}).map(Number), 1);
-                return (
-                  <div key={key} className="rounded-xl border border-gray-100 bg-gray-50/60 p-2.5">
-                    <div className="flex items-center justify-between">
-                      <p className="text-[12px] font-semibold text-gray-900">{key}</p>
-                      <p className="text-[12px] font-bold text-gray-700">₹{Number(value).toLocaleString()}</p>
+              {Object.entries(analytics?.paymentSplit || {}).length > 0
+                ? Object.entries(analytics.paymentSplit).map(([key, value]: any) => {
+                  const max = Math.max(...Object.values(analytics.paymentSplit).map(Number), 1);
+                  return (
+                    <div key={key} className="rounded-xl border border-gray-100 bg-gray-50/60 p-2.5">
+                      <div className="flex items-center justify-between">
+                        <p className="text-[12px] font-semibold text-gray-900">{key}</p>
+                        <p className="text-[12px] font-bold text-gray-700">₹{Number(value).toLocaleString()}</p>
+                      </div>
+                      <div className="mt-2 h-1 overflow-hidden rounded-full bg-gray-200">
+                        <div className="h-full rounded-full bg-blue-500 transition-all" style={{ width: `${Math.min((Number(value) / max) * 100, 100)}%` }} />
+                      </div>
                     </div>
-                    <div className="mt-2 h-1 overflow-hidden rounded-full bg-gray-200">
-                      <div className="h-full rounded-full bg-blue-500 transition-all" style={{ width: `${Math.min((Number(value) / max) * 100, 100)}%` }} />
-                    </div>
-                  </div>
-                );
-              }) : (
-                <div className="flex h-[120px] items-center justify-center text-[12px] text-gray-400">No payment data</div>
-              )}
+                  );
+                })
+                : <div className="flex h-[120px] items-center justify-center text-[12px] text-gray-400">No payment data</div>}
             </div>
           </div>
 
-          {/* Top Items */}
           <div className={`xl:col-span-5 ${CHART_CARD} p-3`}>
-            <div className="mb-3 flex items-start justify-between">
-              <div>
-                <div className="inline-flex rounded-full bg-gray-100 px-2 py-1 text-[9px] font-bold uppercase tracking-wide text-gray-600">Trending</div>
-                <h3 className="mt-1.5 text-[15px] font-bold text-gray-900">Top Selling Items</h3>
-                <p className="mt-0.5 text-[11px] text-gray-500">Best performing menu items</p>
-              </div>
+            <div className="mb-3">
+              <div className="inline-flex rounded-full bg-gray-100 px-2 py-1 text-[9px] font-bold uppercase tracking-wide text-gray-600">Trending</div>
+              <h3 className="mt-1.5 text-[15px] font-bold text-gray-900">Top Selling Items</h3>
+              <p className="mt-0.5 text-[11px] text-gray-500">Best performing menu items</p>
             </div>
             <div className="space-y-2">
               {analytics?.topItems?.slice(0, 5).map((item: any) => (
@@ -393,53 +358,24 @@ export default function Dashboard() {
                     <p className="min-w-[28px] text-right text-[9px] font-semibold text-gray-400">{Math.min(item.quantity * 10, 100)}%</p>
                   </div>
                 </div>
-              )) || (
-                <div className="flex h-[120px] items-center justify-center text-[12px] text-gray-400">No item data yet</div>
-              )}
+              )) || <div className="flex h-[120px] items-center justify-center text-[12px] text-gray-400">No item data yet</div>}
             </div>
           </div>
         </div>
 
-        {/* ── RECENT ORDERS TABLE ─────────────────────────────── */}
         <div className={CHART_CARD}>
           <CommonTable
-            title="Recent Orders"
-            subtitle="Latest customer billing activity"
+            title="Recent Orders" subtitle="Latest customer billing activity"
             data={(analytics?.recentOrders || []).slice(0, 8)}
-            page={1}
-            totalPages={1}
-            headerAction={
-              <button className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-1.5 text-[11px] font-semibold text-gray-700 transition hover:bg-gray-100">
-                View All
-              </button>
-            }
+            page={1} totalPages={1}
+            headerAction={<button className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-1.5 text-[11px] font-semibold text-gray-700 transition hover:bg-gray-100">View All</button>}
             columns={[
               { header: "Bill No", key: "billNo", render: (r) => <p className="text-[12px] font-bold text-gray-900">{r.billNo}</p> },
-              {
-                header: "Customer", key: "customer", render: (r) => (
-                  <div>
-                    <p className="text-[12px] font-semibold text-gray-900">{r.customer?.name || "—"}</p>
-                    <p className="text-[10px] text-gray-400">{r.customer?.phone || "—"}</p>
-                  </div>
-                ),
-              },
-              {
-                header: "Type", key: "orderType", render: (r) => (
-                  <span className={`rounded-full px-2 py-[3px] text-[10px] font-semibold ${
-                    r.orderType === "DINE_IN" ? "bg-gray-100 text-gray-700" :
-                    r.orderType === "TAKEAWAY" ? "bg-orange-50 text-orange-600" : "bg-violet-50 text-violet-600"
-                  }`}>{r.orderType}</span>
-                ),
-              },
+              { header: "Customer", key: "customer", render: (r) => (<div><p className="text-[12px] font-semibold text-gray-900">{r.customer?.name || "—"}</p><p className="text-[10px] text-gray-400">{r.customer?.phone || "—"}</p></div>) },
+              { header: "Type", key: "orderType", render: (r) => (<span className={`rounded-full px-2 py-[3px] text-[10px] font-semibold ${r.orderType === "DINE_IN" ? "bg-gray-100 text-gray-700" : r.orderType === "TAKEAWAY" ? "bg-orange-50 text-orange-600" : "bg-violet-50 text-violet-600"}`}>{r.orderType}</span>) },
               { header: "Payment", key: "paymentMethod", render: (r) => <span className="rounded-full border border-gray-200 bg-white px-2 py-[3px] text-[10px] text-gray-600">{r.paymentMethod}</span> },
               { header: "Amount", key: "total", render: (r) => <span className="text-[13px] font-black text-gray-900">₹{Number(r.total || 0).toLocaleString()}</span> },
-              {
-                header: "Status", key: "status", render: (r) => (
-                  <span className={`rounded-full px-2 py-[3px] text-[10px] font-semibold ${r.status === "PAID" ? "bg-emerald-50 text-emerald-600" : "bg-red-50 text-red-600"}`}>
-                    {r.status}
-                  </span>
-                ),
-              },
+              { header: "Status", key: "status", render: (r) => (<span className={`rounded-full px-2 py-[3px] text-[10px] font-semibold ${r.status === "PAID" ? "bg-emerald-50 text-emerald-600" : "bg-red-50 text-red-600"}`}>{r.status}</span>) },
               { header: "Date", key: "createdAt", render: (r) => <p className="text-[11px] text-gray-400">{new Date(r.createdAt).toLocaleDateString()}</p> },
             ]}
           />

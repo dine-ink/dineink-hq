@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useState } from "react";
-import { useBranchSync, getSelectedBranch } from "@/hooks/useBranchSync";
+import { useEffect, useState } from "react";
 import dayjs from "dayjs";
+import { useAppSelector } from "../../store";
 import {
   BarChart, Bar, ResponsiveContainer, XAxis, YAxis, CartesianGrid, Tooltip,
   LineChart, Line, ReferenceLine,
@@ -22,11 +22,8 @@ const fmtHrs = (h: number) => h > 0 ? `${Math.floor(h)}h ${Math.round((h % 1) * 
 
 export default function Attendance() {
   const API_URL = import.meta.env.VITE_API_URL;
-  const branches = JSON.parse(localStorage.getItem("branches") || "[]");
-  const [selectedBranch, setSelectedBranch] = useState<any>(() => {
-    const s = localStorage.getItem("selectedBranch");
-    return s ? JSON.parse(s) : branches[0] || null;
-  });
+  const { selectedBranch } = useAppSelector(s => s.branch);
+  const { user, token } = useAppSelector(s => s.auth);
   const [date, setDate] = useState(dayjs().format("YYYY-MM-DD"));
   const [viewMode, setViewMode] = useState<"daily" | "monthly">("daily");
   const [activeSection, setActiveSection] = useState<"attendance" | "productivity">("attendance");
@@ -37,22 +34,18 @@ export default function Attendance() {
   const [monthlyAttendance, setMonthlyAttendance] = useState<any[]>([]);
   const [allStaff, setAllStaff] = useState<any[]>([]);
 
-  const handleBranchChange = useCallback(() => setSelectedBranch(getSelectedBranch()), []);
-  useBranchSync(handleBranchChange);
-
   // Fetch productivity data when tab switches
   useEffect(() => {
     if (activeSection !== "productivity" || !selectedBranch?.id) return;
     const fetchProd = async () => {
       try {
         setProdLoading(true);
-        const token = localStorage.getItem("token");
-        const user = JSON.parse(localStorage.getItem("user") || "{}");
+        const h = { Authorization: `Bearer ${token}` };
         const from = dayjs(date).startOf("month").format("YYYY-MM-DD");
         const to = dayjs(date).endOf("month").format("YYYY-MM-DD");
         const res = await fetch(
-          `${API_URL}/api/analytics/${user.restaurantId}/staff-productivity?branchId=${selectedBranch.id}&from=${from}&to=${to}`,
-          { headers: { Authorization: `Bearer ${token}` } },
+          `${API_URL}/api/analytics/${user?.restaurantId}/staff-productivity?branchId=${selectedBranch.id}&from=${from}&to=${to}`,
+          { headers: h },
         );
         const data = await res.json();
         if (data.success) setProductivity(data.data);
@@ -66,15 +59,13 @@ export default function Attendance() {
       if (!selectedBranch?.id) return;
       try {
         setLoading(true);
-        const token = localStorage.getItem("token");
-        const user = JSON.parse(localStorage.getItem("user") || "{}");
         const h = { Authorization: `Bearer ${token}` };
         const from = dayjs(date).startOf("month").format("YYYY-MM-DD");
         const to = dayjs(date).endOf("month").format("YYYY-MM-DD");
         const [attRes, monthRes, staffRes] = await Promise.all([
           fetch(`${API_URL}/api/attendance/branch/${selectedBranch.id}?date=${date}`, { headers: h }),
           fetch(`${API_URL}/api/attendance/branch/${selectedBranch.id}?from=${from}&to=${to}`, { headers: h }),
-          fetch(`${API_URL}/api/restaurant/staff/${user.restaurantId}/${selectedBranch.id}`, { headers: h }),
+          fetch(`${API_URL}/api/restaurant/staff/${user?.restaurantId}/${selectedBranch.id}`, { headers: h }),
         ]);
         const [a, m, s] = await Promise.all([attRes.json(), monthRes.json(), staffRes.json()]);
         if (a.success) setAttendance(a.data || []);

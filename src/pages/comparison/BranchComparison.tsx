@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import dayjs from "dayjs";
+import { useAppSelector } from "../../store";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, Legend, PieChart, Pie, Cell,
@@ -47,30 +47,19 @@ function WinnerBadge({ isWinner, isBest }: { isWinner: boolean; isBest?: boolean
 
 export default function BranchComparison() {
   const API_URL = import.meta.env.VITE_API_URL;
-  const user = JSON.parse(localStorage.getItem("user") || "{}");
+  const { from, to } = useAppSelector(s => s.dateRange);
+  const { user, token } = useAppSelector(s => s.auth);
   const [activeTab, setActiveTab] = useState<TabId>("branch");
   const [loading, setLoading] = useState(false);
   const [branchData, setBranchData] = useState<any[]>([]);
   const [cityData, setCityData] = useState<any[]>([]);
-  const [preset, setPreset] = useState("month");
-
-  const getRange = () => {
-    const now = dayjs();
-    switch (preset) {
-      case "week": return { from: now.subtract(6, "day").format("YYYY-MM-DD"), to: now.format("YYYY-MM-DD") };
-      case "quarter": return { from: now.subtract(3, "month").format("YYYY-MM-DD"), to: now.format("YYYY-MM-DD") };
-      default: return { from: now.startOf("month").format("YYYY-MM-DD"), to: now.format("YYYY-MM-DD") };
-    }
-  };
 
   useEffect(() => {
     const fetchData = async () => {
-      if (!user.restaurantId) return;
+      if (!user?.restaurantId) return;
       try {
         setLoading(true);
-        const token = localStorage.getItem("token");
         const h = { Authorization: `Bearer ${token}` };
-        const { from, to } = getRange();
         const [bRes, cRes] = await Promise.all([
           fetch(`${API_URL}/api/analytics/${user.restaurantId}/branch-comparison?from=${from}&to=${to}`, { headers: h }),
           fetch(`${API_URL}/api/analytics/${user.restaurantId}/city-comparison?from=${from}&to=${to}`, { headers: h }),
@@ -81,7 +70,7 @@ export default function BranchComparison() {
       } catch { /* silent */ } finally { setLoading(false); }
     };
     fetchData();
-  }, [preset]);
+  }, [from, to]);
 
   const data = activeTab === "branch" ? branchData : cityData;
   const nameKey = activeTab === "branch" ? (d: any) => d.branch?.name : (d: any) => d.city;
@@ -149,15 +138,6 @@ export default function BranchComparison() {
               </div>
             </div>
             <div className="flex flex-wrap items-center gap-2">
-              {/* Period filter */}
-              <div className="flex gap-1">
-                {["week", "month", "quarter"].map(p => (
-                  <button key={p} onClick={() => setPreset(p)}
-                    className={`h-8 rounded-lg px-3 text-[11px] font-semibold transition ${preset === p ? "bg-red-500 text-white shadow-sm" : "border border-gray-200 bg-white text-gray-700 hover:bg-red-50"}`}>
-                    {p.charAt(0).toUpperCase() + p.slice(1)}
-                  </button>
-                ))}
-              </div>
               {/* Tab toggle */}
               <div className="flex overflow-hidden rounded-xl border border-gray-200 bg-white">
                 {TABS.map(tab => {

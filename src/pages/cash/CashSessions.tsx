@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useState } from "react";
-import { useBranchSync, getSelectedBranch } from "@/hooks/useBranchSync";
+import { useEffect, useState } from "react";
 import dayjs from "dayjs";
+import { useAppSelector } from "../../store";
 import {
   LineChart, Line, BarChart, Bar, ResponsiveContainer,
   XAxis, YAxis, CartesianGrid, Tooltip, ReferenceLine,
@@ -8,34 +8,17 @@ import {
 
 export default function CashSessions() {
   const API_URL = import.meta.env.VITE_API_URL;
-  const branches = JSON.parse(localStorage.getItem("branches") || "[]");
-  const [selectedBranch, setSelectedBranch] = useState<any>(() => {
-    const s = localStorage.getItem("selectedBranch");
-    return s ? JSON.parse(s) : branches[0] || null;
-  });
-  const [preset, setPreset] = useState("month");
+  const { from, to } = useAppSelector(s => s.dateRange);
+  const { selectedBranch } = useAppSelector(s => s.branch);
+  const { token } = useAppSelector(s => s.auth);
   const [loading, setLoading] = useState(false);
   const [sessions, setSessions] = useState<any[]>([]);
-
-  const handleBranchChange = useCallback(() => setSelectedBranch(getSelectedBranch()), []);
-  useBranchSync(handleBranchChange);
-
-  const getRange = () => {
-    const now = dayjs();
-    switch (preset) {
-      case "week": return { from: now.subtract(6, "day").format("YYYY-MM-DD"), to: now.format("YYYY-MM-DD") };
-      case "quarter": return { from: now.subtract(3, "month").format("YYYY-MM-DD"), to: now.format("YYYY-MM-DD") };
-      default: return { from: now.startOf("month").format("YYYY-MM-DD"), to: now.format("YYYY-MM-DD") };
-    }
-  };
 
   useEffect(() => {
     const fetch_ = async () => {
       if (!selectedBranch?.id) return;
       try {
         setLoading(true);
-        const token = localStorage.getItem("token");
-        const { from, to } = getRange();
         const res = await fetch(`${API_URL}/api/cash/sessions?branchId=${selectedBranch.id}&from=${from}&to=${to}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
@@ -44,7 +27,7 @@ export default function CashSessions() {
       } catch { /* silent */ } finally { setLoading(false); }
     };
     fetch_();
-  }, [selectedBranch, preset]);
+  }, [from, to, selectedBranch?.id]);
 
   const shortfallSessions = sessions.filter((s: any) => Number(s.cashDifference || 0) < 0);
   const surplusSessions = sessions.filter((s: any) => Number(s.cashDifference || 0) > 0);
@@ -88,13 +71,7 @@ export default function CashSessions() {
                 <p className="mt-0.5 text-[13px] text-gray-500">Daily cash session open/close, differences and shortfall alerts</p>
               </div>
             </div>
-            <div className="flex items-center gap-2">
-              {["week", "month", "quarter"].map(p => (
-                <button key={p} onClick={() => setPreset(p)} className={`h-8 rounded-lg px-3 text-[11px] font-semibold transition ${preset === p ? "bg-emerald-500 text-white shadow-sm" : "border border-gray-200 bg-white text-gray-700 hover:bg-gray-50"}`}>
-                  {p.charAt(0).toUpperCase() + p.slice(1)}
-                </button>
-              ))}
-            </div>
+            <p className="text-[11px] text-gray-400">{from} → {to}</p>
           </div>
         </div>
 
