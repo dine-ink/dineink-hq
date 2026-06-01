@@ -58,39 +58,44 @@ import {
   MdChecklist,
   MdCurrencyRupee,
 } from "react-icons/md";
+import {
+  GiNoodles, GiSandwich, GiSteak, GiChickenLeg,
+  GiWok, GiTacos, GiHotDog, GiCupcake, GiShrimp, GiSushis, GiDumpling,
+} from "react-icons/gi";
+import {
+  FaLeaf, FaEgg, FaCocktail, FaBeer,
+  FaCheese, FaFish,
+} from "react-icons/fa";
 import { BarChart3, Search, UtensilsCrossed } from "lucide-react";
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
 
+// Keys match the display names stored in category.icon field in the DB
 const iconMap: any = {
-  MdRestaurant,
-  MdLocalCafe,
-  MdLocalBar,
-  MdWineBar,
-  MdBakeryDining,
-  MdLocalPizza,
-  MdFastfood,
-  MdCoffee,
-  MdCake,
-  MdIcecream,
-  MdRiceBowl,
-  MdDinnerDining,
-  MdRamenDining,
-  MdSoupKitchen,
-  MdOutdoorGrill,
-  MdSetMeal,
-  MdKebabDining,
-  MdEmojiFoodBeverage,
-  MdLiquor,
-  MdTakeoutDining,
-  MdDeliveryDining,
-  MdLocalDining,
-  MdStorefront,
-  MdBrunchDining,
-  MdTapas,
-  MdRestaurantMenu,
-  MdFlatware,
-  MdLunchDining,
-  MdBreakfastDining,
+  "Starter": MdFlatware, "Main Dish": MdRestaurantMenu, "Side Dish": MdLunchDining,
+  "Breakfast": MdBreakfastDining, "Brunch": MdBrunchDining, "Dinner": MdDinnerDining,
+  "Snacks": MdFastfood, "Dessert": MdCake,
+  "South Indian": MdRiceBowl, "North Indian": MdDinnerDining, "Biryani": MdSetMeal,
+  "Kebab": MdKebabDining, "Chinese": MdRamenDining, "Noodles": GiNoodles,
+  "Wok / Stir Fry": GiWok, "Soup": MdSoupKitchen, "Pizza": MdLocalPizza,
+  "Burger": MdFastfood, "Sandwich": GiSandwich, "Hot Dog": GiHotDog,
+  "Tacos": GiTacos, "Steak / BBQ": GiSteak, "Grill": MdOutdoorGrill,
+  "Chicken": GiChickenLeg, "Chicken Wings": GiChickenLeg, "Seafood": GiShrimp,
+  "Fish": FaFish, "Salad": FaLeaf, "Sushi": GiSushis,
+  "Eggs": FaEgg, "Cheese / Dairy": FaCheese, "Vegan": FaLeaf, "Spicy": FaLeaf,
+  "Dumplings": GiDumpling,
+  "Bakery": MdBakeryDining, "Cupcake": GiCupcake, "Ice Cream": MdIcecream,
+  "Coffee": MdCoffee, "Cafe": MdLocalCafe, "Drinks": MdEmojiFoodBeverage,
+  "Cocktail": FaCocktail, "Beer": FaBeer, "Liquor": MdLiquor, "Bar": MdLocalBar,
+  "Wine Bar": MdWineBar, "Tapas": MdTapas, "Multi Cuisine": MdLocalDining,
+  "Takeaway": MdTakeoutDining, "Delivery": MdDeliveryDining,
+  "Restaurant": MdRestaurant, "Store": MdStorefront,
+  // Legacy component-name keys (fallback for older data)
+  MdRestaurant, MdLocalCafe, MdLocalBar, MdWineBar, MdBakeryDining,
+  MdLocalPizza, MdFastfood, MdCoffee, MdCake, MdIcecream, MdRiceBowl,
+  MdDinnerDining, MdRamenDining, MdSoupKitchen, MdOutdoorGrill, MdSetMeal,
+  MdKebabDining, MdEmojiFoodBeverage, MdLiquor, MdTakeoutDining, MdDeliveryDining,
+  MdLocalDining, MdStorefront, MdBrunchDining, MdTapas, MdRestaurantMenu,
+  MdFlatware, MdLunchDining, MdBreakfastDining,
 };
 const tabs = [
   {
@@ -3243,7 +3248,7 @@ export default function MenuManagement() {
                             <td className="px-4 py-3">
                               <input
                                 type="number"
-                                value={row.wastage || 0}
+                                value={row.wastage || ""}
                                 className="
                         h-10
                         w-20

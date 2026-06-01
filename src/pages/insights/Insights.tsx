@@ -291,8 +291,7 @@ export default function Insights() {
   const handleGenerate = async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem("token");
-      const user = JSON.parse(localStorage.getItem("user") || "{}");
+      // token and user from Redux (outer scope)
       const res = await fetch(`${API_URL}/api/ingredients/generate`, {
         method: "POST",
         headers: {
@@ -326,8 +325,7 @@ export default function Insights() {
 
   const handleSave = async () => {
     try {
-      const token = localStorage.getItem("token");
-      const user = JSON.parse(localStorage.getItem("user") || "{}");
+      // token and user from Redux (outer scope)
       const restaurantId = user.restaurantId;
       const res = await fetch(`${API_URL}/api/ingredients/save`, {
         method: "POST",
@@ -351,8 +349,7 @@ export default function Insights() {
 
   const fetchIngredients = async () => {
     try {
-      const token = localStorage.getItem("token");
-      const user = JSON.parse(localStorage.getItem("user") || "{}");
+      // token and user from Redux (outer scope)
       const res = await fetch(
         `${API_URL}/api/ingredients/${user.restaurantId}/getRestaurantIngredients`,
         {
@@ -421,10 +418,7 @@ export default function Insights() {
 
   const handleSaveInsights = async () => {
     try {
-      const token = localStorage.getItem("token");
-
-      const user = JSON.parse(localStorage.getItem("user") || "{}");
-
+      // token and user from Redux (outer scope)
       if (!selectedBranch?.id) {
         alert("Please select branch");
         return;
@@ -684,8 +678,7 @@ export default function Insights() {
 
   const saveRestockHistory = async () => {
     try {
-      const token = localStorage.getItem("token");
-      const user = JSON.parse(localStorage.getItem("user") || "{}");
+      // token and user from Redux (outer scope)
       const currentDate = new Date();
       const month = currentDate.getMonth() + 1;
       const year = currentDate.getFullYear();
@@ -1409,7 +1402,7 @@ export default function Insights() {
 
                                 <input
                                   type="number"
-                                  value={insightsData[field.key]}
+                                  value={insightsData[field.key] || ""}
                                   onChange={(e) =>
                                     setInsightsData({
                                       ...insightsData,
@@ -1556,7 +1549,7 @@ export default function Insights() {
 
                                 <input
                                   type="number"
-                                  value={insightsData[field.key]}
+                                  value={insightsData[field.key] || ""}
                                   onChange={(e) =>
                                     setInsightsData({
                                       ...insightsData,
@@ -2104,7 +2097,7 @@ export default function Insights() {
 
                                 <input
                                   type="number"
-                                  value={insightsData[field.key]}
+                                  value={insightsData[field.key] || ""}
                                   onChange={(e) =>
                                     setInsightsData({
                                       ...insightsData,
@@ -2396,7 +2389,7 @@ export default function Insights() {
 
                                 <input
                                   type="number"
-                                  value={insightsData[field.key]}
+                                  value={insightsData[field.key] || ""}
                                   onChange={(e) =>
                                     setInsightsData({
                                       ...insightsData,
@@ -2703,7 +2696,7 @@ export default function Insights() {
                                 <div className="relative">
                                   <input
                                     type="number"
-                                    value={insightsData[field.key]}
+                                    value={insightsData[field.key] || ""}
                                     onChange={(e) =>
                                       setInsightsData({
                                         ...insightsData,
@@ -2740,7 +2733,7 @@ export default function Insights() {
                                   type="range"
                                   min="0"
                                   max="100"
-                                  value={insightsData[field.key]}
+                                  value={insightsData[field.key] || ""}
                                   onChange={(e) =>
                                     setInsightsData({
                                       ...insightsData,

@@ -105,39 +105,39 @@ export default function Dashboard() {
     return (
       <>
         {showSetupModal && <RestaurantSetupModal open={showSetupModal} setOpen={setShowSetupModal} />}
-        <div className="relative flex min-h-[78vh] items-center justify-center overflow-hidden rounded-2xl border border-white/40 bg-gradient-to-br from-white to-red-50/60 px-6 py-16 shadow-sm">
-          <div className="absolute left-[-120px] top-[-120px] h-[300px] w-[300px] rounded-full bg-red-200/30 blur-3xl" />
-          <div className="absolute bottom-[-150px] right-[-100px] h-[320px] w-[320px] rounded-full bg-pink-200/30 blur-3xl" />
-          <div className="relative z-10 w-full max-w-4xl overflow-hidden rounded-2xl border border-white/60 bg-white/80 shadow-xl backdrop-blur-2xl">
-            <div className="relative overflow-hidden bg-gradient-to-r from-red-500 to-rose-500 px-10 py-14">
-              <div className="absolute right-[-60px] top-[-60px] h-[200px] w-[200px] rounded-full bg-white/10 blur-3xl" />
+        <div className="relative overflow-hidden rounded-2xl border border-white/40 bg-gradient-to-br from-white to-red-50/60 shadow-sm">
+          <div className="pointer-events-none absolute left-[-80px] top-[-80px] h-[220px] w-[220px] rounded-full bg-red-200/30 blur-3xl" />
+          <div className="pointer-events-none absolute bottom-[-80px] right-[-60px] h-[220px] w-[220px] rounded-full bg-pink-200/30 blur-3xl" />
+          <div className="relative z-10 w-full overflow-hidden rounded-2xl border border-white/60 bg-white/80 shadow-xl backdrop-blur-2xl">
+            <div className="relative overflow-hidden bg-gradient-to-r from-red-500 to-rose-500 px-10 py-8">
+              <div className="pointer-events-none absolute right-[-60px] top-[-60px] h-[180px] w-[180px] rounded-full bg-white/10 blur-3xl" />
               <div className="relative z-10 flex flex-col items-center text-center">
-                <div className="flex h-20 w-20 items-center justify-center rounded-3xl border border-white/20 bg-white/15 shadow-lg backdrop-blur">
-                  <svg className="h-10 w-10 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-white/20 bg-white/15 shadow-lg backdrop-blur">
+                  <svg className="h-7 w-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h18M5 6h14a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2z" />
                   </svg>
                 </div>
-                <h1 className="mt-6 text-4xl font-black tracking-tight text-white">Welcome to DineInk</h1>
-                <p className="mx-auto mt-4 max-w-lg text-base leading-7 text-red-100">
+                <h1 className="mt-4 text-3xl font-black tracking-tight text-white">Welcome to DineInk</h1>
+                <p className="mx-auto mt-2 max-w-xl text-sm leading-6 text-red-100">
                   Set up your restaurant to unlock billing, menu management, staff operations and AI-powered analytics.
                 </p>
                 <button onClick={() => setShowSetupModal(true)}
-                  className="mt-8 rounded-2xl bg-white px-8 py-3.5 text-sm font-bold text-red-600 shadow-xl transition hover:scale-[1.02]">
+                  className="mt-5 rounded-2xl bg-white px-8 py-3 text-sm font-bold text-red-600 shadow-xl transition hover:scale-[1.02]">
                   Setup Your Restaurant →
                 </button>
-                <p className="mt-3 text-[12px] text-red-200">Takes less than 5 minutes</p>
+                <p className="mt-2 text-[11px] text-red-200">Takes less than 5 minutes</p>
               </div>
             </div>
-            <div className="grid grid-cols-1 gap-4 p-8 md:grid-cols-3">
+            <div className="grid grid-cols-1 gap-3 p-5 md:grid-cols-3">
               {[
                 { icon: "🏪", title: "Multi Branch", desc: "Manage multiple restaurant locations and seating from one dashboard." },
                 { icon: "🧾", title: "Smart Billing", desc: "Fast billing with QR ordering, KOT, GST and payment integrations." },
                 { icon: "📊", title: "AI Insights", desc: "Revenue forecasting, profitability analysis and business intelligence." },
               ].map(f => (
-                <div key={f.title} className="rounded-2xl border border-gray-100 bg-gradient-to-br from-white to-red-50/40 p-6 transition hover:-translate-y-1 hover:shadow-md">
-                  <div className="mb-4 text-3xl">{f.icon}</div>
-                  <h3 className="text-[16px] font-bold text-gray-900">{f.title}</h3>
-                  <p className="mt-2 text-[13px] leading-6 text-gray-500">{f.desc}</p>
+                <div key={f.title} className="rounded-2xl border border-gray-100 bg-gradient-to-br from-white to-red-50/40 p-5 transition hover:-translate-y-1 hover:shadow-md">
+                  <div className="mb-3 text-2xl">{f.icon}</div>
+                  <h3 className="text-[15px] font-bold text-gray-900">{f.title}</h3>
+                  <p className="mt-1.5 text-[12px] leading-5 text-gray-500">{f.desc}</p>
                 </div>
               ))}
             </div>

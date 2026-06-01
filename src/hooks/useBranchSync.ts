@@ -13,10 +13,11 @@ export function useBranchSync(onChange: () => void) {
   }, [onChange]);
 }
 
-/** Returns the currently selected branch from localStorage. */
+/** @deprecated Use useAppSelector(s => s.branch.selectedBranch) from Redux instead. */
 export function getSelectedBranch() {
-  const saved = localStorage.getItem("selectedBranch");
-  if (saved) return JSON.parse(saved);
-  const branches = JSON.parse(localStorage.getItem("branches") || "[]");
-  return branches[0] ?? null;
+  try {
+    const saved = localStorage.getItem("selectedBranch");
+    if (saved && saved !== "undefined") return JSON.parse(saved);
+  } catch {}
+  return null;
 }

@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState } from "react";
+import { useAppSelector } from "../../store";
+import { State, City } from "country-state-city";
 import {
   BuildingStorefrontIcon,
   LockClosedIcon,
@@ -57,9 +59,22 @@ export default function Settings() {
   const [passwordForm, setPasswordForm] = useState({ currentPassword: "", newPassword: "", confirmPassword: "" });
   const [savingBranch, setSavingBranch] = useState(false);
   const [addingBranch, setAddingBranch] = useState(false);
-  const [newBranch, setNewBranch] = useState({ name: "", city: "", state: "", pincode: "", phone: "", email: "", address: "" });
+  const emptyNewBranch = () => ({
+    name: "", city: "", state: "", pincode: "", phone: "", email: "", address: "",
+    tablesCount: 0,
+    tables: [] as { name: string; capacity: number }[],
+    billing: {
+      billingTypes: [] as string[],
+      gstPercentage: "", serviceCharge: "",
+      includeGST: false, enableDiscount: true, enableTips: false,
+      paymentMethods: [] as string[],
+    },
+  });
+  const [newBranch, setNewBranch] = useState(emptyNewBranch());
+  const setNB = (updates: object) => setNewBranch(p => ({ ...p, ...updates }));
+  const setNBBilling = (updates: object) => setNewBranch(p => ({ ...p, billing: { ...p.billing, ...updates } }));
 
-  const user = JSON.parse(localStorage.getItem("user") || "{}");
+  const { user, token } = useAppSelector((s) => s.auth);
 
   useEffect(() => { fetchSettings(); }, []);
   useEffect(() => { setLogoError(false); }, [data?.logo]);
@@ -67,7 +82,7 @@ export default function Settings() {
   const fetchSettings = async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem("token");
+      // token from Redux
       const res = await fetch(`${API_URL}/api/restaurant/settings/${user.restaurantId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -91,7 +106,7 @@ export default function Settings() {
 
   const handleSaveGeneral = async () => {
     try {
-      const token = localStorage.getItem("token");
+      // token from Redux
       // Upload logo first if changed
       if (logoFile) {
         const fd = new FormData();
@@ -127,7 +142,7 @@ export default function Settings() {
   const handleSaveBranches = async () => {
     try {
       setSavingBranch(true);
-      const token = localStorage.getItem("token");
+      // token from Redux
       const res = await fetch(`${API_URL}/api/restaurant/branches/update`, {
         method: "PUT",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
@@ -153,7 +168,6 @@ export default function Settings() {
     if (!newBranch.name.trim()) { alert("Branch name is required"); return; }
     try {
       setSavingBranch(true);
-      const token = localStorage.getItem("token");
       const res = await fetch(`${API_URL}/api/restaurant/branches/create`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
@@ -162,11 +176,9 @@ export default function Settings() {
       const json = await res.json();
       if (json.success) {
         setAddingBranch(false);
-        setNewBranch({ name: "", city: "", state: "", pincode: "", phone: "", email: "", address: "" });
+        setNewBranch(emptyNewBranch());
         fetchSettings();
-        // Refresh branches in localStorage
         setData((prev: any) => ({ ...prev, branches: [...(prev.branches || []), json.data] }));
-        localStorage.setItem("branches", JSON.stringify([...(data.branches || []), json.data]));
         window.dispatchEvent(new Event("branchChanged"));
       } else { alert(json.message); }
     } catch { alert("Failed to add branch"); } finally { setSavingBranch(false); }
@@ -187,7 +199,7 @@ export default function Settings() {
   const handleUpdatePassword = async () => {
     if (passwordForm.newPassword !== passwordForm.confirmPassword) { alert("Passwords do not match"); return; }
     try {
-      const token = localStorage.getItem("token");
+      // token from Redux
       const res = await fetch(`${API_URL}/api/auth/change-password`, {
         method: "PUT",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
@@ -378,51 +390,160 @@ export default function Settings() {
 
               {/* Add Branch Form */}
               {addingBranch && (
-                <div className="mb-4 overflow-hidden rounded-xl border-2 border-dashed border-red-200 bg-red-50/40 p-5">
-                  <div className="mb-4 flex items-center justify-between">
+                <div className="mb-4 overflow-hidden rounded-xl border border-red-200 bg-white shadow-sm">
+                  {/* Header */}
+                  <div className="flex items-center justify-between border-b border-gray-100 bg-gradient-to-r from-red-500 to-rose-500 px-5 py-3">
                     <div>
-                      <p className="text-[14px] font-bold text-gray-900">New Branch</p>
-                      <p className="text-[11px] text-gray-500">Fill in the details and save to create</p>
+                      <p className="text-[14px] font-bold text-white">Add New Branch</p>
+                      <p className="text-[11px] text-red-100">Fill location, tables and billing settings</p>
                     </div>
-                    <button onClick={() => { setAddingBranch(false); setNewBranch({ name: "", city: "", state: "", pincode: "", phone: "", email: "", address: "" }); }}
-                      className="rounded-lg bg-white p-1.5 text-gray-400 hover:text-gray-600">
+                    <button onClick={() => { setAddingBranch(false); setNewBranch(emptyNewBranch()); }} className="rounded-lg bg-white/15 p-1.5 text-white hover:bg-white/25">
                       <XMarkIcon className="h-4 w-4" />
                     </button>
                   </div>
-                  <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
-                    {[
-                      { field: "name", label: "Branch Name *", placeholder: "e.g. Anna Nagar Branch" },
-                      { field: "city", label: "City", placeholder: "e.g. Chennai" },
-                      { field: "state", label: "State", placeholder: "e.g. Tamil Nadu" },
-                      { field: "pincode", label: "Pincode", placeholder: "e.g. 600001" },
-                      { field: "phone", label: "Phone", placeholder: "Branch contact number" },
-                      { field: "email", label: "Email", placeholder: "Branch email" },
-                    ].map(f => (
-                      <div key={f.field}>
-                        <label className="mb-1 block text-[11px] font-bold uppercase tracking-wide text-gray-400">{f.label}</label>
-                        <input
-                          value={(newBranch as any)[f.field] || ""}
-                          onChange={e => setNewBranch(p => ({ ...p, [f.field]: e.target.value }))}
-                          placeholder={f.placeholder}
-                          className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-[13px] outline-none focus:border-red-400 focus:ring-2 focus:ring-red-100"
-                        />
+
+                  <div className="space-y-5 p-5">
+                    {/* ── SECTION 1: Basic Info ── */}
+                    <div>
+                      <p className="mb-3 text-[11px] font-bold uppercase tracking-wide text-gray-400">Branch Details</p>
+                      <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
+                        {[
+                          { field: "name", label: "Branch Name *", placeholder: "e.g. Anna Nagar Branch" },
+                          { field: "phone", label: "Phone", placeholder: "Branch contact number" },
+                          { field: "email", label: "Email", placeholder: "Branch email" },
+                          { field: "pincode", label: "Pincode", placeholder: "e.g. 600001" },
+                        ].map(f => (
+                          <div key={f.field}>
+                            <label className="mb-1 block text-[11px] font-semibold text-gray-500">{f.label}</label>
+                            <input value={(newBranch as any)[f.field] || ""} onChange={e => setNB({ [f.field]: e.target.value })} placeholder={f.placeholder}
+                              className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-[13px] outline-none focus:border-red-400 focus:ring-2 focus:ring-red-100" />
+                          </div>
+                        ))}
+                        <div>
+                          <label className="mb-1 block text-[11px] font-semibold text-gray-500">State</label>
+                          <select value={newBranch.state} onChange={e => setNB({ state: e.target.value, city: "" })}
+                            className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-[13px] outline-none focus:border-red-400">
+                            <option value="">Select state</option>
+                            {State.getStatesOfCountry("IN").map(s => <option key={s.isoCode} value={s.name}>{s.name}</option>)}
+                          </select>
+                        </div>
+                        <div>
+                          <label className="mb-1 block text-[11px] font-semibold text-gray-500">City</label>
+                          <select value={newBranch.city} onChange={e => setNB({ city: e.target.value })} disabled={!newBranch.state}
+                            className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-[13px] outline-none focus:border-red-400 disabled:bg-gray-50 disabled:text-gray-400">
+                            <option value="">{newBranch.state ? "Select city" : "Select state first"}</option>
+                            {newBranch.state && (() => { const st = State.getStatesOfCountry("IN").find(s => s.name === newBranch.state); return st ? City.getCitiesOfState("IN", st.isoCode).map(c => <option key={c.name} value={c.name}>{c.name}</option>) : null; })()}
+                          </select>
+                        </div>
+                        <div className="xl:col-span-3">
+                          <label className="mb-1 block text-[11px] font-semibold text-gray-500">Address</label>
+                          <input value={newBranch.address || ""} onChange={e => setNB({ address: e.target.value })} placeholder="Full branch address"
+                            className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-[13px] outline-none focus:border-red-400 focus:ring-2 focus:ring-red-100" />
+                        </div>
                       </div>
-                    ))}
-                    <div className="xl:col-span-3">
-                      <label className="mb-1 block text-[11px] font-bold uppercase tracking-wide text-gray-400">Address</label>
-                      <input
-                        value={newBranch.address || ""}
-                        onChange={e => setNewBranch(p => ({ ...p, address: e.target.value }))}
-                        placeholder="Full branch address"
-                        className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-[13px] outline-none focus:border-red-400 focus:ring-2 focus:ring-red-100"
-                      />
+                    </div>
+
+                    {/* ── SECTION 2: Tables ── */}
+                    <div>
+                      <p className="mb-3 text-[11px] font-bold uppercase tracking-wide text-gray-400">Seating / Tables</p>
+                      <div className="flex items-center gap-3">
+                        <label className="text-[12px] font-semibold text-gray-600">Number of tables</label>
+                        <input type="number" value={newBranch.tablesCount || ""} placeholder="0"
+                          onChange={e => {
+                            const count = e.target.value === "" ? 0 : Number(e.target.value);
+                            setNB({ tablesCount: count, tables: Array.from({ length: count }, (_, i) => ({ name: `Table ${i + 1}`, capacity: 4 })) });
+                          }}
+                          className="w-24 rounded-xl border border-gray-200 bg-white px-3 py-2 text-[13px] outline-none focus:border-red-400" />
+                      </div>
+                      {newBranch.tables.length > 0 && (
+                        <div className="mt-3 grid grid-cols-1 gap-2 md:grid-cols-2 xl:grid-cols-3">
+                          {newBranch.tables.map((t, ti) => (
+                            <div key={ti} className="flex items-center gap-2 rounded-xl border border-gray-100 bg-gray-50 px-3 py-2">
+                              <span className="text-[11px] font-bold text-gray-400">T{ti + 1}</span>
+                              <input value={t.name} placeholder="Table name"
+                                onChange={e => setNB({ tables: newBranch.tables.map((x, j) => j === ti ? { ...x, name: e.target.value } : x) })}
+                                className="flex-1 bg-transparent text-[12px] outline-none" />
+                              <input type="number" value={t.capacity || ""} placeholder="Cap"
+                                onChange={e => setNB({ tables: newBranch.tables.map((x, j) => j === ti ? { ...x, capacity: e.target.value === "" ? 0 : Number(e.target.value) } : x) })}
+                                className="w-14 rounded-lg border border-gray-200 bg-white px-2 py-1 text-[12px] text-center outline-none focus:border-red-400" />
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* ── SECTION 3: Billing Settings ── */}
+                    <div>
+                      <p className="mb-3 text-[11px] font-bold uppercase tracking-wide text-gray-400">Billing Settings</p>
+                      <div className="space-y-4">
+                        {/* Billing modules */}
+                        <div>
+                          <p className="mb-2 text-[12px] font-semibold text-gray-600">Billing Modules</p>
+                          <div className="grid grid-cols-2 gap-2 md:grid-cols-3">
+                            {["Table Wise Billing", "Quick Billing", "Takeaway Billing", "Delivery Billing", "QR Ordering", "KOT Billing"].map(type => {
+                              const active = newBranch.billing.billingTypes.includes(type);
+                              return (
+                                <label key={type} className={`flex cursor-pointer items-center justify-between rounded-xl border p-2.5 transition ${active ? "border-red-400 bg-red-50" : "border-gray-200 bg-white hover:border-red-200"}`}>
+                                  <span className={`text-[12px] font-semibold ${active ? "text-red-700" : "text-gray-700"}`}>{type}</span>
+                                  <input type="checkbox" checked={active} onChange={() => setNBBilling({ billingTypes: active ? newBranch.billing.billingTypes.filter(t => t !== type) : [...newBranch.billing.billingTypes, type] })} className="h-4 w-4 rounded text-red-500" />
+                                </label>
+                              );
+                            })}
+                          </div>
+                        </div>
+                        {/* GST + Service Charge */}
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <label className="mb-1 block text-[11px] font-semibold text-gray-500">GST %</label>
+                            <div className="relative">
+                              <input type="number" value={newBranch.billing.gstPercentage} onChange={e => setNBBilling({ gstPercentage: e.target.value })} placeholder="5"
+                                className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 pr-8 text-[13px] outline-none focus:border-red-400" />
+                              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[12px] text-gray-400">%</span>
+                            </div>
+                          </div>
+                          <div>
+                            <label className="mb-1 block text-[11px] font-semibold text-gray-500">Service Charge %</label>
+                            <div className="relative">
+                              <input type="number" value={newBranch.billing.serviceCharge} onChange={e => setNBBilling({ serviceCharge: e.target.value })} placeholder="0"
+                                className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 pr-8 text-[13px] outline-none focus:border-red-400" />
+                              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[12px] text-gray-400">%</span>
+                            </div>
+                          </div>
+                        </div>
+                        {/* Preferences */}
+                        <div className="grid grid-cols-1 gap-2 md:grid-cols-3">
+                          {([
+                            { key: "includeGST", label: "Include GST in price" },
+                            { key: "enableDiscount", label: "Enable Discounts" },
+                            { key: "enableTips", label: "Enable Tips" },
+                          ] as const).map(({ key, label }) => (
+                            <label key={key} className="flex cursor-pointer items-center justify-between rounded-xl border border-gray-200 bg-white px-3 py-2.5">
+                              <span className="text-[12px] font-semibold text-gray-700">{label}</span>
+                              <input type="checkbox" checked={newBranch.billing[key]} onChange={() => setNBBilling({ [key]: !newBranch.billing[key] })} className="h-4 w-4 rounded text-red-500" />
+                            </label>
+                          ))}
+                        </div>
+                        {/* Payment Methods */}
+                        <div>
+                          <p className="mb-2 text-[12px] font-semibold text-gray-600">Payment Methods</p>
+                          <div className="flex flex-wrap gap-2">
+                            {["Cash", "Card", "UPI", "Net Banking", "Wallet", "Cheque"].map(m => {
+                              const active = newBranch.billing.paymentMethods.includes(m);
+                              return (
+                                <button key={m} type="button" onClick={() => setNBBilling({ paymentMethods: active ? newBranch.billing.paymentMethods.filter(x => x !== m) : [...newBranch.billing.paymentMethods, m] })}
+                                  className={`rounded-xl border px-3 py-1.5 text-[12px] font-semibold transition ${active ? "border-red-400 bg-red-50 text-red-700" : "border-gray-200 bg-white text-gray-600 hover:border-red-300"}`}>
+                                  {m}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   </div>
-                  <div className="mt-4 flex justify-end gap-2">
-                    <button onClick={() => { setAddingBranch(false); }}
-                      className="rounded-xl border border-gray-200 bg-white px-4 py-2 text-[12px] font-semibold text-gray-600">
-                      Cancel
-                    </button>
+
+                  <div className="flex justify-end gap-2 border-t border-gray-100 px-5 py-3">
+                    <button onClick={() => { setAddingBranch(false); setNewBranch(emptyNewBranch()); }} className="rounded-xl border border-gray-200 bg-white px-4 py-2 text-[12px] font-semibold text-gray-600">Cancel</button>
                     <button onClick={handleAddBranch} disabled={savingBranch}
                       className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-red-500 to-rose-500 px-5 py-2 text-[12px] font-bold text-white disabled:opacity-60">
                       {savingBranch ? "Creating..." : "Create Branch"}
