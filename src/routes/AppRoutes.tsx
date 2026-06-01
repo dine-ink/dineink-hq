@@ -20,6 +20,7 @@ import Reports from "../pages/reports/Report";
 import Attendance from "../pages/attendance/Attendance";
 import CashSessions from "../pages/cash/CashSessions";
 import BranchComparison from "../pages/comparison/BranchComparison";
+import Kitchen from "../pages/kitchen/Kitchen";
 import ProtectedRoute from './ProtectedRoute'
 import AuthRoute from './AuthRoute'
 import Insights from "@/pages/insights/Insights";
@@ -75,6 +76,7 @@ export default function AppRoutes() {
           <Route path="attendance" element={<Attendance />}/>
           <Route path="cash" element={<CashSessions />}/>
           <Route path="comparison" element={<BranchComparison />}/>
+          <Route path="kitchen" element={<Kitchen />}/>
         </Route>
 
       </Routes>

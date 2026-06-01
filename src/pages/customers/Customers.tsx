@@ -35,7 +35,9 @@ export default function Customers() {
     (page - 1) * rowsPerPage,
     page * rowsPerPage,
   );
-  const [activeTab, setActiveTab] = useState<"overview" | "churn">("overview");
+  const [activeTab, setActiveTab] = useState<"overview" | "churn" | "rfm">("overview");
+  const [rfmData, setRfmData] = useState<any>(null);
+  const [rfmLoading, setRfmLoading] = useState(false);
   const total = filtered.length;
   const repeat = filtered.filter((c) => c.visits > 1).length;
   const revenue = filtered.reduce((s, c) => s + c.spend, 0);
@@ -76,6 +78,25 @@ export default function Customers() {
   }, []);
   useBranchSync(handleBranchChange);
 
+  // Fetch RFM data when tab is selected
+  useEffect(() => {
+    if (activeTab !== "rfm" || !selectedBranch?.id) return;
+    const fetchRFM = async () => {
+      try {
+        setRfmLoading(true);
+        const token = localStorage.getItem("token");
+        const user = JSON.parse(localStorage.getItem("user") || "{}");
+        const res = await fetch(
+          `${API_URL}/api/analytics/${user.restaurantId}/customer-rfm?branchId=${selectedBranch.id}`,
+          { headers: { Authorization: `Bearer ${token}` } },
+        );
+        const data = await res.json();
+        if (data.success) setRfmData(data.data);
+      } catch { /* silent */ } finally { setRfmLoading(false); }
+    };
+    fetchRFM();
+  }, [activeTab, selectedBranch]);
+
   if (loading) {
     return (
       <div className="flex min-h-[400px] items-center justify-center">
@@ -102,8 +123,12 @@ export default function Customers() {
                 <p className="mt-1 text-[11px] text-gray-500">Customer analytics, retention and churn intelligence</p>
               </div>
               <div className="ml-2 flex rounded-lg border border-gray-200 bg-white overflow-hidden">
-                <button onClick={() => setActiveTab("overview")} className={`px-3 py-1.5 text-[11px] font-semibold transition ${activeTab === "overview" ? "bg-red-500 text-white" : "text-gray-600 hover:bg-gray-50"}`}>Overview</button>
-                <button onClick={() => setActiveTab("churn")} className={`px-3 py-1.5 text-[11px] font-semibold transition ${activeTab === "churn" ? "bg-red-500 text-white" : "text-gray-600 hover:bg-gray-50"}`}>Churn Analysis</button>
+                {(["overview", "churn", "rfm"] as const).map(t => (
+                  <button key={t} onClick={() => setActiveTab(t)}
+                    className={`px-3 py-1.5 text-[11px] font-semibold transition ${activeTab === t ? "bg-red-500 text-white" : "text-gray-600 hover:bg-gray-50"}`}>
+                    {t === "overview" ? "Overview" : t === "churn" ? "Churn Analysis" : "RFM Score"}
+                  </button>
+                ))}
               </div>
             </div>
 
@@ -476,6 +501,121 @@ export default function Customers() {
                 </table>
               </div>
             </div>
+          </div>
+        )}
+
+        {/* ── RFM SCORE TAB ─────────────────────────────── */}
+        {activeTab === "rfm" && (
+          <div className="space-y-3">
+            {rfmLoading ? (
+              <div className="flex min-h-[300px] items-center justify-center">
+                <div className="flex flex-col items-center gap-3">
+                  <div className="h-8 w-8 animate-spin rounded-full border-2 border-gray-200 border-t-red-500" />
+                  <p className="text-[12px] text-gray-500">Scoring customers...</p>
+                </div>
+              </div>
+            ) : (
+              <>
+                {/* Segment KPIs */}
+                <div className="grid grid-cols-2 gap-3 xl:grid-cols-5">
+                  {[
+                    { label: "Champion", sub: "High R·F·M — best customers", color: "emerald" },
+                    { label: "Loyal", sub: "Regular buyers, good spend", color: "blue" },
+                    { label: "Potential", sub: "Occasional, growing", color: "violet" },
+                    { label: "At Risk", sub: "Haven't visited recently", color: "orange" },
+                    { label: "Lost", sub: "No visits in 90+ days", color: "red" },
+                  ].map(s => {
+                    const count = rfmData?.segmentCounts?.[s.label] || 0;
+                    const rev = rfmData?.segmentRevenue?.[s.label] || 0;
+                    const colorMap: Record<string, string> = {
+                      emerald: "border-emerald-100 bg-emerald-50/60 text-emerald-700",
+                      blue: "border-blue-100 bg-blue-50/60 text-blue-700",
+                      violet: "border-violet-100 bg-violet-50/60 text-violet-700",
+                      orange: "border-orange-100 bg-orange-50/60 text-orange-700",
+                      red: "border-red-100 bg-red-50/60 text-red-700",
+                    };
+                    return (
+                      <div key={s.label} className={`rounded-xl border p-4 ${colorMap[s.color]}`}>
+                        <p className="text-[10px] font-bold uppercase tracking-wide text-gray-500">{s.label}</p>
+                        <p className={`mt-2 text-[24px] font-black ${colorMap[s.color].split(" ")[2]}`}>{count}</p>
+                        <p className="mt-0.5 text-[10px] text-gray-500">₹{Number(rev).toLocaleString()} revenue</p>
+                        <p className="mt-1 text-[10px] text-gray-400">{s.sub}</p>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* RFM explanation */}
+                <div className="overflow-hidden rounded-xl border border-blue-100 bg-blue-50/40 px-4 py-3">
+                  <p className="text-[12px] font-semibold text-blue-900">How RFM scoring works</p>
+                  <p className="mt-1 text-[11px] text-blue-700">
+                    Each customer is scored 1–5 on three dimensions: <strong>R</strong>ecency (days since last visit), <strong>F</strong>requency (total visits), <strong>M</strong>onetary (total spend). Higher score = better customer.
+                    Total 13–15 = Champion · 10–12 = Loyal · 7–9 = Potential · 5–6 = At Risk · 3–4 = Lost.
+                  </p>
+                </div>
+
+                {/* RFM Customer Table */}
+                <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+                  <div className="border-b border-gray-100 px-4 py-3">
+                    <h3 className="text-[15px] font-bold text-gray-900">All Customers — RFM Scores</h3>
+                    <p className="mt-0.5 text-[11px] text-gray-500">{rfmData?.total || 0} customers scored · sorted by RFM total (best first)</p>
+                  </div>
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full text-[12px]">
+                      <thead className="bg-gray-50">
+                        <tr className="border-b border-gray-100">
+                          {["Customer", "Segment", "R Score", "F Score", "M Score", "Total", "Last Visit", "Visits", "Spend"].map(h => (
+                            <th key={h} className="px-4 py-2.5 text-left text-[10px] font-bold uppercase tracking-wide text-gray-400">{h}</th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {(rfmData?.customers || []).slice(0, 50).map((c: any) => {
+                          const segColor: Record<string, string> = {
+                            Champion: "bg-emerald-50 text-emerald-700",
+                            Loyal: "bg-blue-50 text-blue-700",
+                            Potential: "bg-violet-50 text-violet-700",
+                            "At Risk": "bg-orange-50 text-orange-700",
+                            Lost: "bg-red-50 text-red-700",
+                          };
+                          const ScoreCell = ({ v }: { v: number }) => (
+                            <span className={`inline-flex h-6 w-6 items-center justify-center rounded-full text-[11px] font-bold ${v >= 4 ? "bg-emerald-100 text-emerald-700" : v === 3 ? "bg-yellow-100 text-yellow-700" : "bg-red-100 text-red-700"}`}>
+                              {v}
+                            </span>
+                          );
+                          return (
+                            <tr key={c.id} className="border-b border-gray-50 hover:bg-gray-50/60">
+                              <td className="px-4 py-2.5">
+                                <p className="font-semibold text-gray-900">{c.name}</p>
+                                <p className="text-[10px] text-gray-400">{c.phone}</p>
+                              </td>
+                              <td className="px-4 py-2.5">
+                                <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold ${segColor[c.segment] || "bg-gray-100 text-gray-600"}`}>
+                                  {c.segment}
+                                </span>
+                              </td>
+                              <td className="px-4 py-2.5"><ScoreCell v={c.R} /></td>
+                              <td className="px-4 py-2.5"><ScoreCell v={c.F} /></td>
+                              <td className="px-4 py-2.5"><ScoreCell v={c.M} /></td>
+                              <td className="px-4 py-2.5">
+                                <span className="text-[14px] font-black text-gray-900">{c.rfm}</span>
+                                <span className="text-[10px] text-gray-400">/15</span>
+                              </td>
+                              <td className="px-4 py-2.5 text-gray-500">{c.recencyDays}d ago</td>
+                              <td className="px-4 py-2.5 text-gray-700">{c.frequency}</td>
+                              <td className="px-4 py-2.5 font-bold text-emerald-600">₹{c.monetary.toLocaleString()}</td>
+                            </tr>
+                          );
+                        })}
+                        {!rfmData?.customers?.length && (
+                          <tr><td colSpan={9} className="py-12 text-center text-[12px] text-gray-400">No customer data available for RFM scoring</td></tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         )}
       </div>

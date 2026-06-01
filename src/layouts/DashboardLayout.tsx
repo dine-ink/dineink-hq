@@ -27,6 +27,7 @@ import {
   ChevronLeftIcon,
   ChevronRightIcon,
   ArrowsRightLeftIcon,
+  FireIcon,
 } from "@heroicons/react/24/outline";
 
 const NAV = [
@@ -44,6 +45,7 @@ const NAV = [
   { name: "Attendance", href: "/dashboard/attendance", icon: CalendarDaysIcon },
   { name: "Cash", href: "/dashboard/cash", icon: BanknotesIcon },
   { name: "Compare", href: "/dashboard/comparison", icon: ArrowsRightLeftIcon },
+  { name: "Kitchen", href: "/dashboard/kitchen", icon: FireIcon },
 ];
 
 const SECONDARY = [

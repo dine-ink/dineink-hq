@@ -9,7 +9,7 @@ import dayjs from "dayjs";
 
 const COLORS = ["#ef4444", "#10b981", "#3b82f6", "#f59e0b", "#8b5cf6", "#ec4899"];
 
-const reportTabs = ["P&L Statement", "Tax Report", "Expense Tracker", "Sales Analytics", "Discount Analysis", "Menu Engineering", "Table Analytics", "Waste Report"];
+const reportTabs = ["P&L Statement", "Tax Report", "Expense Tracker", "Sales Analytics", "Discount Analysis", "Menu Engineering", "Table Analytics", "Waste Report", "Hourly Heatmap", "Day Analysis", "Revenue Forecast"];
 
 export default function Report() {
   const API_URL = import.meta.env.VITE_API_URL;
@@ -27,6 +27,8 @@ export default function Report() {
   const [menuItems, setMenuItems] = useState<any[]>([]);
   const [runningOrders, setRunningOrders] = useState<any[]>([]);
   const [inventoryAdjustments, setInventoryAdjustments] = useState<any[]>([]);
+  const [heatmapData, setHeatmapData] = useState<any>(null);
+  const [forecastData, setForecastData] = useState<any>(null);
 
   const handleBranchChange = useCallback(() => {
     setSelectedBranch(getSelectedBranch());
@@ -53,16 +55,19 @@ export default function Report() {
         const user = JSON.parse(localStorage.getItem("user") || "{}");
         const { from, to } = getDateRange();
         const headers = { Authorization: `Bearer ${token}` };
-        const [analyticsRes, expensesRes, billsRes, menuRes, ordersRes, adjustRes] = await Promise.all([
-          fetch(`${API_URL}/api/analytics/${user.restaurantId}/restaurantDashboardOverview?branchId=${selectedBranch.id}&range=${preset}&from=${from}&to=${to}`, { headers }),
-          fetch(`${API_URL}/api/reports/expenses?branchId=${selectedBranch.id}&from=${from}&to=${to}`, { headers }),
-          fetch(`${API_URL}/api/bills/${user.restaurantId}/restaurantwise?branchId=${selectedBranch.id}&from=${from}&to=${to}`, { headers }),
-          fetch(`${API_URL}/api/inventory/${user.restaurantId}/menu-management?branchId=${selectedBranch.id}`, { headers }),
-          fetch(`${API_URL}/api/orders/running?branchId=${selectedBranch.id}&from=${from}&to=${to}`, { headers }),
-          fetch(`${API_URL}/api/inventory/adjustments?branchId=${selectedBranch.id}&from=${from}&to=${to}`, { headers }),
+        const bParam = `branchId=${selectedBranch.id}`;
+        const [analyticsRes, expensesRes, billsRes, menuRes, ordersRes, adjustRes, heatmapRes, forecastRes] = await Promise.all([
+          fetch(`${API_URL}/api/analytics/${user.restaurantId}/restaurantDashboardOverview?${bParam}&range=${preset}&from=${from}&to=${to}`, { headers }),
+          fetch(`${API_URL}/api/reports/expenses?${bParam}&from=${from}&to=${to}`, { headers }),
+          fetch(`${API_URL}/api/bills/${user.restaurantId}/restaurantwise?${bParam}&from=${from}&to=${to}`, { headers }),
+          fetch(`${API_URL}/api/inventory/${user.restaurantId}/menu-management?${bParam}`, { headers }),
+          fetch(`${API_URL}/api/orders/running?${bParam}&from=${from}&to=${to}`, { headers }),
+          fetch(`${API_URL}/api/inventory/adjustments?${bParam}&from=${from}&to=${to}`, { headers }),
+          fetch(`${API_URL}/api/analytics/${user.restaurantId}/hourly-heatmap?${bParam}&from=${from}&to=${to}`, { headers }),
+          fetch(`${API_URL}/api/analytics/${user.restaurantId}/revenue-forecast?${bParam}`, { headers }),
         ]);
-        const [analyticsData, expensesData, billsData, menuData, ordersData, adjustData] = await Promise.all([
-          analyticsRes.json(), expensesRes.json(), billsRes.json(), menuRes.json(), ordersRes.json(), adjustRes.json(),
+        const [analyticsData, expensesData, billsData, menuData, ordersData, adjustData, heatmapJson, forecastJson] = await Promise.all([
+          analyticsRes.json(), expensesRes.json(), billsRes.json(), menuRes.json(), ordersRes.json(), adjustRes.json(), heatmapRes.json(), forecastRes.json(),
         ]);
         if (analyticsData.success) setReportData(analyticsData.data);
         if (expensesData.success) setExpenses(expensesData.data || []);
@@ -70,6 +75,8 @@ export default function Report() {
         if (menuData.success) setMenuItems(menuData.data?.menuItems || []);
         if (ordersData.success) setRunningOrders(ordersData.data || []);
         if (adjustData.success) setInventoryAdjustments(adjustData.data || []);
+        if (heatmapJson.success) setHeatmapData(heatmapJson.data);
+        if (forecastJson.success) setForecastData(forecastJson.data);
       } catch { /* silent */ } finally {
         setLoading(false);
       }
@@ -1011,6 +1018,267 @@ export default function Report() {
             </div>
           );
         })()}
+
+        {/* ===== HOURLY HEATMAP ===== */}
+        {activeTab === "Hourly Heatmap" && (
+          <div className="space-y-3">
+            <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+              {[
+                { label: "Peak Hour", value: heatmapData?.peakHour?.label || "—", sub: `₹${(heatmapData?.peakHour?.revenue || 0).toLocaleString()} revenue`, color: "red" },
+                { label: "Best Day", value: heatmapData?.peakDay?.name || "—", sub: `₹${(heatmapData?.peakDay?.revenue || 0).toLocaleString()} revenue`, color: "emerald" },
+                { label: "Peak Hour Orders", value: heatmapData?.peakHour?.orders || 0, sub: "orders in that hour", color: "blue" },
+                { label: "Best Day Orders", value: heatmapData?.peakDay?.orders || 0, sub: "orders on that day", color: "orange" },
+              ].map(k => (
+                <div key={k.label} className={`rounded-xl border p-4 ${k.color === "red" ? "border-red-100 bg-red-50/60" : k.color === "emerald" ? "border-emerald-100 bg-emerald-50/60" : k.color === "blue" ? "border-blue-100 bg-blue-50/60" : "border-orange-100 bg-orange-50/60"}`}>
+                  <p className="text-[10px] font-bold uppercase tracking-wide text-gray-500">{k.label}</p>
+                  <p className={`mt-2 text-[20px] font-bold ${k.color === "red" ? "text-red-700" : k.color === "emerald" ? "text-emerald-700" : k.color === "blue" ? "text-blue-700" : "text-orange-700"}`}>{k.value}</p>
+                  <p className="mt-1 text-[11px] text-gray-500">{k.sub}</p>
+                </div>
+              ))}
+            </div>
+
+            <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
+              <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+                <div className="border-b border-gray-100 px-4 py-3">
+                  <h3 className="text-[15px] font-bold text-gray-900">Revenue by Hour of Day</h3>
+                  <p className="mt-0.5 text-[11px] text-gray-500">Which hour generates most revenue across all days</p>
+                </div>
+                <div className="p-3">
+                  {heatmapData?.hourlyData?.filter((h: any) => h.revenue > 0).length > 0 ? (
+                    <ResponsiveContainer width="100%" height={230}>
+                      <BarChart data={(heatmapData.hourlyData || []).filter((h: any) => h.hour >= 6 && h.hour <= 23)}>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                        <XAxis dataKey="label" tick={{ fontSize: 9, fill: "#6b7280" }} axisLine={false} tickLine={false} interval={2} />
+                        <YAxis tick={{ fontSize: 9, fill: "#6b7280" }} axisLine={false} tickLine={false} tickFormatter={v => `₹${(v/1000).toFixed(0)}k`} />
+                        <Tooltip formatter={(v: any) => `₹${Number(v).toLocaleString()}`} />
+                        <Bar dataKey="revenue" name="Revenue" fill="#ef4444" radius={[4, 4, 0, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  ) : <div className="flex h-[230px] items-center justify-center text-[12px] text-gray-400">No hourly data</div>}
+                </div>
+              </div>
+
+              <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+                <div className="border-b border-gray-100 px-4 py-3">
+                  <h3 className="text-[15px] font-bold text-gray-900">Revenue by Day of Week</h3>
+                  <p className="mt-0.5 text-[11px] text-gray-500">Which day is strongest across the period</p>
+                </div>
+                <div className="p-3">
+                  {heatmapData?.dailyData?.filter((d: any) => d.revenue > 0).length > 0 ? (
+                    <ResponsiveContainer width="100%" height={230}>
+                      <BarChart data={heatmapData.dailyData}>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                        <XAxis dataKey="short" tick={{ fontSize: 10, fill: "#6b7280" }} axisLine={false} tickLine={false} />
+                        <YAxis tick={{ fontSize: 9, fill: "#6b7280" }} axisLine={false} tickLine={false} tickFormatter={v => `₹${(v/1000).toFixed(0)}k`} />
+                        <Tooltip formatter={(v: any) => `₹${Number(v).toLocaleString()}`} />
+                        <Bar dataKey="revenue" name="Revenue" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  ) : <div className="flex h-[230px] items-center justify-center text-[12px] text-gray-400">No daily data</div>}
+                </div>
+              </div>
+            </div>
+
+            {/* Heatmap Grid */}
+            <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+              <div className="border-b border-gray-100 px-4 py-3">
+                <h3 className="text-[15px] font-bold text-gray-900">Revenue Heatmap — Day × Hour</h3>
+                <p className="mt-0.5 text-[11px] text-gray-500">Darker red = higher revenue in that time slot</p>
+              </div>
+              <div className="overflow-x-auto p-4">
+                {heatmapData?.heatmapGrid?.length > 0 ? (() => {
+                  const hours = [6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23];
+                  const days = heatmapData.dailyData || [];
+                  const maxRev = Math.max(...heatmapData.heatmapGrid.map((c: any) => c.revenue), 1);
+                  const cell = (day: number, h: number) => {
+                    const c = heatmapData.heatmapGrid.find((g: any) => g.day === day && g.h === h);
+                    const intensity = c ? Math.round((c.revenue / maxRev) * 100) : 0;
+                    return <td key={h} title={`₹${(c?.revenue || 0).toLocaleString()}`}
+                      className="border border-white p-0"
+                      style={{ background: intensity === 0 ? "#f9fafb" : `rgba(239,68,68,${0.1 + intensity * 0.009})`, width: 32, height: 24 }} />;
+                  };
+                  return (
+                    <table className="text-[9px]">
+                      <thead>
+                        <tr>
+                          <th className="w-14 pr-2 text-right text-gray-400" />
+                          {hours.map(h => <th key={h} className="w-8 text-center text-gray-400 font-normal">{h === 12 ? "12P" : h > 12 ? `${h-12}P` : `${h}A`}</th>)}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {days.map((d: any) => (
+                          <tr key={d.day}>
+                            <td className="pr-2 text-right text-[10px] font-semibold text-gray-600">{d.short}</td>
+                            {hours.map(h => cell(d.day, h))}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  );
+                })() : <div className="py-8 text-center text-[12px] text-gray-400">No heatmap data for this period</div>}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ===== DAY ANALYSIS ===== */}
+        {activeTab === "Day Analysis" && (
+          <div className="space-y-3">
+            <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+              <div className="border-b border-gray-100 px-4 py-3">
+                <h3 className="text-[15px] font-bold text-gray-900">Day of Week — Full Breakdown</h3>
+                <p className="mt-0.5 text-[11px] text-gray-500">Revenue, order count and avg bill for each day of the week</p>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="min-w-full text-[12px]">
+                  <thead className="bg-gray-50">
+                    <tr className="border-b border-gray-100">
+                      {["Day", "Revenue", "Orders", "Avg Bill", "Revenue Share", "Performance"].map(h => (
+                        <th key={h} className="px-4 py-2.5 text-left text-[10px] font-bold uppercase tracking-wide text-gray-400">{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(heatmapData?.dailyData || []).map((d: any) => {
+                      const totalRev = (heatmapData?.dailyData || []).reduce((s: number, x: any) => s + x.revenue, 0) || 1;
+                      const pct = Math.round((d.revenue / totalRev) * 100);
+                      const isTop = d.revenue === Math.max(...(heatmapData?.dailyData || []).map((x: any) => x.revenue));
+                      return (
+                        <tr key={d.day} className={`border-b border-gray-50 hover:bg-gray-50/60 ${isTop ? "bg-emerald-50/30" : ""}`}>
+                          <td className="px-4 py-3">
+                            <div className="flex items-center gap-2">
+                              {isTop && <span className="rounded-full bg-emerald-100 px-1.5 py-0.5 text-[8px] font-bold text-emerald-700">BEST</span>}
+                              <p className="font-bold text-gray-900">{d.name}</p>
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 font-bold text-gray-900">₹{d.revenue.toLocaleString()}</td>
+                          <td className="px-4 py-3 text-gray-700">{d.orders}</td>
+                          <td className="px-4 py-3 text-gray-600">₹{d.avgBill.toLocaleString()}</td>
+                          <td className="px-4 py-3">
+                            <div className="flex items-center gap-2">
+                              <div className="h-2 w-28 overflow-hidden rounded-full bg-gray-100">
+                                <div className="h-full rounded-full bg-red-500" style={{ width: `${pct}%` }} />
+                              </div>
+                              <span className="text-[11px] font-semibold text-gray-600">{pct}%</span>
+                            </div>
+                          </td>
+                          <td className="px-4 py-3">
+                            <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-semibold ${d.revenue === 0 ? "bg-gray-100 text-gray-400" : pct >= 20 ? "bg-emerald-50 text-emerald-600" : pct >= 12 ? "bg-blue-50 text-blue-600" : "bg-gray-100 text-gray-500"}`}>
+                              {d.revenue === 0 ? "No Data" : pct >= 20 ? "Peak Day" : pct >= 12 ? "Busy" : "Slow Day"}
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                    {!heatmapData?.dailyData?.length && (
+                      <tr><td colSpan={6} className="py-10 text-center text-[12px] text-gray-400">No day analysis data for this period</td></tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ===== REVENUE FORECAST ===== */}
+        {activeTab === "Revenue Forecast" && (
+          <div className="space-y-3">
+            <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+              {[
+                { label: "Last 7-Day Avg", value: `₹${(forecastData?.summary?.avg7 || 0).toLocaleString()}`, sub: "daily average", color: "blue" },
+                { label: "Prev 7-Day Avg", value: `₹${(forecastData?.summary?.avgPrev7 || 0).toLocaleString()}`, sub: "comparison period", color: "gray" },
+                { label: "Growth Rate", value: `${forecastData?.summary?.growthPercent >= 0 ? "+" : ""}${forecastData?.summary?.growthPercent || 0}%`, sub: "week over week", color: (forecastData?.summary?.growthPercent || 0) >= 0 ? "emerald" : "red" },
+                { label: "Forecast (7 days)", value: `₹${(forecastData?.summary?.forecastTotal || 0).toLocaleString()}`, sub: "predicted next week", color: "violet" },
+              ].map(k => (
+                <div key={k.label} className={`rounded-xl border p-4 ${k.color === "blue" ? "border-blue-100 bg-blue-50/60" : k.color === "emerald" ? "border-emerald-100 bg-emerald-50/60" : k.color === "red" ? "border-red-100 bg-red-50/60" : k.color === "violet" ? "border-violet-100 bg-violet-50/60" : "border-gray-200 bg-gray-50"}`}>
+                  <p className="text-[10px] font-bold uppercase tracking-wide text-gray-500">{k.label}</p>
+                  <p className={`mt-2 text-[20px] font-bold ${k.color === "blue" ? "text-blue-700" : k.color === "emerald" ? "text-emerald-700" : k.color === "red" ? "text-red-700" : k.color === "violet" ? "text-violet-700" : "text-gray-700"}`}>{k.value}</p>
+                  <p className="mt-1 text-[11px] text-gray-500">{k.sub}</p>
+                </div>
+              ))}
+            </div>
+
+            {/* History + Forecast chart */}
+            <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+              <div className="border-b border-gray-100 px-4 py-3">
+                <h3 className="text-[15px] font-bold text-gray-900">30-Day History + 7-Day Forecast</h3>
+                <p className="mt-0.5 text-[11px] text-gray-500">Solid line = actual · Dashed area = predicted range (±15%)</p>
+              </div>
+              <div className="p-3">
+                {forecastData?.history?.length > 0 ? (() => {
+                  const combined = [
+                    ...(forecastData.history || []).map((d: any) => ({ ...d, type: "actual" })),
+                    ...(forecastData.forecast || []).map((d: any) => ({ date: d.date, revenue: d.predicted, lower: d.lower, upper: d.upper, type: "forecast" })),
+                  ];
+                  return (
+                    <ResponsiveContainer width="100%" height={260}>
+                      <AreaChart data={combined}>
+                        <defs>
+                          <linearGradient id="fg" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.12} />
+                            <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0} />
+                          </linearGradient>
+                          <linearGradient id="ag" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="#ef4444" stopOpacity={0.12} />
+                            <stop offset="95%" stopColor="#ef4444" stopOpacity={0} />
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                        <XAxis dataKey="date" tick={{ fontSize: 9, fill: "#6b7280" }} axisLine={false} tickLine={false} interval={4} />
+                        <YAxis tick={{ fontSize: 9, fill: "#6b7280" }} axisLine={false} tickLine={false} tickFormatter={v => `₹${(v/1000).toFixed(0)}k`} />
+                        <Tooltip formatter={(v: any) => `₹${Number(v).toLocaleString()}`} />
+                        <Area type="monotone" dataKey="revenue" stroke="#ef4444" strokeWidth={2} fill="url(#ag)" name="Actual Revenue" />
+                        <Area type="monotone" dataKey="upper" stroke="#8b5cf6" strokeWidth={1} strokeDasharray="4 2" fill="url(#fg)" name="Upper Forecast" />
+                        <Line type="monotone" dataKey="lower" stroke="#8b5cf6" strokeWidth={1} strokeDasharray="4 2" dot={false} name="Lower Forecast" />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  );
+                })() : <div className="flex h-[260px] items-center justify-center text-[12px] text-gray-400">Not enough historical data for forecast</div>}
+              </div>
+            </div>
+
+            {/* Weekly breakdown + 7-day forecast table */}
+            <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
+              <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+                <div className="border-b border-gray-100 px-4 py-3">
+                  <h3 className="text-[15px] font-bold text-gray-900">Last 4 Weeks Revenue</h3>
+                </div>
+                <div className="p-3">
+                  <ResponsiveContainer width="100%" height={180}>
+                    <BarChart data={forecastData?.weeklyRevenue || []}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                      <XAxis dataKey="week" tick={{ fontSize: 10, fill: "#6b7280" }} axisLine={false} tickLine={false} />
+                      <YAxis tick={{ fontSize: 9, fill: "#6b7280" }} axisLine={false} tickLine={false} tickFormatter={v => `₹${(v/1000).toFixed(0)}k`} />
+                      <Tooltip formatter={(v: any) => `₹${Number(v).toLocaleString()}`} />
+                      <Bar dataKey="revenue" name="Revenue" fill="#ef4444" radius={[4, 4, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+
+              <div className="overflow-hidden rounded-xl border border-violet-100 bg-white shadow-sm">
+                <div className="border-b border-violet-100 bg-violet-50/40 px-4 py-3">
+                  <h3 className="text-[15px] font-bold text-gray-900">7-Day Revenue Forecast</h3>
+                  <p className="mt-0.5 text-[11px] text-gray-500">Based on 7-day rolling average + growth rate</p>
+                </div>
+                <div className="divide-y divide-gray-50">
+                  {(forecastData?.forecast || []).map((f: any) => (
+                    <div key={f.date} className="flex items-center justify-between px-4 py-2.5">
+                      <p className="text-[12px] font-semibold text-gray-900">{f.date}</p>
+                      <div className="text-right">
+                        <p className="text-[13px] font-bold text-violet-700">₹{f.predicted.toLocaleString()}</p>
+                        <p className="text-[10px] text-gray-400">₹{f.lower.toLocaleString()} – ₹{f.upper.toLocaleString()}</p>
+                      </div>
+                    </div>
+                  ))}
+                  {!forecastData?.forecast?.length && (
+                    <div className="py-8 text-center text-[12px] text-gray-400">No forecast data available</div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </main>
   );

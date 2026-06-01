@@ -29,6 +29,9 @@ export default function Attendance() {
   });
   const [date, setDate] = useState(dayjs().format("YYYY-MM-DD"));
   const [viewMode, setViewMode] = useState<"daily" | "monthly">("daily");
+  const [activeSection, setActiveSection] = useState<"attendance" | "productivity">("attendance");
+  const [productivity, setProductivity] = useState<any>(null);
+  const [prodLoading, setProdLoading] = useState(false);
   const [loading, setLoading] = useState(false);
   const [attendance, setAttendance] = useState<any[]>([]);
   const [monthlyAttendance, setMonthlyAttendance] = useState<any[]>([]);
@@ -36,6 +39,27 @@ export default function Attendance() {
 
   const handleBranchChange = useCallback(() => setSelectedBranch(getSelectedBranch()), []);
   useBranchSync(handleBranchChange);
+
+  // Fetch productivity data when tab switches
+  useEffect(() => {
+    if (activeSection !== "productivity" || !selectedBranch?.id) return;
+    const fetchProd = async () => {
+      try {
+        setProdLoading(true);
+        const token = localStorage.getItem("token");
+        const user = JSON.parse(localStorage.getItem("user") || "{}");
+        const from = dayjs(date).startOf("month").format("YYYY-MM-DD");
+        const to = dayjs(date).endOf("month").format("YYYY-MM-DD");
+        const res = await fetch(
+          `${API_URL}/api/analytics/${user.restaurantId}/staff-productivity?branchId=${selectedBranch.id}&from=${from}&to=${to}`,
+          { headers: { Authorization: `Bearer ${token}` } },
+        );
+        const data = await res.json();
+        if (data.success) setProductivity(data.data);
+      } catch { /* silent */ } finally { setProdLoading(false); }
+    };
+    fetchProd();
+  }, [activeSection, selectedBranch, date]);
 
   useEffect(() => {
     const fetch_ = async () => {
@@ -117,27 +141,39 @@ export default function Attendance() {
               </div>
               <div>
                 <h1 className="text-xl font-black tracking-tight text-gray-900">Staff Attendance</h1>
-                <p className="mt-0.5 text-[13px] text-gray-500">Daily attendance, hours worked and payroll overview</p>
+                <p className="mt-0.5 text-[13px] text-gray-500">Daily attendance, hours worked and staff productivity</p>
               </div>
             </div>
-            <div className="flex items-center gap-2">
-              <div className="flex rounded-lg border border-gray-200 bg-white overflow-hidden">
-                {(["daily", "monthly"] as const).map(m => (
-                  <button key={m} onClick={() => setViewMode(m)} className={`px-3 py-1.5 text-[11px] font-semibold transition ${viewMode === m ? "bg-red-500 text-white" : "text-gray-600 hover:bg-gray-50"}`}>
-                    {m.charAt(0).toUpperCase() + m.slice(1)}
-                  </button>
-                ))}
+            <div className="flex flex-wrap items-center gap-2">
+              {/* Section toggle */}
+              <div className="flex overflow-hidden rounded-xl border border-gray-200 bg-white">
+                <button onClick={() => setActiveSection("attendance")}
+                  className={`px-4 py-2 text-[12px] font-semibold transition ${activeSection === "attendance" ? "bg-red-500 text-white" : "text-gray-600 hover:bg-gray-50"}`}>
+                  Attendance
+                </button>
+                <button onClick={() => setActiveSection("productivity")}
+                  className={`px-4 py-2 text-[12px] font-semibold transition ${activeSection === "productivity" ? "bg-red-500 text-white" : "text-gray-600 hover:bg-gray-50"}`}>
+                  Productivity
+                </button>
               </div>
-              <input
-                type="date"
-                value={date}
-                onChange={e => setDate(e.target.value)}
-                className="h-9 rounded-lg border border-gray-200 bg-white px-3 text-[12px] outline-none focus:border-red-400"
-              />
+              {activeSection === "attendance" && (
+                <>
+                  <div className="flex rounded-lg border border-gray-200 bg-white overflow-hidden">
+                    {(["daily", "monthly"] as const).map(m => (
+                      <button key={m} onClick={() => setViewMode(m)} className={`px-3 py-1.5 text-[11px] font-semibold transition ${viewMode === m ? "bg-red-500 text-white" : "text-gray-600 hover:bg-gray-50"}`}>
+                        {m.charAt(0).toUpperCase() + m.slice(1)}
+                      </button>
+                    ))}
+                  </div>
+                  <input type="date" value={date} onChange={e => setDate(e.target.value)}
+                    className="h-9 rounded-lg border border-gray-200 bg-white px-3 text-[12px] outline-none focus:border-red-400" />
+                </>
+              )}
             </div>
           </div>
         </div>
 
+        {activeSection === "attendance" && <>
         {/* KPIs */}
         <div className="grid grid-cols-2 gap-3 xl:grid-cols-5">
           {[
@@ -313,6 +349,144 @@ export default function Attendance() {
             </table>
           </div>
         </div>
+        </>}
+
+        {/* ── PRODUCTIVITY SECTION ─────────────────────── */}
+        {activeSection === "productivity" && (
+          prodLoading ? (
+            <div className="flex min-h-[300px] items-center justify-center">
+              <div className="flex flex-col items-center gap-3">
+                <div className="h-8 w-8 animate-spin rounded-full border-2 border-gray-200 border-t-red-500" />
+                <p className="text-[12px] text-gray-500">Calculating productivity...</p>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {/* KPIs */}
+              <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+                {[
+                  { label: "Total Staff", value: productivity?.totals?.totalStaff || 0, sub: "in this branch", color: "blue" },
+                  { label: "Total Hours Worked", value: `${productivity?.totals?.totalHoursWorked || 0}h`, sub: "this month", color: "orange" },
+                  { label: "Monthly Labour Cost", value: `₹${(productivity?.totals?.totalLabourCost || 0).toLocaleString()}`, sub: "total salaries", color: "red" },
+                  { label: "Avg Hours/Staff", value: productivity?.totals?.totalStaff ? `${Math.round((productivity?.totals?.totalHoursWorked || 0) / productivity.totals.totalStaff)}h` : "—", sub: "per person", color: "emerald" },
+                ].map(k => (
+                  <div key={k.label} className={`rounded-xl border p-4 ${k.color === "blue" ? "border-blue-100 bg-blue-50/60" : k.color === "orange" ? "border-orange-100 bg-orange-50/60" : k.color === "red" ? "border-red-100 bg-red-50/60" : "border-emerald-100 bg-emerald-50/60"}`}>
+                    <p className="text-[10px] font-bold uppercase tracking-wide text-gray-500">{k.label}</p>
+                    <p className={`mt-2 text-[22px] font-bold ${k.color === "blue" ? "text-blue-700" : k.color === "orange" ? "text-orange-700" : k.color === "red" ? "text-red-700" : "text-emerald-700"}`}>{k.value}</p>
+                    <p className="mt-1 text-[11px] text-gray-500">{k.sub}</p>
+                  </div>
+                ))}
+              </div>
+
+              {/* Shift Revenue + Dept Breakdown */}
+              <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
+                <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+                  <div className="border-b border-gray-100 px-4 py-3">
+                    <h3 className="text-[15px] font-bold text-gray-900">Revenue by Shift</h3>
+                    <p className="mt-0.5 text-[11px] text-gray-500">Revenue generated during each kitchen shift window</p>
+                  </div>
+                  <div className="space-y-3 p-4">
+                    {[
+                      { label: "Morning (6–12 AM)", key: "morning", color: "bg-yellow-500" },
+                      { label: "Afternoon (12–5 PM)", key: "afternoon", color: "bg-orange-500" },
+                      { label: "Evening (5–10 PM)", key: "evening", color: "bg-red-500" },
+                      { label: "Night (10 PM–6 AM)", key: "night", color: "bg-indigo-500" },
+                    ].map(s => {
+                      const rev = productivity?.shiftRevenue?.[s.key] || 0;
+                      const totalRev = Object.values(productivity?.shiftRevenue || {}).reduce((a: number, v: any) => a + v, 0) as number || 1;
+                      const pct = Math.round((rev / totalRev) * 100);
+                      return (
+                        <div key={s.key}>
+                          <div className="flex items-center justify-between">
+                            <p className="text-[12px] font-semibold text-gray-900">{s.label}</p>
+                            <p className="text-[12px] font-bold text-gray-700">₹{rev.toLocaleString()} <span className="text-[10px] text-gray-400">({pct}%)</span></p>
+                          </div>
+                          <div className="mt-1 h-2 overflow-hidden rounded-full bg-gray-100">
+                            <div className={`h-full rounded-full ${s.color} transition-all`} style={{ width: `${pct}%` }} />
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+                  <div className="border-b border-gray-100 px-4 py-3">
+                    <h3 className="text-[15px] font-bold text-gray-900">Department Cost Breakdown</h3>
+                    <p className="mt-0.5 text-[11px] text-gray-500">Monthly salary total per department</p>
+                  </div>
+                  <div className="divide-y divide-gray-50">
+                    {(productivity?.deptData || []).map((d: any) => (
+                      <div key={d.dept} className="flex items-center justify-between px-4 py-3">
+                        <div>
+                          <p className="text-[13px] font-bold text-gray-900">{d.dept}</p>
+                          <p className="text-[11px] text-gray-400">{d.count} staff · {d.totalHours}h worked</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-[14px] font-bold text-red-600">₹{d.totalSalary.toLocaleString()}</p>
+                          <p className="text-[10px] text-gray-400">₹{d.avgSalary.toLocaleString()} avg</p>
+                        </div>
+                      </div>
+                    ))}
+                    {!productivity?.deptData?.length && (
+                      <div className="py-8 text-center text-[12px] text-gray-400">No department data available</div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Per-staff productivity table */}
+              <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+                <div className="border-b border-gray-100 px-4 py-3">
+                  <h3 className="text-[15px] font-bold text-gray-900">Staff Efficiency — This Month</h3>
+                  <p className="mt-0.5 text-[11px] text-gray-500">Hours worked, attendance rate and cost per hour for each staff member</p>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="min-w-full text-[12px]">
+                    <thead className="bg-gray-50">
+                      <tr className="border-b border-gray-100">
+                        {["Staff", "Dept", "Shift", "Days Present", "Hours Worked", "Attendance %", "Monthly Salary", "Cost/Hour"].map(h => (
+                          <th key={h} className="px-4 py-2.5 text-left text-[10px] font-bold uppercase tracking-wide text-gray-400">{h}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(productivity?.staff || []).map((s: any) => (
+                        <tr key={s.id} className="border-b border-gray-50 hover:bg-gray-50/60">
+                          <td className="px-4 py-2.5">
+                            <div className="flex items-center gap-2">
+                              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-red-400 to-pink-500 text-[11px] font-bold text-white">
+                                {s.name?.charAt(0)?.toUpperCase()}
+                              </div>
+                              <div>
+                                <p className="font-semibold text-gray-900">{s.name}</p>
+                                <p className="text-[10px] text-gray-400">{s.role}</p>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-4 py-2.5 text-gray-600">{s.department}</td>
+                          <td className="px-4 py-2.5 text-gray-500">{s.shift}</td>
+                          <td className="px-4 py-2.5 text-gray-700">{s.daysPresent}</td>
+                          <td className="px-4 py-2.5 font-semibold text-gray-900">{s.totalHours}h</td>
+                          <td className="px-4 py-2.5">
+                            <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${s.attendanceRate >= 80 ? "bg-emerald-50 text-emerald-600" : s.attendanceRate >= 50 ? "bg-orange-50 text-orange-600" : "bg-red-50 text-red-600"}`}>
+                              {s.attendanceRate}%
+                            </span>
+                          </td>
+                          <td className="px-4 py-2.5 font-bold text-red-600">₹{s.monthlySalary.toLocaleString()}</td>
+                          <td className="px-4 py-2.5 text-gray-600">{s.costPerHour > 0 ? `₹${s.costPerHour}/hr` : "—"}</td>
+                        </tr>
+                      ))}
+                      {!productivity?.staff?.length && (
+                        <tr><td colSpan={8} className="py-12 text-center text-[12px] text-gray-400">No staff productivity data available</td></tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )
+        )}
       </div>
     </main>
   );
