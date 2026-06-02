@@ -1,5 +1,8 @@
 import { useEffect, useRef, useState } from "react";
-import { useAppSelector } from "../../store";
+import { useNavigate } from "react-router-dom";
+import { useAppSelector, useAppDispatch } from "../../store";
+import { setBranches } from "../../store/slices/branchSlice";
+import { clearAuth } from "../../store/slices/authSlice";
 import { State, City } from "country-state-city";
 import {
   BuildingStorefrontIcon,
@@ -46,6 +49,7 @@ function Field({ label, value, editMode, onChange, type = "text", placeholder = 
 
 export default function Settings() {
   const API_URL = import.meta.env.VITE_API_URL;
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("General");
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(false);
@@ -75,6 +79,7 @@ export default function Settings() {
   const setNBBilling = (updates: object) => setNewBranch(p => ({ ...p, billing: { ...p.billing, ...updates } }));
 
   const { user, token } = useAppSelector((s) => s.auth);
+  const dispatch = useAppDispatch();
 
   useEffect(() => { fetchSettings(); }, []);
   useEffect(() => { setLogoError(false); }, [data?.logo]);
@@ -177,8 +182,10 @@ export default function Settings() {
       if (json.success) {
         setAddingBranch(false);
         setNewBranch(emptyNewBranch());
+        const updatedBranches = [...(data?.branches || []), json.data];
+        setData((prev: any) => ({ ...prev, branches: updatedBranches }));
+        dispatch(setBranches(updatedBranches));
         fetchSettings();
-        setData((prev: any) => ({ ...prev, branches: [...(prev.branches || []), json.data] }));
         window.dispatchEvent(new Event("branchChanged"));
       } else { alert(json.message); }
     } catch { alert("Failed to add branch"); } finally { setSavingBranch(false); }
@@ -195,6 +202,12 @@ export default function Settings() {
       ...prev,
       branches: prev.branches.map((b: any) => b.id === id ? { ...b, isDeleted: !b.isDeleted } : b),
     }));
+
+  const handleSignOutAll = () => {
+    if (!window.confirm("This will sign you out on this device. Active sessions on other devices will expire when their token times out. Continue?")) return;
+    dispatch(clearAuth());
+    navigate("/login");
+  };
 
   const handleUpdatePassword = async () => {
     if (passwordForm.newPassword !== passwordForm.confirmPassword) { alert("Passwords do not match"); return; }
@@ -674,7 +687,7 @@ export default function Settings() {
                   <p className="text-[13px] font-semibold text-gray-900">Sign out of all devices</p>
                   <p className="mt-0.5 text-[11px] text-gray-400">Revoke all active sessions</p>
                 </div>
-                <button className="rounded-xl border border-gray-200 bg-white px-4 py-2 text-[12px] font-semibold text-red-600 transition hover:bg-red-50">
+                <button onClick={handleSignOutAll} className="rounded-xl border border-red-200 bg-white px-4 py-2 text-[12px] font-semibold text-red-600 transition hover:bg-red-50 active:scale-95">
                   Sign Out All
                 </button>
               </div>

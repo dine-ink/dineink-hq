@@ -313,8 +313,8 @@ export default function DashboardLayout() {
               <Bars3Icon className="h-5 w-5" />
             </button>
             {/* ── GLOBAL DATE FILTER BAR ─────────────────────── */}
-            <div className="relative border-t border-white/10 px-4 py-1.5">
-              <div className="flex flex-wrap items-center gap-2">
+            <div className="relative min-w-0 flex-1 overflow-x-auto border-t border-white/10 px-2 py-1.5 lg:px-4">
+              <div className="flex items-center gap-2 whitespace-nowrap">
                 <div className="flex items-center gap-0.5 rounded-xl border border-white/15 bg-white/10 p-0.5 backdrop-blur">
                   {PRESETS.map((p) => (
                     <button
@@ -379,7 +379,7 @@ export default function DashboardLayout() {
                     );
                     if (b) dispatch(setSelectedBranch(b));
                   }}
-                  className="hidden lg:flex min-w-[120px] cursor-pointer appearance-none rounded-xl border border-white/20 bg-white/15 px-3 py-1 text-[12px] font-semibold text-white backdrop-blur-xl outline-none transition hover:bg-white/20 focus:border-white/40"
+                  className="flex min-w-[90px] max-w-[130px] cursor-pointer appearance-none rounded-xl border border-white/20 bg-white/15 px-2 py-1 text-[11px] font-semibold text-white backdrop-blur-xl outline-none transition hover:bg-white/20 focus:border-white/40"
                   style={{
                     backgroundImage:
                       "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='white' viewBox='0 0 20 20'%3E%3Cpath fill-rule='evenodd' d='M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z' clip-rule='evenodd'/%3E%3C/svg%3E\")",
@@ -405,14 +405,14 @@ export default function DashboardLayout() {
                 onClick={handleDownload}
                 disabled={downloading}
                 title="Download full report as Excel"
-                className="hidden lg:flex items-center gap-1.5 rounded-xl border border-white/20 bg-white/10 px-3 py-1 text-[11px] font-semibold text-white backdrop-blur-xl transition hover:bg-white/20 disabled:cursor-not-allowed disabled:opacity-60"
+                className="flex items-center gap-1.5 rounded-xl border border-white/20 bg-white/10 px-2 py-1 text-[11px] font-semibold text-white backdrop-blur-xl transition hover:bg-white/20 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {downloading ? (
                   <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white/30 border-t-white" />
                 ) : (
                   <ArrowDownTrayIcon className="h-3.5 w-3.5" />
                 )}
-                {downloading ? "Generating..." : "Export"}
+                <span className="hidden lg:inline">{downloading ? "Generating..." : "Export"}</span>
               </button>
 
               <button className="flex h-7 w-7 items-center justify-center rounded-xl bg-white/10 text-white transition hover:bg-white/20">
