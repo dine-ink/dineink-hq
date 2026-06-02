@@ -16,6 +16,7 @@ import {
   ChartPieIcon,
   BanknotesIcon,
   FireIcon,
+  XMarkIcon,
 } from "@heroicons/react/24/outline";
 import React from "react";
 import {
@@ -151,6 +152,9 @@ export default function MenuManagement() {
   const [visibleAlerts, setVisibleAlerts] = useState(5);
   const [visibleIngredients, setVisibleIngredients] = useState(5);
   const [uploadingVendor, setUploadingVendor] = useState(false);
+  const [showAddCategory, setShowAddCategory] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState("");
+  const [manualCategories, setManualCategories] = useState<Set<string>>(new Set());
   const [uploadingRestock, setUploadingRestock] = useState(false);
   const [vendors, setVendors] = useState<any[]>([]);
   const { branches, selectedBranch } = useAppSelector(s => s.branch);
@@ -407,6 +411,25 @@ export default function MenuManagement() {
       updated[category] = updated[category].filter(
         (_: any, i: number) => i !== index,
       );
+      return updated;
+    });
+  };
+
+  const handleAddCategory = () => {
+    const name = newCategoryName.trim();
+    if (!name) return;
+    if (ingredients[name] !== undefined) { alert("Category already exists"); return; }
+    setIngredients((prev: any) => ({ ...prev, [name]: [] }));
+    setManualCategories(prev => new Set(prev).add(name));
+    setNewCategoryName("");
+    setShowAddCategory(false);
+  };
+
+  const handleDeleteCategory = (category: string) => {
+    if (!window.confirm(`Delete category "${category}" and all its ingredients?`)) return;
+    setIngredients((prev: any) => {
+      const updated = { ...prev };
+      delete updated[category];
       return updated;
     });
   };
@@ -1977,6 +2000,13 @@ export default function MenuManagement() {
 
                   <div className="flex flex-wrap items-center gap-2">
                     <button
+                      onClick={() => { setShowAddCategory(v => !v); setNewCategoryName(""); }}
+                      className="flex h-9 items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 text-[12px] font-semibold text-emerald-700 transition hover:bg-emerald-100"
+                    >
+                      <PlusIcon className="h-4 w-4" />
+                      Add Category
+                    </button>
+                    <button
                       onClick={downloadVendorTemplate}
                       className="
               h-9
@@ -2052,45 +2082,56 @@ export default function MenuManagement() {
                 </div>
               </div>
 
+              {/* ================= ADD CATEGORY INLINE FORM ================= */}
+              {showAddCategory && (
+                <div className="flex items-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3">
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-emerald-100">
+                    <FolderIcon className="h-4 w-4 text-emerald-600" />
+                  </div>
+                  <input
+                    autoFocus
+                    value={newCategoryName}
+                    onChange={e => setNewCategoryName(e.target.value)}
+                    onKeyDown={e => { if (e.key === "Enter") handleAddCategory(); if (e.key === "Escape") setShowAddCategory(false); }}
+                    placeholder="Category name (e.g. Vegetables, Dairy, Spices...)"
+                    className="flex-1 rounded-lg border border-emerald-200 bg-white px-3 py-2 text-sm outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                  />
+                  <button onClick={handleAddCategory}
+                    className="flex h-8 items-center gap-1.5 rounded-lg bg-emerald-600 px-3 text-[12px] font-semibold text-white transition hover:bg-emerald-700">
+                    <PlusIcon className="h-3.5 w-3.5" /> Add
+                  </button>
+                  <button onClick={() => setShowAddCategory(false)}
+                    className="flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-500 hover:bg-gray-50">
+                    <XMarkIcon className="h-4 w-4" />
+                  </button>
+                </div>
+              )}
+
               {/* ================= EMPTY ================= */}
-
               {Object.keys(ingredients).length === 0 && (
-                <div className="flex min-h-[240px] items-center justify-center rounded-xl border border-dashed border-red-200 bg-white p-10">
+                <div className="flex min-h-[240px] items-center justify-center rounded-xl border border-dashed border-gray-200 bg-white p-10">
                   <div className="text-center">
-                    <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-red-500 to-pink-500">
-                      <SparklesIcon className="h-8 w-8 text-white" />
+                    <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-red-500 to-pink-500">
+                      <SparklesIcon className="h-7 w-7 text-white" />
                     </div>
-
-                    <h3 className="mt-5 text-lg font-bold text-gray-900">
-                      No Ingredients Generated
-                    </h3>
-
-                    <p className="mt-2 text-sm text-gray-500">
-                      Generate ingredient inventory automatically from menu
-                      items
-                    </p>
-
-                    <button
-                      onClick={handleGenerate}
-                      className="
-              mt-5
-              inline-flex
-              items-center
-              gap-2
-              rounded-xl
-              bg-gradient-to-r
-              from-red-500
-              to-pink-500
-              px-5
-              py-3
-              text-sm
-              font-semibold
-              text-white
-            "
-                    >
-                      <SparklesIcon className="h-4 w-4" />
-                      Generate Ingredients
-                    </button>
+                    <h3 className="mt-4 text-base font-bold text-gray-900">No Ingredients Yet</h3>
+                    <p className="mt-1.5 text-sm text-gray-500">Generate automatically from your menu, or add categories manually</p>
+                    <div className="mt-5 flex flex-wrap items-center justify-center gap-3">
+                      <button
+                        onClick={() => { setShowAddCategory(true); setNewCategoryName(""); }}
+                        className="flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-5 py-2.5 text-sm font-semibold text-emerald-700 transition hover:bg-emerald-100"
+                      >
+                        <PlusIcon className="h-4 w-4" /> Add Category Manually
+                      </button>
+                      <button
+                        onClick={handleGenerate}
+                        disabled={loading}
+                        className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-red-500 to-pink-500 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:opacity-90 disabled:opacity-60"
+                      >
+                        <SparklesIcon className="h-4 w-4" />
+                        {loading ? "Generating..." : "Generate with AI"}
+                      </button>
+                    </div>
                   </div>
                 </div>
               )}
@@ -2128,39 +2169,32 @@ export default function MenuManagement() {
                                     <span className="text-[12px] text-gray-500">
                                       {items.length} Ingredients
                                     </span>
-
-                                    <span className="rounded-full bg-red-50 px-2 py-1 text-[9px] font-semibold uppercase tracking-wide text-red-500">
-                                      AI Generated
+                                    <span className={`rounded-full px-2 py-1 text-[9px] font-semibold uppercase tracking-wide ${manualCategories.has(category) ? "bg-emerald-50 text-emerald-600" : "bg-red-50 text-red-500"}`}>
+                                      {manualCategories.has(category) ? "Manual" : "AI Generated"}
                                     </span>
                                   </div>
                                 </div>
                               </div>
 
-                              {/* ACTION */}
-
-                              <button
-                                type="button"
-                                onClick={() => handleAddIngredient(category)}
-                                className="
-                        flex
-                        h-9
-                        items-center
-                        gap-2
-                        rounded-xl
-                        border
-                        border-red-100
-                        bg-red-50
-                        px-4
-                        text-[12px]
-                        font-semibold
-                        text-red-600
-                        transition
-                        hover:bg-red-100
-                      "
-                              >
-                                <PlusIcon className="h-4 w-4" />
-                                Add Ingredient
-                              </button>
+                              {/* ACTIONS */}
+                              <div className="flex items-center gap-2">
+                                <button
+                                  type="button"
+                                  onClick={() => handleAddIngredient(category)}
+                                  className="flex h-9 items-center gap-2 rounded-xl border border-red-100 bg-red-50 px-4 text-[12px] font-semibold text-red-600 transition hover:bg-red-100"
+                                >
+                                  <PlusIcon className="h-4 w-4" />
+                                  Add Ingredient
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteCategory(category)}
+                                  className="flex h-9 items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3 text-[12px] font-semibold text-gray-500 transition hover:border-red-200 hover:bg-red-50 hover:text-red-600"
+                                  title="Delete category"
+                                >
+                                  <XMarkIcon className="h-4 w-4" />
+                                </button>
+                              </div>
                             </div>
                           </div>
 
