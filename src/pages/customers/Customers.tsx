@@ -18,8 +18,8 @@ export default function Customers() {
   const rowsPerPage = 5;
   const filtered = customers.filter(
     (c) =>
-      c.name.toLowerCase().includes(search.toLowerCase()) ||
-      c.phone.includes(search),
+      (c.name ?? "").toLowerCase().includes(search.toLowerCase()) ||
+      (c.phone ?? "").includes(search),
   );
   const API_URL = import.meta.env.VITE_API_URL;
   const totalPages = Math.ceil(filtered.length / rowsPerPage);

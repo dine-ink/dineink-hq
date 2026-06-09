@@ -88,6 +88,7 @@ export default function Settings() {
     try {
       setLoading(true);
       // token from Redux
+      if (!user?.restaurantId) return;
       const res = await fetch(`${API_URL}/api/restaurant/settings/${user.restaurantId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -162,8 +163,8 @@ export default function Settings() {
           headers: { Authorization: `Bearer ${token}` },
         });
         const branchData = await branchRes.json();
-        if (branchData.success?.restaurant?.branches) {
-          localStorage.setItem("branches", JSON.stringify(branchData.success.restaurant.branches));
+        if (branchData.success && branchData.data?.restaurant?.branches) {
+          dispatch(setBranches(branchData.data.restaurant.branches));
         }
       } else { alert(json.message); }
     } catch { alert("Failed to save branches"); } finally { setSavingBranch(false); }

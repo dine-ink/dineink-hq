@@ -3,10 +3,14 @@ import { useState } from "react";
 import {
   EyeIcon, EyeSlashIcon, ChartBarIcon, CpuChipIcon, SparklesIcon,
 } from "@heroicons/react/24/outline";
+import { useAppDispatch } from "../../store";
+import { setAuth } from "../../store/slices/authSlice";
+import { setBranches } from "../../store/slices/branchSlice";
 
 export default function Login() {
   const API_URL = import.meta.env.VITE_API_URL;
   const navigate = useNavigate();
+  const dispatch = useAppDispatch();
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -23,10 +27,8 @@ export default function Login() {
       });
       const data = await response.json();
       if (data.success) {
-        localStorage.setItem("token", data.token);
-        localStorage.setItem("user", JSON.stringify(data.user));
-        localStorage.setItem("restaurant", JSON.stringify(data.restaurant));
-        localStorage.setItem("branches", JSON.stringify(data.branches));
+        dispatch(setAuth({ user: data.user, token: data.token, restaurant: data.restaurant, branches: data.branches }));
+        dispatch(setBranches(data.branches || []));
         navigate("/dashboard");
       } else {
         alert(data.message);

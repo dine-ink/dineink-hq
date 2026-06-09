@@ -57,17 +57,26 @@ export default function BranchComparison() {
   useEffect(() => {
     const fetchData = async () => {
       if (!user?.restaurantId) return;
-      try {
-        setLoading(true);
-        const h = { Authorization: `Bearer ${token}` };
-        const [bRes, cRes] = await Promise.all([
-          fetch(`${API_URL}/api/analytics/${user.restaurantId}/branch-comparison?from=${from}&to=${to}`, { headers: h }),
-          fetch(`${API_URL}/api/analytics/${user.restaurantId}/city-comparison?from=${from}&to=${to}`, { headers: h }),
-        ]);
-        const [bData, cData] = await Promise.all([bRes.json(), cRes.json()]);
-        if (bData.success) setBranchData(bData.data || []);
-        if (cData.success) setCityData(cData.data || []);
-      } catch { /* silent */ } finally { setLoading(false); }
+      setLoading(true);
+      const h = { Authorization: `Bearer ${token}` };
+      // Fetch branch and city data independently so one failing won't block the other
+      await Promise.all([
+        (async () => {
+          try {
+            const res = await fetch(`${API_URL}/api/analytics/${user.restaurantId}/branch-comparison?from=${from}&to=${to}`, { headers: h });
+            const data = await res.json();
+            if (data.success) setBranchData(data.data || []);
+          } catch { /* silent */ }
+        })(),
+        (async () => {
+          try {
+            const res = await fetch(`${API_URL}/api/analytics/${user.restaurantId}/city-comparison?from=${from}&to=${to}`, { headers: h });
+            const data = await res.json();
+            if (data.success) setCityData(data.data || []);
+          } catch { /* silent */ }
+        })(),
+      ]);
+      setLoading(false);
     };
     fetchData();
   }, [from, to]);

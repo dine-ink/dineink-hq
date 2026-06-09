@@ -184,7 +184,7 @@ export default function Insights() {
 
 
 
-        if (!selectedBranch?.id) return;
+        if (!selectedBranch?.id || !user?.restaurantId) return;
 
         const res = await fetch(
           `${API_URL}/api/analytics/insights/${user.restaurantId}/${selectedBranch.id}`,
@@ -212,8 +212,7 @@ export default function Insights() {
 
     const fetchRestockHistory = async () => {
       try {
-
-
+        if (!user?.restaurantId) return;
         const res = await fetch(
           `${API_URL}/api/inventory/${user.restaurantId}/get-restock-history`,
           {

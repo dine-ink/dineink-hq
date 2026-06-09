@@ -43,9 +43,12 @@ export default function Bills() {
 
   const filtered = bills.filter(b => {
     const s = search.toLowerCase();
+    // backend returns customer as a flat string and customerPhone separately
+    const customerName = typeof b.customer === "string" ? b.customer : (b.customer?.name || "");
+    const customerPhone = b.customerPhone || b.customer?.phone || "";
     return (
-      (b.customer?.name || "").toLowerCase().includes(s) ||
-      (b.customer?.phone || "").includes(search) ||
+      customerName.toLowerCase().includes(s) ||
+      customerPhone.includes(search) ||
       (b.paymentMethod || "").toLowerCase().includes(s) ||
       (b.orderType || "").toLowerCase().includes(s) ||
       String(b.total).includes(search) ||
@@ -98,7 +101,7 @@ export default function Bills() {
                 { label: "Revenue", value: `₹${totalSales.toLocaleString()}`, icon: IndianRupeeIcon, cls: "border-emerald-100 bg-emerald-50", val: "text-emerald-700", icon_bg: "bg-emerald-100", icon_cls: "text-emerald-600" },
                 { label: "Orders", value: filtered.length, icon: ShoppingBagIcon, cls: "border-blue-100 bg-blue-50", val: "text-blue-700", icon_bg: "bg-blue-100", icon_cls: "text-blue-600" },
                 { label: "Avg Bill", value: `₹${avgBill.toLocaleString()}`, icon: ChartBarIcon, cls: "border-orange-100 bg-orange-50", val: "text-orange-700", icon_bg: "bg-orange-100", icon_cls: "text-orange-600" },
-                { label: "Paid", value: filtered.filter(b => b.status === "PAID").length, icon: CalendarDaysIcon, cls: "border-violet-100 bg-violet-50", val: "text-violet-700", icon_bg: "bg-violet-100", icon_cls: "text-violet-600" },
+                { label: "Paid", value: filtered.filter(b => (b.paymentStatus || b.status) === "PAID").length, icon: CalendarDaysIcon, cls: "border-violet-100 bg-violet-50", val: "text-violet-700", icon_bg: "bg-violet-100", icon_cls: "text-violet-600" },
               ].map(k => {
                 const Icon = k.icon;
                 return (
@@ -153,21 +156,26 @@ export default function Bills() {
               </thead>
               <tbody>
                 {paginated.length > 0 ? paginated.map((b: any) => {
-                  const grad = AVATAR_GRADS[(b.customer?.name?.charCodeAt(0) || 0) % AVATAR_GRADS.length];
+                  // backend returns customer as flat string, customerPhone separately
+                  const custName = typeof b.customer === "string" ? b.customer : (b.customer?.name || "Guest");
+                  const custPhone = b.customerPhone || b.customer?.phone || "—";
+                  const billStatus = b.paymentStatus || b.status || "—";
+                  const billNo = b.billNo || b.orderNo || `#${b.id}`;
+                  const grad = AVATAR_GRADS[(custName.charCodeAt(0) || 0) % AVATAR_GRADS.length];
                   return (
                     <tr key={b.id} className="border-b border-gray-50 transition hover:bg-gray-50/60">
                       <td className="px-4 py-2.5">
-                        <p className="font-bold text-gray-900">{b.billNo || `#${b.id}`}</p>
+                        <p className="font-bold text-gray-900">{billNo}</p>
                         <p className="text-[10px] text-gray-400">ID #{b.id}</p>
                       </td>
                       <td className="px-4 py-2.5">
                         <div className="flex items-center gap-2">
                           <div className={`flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br ${grad} text-[10px] font-bold text-white`}>
-                            {b.customer?.name?.charAt(0) || "G"}
+                            {custName.charAt(0).toUpperCase()}
                           </div>
                           <div>
-                            <p className="font-semibold text-gray-900">{b.customer?.name || "Guest"}</p>
-                            <p className="text-[10px] text-gray-400">{b.customer?.phone || "—"}</p>
+                            <p className="font-semibold text-gray-900">{custName}</p>
+                            <p className="text-[10px] text-gray-400">{custPhone}</p>
                           </div>
                         </div>
                       </td>
@@ -178,17 +186,16 @@ export default function Bills() {
                       </td>
                       <td className="px-4 py-2.5">
                         <span className="inline-flex rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-semibold text-gray-600">
-                          {b.paymentMethod}
+                          {b.paymentMethod || "—"}
                         </span>
                       </td>
                       <td className="px-4 py-2.5">
                         <p className="font-bold text-emerald-600">₹{Number(b.total || 0).toLocaleString()}</p>
-                        <p className="text-[10px] text-gray-400">GST ₹{Number(b.gst || 0).toLocaleString()}</p>
                       </td>
                       <td className="px-4 py-2.5">
                         <div className="flex flex-col gap-1">
-                          <span className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold ${b.status === "PAID" ? "bg-emerald-50 text-emerald-600" : "bg-yellow-50 text-yellow-600"}`}>
-                            {b.status}
+                          <span className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold ${billStatus === "PAID" ? "bg-emerald-50 text-emerald-600" : "bg-yellow-50 text-yellow-600"}`}>
+                            {billStatus}
                           </span>
                           {b.orderStatus && (
                             <span className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold ${

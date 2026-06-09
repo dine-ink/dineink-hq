@@ -1,9 +1,13 @@
 import { Link, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { EyeIcon, EyeSlashIcon, SparklesIcon, ChartBarIcon, CpuChipIcon } from "@heroicons/react/24/outline";
+import { useAppDispatch } from "../../store";
+import { setAuth } from "../../store/slices/authSlice";
+import { setBranches } from "../../store/slices/branchSlice";
 
 export default function Signup() {
   const navigate = useNavigate();
+  const dispatch = useAppDispatch();
   const API_URL = import.meta.env.VITE_API_URL;
 
   const [form, setForm] = useState({ name: "", email: "", phone: "", password: "", confirmPassword: "" });
@@ -30,8 +34,8 @@ export default function Signup() {
       });
       const data = await res.json();
       if (data.success) {
-        localStorage.setItem("token", data.token);
-        localStorage.setItem("user", JSON.stringify(data.user));
+        dispatch(setAuth({ user: data.user, token: data.token, restaurant: data.restaurant || null }));
+        dispatch(setBranches(data.branches || []));
         navigate("/dashboard");
       } else {
         alert(data.message || "Signup failed");

@@ -25,6 +25,9 @@ import ProtectedRoute from './ProtectedRoute'
 import AuthRoute from './AuthRoute'
 import Insights from "@/pages/insights/Insights";
 import MenuManagement from "@/pages/menuManagement/MenuManagement";
+import ForgotPassword from "../pages/auth/ForgotPassword";
+import NotFound from "../pages/NotFound";
+
 export default function AppRoutes() {
   return (
     <BrowserRouter>
@@ -56,6 +59,8 @@ export default function AppRoutes() {
           }
         />
 
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+
         {/* 🔥 DASHBOARD WITH LAYOUT */}
         <Route
           path="/dashboard"
@@ -78,6 +83,9 @@ export default function AppRoutes() {
           <Route path="comparison" element={<BranchComparison />}/>
           <Route path="kitchen" element={<Kitchen />}/>
         </Route>
+
+        {/* 404 */}
+        <Route path="*" element={<NotFound />} />
 
       </Routes>
     </BrowserRouter>
