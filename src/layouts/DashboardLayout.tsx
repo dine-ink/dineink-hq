@@ -29,6 +29,7 @@ import {
   ArrowsRightLeftIcon,
   FireIcon,
   ArrowDownTrayIcon,
+  TruckIcon,
 } from "@heroicons/react/24/outline";
 import { useAppDispatch, useAppSelector } from "../store";
 import { setSelectedBranch } from "../store/slices/branchSlice";
@@ -50,6 +51,7 @@ const NAV = [
   { name: "Reports", href: "/dashboard/reports", icon: DocumentChartBarIcon },
   { name: "Attendance", href: "/dashboard/attendance", icon: CalendarDaysIcon },
   { name: "Cash", href: "/dashboard/cash", icon: BanknotesIcon },
+  { name: "Vendors", href: "/dashboard/vendors", icon: TruckIcon },
   { name: "Compare", href: "/dashboard/comparison", icon: ArrowsRightLeftIcon },
   { name: "Kitchen", href: "/dashboard/kitchen", icon: FireIcon },
 ];

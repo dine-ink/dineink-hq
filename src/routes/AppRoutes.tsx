@@ -25,6 +25,7 @@ import ProtectedRoute from './ProtectedRoute'
 import AuthRoute from './AuthRoute'
 import Insights from "@/pages/insights/Insights";
 import MenuManagement from "@/pages/menuManagement/MenuManagement";
+import Vendors from "@/pages/vendors/Vendors";
 import ForgotPassword from "../pages/auth/ForgotPassword";
 import NotFound from "../pages/NotFound";
 
@@ -82,6 +83,7 @@ export default function AppRoutes() {
           <Route path="cash" element={<CashSessions />}/>
           <Route path="comparison" element={<BranchComparison />}/>
           <Route path="kitchen" element={<Kitchen />}/>
+          <Route path="vendors" element={<Vendors />}/>
         </Route>
 
         {/* 404 */}
