@@ -31,11 +31,19 @@ const branchSlice = createSlice({
   initialState: loadFromStorage(),
   reducers: {
     setBranches(state, action: PayloadAction<Branch[]>) {
-      state.branches = action.payload;
-      localStorage.setItem("branches", JSON.stringify(action.payload));
-      if (!state.selectedBranch && action.payload.length > 0) {
-        state.selectedBranch = action.payload[0];
-        localStorage.setItem("selectedBranch", JSON.stringify(action.payload[0]));
+      const branches = action.payload;
+      state.branches = branches;
+      localStorage.setItem("branches", JSON.stringify(branches));
+
+      // If current selectedBranch is no longer in the new list, reset it
+      if (state.selectedBranch && !branches.find(b => b.id === state.selectedBranch?.id)) {
+        state.selectedBranch = branches[0] || null;
+        localStorage.setItem("selectedBranch", JSON.stringify(state.selectedBranch));
+        window.dispatchEvent(new CustomEvent("branchChanged", { detail: branches[0] }));
+      } else if (!state.selectedBranch && branches.length > 0) {
+        state.selectedBranch = branches[0];
+        localStorage.setItem("selectedBranch", JSON.stringify(branches[0]));
+        window.dispatchEvent(new CustomEvent("branchChanged", { detail: branches[0] }));
       }
     },
     setSelectedBranch(state, action: PayloadAction<Branch>) {

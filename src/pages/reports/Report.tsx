@@ -249,8 +249,8 @@ export default function Report() {
               onClick={() => setActiveTab(tab)}
               className={`rounded-xl px-4 py-2 text-[12px] font-semibold transition-all ${
                 activeTab === tab
-                  ? "bg-gradient-to-r from-red-500 to-rose-500 text-white shadow-sm"
-                  : "border border-gray-200 bg-white text-gray-600 hover:bg-red-50"
+                  ? "bg-[#b10000] text-white shadow-sm"
+                  : "border border-gray-200 bg-white text-gray-600 hover:bg-[#b10000]/10 hover:text-[#b10000]"
               }`}
             >
               {tab}
@@ -665,7 +665,7 @@ export default function Report() {
                         </td>
                         <td className="px-4 py-2">
                           <span
-                            className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${b.status === "PAID" ? "bg-emerald-50 text-emerald-600" : "bg-red-50 text-red-600"}`}
+                            className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${b.status === "PAID" ? "bg-emerald-50 text-emerald-600" : "bg-red-50 text-red-700"}`}
                           >
                             {b.status}
                           </span>
@@ -910,7 +910,7 @@ export default function Report() {
                           </div>
                           <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-gray-100">
                             <div
-                              className="h-full rounded-full bg-red-500 transition-all"
+                              className="h-full rounded-full bg-[#b10000] transition-all"
                               style={{ width: `${pct}%` }}
                             />
                           </div>
@@ -944,7 +944,7 @@ export default function Report() {
                       count: bills.filter((b) => b.orderType === "DINE_IN")
                         .length,
                       color: "text-red-600",
-                      bg: "bg-red-500",
+                      bg: "bg-[#b10000]",
                     },
                     {
                       label: "Takeaway",
@@ -1019,7 +1019,7 @@ export default function Report() {
                         .toLocaleString()}
                     </p>
                   </div>
-                  <div className="rounded-lg bg-red-50 px-3 py-2 text-center">
+                  <div className="rounded-lg border border-red-100 bg-red-50 px-3 py-2 text-center">
                     <p className="text-[11px] font-semibold text-red-700">
                       {unpaidBills.length} Unpaid
                     </p>
@@ -1095,7 +1095,7 @@ export default function Report() {
                         </td>
                         <td className="px-4 py-2">
                           <span
-                            className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${b.status === "PAID" ? "bg-emerald-50 text-emerald-600" : "bg-red-50 text-red-600"}`}
+                            className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${b.status === "PAID" ? "bg-emerald-50 text-emerald-600" : "bg-red-50 text-red-700"}`}
                           >
                             {b.status}
                           </span>
@@ -1240,7 +1240,7 @@ export default function Report() {
                             </td>
                             <td className="px-4 py-2">
                               <span
-                                className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${Number(discountPct) > 20 ? "bg-red-50 text-red-600" : "bg-orange-50 text-orange-600"}`}
+                                className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${Number(discountPct) > 20 ? "bg-red-50 text-red-700" : "bg-orange-50 text-orange-600"}`}
                               >
                                 {discountPct}%
                               </span>
@@ -1362,7 +1362,7 @@ export default function Report() {
               return {
                 label: "Dog",
                 color: "bg-red-100 text-red-700 border-red-200",
-                dot: "bg-red-500",
+                dot: "bg-[#b10000]",
                 tip: "Low demand, low margin — consider removing",
               };
             };
@@ -2043,7 +2043,7 @@ export default function Report() {
                                   a.adjustmentType === "WASTAGE"
                                     ? "bg-orange-50 text-orange-600"
                                     : a.adjustmentType === "DAMAGE"
-                                      ? "bg-red-50 text-red-600"
+                                      ? "bg-red-50 text-red-700"
                                       : a.adjustmentType === "EXPIRED"
                                         ? "bg-yellow-50 text-yellow-600"
                                         : "bg-gray-100 text-gray-600"
@@ -2406,7 +2406,7 @@ export default function Report() {
                             <div className="flex items-center gap-2">
                               <div className="h-2 w-28 overflow-hidden rounded-full bg-gray-100">
                                 <div
-                                  className="h-full rounded-full bg-red-500"
+                                  className="h-full rounded-full bg-[#b10000]"
                                   style={{ width: `${pct}%` }}
                                 />
                               </div>

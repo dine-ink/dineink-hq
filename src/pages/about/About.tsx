@@ -60,7 +60,7 @@ export default function About() {
       <Navbar />
       <main>
         {/* Hero */}
-        <div className="relative isolate overflow-hidden bg-gradient-to-br from-red-50 via-white to-rose-50 pt-14">
+        <div className="relative isolate overflow-hidden bg-[#b10000] pt-14">
           <svg
             aria-hidden="true"
             className="absolute inset-0 -z-10 size-full stroke-red-100 [mask-image:radial-gradient(100%_100%_at_top_right,white,transparent)]"
@@ -77,12 +77,17 @@ export default function About() {
                 <path d="M100 200V.5M.5 .5H200" fill="none" />
               </pattern>
             </defs>
-            <rect fill="url(#about-grid)" width="100%" height="100%" strokeWidth={0} />
+            <rect
+              fill="url(#about-grid)"
+              width="100%"
+              height="100%"
+              strokeWidth={0}
+            />
           </svg>
           <div className="mx-auto max-w-7xl px-6 pt-32 pb-24 lg:px-8">
             <div className="mx-auto grid max-w-7xl grid-cols-1 items-center gap-16 lg:grid-cols-2">
               <div>
-                <div className="inline-flex items-center rounded-full border border-red-100 bg-red-50 px-4 py-1 text-sm font-medium text-red-700">
+                <div className="inline-flex items-center rounded-full border border-red-100 bg-[#b10000] px-4 py-1 text-sm font-medium text-red-700">
                   About DineInk
                 </div>
                 <h1 className="mt-6 text-5xl font-bold tracking-tight text-slate-900 sm:text-6xl">
@@ -98,13 +103,13 @@ export default function About() {
                 <div className="mt-10 flex flex-wrap gap-4">
                   <a
                     href="/signup"
-                    className="rounded-xl bg-red-600 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-red-200 transition hover:bg-red-700"
+                    className="rounded-xl bg-[#b10000] px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-red-200 transition hover:bg-red-700"
                   >
                     Get Started
                   </a>
                   <a
                     href="/contact"
-                    className="rounded-xl border border-slate-300 px-6 py-3 text-sm font-semibold text-slate-700 transition hover:border-red-200 hover:bg-red-50 hover:text-red-700"
+                    className="rounded-xl border border-slate-300 px-6 py-3 text-sm font-semibold text-slate-700 transition hover:border-red-200 hover:bg-[#b10000] hover:text-red-700"
                   >
                     Contact Us
                   </a>
@@ -139,7 +144,7 @@ export default function About() {
         {/* Mission + Stats */}
         <div className="mx-auto max-w-7xl px-6 py-24 lg:px-8">
           <div className="mx-auto max-w-3xl text-center">
-            <div className="inline-flex items-center rounded-full border border-red-100 bg-red-50 px-4 py-1 text-sm font-medium text-red-700">
+            <div className="inline-flex items-center rounded-full border border-red-100 bg-[#b10000] px-4 py-1 text-sm font-medium text-red-700">
               Our Mission
             </div>
             <h2 className="mt-6 text-4xl font-bold tracking-tight text-slate-900 sm:text-5xl">
@@ -172,7 +177,7 @@ export default function About() {
         <div className="bg-white py-24">
           <div className="mx-auto max-w-7xl px-6 lg:px-8">
             <div className="mx-auto max-w-3xl text-center">
-              <div className="inline-flex items-center rounded-full border border-red-100 bg-red-50 px-4 py-1 text-sm font-medium text-red-700">
+              <div className="inline-flex items-center rounded-full border border-red-100 bg-[#b10000] px-4 py-1 text-sm font-medium text-red-700">
                 What makes us different
               </div>
               <h2 className="mt-6 text-4xl font-bold tracking-tight text-slate-900 sm:text-5xl">
@@ -189,7 +194,7 @@ export default function About() {
                   key={value.name}
                   className="rounded-3xl border border-slate-200 bg-white p-8 shadow-sm transition hover:-translate-y-1 hover:border-red-200 hover:shadow-lg"
                 >
-                  <div className="mb-4 inline-flex rounded-2xl bg-red-50 p-3 text-red-600">
+                  <div className="mb-4 inline-flex rounded-2xl bg-[#b10000] p-3 text-red-600">
                     <value.icon aria-hidden="true" className="h-6 w-6" />
                   </div>
                   <h3 className="text-xl font-semibold text-slate-900">
@@ -206,7 +211,7 @@ export default function About() {
 
         {/* CTA */}
         <div className="mx-auto max-w-7xl px-6 py-24 lg:px-8">
-          <div className="rounded-[32px] bg-gradient-to-br from-red-900 via-rose-900 to-slate-900 px-8 py-16 text-center shadow-2xl">
+          <div className="rounded-[32px]bg-[#b10000] px-8 py-16 text-center shadow-2xl">
             <h2 className="text-4xl font-bold tracking-tight text-white sm:text-5xl">
               Ready to simplify your restaurant?
             </h2>
@@ -217,7 +222,7 @@ export default function About() {
             <div className="mt-10 flex flex-wrap justify-center gap-4">
               <a
                 href="/signup"
-                className="rounded-xl bg-red-600 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-red-900/30 transition hover:bg-red-500"
+                className="rounded-xl bg-[#b10000] px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-red-900/30 transition hover:bg-[#b10000]"
               >
                 Get Started Free
               </a>

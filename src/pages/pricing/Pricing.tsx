@@ -163,9 +163,8 @@ export default function Pricing() {
     <div className="min-h-screen bg-slate-50 text-slate-900">
       <Navbar />
       <main className="pt-24">
-
         {/* Hero */}
-        <section className="relative overflow-hidden bg-gradient-to-br from-red-900 via-rose-900 to-slate-900 pb-24 pt-16">
+        <section className="relative overflow-hiddenbg-[#b10000] pb-24 pt-16">
           <svg
             aria-hidden="true"
             className="absolute inset-0 -z-10 size-full stroke-white/5 [mask-image:radial-gradient(100%_100%_at_top_right,white,transparent)]"
@@ -182,7 +181,12 @@ export default function Pricing() {
                 <path d="M100 200V.5M.5 .5H200" fill="none" />
               </pattern>
             </defs>
-            <rect fill="url(#pricing-grid)" width="100%" height="100%" strokeWidth={0} />
+            <rect
+              fill="url(#pricing-grid)"
+              width="100%"
+              height="100%"
+              strokeWidth={0}
+            />
           </svg>
           <div className="mx-auto max-w-7xl px-6 lg:px-8">
             <div className="mx-auto max-w-4xl text-center">
@@ -206,18 +210,18 @@ export default function Pricing() {
                     tier.featured
                       ? "border-2 border-red-500 bg-white shadow-2xl scale-105"
                       : "border border-white/10 bg-white/5 backdrop-blur-sm",
-                    "rounded-3xl p-8 transition"
+                    "rounded-3xl p-8 transition",
                   )}
                 >
                   {tier.featured && (
-                    <div className="mb-4 inline-flex items-center rounded-full bg-red-50 border border-red-100 px-3 py-1 text-xs font-semibold text-red-700">
+                    <div className="mb-4 inline-flex items-center rounded-full bg-[#b10000] border border-red-100 px-3 py-1 text-xs font-semibold text-red-700">
                       Most Popular
                     </div>
                   )}
                   <h3
                     className={classNames(
                       tier.featured ? "text-slate-900" : "text-white",
-                      "text-xl font-semibold"
+                      "text-xl font-semibold",
                     )}
                   >
                     {tier.name}
@@ -225,7 +229,7 @@ export default function Pricing() {
                   <p
                     className={classNames(
                       tier.featured ? "text-slate-600" : "text-gray-300",
-                      "mt-3 text-sm"
+                      "mt-3 text-sm",
                     )}
                   >
                     {tier.description}
@@ -234,36 +238,42 @@ export default function Pricing() {
                     <span
                       className={classNames(
                         tier.featured ? "text-red-700" : "text-white",
-                        "text-5xl font-bold"
+                        "text-5xl font-bold",
                       )}
                     >
                       {tier.price.annually}
                     </span>
-                    {tier.price.annually !== "Free" && tier.price.annually !== "Custom" && (
-                      <span className={classNames(tier.featured ? "text-slate-500" : "text-gray-400", "ml-2 text-sm")}>
-                        /year
-                      </span>
-                    )}
+                    {tier.price.annually !== "Free" &&
+                      tier.price.annually !== "Custom" && (
+                        <span
+                          className={classNames(
+                            tier.featured ? "text-slate-500" : "text-gray-400",
+                            "ml-2 text-sm",
+                          )}
+                        >
+                          /year
+                        </span>
+                      )}
                     <p
                       className={classNames(
                         tier.featured ? "text-slate-500" : "text-gray-400",
-                        "mt-2 text-xs"
+                        "mt-2 text-xs",
                       )}
                     >
                       {tier.price.annually === "Free"
                         ? "No credit card required"
                         : tier.price.annually === "Custom"
-                        ? "Contact us for a quote"
-                        : `₹${parseInt(tier.price.monthly.replace("₹", "").replace(",", ""))}/month billed monthly`}
+                          ? "Contact us for a quote"
+                          : `₹${parseInt(tier.price.monthly.replace("₹", "").replace(",", ""))}/month billed monthly`}
                     </p>
                   </div>
                   <a
                     href={tier.id === "enterprise" ? "/contact" : "/signup"}
                     className={classNames(
                       tier.featured
-                        ? "bg-red-600 text-white shadow-lg shadow-red-200 hover:bg-red-700"
+                        ? "bg-[#b10000] text-white shadow-lg shadow-red-200 hover:bg-red-700"
                         : "bg-white/10 text-white hover:bg-white/20",
-                      "mt-8 block w-full rounded-xl px-4 py-3 text-center text-sm font-semibold transition"
+                      "mt-8 block w-full rounded-xl px-4 py-3 text-center text-sm font-semibold transition",
                     )}
                   >
                     {tier.id === "enterprise" ? "Contact Sales" : "Get Started"}
@@ -274,7 +284,7 @@ export default function Pricing() {
                         key={feature}
                         className={classNames(
                           tier.featured ? "text-slate-700" : "text-gray-300",
-                          "flex items-center gap-3 text-sm"
+                          "flex items-center gap-3 text-sm",
                         )}
                       >
                         <CheckIcon className="h-5 w-5 shrink-0 text-red-500" />
@@ -292,7 +302,7 @@ export default function Pricing() {
         <section className="py-24">
           <div className="mx-auto max-w-7xl px-6 lg:px-8">
             <div className="mx-auto max-w-3xl text-center">
-              <div className="inline-flex items-center rounded-full border border-red-100 bg-red-50 px-4 py-1 text-sm font-medium text-red-700">
+              <div className="inline-flex items-center rounded-full border border-red-100 bg-[#b10000] px-4 py-1 text-sm font-medium text-red-700">
                 Feature comparison
               </div>
               <h2 className="mt-6 text-4xl font-bold tracking-tight text-slate-900">
@@ -311,7 +321,7 @@ export default function Pricing() {
                   <div className="overflow-hidden rounded-3xl border border-red-100 bg-white shadow-sm">
                     <table className="w-full border-collapse">
                       <thead>
-                        <tr className="border-b border-red-100 bg-red-50">
+                        <tr className="border-b border-red-100 bg-[#b10000]">
                           <th className="px-6 py-4 text-left text-sm font-semibold text-slate-900">
                             Feature
                           </th>
@@ -336,9 +346,14 @@ export default function Pricing() {
                             </td>
                             {pricing.tiers.map((tier) => {
                               const tierValue =
-                                feature.tiers[tier.name as keyof typeof feature.tiers];
+                                feature.tiers[
+                                  tier.name as keyof typeof feature.tiers
+                                ];
                               return (
-                                <td key={tier.id} className="px-6 py-4 text-center">
+                                <td
+                                  key={tier.id}
+                                  className="px-6 py-4 text-center"
+                                >
                                   {typeof tierValue === "string" ? (
                                     <span className="text-sm font-medium text-slate-900">
                                       {tierValue}
@@ -366,7 +381,7 @@ export default function Pricing() {
         <section className="bg-white py-24">
           <div className="mx-auto max-w-7xl px-6 lg:px-8">
             <div className="mx-auto max-w-3xl text-center">
-              <div className="inline-flex items-center rounded-full border border-red-100 bg-red-50 px-4 py-1 text-sm font-medium text-red-700">
+              <div className="inline-flex items-center rounded-full border border-red-100 bg-[#b10000] px-4 py-1 text-sm font-medium text-red-700">
                 FAQ
               </div>
               <h2 className="mt-6 text-4xl font-bold tracking-tight text-slate-900">
@@ -378,10 +393,13 @@ export default function Pricing() {
             </div>
             <div className="mx-auto mt-12 max-w-3xl divide-y divide-red-100 rounded-3xl border border-red-100 bg-white shadow-sm overflow-hidden">
               {faqs.map((faq) => (
-                <div key={faq.id} className="p-8 hover:bg-red-50/30 transition">
+                <div
+                  key={faq.id}
+                  className="p-8 hover:bg-[#b10000]/30 transition"
+                >
                   <div className="flex items-start gap-4">
                     <div className="flex-none mt-0.5">
-                      <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-red-50">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-[#b10000]">
                         <QuestionMarkCircleIcon className="h-5 w-5 text-red-600" />
                       </div>
                     </div>
@@ -389,7 +407,9 @@ export default function Pricing() {
                       <h3 className="text-base font-semibold text-slate-900">
                         {faq.question}
                       </h3>
-                      <p className="mt-3 text-sm leading-7 text-slate-600">{faq.answer}</p>
+                      <p className="mt-3 text-sm leading-7 text-slate-600">
+                        {faq.answer}
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -398,14 +418,13 @@ export default function Pricing() {
             <div className="mt-10 text-center">
               <a
                 href="/contact"
-                className="inline-flex items-center rounded-xl border border-slate-300 px-6 py-3 text-sm font-semibold text-slate-700 transition hover:border-red-200 hover:bg-red-50 hover:text-red-700"
+                className="inline-flex items-center rounded-xl border border-slate-300 px-6 py-3 text-sm font-semibold text-slate-700 transition hover:border-red-200 hover:bg-[#b10000] hover:text-red-700"
               >
                 Still have questions? Contact us →
               </a>
             </div>
           </div>
         </section>
-
       </main>
       <Footer />
     </div>

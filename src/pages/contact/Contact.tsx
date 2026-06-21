@@ -15,7 +15,7 @@ export default function Contact() {
       <main className="pt-24">
         {/* Hero */}
         <div className="mx-auto max-w-7xl px-6 pb-16 pt-12 text-center lg:px-8">
-          <div className="inline-flex items-center rounded-full border border-red-100 bg-red-50 px-4 py-1 text-sm font-medium text-red-700">
+          <div className="inline-flex items-center rounded-full border border-red-100 bg-[#b10000] px-4 py-1 text-sm font-medium text-red-700">
             Contact DineInk
           </div>
           <h1 className="mt-6 text-5xl font-bold tracking-tight text-slate-900 sm:text-6xl">
@@ -30,11 +30,12 @@ export default function Contact() {
         {/* Content */}
         <div className="mx-auto max-w-7xl px-6 pb-24 lg:px-8">
           <div className="grid grid-cols-1 gap-8 lg:grid-cols-5">
-
             {/* Info panel */}
             <div className="lg:col-span-2">
-              <div className="rounded-[32px] bg-gradient-to-br from-red-900 via-rose-900 to-slate-900 p-8 shadow-2xl h-full">
-                <h2 className="text-2xl font-bold text-white">Contact information</h2>
+              <div className="rounded-[32px]bg-[#b10000] p-8 shadow-2xl h-full">
+                <h2 className="text-2xl font-bold text-white">
+                  Contact information
+                </h2>
                 <p className="mt-3 text-sm text-gray-300">
                   Reach out to us through any of the channels below.
                 </p>
@@ -102,10 +103,16 @@ export default function Contact() {
                 <div className="mt-12 border-t border-white/10 pt-8">
                   <p className="text-sm font-semibold text-white">Follow us</p>
                   <div className="mt-4 flex gap-4">
-                    <a href="#" className="rounded-lg bg-white/10 px-4 py-2 text-sm text-gray-300 transition hover:bg-white/20 hover:text-white">
+                    <a
+                      href="#"
+                      className="rounded-lg bg-white/10 px-4 py-2 text-sm text-gray-300 transition hover:bg-white/20 hover:text-white"
+                    >
                       Instagram
                     </a>
-                    <a href="#" className="rounded-lg bg-white/10 px-4 py-2 text-sm text-gray-300 transition hover:bg-white/20 hover:text-white">
+                    <a
+                      href="#"
+                      className="rounded-lg bg-white/10 px-4 py-2 text-sm text-gray-300 transition hover:bg-white/20 hover:text-white"
+                    >
                       LinkedIn
                     </a>
                   </div>
@@ -236,7 +243,7 @@ export default function Contact() {
                   <div className="mt-8 flex justify-end">
                     <button
                       type="submit"
-                      className="rounded-xl bg-red-600 px-8 py-3 text-sm font-semibold text-white shadow-lg shadow-red-200 transition hover:bg-red-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600"
+                      className="rounded-xl bg-[#b10000] px-8 py-3 text-sm font-semibold text-white shadow-lg shadow-red-200 transition hover:bg-red-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600"
                     >
                       Send message
                     </button>

@@ -25,7 +25,7 @@ export default function AnalyticsOverview({ analytics }: Props) {
       icon: IndianRupee,
       accent: "bg-red-500",
       iconBg: "bg-red-50",
-      iconColor: "text-red-500",
+      iconColor: "text-[#b10000]",
       sub: "Total earnings",
     },
     {

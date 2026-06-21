@@ -60,43 +60,112 @@ import {
   MdCurrencyRupee,
 } from "react-icons/md";
 import {
-  GiNoodles, GiSandwich, GiSteak, GiChickenLeg,
-  GiWok, GiTacos, GiHotDog, GiCupcake, GiShrimp, GiSushis, GiDumpling,
+  GiNoodles,
+  GiSandwich,
+  GiSteak,
+  GiChickenLeg,
+  GiWok,
+  GiTacos,
+  GiHotDog,
+  GiCupcake,
+  GiShrimp,
+  GiSushis,
+  GiDumpling,
 } from "react-icons/gi";
 import {
-  FaLeaf, FaEgg, FaCocktail, FaBeer,
-  FaCheese, FaFish,
+  FaLeaf,
+  FaEgg,
+  FaCocktail,
+  FaBeer,
+  FaCheese,
+  FaFish,
 } from "react-icons/fa";
 import { BarChart3, Search, UtensilsCrossed } from "lucide-react";
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
 
 // Keys match the display names stored in category.icon field in the DB
 const iconMap: any = {
-  "Starter": MdFlatware, "Main Dish": MdRestaurantMenu, "Side Dish": MdLunchDining,
-  "Breakfast": MdBreakfastDining, "Brunch": MdBrunchDining, "Dinner": MdDinnerDining,
-  "Snacks": MdFastfood, "Dessert": MdCake,
-  "South Indian": MdRiceBowl, "North Indian": MdDinnerDining, "Biryani": MdSetMeal,
-  "Kebab": MdKebabDining, "Chinese": MdRamenDining, "Noodles": GiNoodles,
-  "Wok / Stir Fry": GiWok, "Soup": MdSoupKitchen, "Pizza": MdLocalPizza,
-  "Burger": MdFastfood, "Sandwich": GiSandwich, "Hot Dog": GiHotDog,
-  "Tacos": GiTacos, "Steak / BBQ": GiSteak, "Grill": MdOutdoorGrill,
-  "Chicken": GiChickenLeg, "Chicken Wings": GiChickenLeg, "Seafood": GiShrimp,
-  "Fish": FaFish, "Salad": FaLeaf, "Sushi": GiSushis,
-  "Eggs": FaEgg, "Cheese / Dairy": FaCheese, "Vegan": FaLeaf, "Spicy": FaLeaf,
-  "Dumplings": GiDumpling,
-  "Bakery": MdBakeryDining, "Cupcake": GiCupcake, "Ice Cream": MdIcecream,
-  "Coffee": MdCoffee, "Cafe": MdLocalCafe, "Drinks": MdEmojiFoodBeverage,
-  "Cocktail": FaCocktail, "Beer": FaBeer, "Liquor": MdLiquor, "Bar": MdLocalBar,
-  "Wine Bar": MdWineBar, "Tapas": MdTapas, "Multi Cuisine": MdLocalDining,
-  "Takeaway": MdTakeoutDining, "Delivery": MdDeliveryDining,
-  "Restaurant": MdRestaurant, "Store": MdStorefront,
+  Starter: MdFlatware,
+  "Main Dish": MdRestaurantMenu,
+  "Side Dish": MdLunchDining,
+  Breakfast: MdBreakfastDining,
+  Brunch: MdBrunchDining,
+  Dinner: MdDinnerDining,
+  Snacks: MdFastfood,
+  Dessert: MdCake,
+  "South Indian": MdRiceBowl,
+  "North Indian": MdDinnerDining,
+  Biryani: MdSetMeal,
+  Kebab: MdKebabDining,
+  Chinese: MdRamenDining,
+  Noodles: GiNoodles,
+  "Wok / Stir Fry": GiWok,
+  Soup: MdSoupKitchen,
+  Pizza: MdLocalPizza,
+  Burger: MdFastfood,
+  Sandwich: GiSandwich,
+  "Hot Dog": GiHotDog,
+  Tacos: GiTacos,
+  "Steak / BBQ": GiSteak,
+  Grill: MdOutdoorGrill,
+  Chicken: GiChickenLeg,
+  "Chicken Wings": GiChickenLeg,
+  Seafood: GiShrimp,
+  Fish: FaFish,
+  Salad: FaLeaf,
+  Sushi: GiSushis,
+  Eggs: FaEgg,
+  "Cheese / Dairy": FaCheese,
+  Vegan: FaLeaf,
+  Spicy: FaLeaf,
+  Dumplings: GiDumpling,
+  Bakery: MdBakeryDining,
+  Cupcake: GiCupcake,
+  "Ice Cream": MdIcecream,
+  Coffee: MdCoffee,
+  Cafe: MdLocalCafe,
+  Drinks: MdEmojiFoodBeverage,
+  Cocktail: FaCocktail,
+  Beer: FaBeer,
+  Liquor: MdLiquor,
+  Bar: MdLocalBar,
+  "Wine Bar": MdWineBar,
+  Tapas: MdTapas,
+  "Multi Cuisine": MdLocalDining,
+  Takeaway: MdTakeoutDining,
+  Delivery: MdDeliveryDining,
+  Restaurant: MdRestaurant,
+  Store: MdStorefront,
   // Legacy component-name keys (fallback for older data)
-  MdRestaurant, MdLocalCafe, MdLocalBar, MdWineBar, MdBakeryDining,
-  MdLocalPizza, MdFastfood, MdCoffee, MdCake, MdIcecream, MdRiceBowl,
-  MdDinnerDining, MdRamenDining, MdSoupKitchen, MdOutdoorGrill, MdSetMeal,
-  MdKebabDining, MdEmojiFoodBeverage, MdLiquor, MdTakeoutDining, MdDeliveryDining,
-  MdLocalDining, MdStorefront, MdBrunchDining, MdTapas, MdRestaurantMenu,
-  MdFlatware, MdLunchDining, MdBreakfastDining,
+  MdRestaurant,
+  MdLocalCafe,
+  MdLocalBar,
+  MdWineBar,
+  MdBakeryDining,
+  MdLocalPizza,
+  MdFastfood,
+  MdCoffee,
+  MdCake,
+  MdIcecream,
+  MdRiceBowl,
+  MdDinnerDining,
+  MdRamenDining,
+  MdSoupKitchen,
+  MdOutdoorGrill,
+  MdSetMeal,
+  MdKebabDining,
+  MdEmojiFoodBeverage,
+  MdLiquor,
+  MdTakeoutDining,
+  MdDeliveryDining,
+  MdLocalDining,
+  MdStorefront,
+  MdBrunchDining,
+  MdTapas,
+  MdRestaurantMenu,
+  MdFlatware,
+  MdLunchDining,
+  MdBreakfastDining,
 };
 const tabs = [
   {
@@ -154,11 +223,13 @@ export default function MenuManagement() {
   const [uploadingVendor, setUploadingVendor] = useState(false);
   const [showAddCategory, setShowAddCategory] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState("");
-  const [manualCategories, setManualCategories] = useState<Set<string>>(new Set());
+  const [manualCategories, setManualCategories] = useState<Set<string>>(
+    new Set(),
+  );
   const [uploadingRestock, setUploadingRestock] = useState(false);
   const [vendors, setVendors] = useState<any[]>([]);
-  const { branches, selectedBranch } = useAppSelector(s => s.branch);
-  const { user, token } = useAppSelector(s => s.auth);
+  const { branches, selectedBranch } = useAppSelector((s) => s.branch);
+  const { user, token } = useAppSelector((s) => s.auth);
   const [selectedWeek, setSelectedWeek] = useState("week1");
   const API_URL = import.meta.env.VITE_API_URL;
   const allIngredients: any[] = Object.values(
@@ -175,10 +246,6 @@ export default function MenuManagement() {
 
   const fetchBills = async () => {
     try {
-
-
-
-
       if (!selectedBranch?.id) {
         return;
       }
@@ -382,7 +449,6 @@ export default function MenuManagement() {
 
   const handleSave = async () => {
     try {
-
       const restaurantId = user.restaurantId;
       const res = await fetch(`${API_URL}/api/ingredients/saveIngredients`, {
         method: "POST",
@@ -418,15 +484,21 @@ export default function MenuManagement() {
   const handleAddCategory = () => {
     const name = newCategoryName.trim();
     if (!name) return;
-    if (ingredients[name] !== undefined) { alert("Category already exists"); return; }
+    if (ingredients[name] !== undefined) {
+      alert("Category already exists");
+      return;
+    }
     setIngredients((prev: any) => ({ ...prev, [name]: [] }));
-    setManualCategories(prev => new Set(prev).add(name));
+    setManualCategories((prev) => new Set(prev).add(name));
     setNewCategoryName("");
     setShowAddCategory(false);
   };
 
   const handleDeleteCategory = (category: string) => {
-    if (!window.confirm(`Delete category "${category}" and all its ingredients?`)) return;
+    if (
+      !window.confirm(`Delete category "${category}" and all its ingredients?`)
+    )
+      return;
     setIngredients((prev: any) => {
       const updated = { ...prev };
       delete updated[category];
@@ -822,9 +894,6 @@ export default function MenuManagement() {
     try {
       setUploadingRestock(true);
 
-
-
-
       if (!selectedBranch?.id) {
         alert("Please select branch");
 
@@ -935,10 +1004,6 @@ export default function MenuManagement() {
 
           const jsonData: any = XLSX.utils.sheet_to_json(worksheet);
 
-    
-
-    
-
           const res = await fetch(
             `${API_URL}/api/ingredients/uploadVendorData`,
             {
@@ -1014,7 +1079,6 @@ export default function MenuManagement() {
     try {
       setMappingLoading(true);
 
-
       const payload = {
         menuItemId: selectedMenuItem.id,
         ingredients: ingredientMappings.map((item: any) => ({
@@ -1054,7 +1118,6 @@ export default function MenuManagement() {
 
   const fetchMenuItemMappings = async () => {
     try {
-
       const restaurantId = user.restaurantId;
       const res = await fetch(
         `${API_URL}/api/inventory/${restaurantId}/get-mapped-menu`,
@@ -1083,7 +1146,6 @@ export default function MenuManagement() {
 
   const handleAISuggest = async () => {
     try {
-
       const allIngredients = Object.values(ingredients).flat();
       const res = await fetch(
         `${API_URL}/api/ingredients/ai-suggestIngredients`,
@@ -1197,8 +1259,8 @@ export default function MenuManagement() {
       aiAlerts.push({
         title: "Stock Mismatch",
         desc: `${item.ingredient} consumption exceeds stock`,
-        color: "bg-red-500",
-        text: "text-red-600",
+        color: "bg-[#b10000]",
+        text: "text-white",
       });
     } else if (remaining < 2) {
       aiAlerts.push({
@@ -1235,10 +1297,6 @@ export default function MenuManagement() {
   useEffect(() => {
     const fetchMenuManagement = async () => {
       try {
-  
-
-  
-
         const restaurantId = user.restaurantId;
 
         if (!restaurantId || !selectedBranch?.id) {
@@ -1382,10 +1440,6 @@ export default function MenuManagement() {
   ).toFixed(2);
   const fetchVendors = async () => {
     try {
-
-
-
-
       if (!selectedBranch?.id) {
         return;
       }
@@ -1419,14 +1473,13 @@ export default function MenuManagement() {
         {/* ================= HERO ================= */}
 
         <div className="relative overflow-hidden rounded-md border border-gray-200 bg-white px-4 py-3 shadow-sm">
-          {/* Glow */}
           <div className="absolute -right-10 -top-10 h-24 w-24 rounded-full bg-red-100/50 blur-3xl" />
 
           <div className="relative z-10 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             {/* LEFT */}
             <div className="flex items-center gap-3">
               {/* ICON */}
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-red-500 to-pink-500 shadow-sm">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#b10000] shadow-sm">
                 <UtensilsCrossed className="h-4 w-4 text-white" />
               </div>
 
@@ -1489,19 +1542,33 @@ export default function MenuManagement() {
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
                 className={`group relative overflow-hidden rounded-md border px-4 py-3 text-left transition-all duration-200 ${
-                  active ? "border-red-200 bg-gradient-to-r from-red-50 to-rose-50 shadow-sm" : "border-gray-200 bg-white hover:border-red-100 hover:bg-red-50/40"
+                  active
+                    ? "border-[#b10000] bg-red-50 shadow-sm"
+                    : "border-gray-200 bg-white hover:border-red-100 hover:bg-red-50"
                 }`}
               >
-                {active && <div className="absolute -right-8 -top-8 h-20 w-20 rounded-full bg-red-100 blur-3xl" />}
+                {active && (
+                  <div className="absolute -right-8 -top-8 h-20 w-20 rounded-full bg-red-100 blur-3xl" />
+                )}
                 <div className="relative z-10 flex items-center gap-3">
-                  <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${active ? "bg-red-100 text-red-600" : "bg-gray-100 text-gray-500"}`}>
+                  <div
+                    className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${active ? "bg-[#b10000] text-white" : "bg-gray-100 text-gray-500"}`}
+                  >
                     <Icon className="h-4 w-4" />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className={`truncate text-[14px] font-bold ${active ? "text-red-600" : "text-gray-900"}`}>{tab.name}</p>
-                    <p className="truncate text-[11px] text-gray-500">{tab.description}</p>
+                    <p
+                      className={`truncate text-[14px] font-bold ${active ? "text-[#b10000]" : "text-gray-900"}`}
+                    >
+                      {tab.name}
+                    </p>
+                    <p className="truncate text-[11px] text-gray-500">
+                      {tab.description}
+                    </p>
                   </div>
-                  {active && <div className="h-2 w-2 rounded-full bg-red-500" />}
+                  {active && (
+                    <div className="h-2 w-2 rounded-full bg-[#b10000]" />
+                  )}
                 </div>
               </button>
             );
@@ -1517,7 +1584,7 @@ export default function MenuManagement() {
               <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                 {/* LEFT */}
                 <div>
-                  <div className="inline-flex items-center gap-2 rounded-full bg-red-50 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-red-600">
+                  <div className="inline-flex items-center gap-2 rounded-full bg-[#b10000]/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-[#b10000]">
                     Menu Center
                   </div>
 
@@ -1532,7 +1599,7 @@ export default function MenuManagement() {
 
                 {/* RIGHT */}
                 <div className="flex items-center gap-2">
-                  <button className="h-11 rounded-xl bg-gradient-to-r from-red-500 to-rose-500 px-4 text-[13px] font-semibold text-white shadow-sm transition hover:opacity-90">
+                  <button className="h-11 rounded-xl bg-[#b10000] px-4 text-[13px] font-semibold text-white shadow-sm transition hover:bg-[#950000]">
                     + Add Item
                   </button>
                 </div>
@@ -1858,7 +1925,7 @@ export default function MenuManagement() {
                               <div className="flex items-center gap-3">
                                 {/* IMAGE / AVATAR */}
 
-                                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-red-50 text-[14px] font-bold text-red-600">
+                                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#b10000] text-[14px] font-bold text-white">
                                   {item.name?.charAt(0)}
                                 </div>
 
@@ -1891,7 +1958,7 @@ export default function MenuManagement() {
                                 className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-semibold ${
                                   item.type === "VEG"
                                     ? "bg-emerald-50 text-emerald-600"
-                                    : "bg-red-50 text-red-600"
+                                    : "bg-red-50 text-red-700"
                                 }`}
                               >
                                 {item.type === "VEG" ? "Veg" : "Non Veg"}
@@ -1928,7 +1995,7 @@ export default function MenuManagement() {
                                   Edit
                                 </button>
 
-                                <button className="rounded-xl bg-red-50 px-3 py-2 text-[12px] font-semibold text-red-600 transition hover:bg-red-100">
+                                <button className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-[12px] font-semibold text-red-700 transition hover:bg-red-100">
                                   Delete
                                 </button>
                               </div>
@@ -1963,7 +2030,7 @@ export default function MenuManagement() {
                   <div className="flex items-center gap-3">
                     {/* ICON */}
 
-                    <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-red-500 to-pink-500 shadow-sm">
+                    <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#b10000] shadow-sm">
                       <CubeIcon className="h-5 w-5 text-white" />
                     </div>
 
@@ -1981,7 +2048,7 @@ export default function MenuManagement() {
                       {/* STATS */}
 
                       <div className="mt-2 flex flex-wrap items-center gap-2">
-                        <div className="rounded-full bg-red-50 px-2.5 py-1 text-[10px] font-semibold text-red-600">
+                        <div className="rounded-full bg-[#b10000]/10 px-2.5 py-1 text-[10px] font-semibold text-[#b10000]">
                           AI Generated
                         </div>
 
@@ -2000,7 +2067,10 @@ export default function MenuManagement() {
 
                   <div className="flex flex-wrap items-center gap-2">
                     <button
-                      onClick={() => { setShowAddCategory(v => !v); setNewCategoryName(""); }}
+                      onClick={() => {
+                        setShowAddCategory((v) => !v);
+                        setNewCategoryName("");
+                      }}
                       className="flex h-9 items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 text-[12px] font-semibold text-emerald-700 transition hover:bg-emerald-100"
                     >
                       <PlusIcon className="h-4 w-4" />
@@ -2056,23 +2126,7 @@ export default function MenuManagement() {
                     <button
                       onClick={handleGenerate}
                       disabled={loading}
-                      className="
-              flex
-              h-9
-              items-center
-              gap-2
-              rounded-xl
-              bg-gradient-to-r
-              from-red-500
-              to-pink-500
-              px-4
-              text-[12px]
-              font-semibold
-              text-white
-              shadow-sm
-              transition
-              hover:scale-[1.01]
-            "
+                      className="flex h-9 items-center gap-2 rounded-xl bg-[#b10000] px-4 text-[12px] font-semibold text-white shadow-sm transition hover:bg-[#950000]"
                     >
                       <SparklesIcon className="h-4 w-4" />
 
@@ -2091,17 +2145,24 @@ export default function MenuManagement() {
                   <input
                     autoFocus
                     value={newCategoryName}
-                    onChange={e => setNewCategoryName(e.target.value)}
-                    onKeyDown={e => { if (e.key === "Enter") handleAddCategory(); if (e.key === "Escape") setShowAddCategory(false); }}
+                    onChange={(e) => setNewCategoryName(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") handleAddCategory();
+                      if (e.key === "Escape") setShowAddCategory(false);
+                    }}
                     placeholder="Category name (e.g. Vegetables, Dairy, Spices...)"
                     className="flex-1 rounded-lg border border-emerald-200 bg-white px-3 py-2 text-sm outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
                   />
-                  <button onClick={handleAddCategory}
-                    className="flex h-8 items-center gap-1.5 rounded-lg bg-emerald-600 px-3 text-[12px] font-semibold text-white transition hover:bg-emerald-700">
+                  <button
+                    onClick={handleAddCategory}
+                    className="flex h-8 items-center gap-1.5 rounded-lg bg-emerald-600 px-3 text-[12px] font-semibold text-white transition hover:bg-emerald-700"
+                  >
                     <PlusIcon className="h-3.5 w-3.5" /> Add
                   </button>
-                  <button onClick={() => setShowAddCategory(false)}
-                    className="flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-500 hover:bg-gray-50">
+                  <button
+                    onClick={() => setShowAddCategory(false)}
+                    className="flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-500 hover:bg-gray-50"
+                  >
                     <XMarkIcon className="h-4 w-4" />
                   </button>
                 </div>
@@ -2111,14 +2172,22 @@ export default function MenuManagement() {
               {Object.keys(ingredients).length === 0 && (
                 <div className="flex min-h-[240px] items-center justify-center rounded-xl border border-dashed border-gray-200 bg-white p-10">
                   <div className="text-center">
-                    <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-red-500 to-pink-500">
+                    <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[#b10000]">
                       <SparklesIcon className="h-7 w-7 text-white" />
                     </div>
-                    <h3 className="mt-4 text-base font-bold text-gray-900">No Ingredients Yet</h3>
-                    <p className="mt-1.5 text-sm text-gray-500">Generate automatically from your menu, or add categories manually</p>
+                    <h3 className="mt-4 text-base font-bold text-gray-900">
+                      No Ingredients Yet
+                    </h3>
+                    <p className="mt-1.5 text-sm text-gray-500">
+                      Generate automatically from your menu, or add categories
+                      manually
+                    </p>
                     <div className="mt-5 flex flex-wrap items-center justify-center gap-3">
                       <button
-                        onClick={() => { setShowAddCategory(true); setNewCategoryName(""); }}
+                        onClick={() => {
+                          setShowAddCategory(true);
+                          setNewCategoryName("");
+                        }}
                         className="flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-5 py-2.5 text-sm font-semibold text-emerald-700 transition hover:bg-emerald-100"
                       >
                         <PlusIcon className="h-4 w-4" /> Add Category Manually
@@ -2126,7 +2195,7 @@ export default function MenuManagement() {
                       <button
                         onClick={handleGenerate}
                         disabled={loading}
-                        className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-red-500 to-pink-500 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:opacity-90 disabled:opacity-60"
+                        className="flex items-center gap-2 rounded-xl bg-[#b10000] px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-[#950000] disabled:opacity-60"
                       >
                         <SparklesIcon className="h-4 w-4" />
                         {loading ? "Generating..." : "Generate with AI"}
@@ -2156,8 +2225,8 @@ export default function MenuManagement() {
                               {/* LEFT */}
 
                               <div className="flex items-center gap-3">
-                                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-red-50">
-                                  <FolderIcon className="h-4 w-4 text-red-500" />
+                                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#b10000]">
+                                  <FolderIcon className="h-4 w-4 text-white" />
                                 </div>
 
                                 <div>
@@ -2169,8 +2238,12 @@ export default function MenuManagement() {
                                     <span className="text-[12px] text-gray-500">
                                       {items.length} Ingredients
                                     </span>
-                                    <span className={`rounded-full px-2 py-1 text-[9px] font-semibold uppercase tracking-wide ${manualCategories.has(category) ? "bg-emerald-50 text-emerald-600" : "bg-red-50 text-red-500"}`}>
-                                      {manualCategories.has(category) ? "Manual" : "AI Generated"}
+                                    <span
+                                      className={`rounded-full px-2 py-1 text-[9px] font-semibold uppercase tracking-wide ${manualCategories.has(category) ? "bg-emerald-50 text-emerald-600" : "bg-[#b10000]/10 text-[#b10000]"}`}
+                                    >
+                                      {manualCategories.has(category)
+                                        ? "Manual"
+                                        : "AI Generated"}
                                     </span>
                                   </div>
                                 </div>
@@ -2181,7 +2254,7 @@ export default function MenuManagement() {
                                 <button
                                   type="button"
                                   onClick={() => handleAddIngredient(category)}
-                                  className="flex h-9 items-center gap-2 rounded-xl border border-red-100 bg-red-50 px-4 text-[12px] font-semibold text-red-600 transition hover:bg-red-100"
+                                  className="flex h-9 items-center gap-2 rounded-xl bg-[#b10000] px-4 text-[12px] font-semibold text-white transition hover:bg-[#950000]"
                                 >
                                   <PlusIcon className="h-4 w-4" />
                                   Add Ingredient
@@ -2189,7 +2262,7 @@ export default function MenuManagement() {
                                 <button
                                   type="button"
                                   onClick={() => handleDeleteCategory(category)}
-                                  className="flex h-9 items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3 text-[12px] font-semibold text-gray-500 transition hover:border-red-200 hover:bg-red-50 hover:text-red-600"
+                                  className="flex h-9 items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3 text-[12px] font-semibold text-gray-500 transition hover:border-red-200 hover:bg-red-50 hover:text-red-700"
                                   title="Delete category"
                                 >
                                   <XMarkIcon className="h-4 w-4" />
@@ -2378,7 +2451,7 @@ export default function MenuManagement() {
                                       {/* PRICE */}
 
                                       <td className="px-4 py-2.5">
-                                        <div className="inline-flex rounded-full bg-red-50 px-3 py-1 text-[12px] font-bold text-red-600">
+                                        <div className="inline-flex rounded-full bg-gray-100 px-3 py-1 text-[12px] font-bold text-gray-700">
                                           ₹{item?.pricePerUnit || 0}
                                         </div>
                                       </td>
@@ -2446,13 +2519,13 @@ export default function MenuManagement() {
                                           className="
                                   rounded-lg
                                   border
-                                  border-red-100
+                                  border-red-200
                                   bg-red-50
                                   px-3
                                   py-2
                                   text-[11px]
                                   font-semibold
-                                  text-red-600
+                                  text-red-700
                                   transition
                                   hover:bg-red-100
                                 "
@@ -2485,23 +2558,7 @@ export default function MenuManagement() {
                   <div className="flex justify-end">
                     <button
                       onClick={handleSave}
-                      className="
-              flex
-              h-10
-              items-center
-              gap-2
-              rounded-xl
-              bg-gradient-to-r
-              from-red-500
-              to-pink-500
-              px-5
-              text-[13px]
-              font-semibold
-              text-white
-              shadow-sm
-              transition
-              hover:scale-[1.01]
-            "
+                      className="flex h-10 items-center gap-2 rounded-xl bg-[#b10000] px-5 text-[13px] font-semibold text-white shadow-sm transition hover:bg-[#950000]"
                     >
                       <CloudArrowUpIcon className="h-4 w-4" />
                       Save Ingredients
@@ -2523,7 +2580,7 @@ export default function MenuManagement() {
                   <div className="flex items-start gap-4">
                     {/* ICON */}
 
-                    <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-red-500 to-pink-500 shadow-sm">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#b10000] shadow-sm">
                       <ArchiveBoxIcon className="h-5 w-5 text-white" />
                     </div>
 
@@ -2550,7 +2607,7 @@ export default function MenuManagement() {
                     {/* <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-gray-200 bg-gray-50/80 p-2"> */}
                     {/* FOOD COST */}
 
-                    <div className="flex items-center gap-2 rounded-xl bg-red-50 px-3 py-2">
+                    <div className="flex items-center gap-2 rounded-xl border border-red-100 bg-red-50 px-3 py-2">
                       <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-red-100">
                         <ChartPieIcon className="h-3.5 w-3.5 text-red-600" />
                       </div>
@@ -2630,11 +2687,13 @@ export default function MenuManagement() {
 
                     {/* TEMPLATE BUTTON */}
 
-                    <button onClick={downloadInventoryTemplate}
-                      className="flex h-10 items-center rounded-xl border border-red-100 bg-white px-4 text-[12px] font-semibold text-red-600 shadow-sm transition hover:bg-red-50">
+                    <button
+                      onClick={downloadInventoryTemplate}
+                      className="flex h-10 items-center rounded-xl border border-[#b10000]/20 bg-white px-4 text-[12px] font-semibold text-[#b10000] shadow-sm transition hover:bg-red-50"
+                    >
                       Restock Template
                     </button>
-                    <label className="flex h-10 cursor-pointer items-center rounded-xl bg-gradient-to-r from-red-500 to-pink-500 px-4 text-[12px] font-semibold text-white shadow-sm transition hover:scale-[1.02]">
+                    <label className="flex h-10 cursor-pointer items-center rounded-xl bg-[#b10000] px-4 text-[12px] font-semibold text-white shadow-sm transition hover:bg-[#950000]">
                       {uploadingRestock ? "Uploading..." : "Upload Restock"}
 
                       <input
@@ -2673,11 +2732,16 @@ export default function MenuManagement() {
                       {/* WEEK SWITCHER */}
 
                       <div className="flex items-center rounded-2xl border border-gray-200 bg-gray-50 p-1">
-                        {[1, 2, 3, 4, 5].map(week => (
-                          <button key={week} onClick={() => setSelectedWeek(`week${week}`)}
+                        {[1, 2, 3, 4, 5].map((week) => (
+                          <button
+                            key={week}
+                            onClick={() => setSelectedWeek(`week${week}`)}
                             className={`min-w-[64px] rounded-xl px-3 py-2 text-[12px] font-semibold transition-all ${
-                              selectedWeek === `week${week}` ? "bg-gradient-to-r from-red-500 to-pink-500 text-white shadow-sm" : "text-gray-600 hover:bg-white"
-                            }`}>
+                              selectedWeek === `week${week}`
+                                ? "bg-[#b10000] text-white shadow-sm"
+                                : "text-gray-600 hover:bg-white"
+                            }`}
+                          >
                             Week {week}
                           </button>
                         ))}
@@ -2706,7 +2770,10 @@ export default function MenuManagement() {
                           "Monthly Purchase",
                           "RM Expense",
                         ].map((head) => (
-                          <th key={head} className="whitespace-nowrap border-b border-gray-100 px-4 py-3 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-gray-400">
+                          <th
+                            key={head}
+                            className="whitespace-nowrap border-b border-gray-100 px-4 py-3 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-gray-400"
+                          >
                             {head}
                           </th>
                         ))}
@@ -2718,7 +2785,10 @@ export default function MenuManagement() {
                     <tbody>
                       {restocks?.length ? (
                         restocks.map((row: any, index: number) => (
-                          <tr key={index} className="border-b border-gray-100 transition hover:bg-gray-50/80">
+                          <tr
+                            key={index}
+                            className="border-b border-gray-100 transition hover:bg-gray-50/80"
+                          >
                             {/* INGREDIENT */}
 
                             <td className="px-4 py-3">
@@ -2831,7 +2901,7 @@ export default function MenuManagement() {
                   {/* LEFT */}
 
                   <div className="flex items-start gap-4">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-red-500 to-pink-500 shadow-sm">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#b10000] shadow-sm">
                       <MdRestaurantMenu className="text-[24px] text-white" />
                     </div>
 
@@ -2938,20 +3008,7 @@ export default function MenuManagement() {
 
                       <button
                         onClick={handleSaveMapping}
-                        className="
-                h-10
-                rounded-xl
-                bg-gradient-to-r
-                from-red-500
-                to-pink-500
-                px-4
-                text-[12px]
-                font-semibold
-                text-white
-                shadow-sm
-                transition
-                hover:scale-[1.02]
-              "
+                        className="h-10 rounded-xl bg-[#b10000] px-4 text-[12px] font-semibold text-white shadow-sm transition hover:bg-[#950000]"
                       >
                         Save Changes
                       </button>
@@ -3015,8 +3072,8 @@ export default function MenuManagement() {
 
                   ${
                     selectedMenuItem?.id === item.id
-                      ? "border-red-100 bg-red-50"
-                      : "border-gray-100 hover:bg-gray-50"
+                      ? "border-[#b10000] bg-red-50 shadow-sm"
+                      : "border-gray-100 bg-white hover:bg-gray-50"
                   }
                 `}
                         >
@@ -3066,7 +3123,7 @@ export default function MenuManagement() {
                       ${
                         item.menuItemIngredients?.length > 0
                           ? "bg-emerald-50 text-emerald-600"
-                          : "bg-red-50 text-red-600"
+                          : "bg-red-50 text-red-700"
                       }
                     `}
                             >
@@ -3091,14 +3148,14 @@ export default function MenuManagement() {
                       {/* LEFT */}
 
                       <div className="flex items-start gap-3">
-                        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-red-50">
+                        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#b10000]">
                           {(() => {
                             const Icon =
                               iconMap[selectedMenuItem?.category?.icon] ||
                               MdRestaurant;
 
                             return (
-                              <Icon className="text-[24px] text-red-500" />
+                              <Icon className="text-[24px] text-white" />
                             );
                           })()}
                         </div>
@@ -3113,7 +3170,7 @@ export default function MenuManagement() {
                               {selectedMenuItem?.category?.name || "Category"}
                             </span>
 
-                            <span className="rounded-full bg-red-50 px-2.5 py-1 text-[10px] font-semibold text-red-600">
+                            <span className="rounded-full bg-gray-100 px-2.5 py-1 text-[10px] font-semibold text-gray-700">
                               ₹{selectedMenuItem?.price || 0}
                             </span>
                           </div>
@@ -3142,7 +3199,7 @@ export default function MenuManagement() {
                           {
                             label: "Food Cost",
                             value: `${foodCostPercentage}%`,
-                            bg: "bg-red-50",
+                            bg: "bg-red-50 border border-red-100",
                           },
                         ].map((item) => (
                           <div
@@ -3301,12 +3358,14 @@ export default function MenuManagement() {
                               <button
                                 className="
                         rounded-xl
+                        border
+                        border-red-200
                         bg-red-50
                         px-3
                         py-2
                         text-[12px]
                         font-semibold
-                        text-red-600
+                        text-red-700
                         transition
                         hover:bg-red-100
                       "
@@ -3343,18 +3402,7 @@ export default function MenuManagement() {
 
                       <button
                         onClick={handleSaveMapping}
-                        className="
-                rounded-xl
-                bg-gradient-to-r
-                from-red-500
-                to-pink-500
-                px-4
-                py-2
-                text-[12px]
-                font-semibold
-                text-white
-                shadow-sm
-              "
+                        className="rounded-xl bg-[#b10000] px-4 py-2 text-[12px] font-semibold text-white shadow-sm transition hover:bg-[#950000]"
                       >
                         Save Mapping
                       </button>
@@ -3530,21 +3578,32 @@ export default function MenuManagement() {
                         {/* VIEW TOGGLE */}
 
                         <div className="flex items-center rounded-xl border border-gray-200 bg-gray-50 p-1">
-                          {["pie", "table"].map(mode => (
-                            <button key={mode} onClick={() => setViewMode(mode)}
-                              className={`rounded-lg px-3 py-1.5 text-[11px] font-semibold transition ${viewMode === mode ? "bg-white text-red-600 shadow-sm" : "text-gray-500"}`}>
+                          {["pie", "table"].map((mode) => (
+                            <button
+                              key={mode}
+                              onClick={() => setViewMode(mode)}
+                              className={`rounded-lg px-3 py-1.5 text-[11px] font-semibold transition ${viewMode === mode ? "bg-white text-[#b10000] shadow-sm" : "text-gray-500"}`}
+                            >
                               {mode.charAt(0).toUpperCase() + mode.slice(1)}
                             </button>
                           ))}
                         </div>
                         <select
                           value={selectedCategory}
-                          onChange={e => setSelectedCategory(e.target.value)}
+                          onChange={(e) => setSelectedCategory(e.target.value)}
                           className="h-9 rounded-xl border border-gray-200 bg-white px-3 text-[12px] font-medium text-gray-700 outline-none"
                         >
                           <option value="all">All Categories</option>
-                          {[...new Set(ingredientAnalytics.map((i: any) => i.category || "Other"))].map(cat => (
-                            <option key={String(cat)} value={String(cat)}>{String(cat)}</option>
+                          {[
+                            ...new Set(
+                              ingredientAnalytics.map(
+                                (i: any) => i.category || "Other",
+                              ),
+                            ),
+                          ].map((cat) => (
+                            <option key={String(cat)} value={String(cat)}>
+                              {String(cat)}
+                            </option>
                           ))}
                         </select>
                       </div>
@@ -3553,18 +3612,31 @@ export default function MenuManagement() {
                     {/* ================= DATA ================= */}
 
                     {(() => {
-                      const totalUsage = ingredientAnalytics.reduce((s: number, i: any) => s + Number(i.consumed || 0), 0);
-                      const ingredientData = ingredientAnalytics.map((i: any) => ({
-                        ingredient: i.ingredient,
-                        usage: totalUsage > 0 ? Math.round((Number(i.consumed || 0) / totalUsage) * 100) : 0,
-                        consumed: `${Number(i.consumed || 0).toFixed(2)} ${i.unit || ""}`,
-                        cost: Math.round(Number(i.totalCost || 0)),
-                        category: i.category || "Other",
-                      }));
+                      const totalUsage = ingredientAnalytics.reduce(
+                        (s: number, i: any) => s + Number(i.consumed || 0),
+                        0,
+                      );
+                      const ingredientData = ingredientAnalytics.map(
+                        (i: any) => ({
+                          ingredient: i.ingredient,
+                          usage:
+                            totalUsage > 0
+                              ? Math.round(
+                                  (Number(i.consumed || 0) / totalUsage) * 100,
+                                )
+                              : 0,
+                          consumed: `${Number(i.consumed || 0).toFixed(2)} ${i.unit || ""}`,
+                          cost: Math.round(Number(i.totalCost || 0)),
+                          category: i.category || "Other",
+                        }),
+                      );
 
-                      const filteredData = selectedCategory === "all"
-                        ? ingredientData
-                        : ingredientData.filter(i => i.category === selectedCategory);
+                      const filteredData =
+                        selectedCategory === "all"
+                          ? ingredientData
+                          : ingredientData.filter(
+                              (i) => i.category === selectedCategory,
+                            );
 
                       return (
                         <>
@@ -3586,8 +3658,19 @@ export default function MenuManagement() {
                                       paddingAngle={3}
                                     >
                                       {filteredData.map((_, index) => {
-                                        const COLORS = ["#ef4444", "#3b82f6", "#10b981", "#f97316", "#ec4899"];
-                                        return <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />;
+                                        const COLORS = [
+                                          "#ef4444",
+                                          "#3b82f6",
+                                          "#10b981",
+                                          "#f97316",
+                                          "#ec4899",
+                                        ];
+                                        return (
+                                          <Cell
+                                            key={`cell-${index}`}
+                                            fill={COLORS[index % COLORS.length]}
+                                          />
+                                        );
                                       })}
                                     </Pie>
 
@@ -3601,7 +3684,7 @@ export default function MenuManagement() {
                               <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
                                 {filteredData.map((item, index) => {
                                   const colors = [
-                                    "bg-red-500",
+                                    "bg-[#b10000]",
                                     "bg-blue-500",
                                     "bg-emerald-500",
                                     "bg-orange-500",
@@ -3609,10 +3692,19 @@ export default function MenuManagement() {
                                   ];
 
                                   return (
-                                    <div key={index} className="flex items-center gap-2 rounded-full border border-gray-200 bg-white px-2.5 py-1.5 shadow-sm">
-                                      <div className={`h-2.5 w-2.5 rounded-full ${colors[index % colors.length]}`} />
-                                      <p className="text-[11px] font-semibold text-gray-700">{item.ingredient}</p>
-                                      <span className="text-[10px] font-bold text-gray-400">{item.usage}%</span>
+                                    <div
+                                      key={index}
+                                      className="flex items-center gap-2 rounded-full border border-gray-200 bg-white px-2.5 py-1.5 shadow-sm"
+                                    >
+                                      <div
+                                        className={`h-2.5 w-2.5 rounded-full ${colors[index % colors.length]}`}
+                                      />
+                                      <p className="text-[11px] font-semibold text-gray-700">
+                                        {item.ingredient}
+                                      </p>
+                                      <span className="text-[10px] font-bold text-gray-400">
+                                        {item.usage}%
+                                      </span>
                                     </div>
                                   );
                                 })}
@@ -3636,7 +3728,10 @@ export default function MenuManagement() {
                                       "Consumed",
                                       "Cost",
                                     ].map((head) => (
-                                      <th key={head} className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-[0.14em] text-gray-400">
+                                      <th
+                                        key={head}
+                                        className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-[0.14em] text-gray-400"
+                                      >
                                         {head}
                                       </th>
                                     ))}
@@ -3667,7 +3762,7 @@ export default function MenuManagement() {
                                         <div className="flex items-center gap-3">
                                           <div className="h-1.5 w-24 rounded-full bg-gray-100">
                                             <div
-                                              className="h-1.5 rounded-full bg-red-500"
+                                              className="h-1.5 rounded-full bg-[#b10000]"
                                               style={{
                                                 width: `${item.usage}%`,
                                               }}
@@ -3719,7 +3814,7 @@ export default function MenuManagement() {
                           </p>
                         </div>
 
-                        <div className="rounded-full bg-red-50 px-3 py-1 text-[10px] font-bold text-red-600">
+                        <div className="rounded-full bg-[#b10000]/10 px-3 py-1 text-[10px] font-bold text-[#b10000]">
                           AI Monitoring
                         </div>
                       </div>
@@ -3751,18 +3846,59 @@ export default function MenuManagement() {
 
                     <div className="grid grid-cols-2 gap-3">
                       {(() => {
-                        const sorted = [...ingredientAnalytics].sort((a: any, b: any) => Number(b.consumed || 0) - Number(a.consumed || 0));
-                        const costSorted = [...ingredientAnalytics].sort((a: any, b: any) => Number(b.totalCost || 0) - Number(a.totalCost || 0));
+                        const sorted = [...ingredientAnalytics].sort(
+                          (a: any, b: any) =>
+                            Number(b.consumed || 0) - Number(a.consumed || 0),
+                        );
+                        const costSorted = [...ingredientAnalytics].sort(
+                          (a: any, b: any) =>
+                            Number(b.totalCost || 0) - Number(a.totalCost || 0),
+                        );
                         return [
-                          { label: "Highest Usage", value: sorted[0]?.ingredient || "—", sub: sorted[0] ? `${Number(sorted[0].consumed || 0).toFixed(1)} ${sorted[0].unit || ""}` : "No data", color: "text-red-600" },
-                          { label: "Fastest Moving", value: sorted[1]?.ingredient || "—", sub: "High kitchen demand", color: "text-emerald-600" },
-                          { label: "Highest Cost", value: costSorted[0]?.ingredient || "—", sub: costSorted[0] ? `₹${Math.round(Number(costSorted[0].totalCost || 0)).toLocaleString()}` : "No data", color: "text-orange-600" },
-                          { label: "Total Consumption", value: `₹${Math.round(totalConsumptionValue).toLocaleString()}`, sub: `${ingredientAnalytics.length} ingredients tracked`, color: "text-indigo-600" },
-                        ].map(c => (
-                          <div key={c.label} className="rounded-xl border border-gray-200 bg-white p-3 shadow-sm">
-                            <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-gray-400">{c.label}</p>
-                            <p className={`mt-2 truncate text-[18px] font-black ${c.color}`}>{c.value}</p>
-                            <p className="mt-1 text-[11px] text-gray-500">{c.sub}</p>
+                          {
+                            label: "Highest Usage",
+                            value: sorted[0]?.ingredient || "—",
+                            sub: sorted[0]
+                              ? `${Number(sorted[0].consumed || 0).toFixed(1)} ${sorted[0].unit || ""}`
+                              : "No data",
+                            color: "text-red-600",
+                          },
+                          {
+                            label: "Fastest Moving",
+                            value: sorted[1]?.ingredient || "—",
+                            sub: "High kitchen demand",
+                            color: "text-emerald-600",
+                          },
+                          {
+                            label: "Highest Cost",
+                            value: costSorted[0]?.ingredient || "—",
+                            sub: costSorted[0]
+                              ? `₹${Math.round(Number(costSorted[0].totalCost || 0)).toLocaleString()}`
+                              : "No data",
+                            color: "text-orange-600",
+                          },
+                          {
+                            label: "Total Consumption",
+                            value: `₹${Math.round(totalConsumptionValue).toLocaleString()}`,
+                            sub: `${ingredientAnalytics.length} ingredients tracked`,
+                            color: "text-indigo-600",
+                          },
+                        ].map((c) => (
+                          <div
+                            key={c.label}
+                            className="rounded-xl border border-gray-200 bg-white p-3 shadow-sm"
+                          >
+                            <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-gray-400">
+                              {c.label}
+                            </p>
+                            <p
+                              className={`mt-2 truncate text-[18px] font-black ${c.color}`}
+                            >
+                              {c.value}
+                            </p>
+                            <p className="mt-1 text-[11px] text-gray-500">
+                              {c.sub}
+                            </p>
                           </div>
                         ));
                       })()}

@@ -175,9 +175,9 @@ export default function DashboardLayout() {
       <div
         className={`hidden lg:fixed lg:inset-y-0 lg:z-30 lg:flex lg:flex-col transition-all duration-300 ${collapsed ? "lg:w-[60px]" : "lg:w-[152px]"}`}
       >
-        <div className="relative flex h-full flex-col overflow-hidden bg-gradient-to-b from-red-600 via-red-500 to-rose-600">
-          <div className="pointer-events-none absolute -top-16 -left-8 h-48 w-48 rounded-full bg-white/10 blur-3xl" />
-          <div className="pointer-events-none absolute bottom-0 right-0 h-40 w-40 rounded-full bg-black/10 blur-3xl" />
+        <div className="relative flex h-full flex-col overflow-hidden bg-[#b10000]">
+          {/* <div className="pointer-events-none absolute -top-16 -left-8 h-48 w-48 rounded-full bg-white/10 blur-3xl" />
+          <div className="pointer-events-none absolute bottom-0 right-0 h-40 w-40 rounded-full bg-black/10 blur-3xl" /> */}
           <div className="relative flex h-12 shrink-0 items-center justify-between px-3">
             <button
               onClick={() => setCollapsed(!collapsed)}
@@ -294,14 +294,14 @@ export default function DashboardLayout() {
         className={`flex h-screen flex-col overflow-hidden transition-all duration-300 ${collapsed ? "lg:pl-[60px]" : "lg:pl-[152px]"}`}
       >
         {/* TOP BAR */}
-        <header className="relative z-20 shrink-0 bg-gradient-to-r from-red-600 via-red-500 to-rose-500 shadow-sm">
+        <header className="relative z-20 shrink-0 bg-[#b10000] shadow-sm">
           <div className="pointer-events-none absolute inset-0 overflow-hidden">
-            <div className="absolute -top-8 left-1/3 h-32 w-32 rounded-full bg-white/10 blur-3xl" />
-            <div className="absolute right-0 top-0 h-24 w-24 rounded-full bg-red-300/20 blur-2xl" />
+            {/* <div className="absolute -top-8 left-1/3 h-32 w-32 rounded-full bg-white/10 blur-3xl" />
+            <div className="absolute right-0 top-0 h-24 w-24 rounded-full bg-red-300/20 blur-2xl" /> */}
           </div>
           {/* Left curve decoration */}
           <div className="hidden lg:block">
-            <div className="absolute -bottom-2 left-0 h-2 w-2 bg-red-600">
+            <div className="absolute -bottom-2 left-0 h-2 w-2 bg-[#b10000]">
               <div className="h-2 w-2 rounded-tl-[24px] bg-gray-100"></div>
             </div>
           </div>
@@ -356,7 +356,7 @@ export default function DashboardLayout() {
                     />
                     <button
                       onClick={handleCustomApply}
-                      className="rounded-lg bg-white px-3 py-1 text-[11px] font-bold text-red-600 transition hover:bg-red-50"
+                      className="rounded-lg bg-white px-3 py-1 text-[11px] font-bold text-red-600 transition hover:bg-[#b10000]"
                     >
                       Apply
                     </button>
@@ -414,7 +414,9 @@ export default function DashboardLayout() {
                 ) : (
                   <ArrowDownTrayIcon className="h-3.5 w-3.5" />
                 )}
-                <span className="hidden lg:inline">{downloading ? "Generating..." : "Export"}</span>
+                <span className="hidden lg:inline">
+                  {downloading ? "Generating..." : "Export"}
+                </span>
               </button>
 
               <button className="flex h-7 w-7 items-center justify-center rounded-xl bg-white/10 text-white transition hover:bg-white/20">
@@ -453,7 +455,7 @@ export default function DashboardLayout() {
                           localStorage.clear();
                           window.location.href = "/login";
                         }}
-                        className="flex w-full items-center gap-2.5 px-4 py-2 text-left text-[13px] font-semibold text-red-600 transition hover:bg-red-50"
+                        className="flex w-full items-center gap-2.5 px-4 py-2 text-left text-[13px] font-semibold text-red-600 transition hover:bg-[#b10000]"
                       >
                         <XMarkIcon className="h-4 w-4" />
                         Sign Out

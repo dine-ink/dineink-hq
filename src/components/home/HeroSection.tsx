@@ -1,6 +1,6 @@
 export default function HeroSection() {
   return (
-    <div className="relative isolate overflow-hidden bg-gradient-to-br from-red-50 via-white to-rose-100 pt-14">
+    <div className="relative isolate overflow-hidden bg-[#b10000] pt-14">
       <svg
         aria-hidden="true"
         className="absolute inset-0 -z-10 size-full mask-[radial-gradient(100%_100%_at_top_right,white,transparent)] stroke-gray-200"
@@ -23,7 +23,12 @@ export default function HeroSection() {
             strokeWidth={0}
           />
         </svg>
-        <rect fill="url(#83fd4e5a-9d52-42fc-97b6-718e5d7ee527)" width="100%" height="100%" strokeWidth={0} />
+        <rect
+          fill="url(#83fd4e5a-9d52-42fc-97b6-718e5d7ee527)"
+          width="100%"
+          height="100%"
+          strokeWidth={0}
+        />
       </svg>
       <div className="mx-auto max-w-7xl px-6 py-24 sm:py-32 lg:flex lg:items-center lg:gap-x-10 lg:px-8 lg:py-40">
         <div className="mx-auto max-w-2xl lg:mx-0 lg:flex-auto">
@@ -33,8 +38,8 @@ export default function HeroSection() {
               <span aria-hidden="true" className="h-4 w-px bg-gray-900/10" />
               <a
                 href="/signup"
-                className="rounded-xl bg-red-700 px-5 py-3 text-sm font-semibold text-white shadow-md hover:bg-red-600"
-                >
+                className="rounded-xl bg-red-700 px-5 py-3 text-sm font-semibold text-white shadow-md hover:bg-[#b10000]"
+              >
                 Get Started
               </a>
             </div>
@@ -43,7 +48,8 @@ export default function HeroSection() {
             Smart restaurant billing and management for modern businesses
           </h1>
           <p className="mt-8 text-lg leading-8 text-slate-600 sm:text-xl">
-            Manage dine-in tables, takeaway orders, billing, menu items, kitchen staff, reports, taxes and customer data from one simple platform.
+            Manage dine-in tables, takeaway orders, billing, menu items, kitchen
+            staff, reports, taxes and customer data from one simple platform.
           </p>
           <div className="mt-10 flex items-center gap-x-6">
             <a href="/login" className="text-sm font-semibold text-slate-900">
@@ -52,7 +58,11 @@ export default function HeroSection() {
           </div>
         </div>
         <div className="mt-16 sm:mt-24 lg:mt-0 lg:shrink-0 lg:grow">
-          <svg role="img" viewBox="0 0 366 729" className="mx-auto w-91.5 max-w-full drop-shadow-xl">
+          <svg
+            role="img"
+            viewBox="0 0 366 729"
+            className="mx-auto w-91.5 max-w-full drop-shadow-xl"
+          >
             <title>App screenshot</title>
             <defs>
               <clipPath id="2ade4387-9c63-4fc4-b754-10e687a0d332">

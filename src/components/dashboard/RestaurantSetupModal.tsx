@@ -448,7 +448,7 @@ export default function RestaurantSetupModal({ open, setOpen }: Props) {
                 {/* LEFT SIDEBAR */}
                 <div className="hidden w-[280px] shrink-0 border-r border-white/40 bg-white/70 backdrop-blur-xl lg:flex lg:flex-col">
                   <div className="flex h-full flex-col overflow-hidden p-5">
-                    <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-red-500 to-rose-500 p-5 shadow-lg">
+                    <div className="relative overflow-hidden rounded-2xl bg-[#b10000] p-5 shadow-lg">
                       <div className="pointer-events-none absolute -right-8 -top-8 h-28 w-28 rounded-full bg-white/10 blur-3xl" />
                       <div className="relative z-10 flex items-center gap-3">
                         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/15 backdrop-blur">
@@ -501,7 +501,7 @@ export default function RestaurantSetupModal({ open, setOpen }: Props) {
                               className={`relative flex h-9 w-9 shrink-0 items-center justify-center rounded-xl transition ${
                                 selectedTab === index
                                   ? "bg-red-100"
-                                  : "bg-gray-100 group-hover:bg-red-50"
+                                  : "bg-gray-100 group-hover:bg-[#b10000]"
                               }`}
                             >
                               <tab.icon
@@ -510,7 +510,7 @@ export default function RestaurantSetupModal({ open, setOpen }: Props) {
                               <span
                                 className={`absolute -top-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full text-[9px] font-black ${
                                   selectedTab === index
-                                    ? "bg-red-500 text-white"
+                                    ? "bg-[#b10000] text-white"
                                     : "bg-gray-300 text-gray-600"
                                 }`}
                               >
@@ -538,7 +538,7 @@ export default function RestaurantSetupModal({ open, setOpen }: Props) {
                   <div className="border-b border-white/40 bg-white/60 px-6 py-4 backdrop-blur-xl">
                     <div className="flex items-center justify-between gap-4">
                       <div className="flex items-center gap-3">
-                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-red-500 to-rose-500 shadow-sm">
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#b10000] shadow-sm">
                           {(() => {
                             const Icon = tabs[selectedTab].icon;
                             return <Icon className="h-5 w-5 text-white" />;
@@ -549,7 +549,7 @@ export default function RestaurantSetupModal({ open, setOpen }: Props) {
                             <h3 className="text-xl font-bold tracking-tight text-gray-900">
                               {tabs[selectedTab].name}
                             </h3>
-                            <span className="rounded-full bg-red-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-red-500">
+                            <span className="rounded-full bg-[#b10000] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-red-500">
                               {selectedTab + 1}/{tabs.length}
                             </span>
                           </div>
@@ -560,7 +560,7 @@ export default function RestaurantSetupModal({ open, setOpen }: Props) {
                       </div>
                       <button
                         onClick={handleCloseSetup}
-                        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white text-gray-400 shadow-sm transition hover:bg-red-50 hover:text-red-500"
+                        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white text-gray-400 shadow-sm transition hover:bg-[#b10000] hover:text-red-500"
                       >
                         <XMarkIcon className="h-5 w-5" />
                       </button>
@@ -655,7 +655,7 @@ export default function RestaurantSetupModal({ open, setOpen }: Props) {
                           </div>
                           <div>
                             <label className={LABEL_CLS}>Restaurant Logo</label>
-                            <div className="rounded-2xl border border-dashed border-red-300 bg-red-50 p-6 text-center">
+                            <div className="rounded-2xl border border-dashed border-red-300 bg-[#b10000] p-6 text-center">
                               <input
                                 type="file"
                                 onChange={(e) => {
@@ -822,13 +822,18 @@ export default function RestaurantSetupModal({ open, setOpen }: Props) {
                                   <select
                                     value={branch.state}
                                     onChange={(e) =>
-                                      updateBranch(index, { state: e.target.value, city: "" })
+                                      updateBranch(index, {
+                                        state: e.target.value,
+                                        city: "",
+                                      })
                                     }
                                     className={INPUT_CLS}
                                   >
                                     <option value="">Select state</option>
                                     {State.getStatesOfCountry("IN").map((s) => (
-                                      <option key={s.isoCode} value={s.name}>{s.name}</option>
+                                      <option key={s.isoCode} value={s.name}>
+                                        {s.name}
+                                      </option>
                                     ))}
                                   </select>
                                 </div>
@@ -837,20 +842,38 @@ export default function RestaurantSetupModal({ open, setOpen }: Props) {
                                   <select
                                     value={branch.city}
                                     onChange={(e) =>
-                                      updateBranch(index, { city: e.target.value })
+                                      updateBranch(index, {
+                                        city: e.target.value,
+                                      })
                                     }
                                     className={INPUT_CLS}
                                     disabled={!branch.state}
                                   >
-                                    <option value="">{branch.state ? "Select city" : "Select state first"}</option>
-                                    {branch.state && (() => {
-                                      const stateObj = State.getStatesOfCountry("IN").find(s => s.name === branch.state);
-                                      return stateObj
-                                        ? City.getCitiesOfState("IN", stateObj.isoCode).map((c) => (
-                                            <option key={c.name} value={c.name}>{c.name}</option>
-                                          ))
-                                        : null;
-                                    })()}
+                                    <option value="">
+                                      {branch.state
+                                        ? "Select city"
+                                        : "Select state first"}
+                                    </option>
+                                    {branch.state &&
+                                      (() => {
+                                        const stateObj =
+                                          State.getStatesOfCountry("IN").find(
+                                            (s) => s.name === branch.state,
+                                          );
+                                        return stateObj
+                                          ? City.getCitiesOfState(
+                                              "IN",
+                                              stateObj.isoCode,
+                                            ).map((c) => (
+                                              <option
+                                                key={c.name}
+                                                value={c.name}
+                                              >
+                                                {c.name}
+                                              </option>
+                                            ))
+                                          : null;
+                                      })()}
                                   </select>
                                 </div>
                                 <div>
@@ -875,7 +898,10 @@ export default function RestaurantSetupModal({ open, setOpen }: Props) {
                                     type="number"
                                     value={branch.tablesCount || ""}
                                     onChange={(e) => {
-                                      const count = e.target.value === "" ? 0 : Number(e.target.value);
+                                      const count =
+                                        e.target.value === ""
+                                          ? 0
+                                          : Number(e.target.value);
                                       updateBranch(index, {
                                         tablesCount: count,
                                         tables: Array.from(
@@ -932,7 +958,10 @@ export default function RestaurantSetupModal({ open, setOpen }: Props) {
                                             value={table.capacity || ""}
                                             onChange={(e) =>
                                               updateBranchTable(index, tIndex, {
-                                                capacity: e.target.value === "" ? 0 : Number(e.target.value),
+                                                capacity:
+                                                  e.target.value === ""
+                                                    ? 0
+                                                    : Number(e.target.value),
                                               })
                                             }
                                             placeholder="Capacity"
@@ -963,7 +992,7 @@ export default function RestaurantSetupModal({ open, setOpen }: Props) {
                     )}
                     {selectedTab === 2 && (
                       <div className="space-y-4">
-                        <div className="relative overflow-hidden rounded-2xl border border-red-100 bg-gradient-to-br from-red-500 to-rose-500 p-4 shadow-[0_25px_70px_rgba(255,0,80,0.18)]">
+                        <div className="relative overflow-hidden rounded-2xl border border-red-100 bg-[#b10000] p-4 shadow-[0_25px_70px_rgba(255,0,80,0.18)]">
                           <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-white/10 blur-3xl" />
                           <div className="relative z-10 flex flex-wrap items-center justify-between gap-3">
                             <div>
@@ -1006,7 +1035,7 @@ export default function RestaurantSetupModal({ open, setOpen }: Props) {
                                             : index,
                                         )
                                       }
-                                      className="flex h-9 w-9 items-center justify-center rounded-2xl border border-red-100 bg-red-50 transition hover:scale-105"
+                                      className="flex h-9 w-9 items-center justify-center rounded-2xl border border-red-100 bg-[#b10000] transition hover:scale-105"
                                     >
                                       {category.icon ? (
                                         (() => {
@@ -1055,7 +1084,7 @@ export default function RestaurantSetupModal({ open, setOpen }: Props) {
                                           ),
                                         )
                                       }
-                                      className="rounded-xl border border-red-200 bg-red-50 px-4 py-2 text-sm font-semibold text-red-600 transition hover:bg-red-100"
+                                      className="rounded-xl border border-red-200 bg-[#b10000] px-4 py-2 text-sm font-semibold text-red-600 transition hover:bg-red-100"
                                     >
                                       Remove Category
                                     </button>
@@ -1080,8 +1109,8 @@ export default function RestaurantSetupModal({ open, setOpen }: Props) {
                                             }}
                                             className={`flex h-16 items-center justify-center rounded-2xl border transition-all ${
                                               category.icon === item.name
-                                                ? "border-red-500 bg-red-50 shadow-sm"
-                                                : "border-gray-200 bg-white hover:border-red-300 hover:bg-red-50"
+                                                ? "border-red-500 bg-[#b10000] shadow-sm"
+                                                : "border-gray-200 bg-white hover:border-red-300 hover:bg-[#b10000]"
                                             }`}
                                           >
                                             <Icon className="h-7 w-7 text-red-600" />
@@ -1116,7 +1145,7 @@ export default function RestaurantSetupModal({ open, setOpen }: Props) {
                                         ],
                                       })
                                     }
-                                    className="rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-500"
+                                    className="rounded-xl bg-[#b10000] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#b10000]"
                                   >
                                     + Add Item
                                   </button>
@@ -1225,7 +1254,7 @@ export default function RestaurantSetupModal({ open, setOpen }: Props) {
                                                 ),
                                               })
                                             }
-                                            className="w-full rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-600 transition hover:bg-red-100"
+                                            className="w-full rounded-2xl border border-red-200 bg-[#b10000] px-4 py-3 text-sm font-semibold text-red-600 transition hover:bg-red-100"
                                           >
                                             Remove
                                           </button>
@@ -1255,7 +1284,7 @@ export default function RestaurantSetupModal({ open, setOpen }: Props) {
                                 },
                               ])
                             }
-                            className="flex w-full items-center justify-center gap-3 rounded-xl border-2 border-dashed border-red-300 bg-red-50 px-6 py-7 text-base font-semibold text-red-600 transition-all hover:bg-red-100"
+                            className="flex w-full items-center justify-center gap-3 rounded-xl border-2 border-dashed border-red-300 bg-[#b10000] px-6 py-7 text-base font-semibold text-red-600 transition-all hover:bg-red-100"
                           >
                             + Add New Category
                           </button>
@@ -1264,7 +1293,7 @@ export default function RestaurantSetupModal({ open, setOpen }: Props) {
                     )}
                     {selectedTab === 3 && (
                       <div className="space-y-4 pb-24">
-                        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-red-500 to-rose-500 p-4 shadow-[0_25px_70px_rgba(255,0,80,0.18)]">
+                        <div className="relative overflow-hidden rounded-2xl bg-[#b10000] p-4 shadow-[0_25px_70px_rgba(255,0,80,0.18)]">
                           <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-white/10 blur-3xl" />
                           <div className="relative z-10 flex flex-wrap items-center justify-between gap-3">
                             <div>
@@ -1290,7 +1319,7 @@ export default function RestaurantSetupModal({ open, setOpen }: Props) {
                           </div>
                         </div>
                         {branches.length > 1 && (
-                          <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-red-100 bg-red-50 px-4 py-3">
+                          <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-red-100 bg-[#b10000] px-4 py-3">
                             <div>
                               <p className="text-sm font-semibold text-red-700">
                                 Apply same billing to all branches
@@ -1334,7 +1363,7 @@ export default function RestaurantSetupModal({ open, setOpen }: Props) {
                             <div className="border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white px-4 py-3">
                               <div className="flex flex-wrap items-center justify-between gap-4">
                                 <div className="flex items-center gap-4">
-                                  <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-red-50">
+                                  <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-[#b10000]">
                                     <span className="text-xl font-bold text-red-600">
                                       {index + 1}
                                     </span>
@@ -1380,7 +1409,7 @@ export default function RestaurantSetupModal({ open, setOpen }: Props) {
                                       </select>
                                     </div>
                                   )}
-                                  <div className="rounded-2xl border border-red-100 bg-red-50 px-5 py-3">
+                                  <div className="rounded-2xl border border-red-100 bg-[#b10000] px-5 py-3">
                                     <p className="text-xs text-gray-500">GST</p>
                                     <p className="mt-1 text-lg font-bold text-red-600">
                                       {branch.billing.gstPercentage || 0}%
@@ -1418,8 +1447,8 @@ export default function RestaurantSetupModal({ open, setOpen }: Props) {
                                         key={type}
                                         className={`group flex cursor-pointer items-center justify-between rounded-2xl border p-5 transition-all duration-200 ${
                                           active
-                                            ? "border-red-500 bg-red-50 shadow-sm"
-                                            : "border-gray-200 bg-white hover:border-red-300 hover:bg-red-50"
+                                            ? "border-red-500 bg-[#b10000] shadow-sm"
+                                            : "border-gray-200 bg-white hover:border-red-300 hover:bg-[#b10000]"
                                         }`}
                                       >
                                         <div>
@@ -1590,8 +1619,8 @@ export default function RestaurantSetupModal({ open, setOpen }: Props) {
                                         key={method}
                                         className={`group flex cursor-pointer items-center justify-between rounded-2xl border p-5 transition-all duration-200 ${
                                           active
-                                            ? "border-red-500 bg-red-50 shadow-sm"
-                                            : "border-gray-200 bg-white hover:border-red-300 hover:bg-red-50"
+                                            ? "border-red-500 bg-[#b10000] shadow-sm"
+                                            : "border-gray-200 bg-white hover:border-red-300 hover:bg-[#b10000]"
                                         }`}
                                       >
                                         <div>
@@ -1634,7 +1663,7 @@ export default function RestaurantSetupModal({ open, setOpen }: Props) {
                     )}
                     {selectedTab === 4 && (
                       <div className="space-y-4 pb-24">
-                        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-red-500 to-rose-500 p-4 shadow-[0_25px_70px_rgba(255,0,80,0.18)]">
+                        <div className="relative overflow-hidden rounded-2xl bg-[#b10000] p-4 shadow-[0_25px_70px_rgba(255,0,80,0.18)]">
                           <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-white/10 blur-3xl" />
                           <div className="relative z-10 flex flex-wrap items-center justify-between gap-3">
                             <div>
@@ -1668,7 +1697,7 @@ export default function RestaurantSetupModal({ open, setOpen }: Props) {
                               <div className="border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white px-6 py-5">
                                 <div className="flex flex-wrap items-center justify-between gap-4">
                                   <div className="flex items-center gap-4">
-                                    <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-red-50">
+                                    <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-[#b10000]">
                                       <span className="text-xl font-bold text-red-600">
                                         {s.name
                                           ? s.name.charAt(0).toUpperCase()
@@ -1691,7 +1720,7 @@ export default function RestaurantSetupModal({ open, setOpen }: Props) {
                                           staff.filter((_, i) => i !== index),
                                         )
                                       }
-                                      className="rounded-xl border border-red-200 bg-red-50 px-4 py-2 text-sm font-semibold text-red-600 transition hover:bg-red-100"
+                                      className="rounded-xl border border-red-200 bg-[#b10000] px-4 py-2 text-sm font-semibold text-red-600 transition hover:bg-red-100"
                                     >
                                       Remove Staff
                                     </button>
@@ -1900,7 +1929,7 @@ export default function RestaurantSetupModal({ open, setOpen }: Props) {
                                 },
                               ])
                             }
-                            className="flex w-full items-center justify-center gap-3 rounded-2xl border-2 border-dashed border-red-300 bg-red-50 px-6 py-7 text-base font-semibold text-red-600 transition-all hover:bg-red-100"
+                            className="flex w-full items-center justify-center gap-3 rounded-2xl border-2 border-dashed border-red-300 bg-[#b10000] px-6 py-7 text-base font-semibold text-red-600 transition-all hover:bg-red-100"
                           >
                             + Add New Staff Member
                           </button>

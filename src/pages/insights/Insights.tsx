@@ -49,8 +49,8 @@ import React from "react";
 const tabs = ["Overview", "Insights Setup"];
 
 export default function Insights() {
-  const { selectedBranch } = useAppSelector(s => s.branch);
-  const { user, token } = useAppSelector(s => s.auth);
+  const { selectedBranch } = useAppSelector((s) => s.branch);
+  const { user, token } = useAppSelector((s) => s.auth);
   const currentUser = user; // alias kept for existing code that uses currentUser
   const API_URL = import.meta.env.VITE_API_URL;
 
@@ -180,10 +180,6 @@ export default function Insights() {
   useEffect(() => {
     const fetchInsights = async () => {
       try {
-
-
-
-
         if (!selectedBranch?.id || !user?.restaurantId) return;
 
         const res = await fetch(
@@ -201,7 +197,10 @@ export default function Insights() {
           // Normalize null/undefined → 0 for all numeric fields so downstream
           // arithmetic (totalFixedExpenses + ...) never produces NaN
           const normalized = Object.fromEntries(
-            Object.entries(json.data).map(([k, v]) => [k, v === null || v === undefined ? 0 : v])
+            Object.entries(json.data).map(([k, v]) => [
+              k,
+              v === null || v === undefined ? 0 : v,
+            ]),
           );
           setInsightsData((prev: any) => ({ ...prev, ...normalized }));
         }
@@ -703,7 +702,6 @@ export default function Insights() {
   useEffect(() => {
     const fetchStaff = async () => {
       try {
-
         const res = await fetch(
           `${API_URL}/api/restaurant/staff/${currentUser.restaurantId}/${selectedBranch.id}`,
           {
@@ -732,13 +730,13 @@ export default function Insights() {
         <div className="relative overflow-hidden rounded-xl border border-gray-200 bg-white px-4 py-3 shadow-sm">
           <div className="absolute -right-10 -top-10 h-24 w-24 rounded-full bg-red-100/50 blur-3xl" />
 
-          <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+          <div className="relative z-10 flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
             {/* LEFT */}
 
             <div className="flex items-start gap-3">
               {/* ICON */}
 
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-red-500 to-pink-500 shadow-sm">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#b10000] shadow-sm">
                 <BarChart3 className="h-4 w-4 text-white" />
               </div>
 
@@ -768,8 +766,8 @@ export default function Insights() {
                   onClick={() => setActiveTab(tab)}
                   className={`rounded-xl px-3.5 py-2 text-[12px] font-semibold transition-all duration-200 ${
                     activeTab === tab
-                      ? "bg-gradient-to-r from-red-500 to-pink-500 text-white shadow-md"
-                      : "border border-gray-200 bg-gray-50 text-gray-600 hover:border-red-200 hover:bg-red-50 hover:text-red-600"
+                      ? "bg-[#b10000] text-white shadow-sm"
+                      : "border border-gray-200 bg-white text-gray-600 hover:bg-gray-50"
                   }`}
                 >
                   {tab}
@@ -826,22 +824,54 @@ export default function Insights() {
                 ].map((item) => {
                   const Icon = item.icon;
 
-                  const colorMap: Record<string, { text: string; bg: string; icon: string }> = {
-                    emerald: { text: "text-emerald-500", bg: "bg-emerald-50", icon: "text-emerald-600" },
-                    blue: { text: "text-blue-500", bg: "bg-blue-50", icon: "text-blue-600" },
-                    violet: { text: "text-violet-500", bg: "bg-violet-50", icon: "text-violet-600" },
-                    orange: { text: "text-orange-500", bg: "bg-orange-50", icon: "text-orange-600" },
+                  const colorMap: Record<
+                    string,
+                    { text: string; bg: string; icon: string }
+                  > = {
+                    emerald: {
+                      text: "text-emerald-500",
+                      bg: "bg-emerald-50",
+                      icon: "text-emerald-600",
+                    },
+                    blue: {
+                      text: "text-blue-500",
+                      bg: "bg-blue-50",
+                      icon: "text-blue-600",
+                    },
+                    violet: {
+                      text: "text-violet-500",
+                      bg: "bg-violet-50",
+                      icon: "text-violet-600",
+                    },
+                    orange: {
+                      text: "text-orange-500",
+                      bg: "bg-orange-50",
+                      icon: "text-orange-600",
+                    },
                   };
                   const c = colorMap[item.color] || colorMap.orange;
                   return (
-                    <div key={item.label} className="rounded-2xl border border-gray-200 bg-white p-3 shadow-sm">
+                    <div
+                      key={item.label}
+                      className="rounded-2xl border border-gray-200 bg-white p-3 shadow-sm"
+                    >
                       <div className="flex items-start justify-between">
                         <div>
-                          <p className={`text-[10px] font-bold uppercase tracking-[0.14em] ${c.text}`}>{item.label}</p>
-                          <p className="mt-2 text-[22px] font-bold tracking-tight text-gray-900">{item.value}</p>
-                          <p className="mt-1 text-[11px] text-gray-500">{item.sub}</p>
+                          <p
+                            className={`text-[10px] font-bold uppercase tracking-[0.14em] ${c.text}`}
+                          >
+                            {item.label}
+                          </p>
+                          <p className="mt-2 text-[22px] font-bold tracking-tight text-gray-900">
+                            {item.value}
+                          </p>
+                          <p className="mt-1 text-[11px] text-gray-500">
+                            {item.sub}
+                          </p>
                         </div>
-                        <div className={`flex h-8 w-8 items-center justify-center rounded-lg ${c.bg}`}>
+                        <div
+                          className={`flex h-8 w-8 items-center justify-center rounded-lg ${c.bg}`}
+                        >
                           <Icon className={`h-4 w-4 ${c.icon}`} />
                         </div>
                       </div>
@@ -916,11 +946,17 @@ export default function Insights() {
                           {item.label}
                         </p>
 
-                        <p className={`text-[16px] font-bold ${
-                          item.color === "emerald" ? "text-emerald-600" :
-                          item.color === "red" ? "text-red-600" :
-                          item.color === "violet" ? "text-violet-600" : "text-orange-600"
-                        }`}>
+                        <p
+                          className={`text-[16px] font-bold ${
+                            item.color === "emerald"
+                              ? "text-emerald-600"
+                              : item.color === "red"
+                                ? "text-red-600"
+                                : item.color === "violet"
+                                  ? "text-violet-600"
+                                  : "text-orange-600"
+                          }`}
+                        >
                           {item.value}
                         </p>
                       </div>
@@ -935,8 +971,16 @@ export default function Insights() {
                     <p className="text-[11px] text-gray-500">EBITDA Progress</p>
                     <p className="text-[11px] font-semibold text-violet-600">
                       {insightsData.targetEbitda > 0
-                        ? Math.min(Math.round((Number(ebitdaPercentage) / insightsData.targetEbitda) * 100), 100)
-                        : 0}%
+                        ? Math.min(
+                            Math.round(
+                              (Number(ebitdaPercentage) /
+                                insightsData.targetEbitda) *
+                                100,
+                            ),
+                            100,
+                          )
+                        : 0}
+                      %
                     </p>
                   </div>
                   <div className="h-2 overflow-hidden rounded-full bg-gray-100">
@@ -959,8 +1003,8 @@ export default function Insights() {
                   {/* LEFT */}
 
                   <div className="flex items-start gap-3">
-                    <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-red-50">
-                      <Target className="h-4 w-4 text-red-600" />
+                    <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#b10000]">
+                      <Target className="h-4 w-4 text-white" />
                     </div>
 
                     <div>
@@ -976,7 +1020,7 @@ export default function Insights() {
 
                   {/* BADGE */}
 
-                  <span className="rounded-full bg-red-50 px-3 py-1 text-[10px] font-semibold text-red-600">
+                  <span className="rounded-full bg-[#b10000]/10 px-3 py-1 text-[10px] font-semibold text-[#b10000]">
                     Financial Planning
                   </span>
                 </div>
@@ -993,30 +1037,56 @@ export default function Insights() {
                       <div
                         key={target}
                         className={`rounded-2xl border p-3 shadow-sm transition-all ${
-                          target >= 20 ? "border-emerald-100 bg-emerald-50/40" :
-                          target >= 10 ? "border-orange-100 bg-orange-50/40" : "border-gray-200 bg-gray-50"
+                          target >= 20
+                            ? "border-emerald-100 bg-emerald-50/40"
+                            : target >= 10
+                              ? "border-orange-100 bg-orange-50/40"
+                              : "border-gray-200 bg-gray-50"
                         }`}
                       >
                         <div className="flex items-center justify-between">
-                          <p className={`text-[10px] font-bold uppercase tracking-[0.14em] ${
-                            target >= 20 ? "text-emerald-500" : target >= 10 ? "text-orange-500" : "text-gray-500"
-                          }`}>
+                          <p
+                            className={`text-[10px] font-bold uppercase tracking-[0.14em] ${
+                              target >= 20
+                                ? "text-emerald-500"
+                                : target >= 10
+                                  ? "text-orange-500"
+                                  : "text-gray-500"
+                            }`}
+                          >
                             {target}% EBITDA
                           </p>
-                          <div className={`h-2 w-2 rounded-full ${
-                            target >= 20 ? "bg-emerald-500" : target >= 10 ? "bg-orange-500" : "bg-gray-400"
-                          }`} />
+                          <div
+                            className={`h-2 w-2 rounded-full ${
+                              target >= 20
+                                ? "bg-emerald-500"
+                                : target >= 10
+                                  ? "bg-orange-500"
+                                  : "bg-gray-400"
+                            }`}
+                          />
                         </div>
                         <p className="mt-3 text-[24px] font-bold leading-none tracking-tight text-gray-900">
                           ₹{Math.round(requiredRevenue).toLocaleString()}
                         </p>
-                        <p className={`mt-2 text-[11px] font-semibold ${extraNeeded <= 0 ? "text-emerald-600" : "text-red-500"}`}>
-                          {extraNeeded <= 0 ? "Target achieved" : `+₹${Math.round(extraNeeded).toLocaleString()}`}
+                        <p
+                          className={`mt-2 text-[11px] font-semibold ${extraNeeded <= 0 ? "text-emerald-600" : "text-[#b10000]"}`}
+                        >
+                          {extraNeeded <= 0
+                            ? "Target achieved"
+                            : `+₹${Math.round(extraNeeded).toLocaleString()}`}
                         </p>
                         <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/80">
-                          <div className={`h-full rounded-full ${
-                            target >= 20 ? "bg-emerald-500" : target >= 10 ? "bg-orange-500" : "bg-gray-500"
-                          }`} style={{ width: `${Math.min(target * 4, 100)}%` }} />
+                          <div
+                            className={`h-full rounded-full ${
+                              target >= 20
+                                ? "bg-emerald-500"
+                                : target >= 10
+                                  ? "bg-orange-500"
+                                  : "bg-gray-500"
+                            }`}
+                            style={{ width: `${Math.min(target * 4, 100)}%` }}
+                          />
                         </div>
                       </div>
                     );
@@ -1059,12 +1129,24 @@ export default function Insights() {
                   const Icon = item.icon;
 
                   return (
-                    <div key={item.label} className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+                    <div
+                      key={item.label}
+                      className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm"
+                    >
                       <div className="flex items-start justify-between">
                         <div>
-                          <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-gray-400">{item.label}</p>
-                          <p className="mt-2 text-[22px] font-bold tracking-tight text-gray-900">₹{Math.round(item.value).toLocaleString()}</p>
-                          <p className="mt-1 text-[11px] text-gray-500">{totalExpenses > 0 ? ((item.value / totalExpenses) * 100).toFixed(1) : "0.0"}% of expenses</p>
+                          <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-gray-400">
+                            {item.label}
+                          </p>
+                          <p className="mt-2 text-[22px] font-bold tracking-tight text-gray-900">
+                            ₹{Math.round(item.value).toLocaleString()}
+                          </p>
+                          <p className="mt-1 text-[11px] text-gray-500">
+                            {totalExpenses > 0
+                              ? ((item.value / totalExpenses) * 100).toFixed(1)
+                              : "0.0"}
+                            % of expenses
+                          </p>
                         </div>
                         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gray-100">
                           <Icon className="h-4 w-4 text-gray-700" />
@@ -1085,7 +1167,7 @@ export default function Insights() {
               <div className="hide-scrollbar h-full w-[230px] overflow-y-auto border-r border-gray-200 bg-white p-4">
                 {/* AI CARD */}
 
-                <div className="rounded-xl border border-red-100 bg-gradient-to-br from-red-500 to-pink-500 p-4 shadow-sm">
+                <div className="rounded-xl border border-red-100 bg-[#b10000] p-4 shadow-sm">
                   <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/15">
                     <Sparkles className="h-5 w-5 text-white" />
                   </div>
@@ -1172,14 +1254,14 @@ export default function Insights() {
                             </p>
                           </div>
 
-                          <p className="text-xl font-bold text-red-600">
+                          <p className="text-xl font-bold text-[#b10000]">
                             {completion}%
                           </p>
                         </div>
 
                         <div className="mt-4 h-2 overflow-hidden rounded-full bg-gray-100">
                           <div
-                            className="h-full rounded-full bg-gradient-to-r from-red-500 to-pink-500 transition-all duration-500"
+                            className="h-full rounded-full bg-[#b10000] transition-all duration-500"
                             style={{ width: `${completion}%` }}
                           />
                         </div>
@@ -1225,7 +1307,7 @@ export default function Insights() {
                         onClick={() => setInsightsSection(item.label)}
                         className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium transition-all duration-200 ${
                           insightsSection === item.label
-                            ? "bg-red-50 text-red-600"
+                            ? "bg-[#b10000] text-white shadow-sm"
                             : "text-gray-700 hover:bg-gray-50"
                         }`}
                       >
@@ -1249,8 +1331,8 @@ export default function Insights() {
                       {/* LEFT */}
 
                       <div className="flex items-center gap-3">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-red-50">
-                          <Sparkles className="h-4 w-4 text-red-500" />
+                        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#b10000]">
+                          <Sparkles className="h-4 w-4 text-white" />
                         </div>
 
                         <div>
@@ -1271,7 +1353,7 @@ export default function Insights() {
                       {insightsSection !== "Labour" && (
                         <button
                           onClick={handleSaveInsights}
-                          className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-red-500 to-pink-500 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-all duration-200 hover:opacity-95"
+                          className="flex items-center gap-2 rounded-xl bg-[#b10000] px-4 py-2 text-sm font-semibold text-white shadow-sm transition-all duration-200 hover:bg-[#950000]"
                         >
                           <Save className="h-4 w-4" />
                           Save Setup
@@ -1623,8 +1705,8 @@ export default function Insights() {
                               </p>
                             </div>
 
-                            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-red-50">
-                              <Wallet className="h-4 w-4 text-red-500" />
+                            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#b10000]">
+                              <Wallet className="h-4 w-4 text-white" />
                             </div>
                           </div>
                         </div>
@@ -1753,8 +1835,8 @@ export default function Insights() {
                                     </p>
                                   </div>
 
-                                  <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-red-50">
-                                    <Users className="h-4 w-4 text-red-500" />
+                                  <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#b10000]">
+                                    <Users className="h-4 w-4 text-white" />
                                   </div>
                                 </div>
                               </div>
@@ -1770,8 +1852,8 @@ export default function Insights() {
 
                         <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3">
                           <div className="flex items-center gap-3">
-                            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-red-50">
-                              <ClipboardList className="h-4 w-4 text-red-500" />
+                            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#b10000]">
+                              <ClipboardList className="h-4 w-4 text-white" />
                             </div>
 
                             <div>
@@ -1785,7 +1867,7 @@ export default function Insights() {
                             </div>
                           </div>
 
-                          <div className="rounded-full bg-red-50 px-3 py-1 text-[11px] font-semibold text-red-600">
+                          <div className="rounded-full bg-[#b10000]/10 px-3 py-1 text-[11px] font-semibold text-[#b10000]">
                             {staffData?.length || 0} Employees
                           </div>
                         </div>
@@ -1833,7 +1915,7 @@ export default function Insights() {
                               {staffData?.map((staff: any, index: number) => (
                                 <tr
                                   key={index}
-                                  className="border-t border-gray-100 transition hover:bg-red-50/20"
+                                  className="border-t border-gray-100 transition hover:bg-gray-50"
                                 >
                                   {/* NAME */}
 
@@ -2005,8 +2087,8 @@ export default function Insights() {
                               </p>
                             </div>
 
-                            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-red-50">
-                              <PieChart className="h-4 w-4 text-red-500" />
+                            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#b10000]">
+                              <PieChart className="h-4 w-4 text-white" />
                             </div>
                           </div>
                         </div>
@@ -2018,8 +2100,8 @@ export default function Insights() {
                         {/* HEADER */}
 
                         <div className="mb-5 flex items-center gap-3">
-                          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-red-50">
-                            <Target className="h-4 w-4 text-red-500" />
+                          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#b10000]">
+                            <Target className="h-4 w-4 text-white" />
                           </div>
 
                           <div>
@@ -2161,16 +2243,16 @@ export default function Insights() {
 
                         {/* PRIME */}
 
-                        <div className="rounded-xl border border-red-100 bg-red-50 p-4">
+                        <div className="rounded-xl border border-[#b10000]/20 bg-red-50 p-4">
                           <div className="flex items-start gap-3">
-                            <PieChart className="mt-0.5 h-4 w-4 text-red-500" />
+                            <PieChart className="mt-0.5 h-4 w-4 text-[#b10000]" />
 
                             <div>
-                              <p className="text-sm font-semibold text-red-900">
+                              <p className="text-sm font-semibold text-[#b10000]">
                                 Prime Cost Health
                               </p>
 
-                              <p className="mt-1 text-[12px] leading-6 text-red-800">
+                              <p className="mt-1 text-[12px] leading-6 text-gray-600">
                                 Prime cost should ideally stay below 60% for
                                 strong operational performance.
                               </p>
@@ -2233,8 +2315,8 @@ export default function Insights() {
                               </p>
                             </div>
 
-                            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-red-50">
-                              <Wallet className="h-4 w-4 text-red-500" />
+                            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#b10000]">
+                              <Wallet className="h-4 w-4 text-white" />
                             </div>
                           </div>
                         </div>
@@ -2589,8 +2671,8 @@ export default function Insights() {
 
                         <div className="mb-5 flex items-center justify-between">
                           <div className="flex items-center gap-3">
-                            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-red-50">
-                              <Sparkles className="h-4 w-4 text-red-500" />
+                            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#b10000]">
+                              <Sparkles className="h-4 w-4 text-white" />
                             </div>
 
                             <div>
@@ -2604,7 +2686,7 @@ export default function Insights() {
                             </div>
                           </div>
 
-                          <div className="rounded-full bg-red-50 px-3 py-1 text-[11px] font-semibold text-red-600">
+                          <div className="rounded-full bg-[#b10000]/10 px-3 py-1 text-[11px] font-semibold text-[#b10000]">
                             AI Forecast Active
                           </div>
                         </div>
@@ -2749,8 +2831,8 @@ export default function Insights() {
 
                           <div className="rounded-xl border border-gray-200 bg-white p-3 md:col-span-2 xl:col-span-1">
                             <div className="mb-3 flex items-center gap-3">
-                              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-red-50">
-                                <Building2 className="h-4 w-4 text-red-500" />
+                              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#b10000]">
+                                <Building2 className="h-4 w-4 text-white" />
                               </div>
 
                               <div>

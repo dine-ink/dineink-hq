@@ -1,6 +1,12 @@
 import { Link, useNavigate } from "react-router-dom";
 import { useState } from "react";
-import { EyeIcon, EyeSlashIcon, SparklesIcon, ChartBarIcon, CpuChipIcon } from "@heroicons/react/24/outline";
+import {
+  EyeIcon,
+  EyeSlashIcon,
+  SparklesIcon,
+  ChartBarIcon,
+  CpuChipIcon,
+} from "@heroicons/react/24/outline";
 import { useAppDispatch } from "../../store";
 import { setAuth } from "../../store/slices/authSlice";
 import { setBranches } from "../../store/slices/branchSlice";
@@ -10,7 +16,13 @@ export default function Signup() {
   const dispatch = useAppDispatch();
   const API_URL = import.meta.env.VITE_API_URL;
 
-  const [form, setForm] = useState({ name: "", email: "", phone: "", password: "", confirmPassword: "" });
+  const [form, setForm] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    password: "",
+    confirmPassword: "",
+  });
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -30,11 +42,22 @@ export default function Signup() {
       const res = await fetch(`${API_URL}/api/auth/signup`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: form.name, email: form.email, phone: form.phone, password: form.password }),
+        body: JSON.stringify({
+          name: form.name,
+          email: form.email,
+          phone: form.phone,
+          password: form.password,
+        }),
       });
       const data = await res.json();
       if (data.success) {
-        dispatch(setAuth({ user: data.user, token: data.token, restaurant: data.restaurant || null }));
+        dispatch(
+          setAuth({
+            user: data.user,
+            token: data.token,
+            restaurant: data.restaurant || null,
+          }),
+        );
         dispatch(setBranches(data.branches || []));
         navigate("/dashboard");
       } else {
@@ -63,8 +86,12 @@ export default function Signup() {
               D
             </div>
             <div>
-              <h1 className="text-xl font-black tracking-tight text-white">DineInk</h1>
-              <p className="text-[10px] text-red-100">Restaurant Intelligence</p>
+              <h1 className="text-xl font-black tracking-tight text-white">
+                DineInk
+              </h1>
+              <p className="text-[10px] text-red-100">
+                Restaurant Intelligence
+              </p>
             </div>
           </div>
           <div className="mt-6 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-[10px] font-semibold text-white backdrop-blur-xl">
@@ -77,7 +104,8 @@ export default function Signup() {
             Empire Smarter
           </h2>
           <p className="mt-3 max-w-md text-[13px] leading-6 text-red-100">
-            Billing, inventory, CRM, analytics, operations and AI-powered restaurant intelligence — all inside one operating system.
+            Billing, inventory, CRM, analytics, operations and AI-powered
+            restaurant intelligence — all inside one operating system.
           </p>
         </div>
         <div className="relative z-10 mt-4 space-y-3">
@@ -87,9 +115,13 @@ export default function Signup() {
                 <div className="rounded-lg bg-white/10 p-1.5">
                   <ChartBarIcon className="h-4 w-4 text-white" />
                 </div>
-                <span className="rounded-full bg-emerald-400/20 px-2 py-0.5 text-[8px] font-bold text-emerald-100">LIVE</span>
+                <span className="rounded-full bg-emerald-400/20 px-2 py-0.5 text-[8px] font-bold text-emerald-100">
+                  LIVE
+                </span>
               </div>
-              <h3 className="mt-3 text-[1.8rem] font-black text-white">₹4.8L</h3>
+              <h3 className="mt-3 text-[1.8rem] font-black text-white">
+                ₹4.8L
+              </h3>
               <p className="text-[10px] text-red-100">Monthly Revenue Growth</p>
             </div>
             <div className="rounded-[18px] border border-white/10 bg-white/10 p-3 backdrop-blur-2xl">
@@ -97,7 +129,9 @@ export default function Signup() {
                 <div className="rounded-lg bg-white/10 p-1.5">
                   <CpuChipIcon className="h-4 w-4 text-white" />
                 </div>
-                <span className="rounded-full bg-white/15 px-2 py-0.5 text-[8px] font-bold text-white">AI</span>
+                <span className="rounded-full bg-white/15 px-2 py-0.5 text-[8px] font-bold text-white">
+                  AI
+                </span>
               </div>
               <h3 className="mt-3 text-[1.8rem] font-black text-white">98%</h3>
               <p className="text-[10px] text-red-100">Forecast Accuracy</p>
@@ -106,10 +140,16 @@ export default function Signup() {
           <div className="rounded-[20px] border border-white/10 bg-white/10 p-3.5 backdrop-blur-2xl">
             <div className="flex items-start justify-between">
               <div>
-                <p className="text-[9px] font-semibold tracking-[0.18em] text-red-100">RESTAURANT INSIGHTS</p>
-                <h3 className="mt-1.5 text-lg font-black text-white">Scale With Intelligence</h3>
+                <p className="text-[9px] font-semibold tracking-[0.18em] text-red-100">
+                  RESTAURANT INSIGHTS
+                </p>
+                <h3 className="mt-1.5 text-lg font-black text-white">
+                  Scale With Intelligence
+                </h3>
               </div>
-              <div className="rounded-full bg-emerald-400/20 px-2.5 py-1 text-[8px] font-bold text-emerald-100">ACTIVE</div>
+              <div className="rounded-full bg-emerald-400/20 px-2.5 py-1 text-[8px] font-bold text-emerald-100">
+                ACTIVE
+              </div>
             </div>
             <div className="mt-3 grid grid-cols-3 gap-2">
               <div className="rounded-xl bg-white/10 p-2">
@@ -141,23 +181,30 @@ export default function Signup() {
             </div>
             <div>
               <h1 className="text-lg font-black text-gray-900">DineInk</h1>
-              <p className="text-[11px] text-gray-500">Restaurant Intelligence</p>
+              <p className="text-[11px] text-gray-500">
+                Restaurant Intelligence
+              </p>
             </div>
           </div>
           <div className="overflow-hidden rounded-[24px] border border-white/60 bg-white">
             <div className="border-b border-red-50 px-5 py-3">
-              <div className="inline-flex rounded-full bg-red-50 px-4 py-1.5 text-[10px] font-bold uppercase tracking-[0.22em] text-red-600">
+              <div className="inline-flex rounded-full bg-[#b10000] px-4 py-1.5 text-[10px] font-bold uppercase tracking-[0.22em] text-red-600">
                 Create Account
               </div>
-              <h2 className="mt-3 text-[2.2rem] font-black tracking-tight text-gray-900">Join DineInk</h2>
+              <h2 className="mt-3 text-[2.2rem] font-black tracking-tight text-gray-900">
+                Join DineInk
+              </h2>
               <p className="mt-1.5 text-[13px] leading-5 text-gray-500">
-                Create your restaurant account and start managing your business smarter.
+                Create your restaurant account and start managing your business
+                smarter.
               </p>
             </div>
             <div className="px-5 py-3">
               <form className="space-y-2.5" onSubmit={handleSubmit}>
                 <div>
-                  <label className="mb-1 block text-sm font-semibold text-gray-700">Full Name</label>
+                  <label className="mb-1 block text-sm font-semibold text-gray-700">
+                    Full Name
+                  </label>
                   <input
                     name="name"
                     type="text"
@@ -168,7 +215,9 @@ export default function Signup() {
                   />
                 </div>
                 <div>
-                  <label className="mb-1 block text-sm font-semibold text-gray-700">Email Address</label>
+                  <label className="mb-1 block text-sm font-semibold text-gray-700">
+                    Email Address
+                  </label>
                   <input
                     name="email"
                     type="email"
@@ -179,7 +228,9 @@ export default function Signup() {
                   />
                 </div>
                 <div>
-                  <label className="mb-1 block text-sm font-semibold text-gray-700">Phone Number</label>
+                  <label className="mb-1 block text-sm font-semibold text-gray-700">
+                    Phone Number
+                  </label>
                   <input
                     name="phone"
                     type="tel"
@@ -190,7 +241,9 @@ export default function Signup() {
                   />
                 </div>
                 <div>
-                  <label className="mb-1 block text-sm font-semibold text-gray-700">Password</label>
+                  <label className="mb-1 block text-sm font-semibold text-gray-700">
+                    Password
+                  </label>
                   <div className="relative">
                     <input
                       name="password"
@@ -205,12 +258,18 @@ export default function Signup() {
                       onClick={() => setShowPassword(!showPassword)}
                       className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400"
                     >
-                      {showPassword ? <EyeSlashIcon className="h-5 w-5" /> : <EyeIcon className="h-5 w-5" />}
+                      {showPassword ? (
+                        <EyeSlashIcon className="h-5 w-5" />
+                      ) : (
+                        <EyeIcon className="h-5 w-5" />
+                      )}
                     </button>
                   </div>
                 </div>
                 <div>
-                  <label className="mb-1 block text-sm font-semibold text-gray-700">Confirm Password</label>
+                  <label className="mb-1 block text-sm font-semibold text-gray-700">
+                    Confirm Password
+                  </label>
                   <div className="relative">
                     <input
                       name="confirmPassword"
@@ -222,10 +281,16 @@ export default function Signup() {
                     />
                     <button
                       type="button"
-                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      onClick={() =>
+                        setShowConfirmPassword(!showConfirmPassword)
+                      }
                       className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400"
                     >
-                      {showConfirmPassword ? <EyeSlashIcon className="h-5 w-5" /> : <EyeIcon className="h-5 w-5" />}
+                      {showConfirmPassword ? (
+                        <EyeSlashIcon className="h-5 w-5" />
+                      ) : (
+                        <EyeIcon className="h-5 w-5" />
+                      )}
                     </button>
                   </div>
                 </div>
@@ -241,7 +306,9 @@ export default function Signup() {
           </div>
           <p className="mt-2 text-center text-sm text-white">
             Already have an account?{" "}
-            <Link to="/login" className="font-bold text-black hover:text-black">Sign In</Link>
+            <Link to="/login" className="font-bold text-black hover:text-black">
+              Sign In
+            </Link>
           </p>
         </div>
       </div>

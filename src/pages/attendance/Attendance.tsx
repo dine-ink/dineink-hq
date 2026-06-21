@@ -2,8 +2,16 @@ import { useEffect, useState } from "react";
 import dayjs from "dayjs";
 import { useAppSelector } from "../../store";
 import {
-  BarChart, Bar, ResponsiveContainer, XAxis, YAxis, CartesianGrid, Tooltip,
-  LineChart, Line, ReferenceLine,
+  BarChart,
+  Bar,
+  ResponsiveContainer,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  LineChart,
+  Line,
+  ReferenceLine,
 } from "recharts";
 
 const DEPT_COLOR: Record<string, string> = {
@@ -17,16 +25,19 @@ const DEPT_COLOR: Record<string, string> = {
   MAINTENANCE: "bg-teal-100 text-teal-700",
 };
 
-const fmt = (t: string) => t ? dayjs(t).format("h:mm A") : "—";
-const fmtHrs = (h: number) => h > 0 ? `${Math.floor(h)}h ${Math.round((h % 1) * 60)}m` : "—";
+const fmt = (t: string) => (t ? dayjs(t).format("h:mm A") : "—");
+const fmtHrs = (h: number) =>
+  h > 0 ? `${Math.floor(h)}h ${Math.round((h % 1) * 60)}m` : "—";
 
 export default function Attendance() {
   const API_URL = import.meta.env.VITE_API_URL;
-  const { selectedBranch } = useAppSelector(s => s.branch);
-  const { user, token } = useAppSelector(s => s.auth);
+  const { selectedBranch } = useAppSelector((s) => s.branch);
+  const { user, token } = useAppSelector((s) => s.auth);
   const [date, setDate] = useState(dayjs().format("YYYY-MM-DD"));
   const [viewMode, setViewMode] = useState<"daily" | "monthly">("daily");
-  const [activeSection, setActiveSection] = useState<"attendance" | "productivity">("attendance");
+  const [activeSection, setActiveSection] = useState<
+    "attendance" | "productivity"
+  >("attendance");
   const [productivity, setProductivity] = useState<any>(null);
   const [prodLoading, setProdLoading] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -49,7 +60,11 @@ export default function Attendance() {
         );
         const data = await res.json();
         if (data.success) setProductivity(data.data);
-      } catch { /* silent */ } finally { setProdLoading(false); }
+      } catch {
+        /* silent */
+      } finally {
+        setProdLoading(false);
+      }
     };
     fetchProd();
   }, [activeSection, selectedBranch, date]);
@@ -63,15 +78,32 @@ export default function Attendance() {
         const from = dayjs(date).startOf("month").format("YYYY-MM-DD");
         const to = dayjs(date).endOf("month").format("YYYY-MM-DD");
         const [attRes, monthRes, staffRes] = await Promise.all([
-          fetch(`${API_URL}/api/attendance/branch/${selectedBranch.id}?date=${date}`, { headers: h }),
-          fetch(`${API_URL}/api/attendance/branch/${selectedBranch.id}?from=${from}&to=${to}`, { headers: h }),
-          fetch(`${API_URL}/api/restaurant/staff/${user?.restaurantId}/${selectedBranch.id}`, { headers: h }),
+          fetch(
+            `${API_URL}/api/attendance/branch/${selectedBranch.id}?date=${date}`,
+            { headers: h },
+          ),
+          fetch(
+            `${API_URL}/api/attendance/branch/${selectedBranch.id}?from=${from}&to=${to}`,
+            { headers: h },
+          ),
+          fetch(
+            `${API_URL}/api/restaurant/staff/${user?.restaurantId}/${selectedBranch.id}`,
+            { headers: h },
+          ),
         ]);
-        const [a, m, s] = await Promise.all([attRes.json(), monthRes.json(), staffRes.json()]);
+        const [a, m, s] = await Promise.all([
+          attRes.json(),
+          monthRes.json(),
+          staffRes.json(),
+        ]);
         if (a.success) setAttendance(a.data || []);
         if (m.success) setMonthlyAttendance(m.data || []);
         if (s.success) setAllStaff(s.data || []);
-      } catch { /* silent */ } finally { setLoading(false); }
+      } catch {
+        /* silent */
+      } finally {
+        setLoading(false);
+      }
     };
     fetch_();
   }, [selectedBranch, date]);
@@ -81,13 +113,28 @@ export default function Attendance() {
   const absentCount = allStaff.filter((s: any) => !presentIds.has(s.id)).length;
   const lateCount = attendance.filter((a: any) => {
     if (!a.loginTime) return false;
-    return dayjs(a.loginTime).hour() > 9 || (dayjs(a.loginTime).hour() === 9 && dayjs(a.loginTime).minute() > 15);
+    return (
+      dayjs(a.loginTime).hour() > 9 ||
+      (dayjs(a.loginTime).hour() === 9 && dayjs(a.loginTime).minute() > 15)
+    );
   }).length;
-  const totalHours = attendance.reduce((s: number, a: any) => s + Number(a.totalHours || 0), 0);
-  const totalMonthlySalary = allStaff.reduce((s: number, st: any) => s + Number(st.salary || 0), 0);
-  const dailyPayroll = presentCount > 0
-    ? Math.round(allStaff.filter((s: any) => presentIds.has(s.id)).reduce((sum: number, s: any) => sum + Number(s.salary || 0), 0) / 30)
-    : 0;
+  const totalHours = attendance.reduce(
+    (s: number, a: any) => s + Number(a.totalHours || 0),
+    0,
+  );
+  const totalMonthlySalary = allStaff.reduce(
+    (s: number, st: any) => s + Number(st.salary || 0),
+    0,
+  );
+  const dailyPayroll =
+    presentCount > 0
+      ? Math.round(
+          allStaff
+            .filter((s: any) => presentIds.has(s.id))
+            .reduce((sum: number, s: any) => sum + Number(s.salary || 0), 0) /
+            30,
+        )
+      : 0;
 
   const deptMap = allStaff.reduce((acc: any, s: any) => {
     const d = s.department || "OTHER";
@@ -105,7 +152,9 @@ export default function Attendance() {
       if (!byDate[d]) byDate[d] = { day: d, present: 0 };
       if (a.loginTime) byDate[d].present++;
     });
-    return Object.values(byDate).sort((a: any, b: any) => Number(a.day) - Number(b.day));
+    return Object.values(byDate).sort(
+      (a: any, b: any) => Number(a.day) - Number(b.day),
+    );
   })();
 
   if (loading) {
@@ -127,228 +176,476 @@ export default function Attendance() {
           <div className="absolute -right-8 -top-8 h-24 w-24 rounded-full bg-red-100/40 blur-3xl" />
           <div className="relative z-10 flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
             <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-red-500 to-pink-500 shadow-sm">
-                <svg className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0" /></svg>
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#b10000] shadow-sm">
+                <svg
+                  className="h-5 w-5 text-white"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0"
+                  />
+                </svg>
               </div>
               <div>
-                <h1 className="text-xl font-black tracking-tight text-gray-900">Staff Attendance</h1>
-                <p className="mt-0.5 text-[13px] text-gray-500">Daily attendance, hours worked and staff productivity</p>
+                <h1 className="text-xl font-black tracking-tight text-gray-900">
+                  Staff Attendance
+                </h1>
+                <p className="mt-0.5 text-[13px] text-gray-500">
+                  Daily attendance, hours worked and staff productivity
+                </p>
               </div>
             </div>
             <div className="flex flex-wrap items-center gap-2">
               {/* Section toggle */}
               <div className="flex overflow-hidden rounded-xl border border-gray-200 bg-white">
-                <button onClick={() => setActiveSection("attendance")}
-                  className={`px-4 py-2 text-[12px] font-semibold transition ${activeSection === "attendance" ? "bg-red-500 text-white" : "text-gray-600 hover:bg-gray-50"}`}>
+                <button
+                  onClick={() => setActiveSection("attendance")}
+                  className={`px-4 py-2 text-[12px] font-semibold transition ${activeSection === "attendance" ? "bg-[#b10000] text-white" : "text-gray-600 hover:bg-gray-50"}`}
+                >
                   Attendance
                 </button>
-                <button onClick={() => setActiveSection("productivity")}
-                  className={`px-4 py-2 text-[12px] font-semibold transition ${activeSection === "productivity" ? "bg-red-500 text-white" : "text-gray-600 hover:bg-gray-50"}`}>
+                <button
+                  onClick={() => setActiveSection("productivity")}
+                  className={`px-4 py-2 text-[12px] font-semibold transition ${activeSection === "productivity" ? "bg-[#b10000] text-white" : "text-gray-600 hover:bg-gray-50"}`}
+                >
                   Productivity
                 </button>
               </div>
               {activeSection === "attendance" && (
                 <>
-                  <div className="flex rounded-lg border border-gray-200 bg-white overflow-hidden">
-                    {(["daily", "monthly"] as const).map(m => (
-                      <button key={m} onClick={() => setViewMode(m)} className={`px-3 py-1.5 text-[11px] font-semibold transition ${viewMode === m ? "bg-red-500 text-white" : "text-gray-600 hover:bg-gray-50"}`}>
+                  <div className="flex overflow-hidden rounded-lg border border-gray-200 bg-white">
+                    {(["daily", "monthly"] as const).map((m) => (
+                      <button
+                        key={m}
+                        onClick={() => setViewMode(m)}
+                        className={`px-3 py-1.5 text-[11px] font-semibold transition ${viewMode === m ? "bg-[#b10000] text-white" : "text-gray-600 hover:bg-gray-50"}`}
+                      >
                         {m.charAt(0).toUpperCase() + m.slice(1)}
                       </button>
                     ))}
                   </div>
-                  <input type="date" value={date} onChange={e => setDate(e.target.value)}
-                    className="h-9 rounded-lg border border-gray-200 bg-white px-3 text-[12px] outline-none focus:border-red-400" />
+                  <input
+                    type="date"
+                    value={date}
+                    onChange={(e) => setDate(e.target.value)}
+                    className="h-9 rounded-lg border border-gray-200 bg-white px-3 text-[12px] text-gray-700 outline-none focus:border-red-300"
+                  />
                 </>
               )}
             </div>
           </div>
         </div>
 
-        {activeSection === "attendance" && <>
-        {/* KPIs */}
-        <div className="grid grid-cols-2 gap-3 xl:grid-cols-5">
-          {[
-            { label: "Total Staff", value: allStaff.length, sub: "registered", cls: "border-blue-100 bg-blue-50/60", val: "text-blue-700" },
-            { label: "Present", value: presentCount, sub: "clocked in today", cls: "border-emerald-100 bg-emerald-50/60", val: "text-emerald-700" },
-            { label: "Absent", value: absentCount, sub: "not clocked in", cls: "border-red-100 bg-red-50/60", val: "text-red-700" },
-            { label: "Late Arrivals", value: lateCount, sub: "after 9:15 AM", cls: "border-orange-100 bg-orange-50/60", val: "text-orange-700" },
-            { label: "Hours Worked", value: fmtHrs(totalHours), sub: "total today", cls: "border-violet-100 bg-violet-50/60", val: "text-violet-700" },
-          ].map(k => (
-            <div key={k.label} className={`rounded-xl border p-4 ${k.cls}`}>
-              <p className="text-[10px] font-bold uppercase tracking-wide text-gray-500">{k.label}</p>
-              <p className={`mt-2 text-[22px] font-bold ${k.val}`}>{k.value}</p>
-              <p className="mt-1 text-[11px] text-gray-500">{k.sub}</p>
-            </div>
-          ))}
-        </div>
-
-        <div className="grid grid-cols-1 gap-3 xl:grid-cols-3">
-          {/* DEPT CHART */}
-          <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
-            <div className="border-b border-gray-100 px-4 py-3">
-              <h3 className="text-[15px] font-bold text-gray-900">Attendance by Department</h3>
-              <p className="mt-0.5 text-[11px] text-gray-500">Present (green) vs total (gray)</p>
-            </div>
-            <div className="p-3">
-              {deptData.length > 0 ? (
-                <ResponsiveContainer width="100%" height={230}>
-                  <BarChart data={deptData} barGap={2}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                    <XAxis dataKey="dept" tick={{ fontSize: 8, fill: "#6b7280" }} axisLine={false} tickLine={false} />
-                    <YAxis tick={{ fontSize: 10, fill: "#6b7280" }} axisLine={false} tickLine={false} />
-                    <Tooltip />
-                    <Bar dataKey="total" name="Total Staff" fill="#e5e7eb" radius={[3, 3, 0, 0]} />
-                    <Bar dataKey="present" name="Present" fill="#10b981" radius={[3, 3, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              ) : (
-                <div className="flex h-[230px] items-center justify-center text-[12px] text-gray-400">No staff data available</div>
-              )}
-            </div>
-          </div>
-
-          {/* MONTHLY TREND */}
-          <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
-            <div className="border-b border-gray-100 px-4 py-3">
-              <h3 className="text-[15px] font-bold text-gray-900">Monthly Presence Trend</h3>
-              <p className="mt-0.5 text-[11px] text-gray-500">{dayjs(date).format("MMMM YYYY")} — daily headcount</p>
-            </div>
-            <div className="p-3">
-              {monthlyTrend.length > 0 ? (
-                <ResponsiveContainer width="100%" height={230}>
-                  <LineChart data={monthlyTrend}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                    <XAxis dataKey="day" tick={{ fontSize: 9, fill: "#6b7280" }} axisLine={false} tickLine={false} />
-                    <YAxis tick={{ fontSize: 9, fill: "#6b7280" }} axisLine={false} tickLine={false} />
-                    <Tooltip />
-                    <ReferenceLine y={allStaff.length} stroke="#ef4444" strokeDasharray="4 2" strokeWidth={1} label={{ value: "Full Team", position: "right", fontSize: 9 }} />
-                    <Line type="monotone" dataKey="present" name="Present" stroke="#ef4444" strokeWidth={2} dot={{ fill: "#ef4444", r: 2 }} />
-                  </LineChart>
-                </ResponsiveContainer>
-              ) : (
-                <div className="flex h-[230px] items-center justify-center text-[12px] text-gray-400">No monthly data yet</div>
-              )}
-            </div>
-          </div>
-
-          {/* PAYROLL */}
-          <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
-            <div className="border-b border-gray-100 px-4 py-3">
-              <h3 className="text-[15px] font-bold text-gray-900">Payroll Overview</h3>
-              <p className="mt-0.5 text-[11px] text-gray-500">Estimated cost for today's present staff</p>
-            </div>
-            <div className="p-4 space-y-3">
-              <div className="grid grid-cols-2 gap-2">
-                <div className="rounded-xl border border-gray-200 bg-gray-50 p-3">
-                  <p className="text-[9px] font-bold uppercase tracking-wide text-gray-400">Monthly Total</p>
-                  <p className="mt-1.5 text-[18px] font-bold text-gray-900">₹{totalMonthlySalary.toLocaleString()}</p>
+        {activeSection === "attendance" && (
+          <>
+            {/* KPIs */}
+            <div className="grid grid-cols-2 gap-3 xl:grid-cols-5">
+              {[
+                {
+                  label: "Total Staff",
+                  value: allStaff.length,
+                  sub: "registered",
+                  cls: "border-blue-100 bg-blue-50/60",
+                  val: "text-blue-700",
+                },
+                {
+                  label: "Present",
+                  value: presentCount,
+                  sub: "clocked in today",
+                  cls: "border-emerald-100 bg-emerald-50/60",
+                  val: "text-emerald-700",
+                },
+                {
+                  label: "Absent",
+                  value: absentCount,
+                  sub: "not clocked in",
+                  cls: "border-red-100 bg-red-50/60",
+                  val: "text-red-700",
+                },
+                {
+                  label: "Late Arrivals",
+                  value: lateCount,
+                  sub: "after 9:15 AM",
+                  cls: "border-orange-100 bg-orange-50/60",
+                  val: "text-orange-700",
+                },
+                {
+                  label: "Hours Worked",
+                  value: fmtHrs(totalHours),
+                  sub: "total today",
+                  cls: "border-violet-100 bg-violet-50/60",
+                  val: "text-violet-700",
+                },
+              ].map((k) => (
+                <div key={k.label} className={`rounded-xl border p-4 ${k.cls}`}>
+                  <p className="text-[10px] font-bold uppercase tracking-wide text-gray-500">
+                    {k.label}
+                  </p>
+                  <p className={`mt-2 text-[22px] font-bold ${k.val}`}>
+                    {k.value}
+                  </p>
+                  <p className="mt-1 text-[11px] text-gray-500">{k.sub}</p>
                 </div>
-                <div className="rounded-xl border border-emerald-100 bg-emerald-50 p-3">
-                  <p className="text-[9px] font-bold uppercase tracking-wide text-gray-400">Today (Present)</p>
-                  <p className="mt-1.5 text-[18px] font-bold text-emerald-700">₹{dailyPayroll.toLocaleString()}</p>
+              ))}
+            </div>
+
+            <div className="grid grid-cols-1 gap-3 xl:grid-cols-3">
+              {/* DEPT CHART */}
+              <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+                <div className="border-b border-gray-100 px-4 py-3">
+                  <h3 className="text-[15px] font-bold text-gray-900">
+                    Attendance by Department
+                  </h3>
+                  <p className="mt-0.5 text-[11px] text-gray-500">
+                    Present (green) vs total (gray)
+                  </p>
                 </div>
-              </div>
-              <div className="space-y-1.5 max-h-[145px] overflow-y-auto">
-                {Object.values(deptMap).map((d: any) => {
-                  const deptPresent = allStaff.filter((s: any) => s.department === d.dept && presentIds.has(s.id));
-                  const deptCost = Math.round(deptPresent.reduce((sum: number, s: any) => sum + Number(s.salary || 0), 0) / 30);
-                  return (
-                    <div key={d.dept} className="flex items-center justify-between rounded-lg bg-gray-50 px-3 py-2">
-                      <div className="flex items-center gap-2">
-                        <span className={`rounded-md px-1.5 py-0.5 text-[9px] font-bold ${DEPT_COLOR[d.dept] || "bg-gray-100 text-gray-700"}`}>{d.dept}</span>
-                        <span className="text-[11px] text-gray-600">{d.present}/{d.total}</span>
-                      </div>
-                      <span className="text-[11px] font-semibold text-gray-900">₹{deptCost.toLocaleString()}/day</span>
+                <div className="p-3">
+                  {deptData.length > 0 ? (
+                    <ResponsiveContainer width="100%" height={230}>
+                      <BarChart data={deptData} barGap={2}>
+                        <CartesianGrid
+                          strokeDasharray="3 3"
+                          vertical={false}
+                          stroke="#f1f5f9"
+                        />
+                        <XAxis
+                          dataKey="dept"
+                          tick={{ fontSize: 8, fill: "#6b7280" }}
+                          axisLine={false}
+                          tickLine={false}
+                        />
+                        <YAxis
+                          tick={{ fontSize: 10, fill: "#6b7280" }}
+                          axisLine={false}
+                          tickLine={false}
+                        />
+                        <Tooltip />
+                        <Bar
+                          dataKey="total"
+                          name="Total Staff"
+                          fill="#e5e7eb"
+                          radius={[3, 3, 0, 0]}
+                        />
+                        <Bar
+                          dataKey="present"
+                          name="Present"
+                          fill="#10b981"
+                          radius={[3, 3, 0, 0]}
+                        />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <div className="flex h-[230px] items-center justify-center text-[12px] text-gray-400">
+                      No staff data available
                     </div>
-                  );
-                })}
+                  )}
+                </div>
+              </div>
+
+              {/* MONTHLY TREND */}
+              <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+                <div className="border-b border-gray-100 px-4 py-3">
+                  <h3 className="text-[15px] font-bold text-gray-900">
+                    Monthly Presence Trend
+                  </h3>
+                  <p className="mt-0.5 text-[11px] text-gray-500">
+                    {dayjs(date).format("MMMM YYYY")} — daily headcount
+                  </p>
+                </div>
+                <div className="p-3">
+                  {monthlyTrend.length > 0 ? (
+                    <ResponsiveContainer width="100%" height={230}>
+                      <LineChart data={monthlyTrend}>
+                        <CartesianGrid
+                          strokeDasharray="3 3"
+                          vertical={false}
+                          stroke="#f1f5f9"
+                        />
+                        <XAxis
+                          dataKey="day"
+                          tick={{ fontSize: 9, fill: "#6b7280" }}
+                          axisLine={false}
+                          tickLine={false}
+                        />
+                        <YAxis
+                          tick={{ fontSize: 9, fill: "#6b7280" }}
+                          axisLine={false}
+                          tickLine={false}
+                        />
+                        <Tooltip />
+                        <ReferenceLine
+                          y={allStaff.length}
+                          stroke="#ef4444"
+                          strokeDasharray="4 2"
+                          strokeWidth={1}
+                          label={{
+                            value: "Full Team",
+                            position: "right",
+                            fontSize: 9,
+                          }}
+                        />
+                        <Line
+                          type="monotone"
+                          dataKey="present"
+                          name="Present"
+                          stroke="#ef4444"
+                          strokeWidth={2}
+                          dot={{ fill: "#ef4444", r: 2 }}
+                        />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <div className="flex h-[230px] items-center justify-center text-[12px] text-gray-400">
+                      No monthly data yet
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* PAYROLL */}
+              <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+                <div className="border-b border-gray-100 px-4 py-3">
+                  <h3 className="text-[15px] font-bold text-gray-900">
+                    Payroll Overview
+                  </h3>
+                  <p className="mt-0.5 text-[11px] text-gray-500">
+                    Estimated cost for today's present staff
+                  </p>
+                </div>
+                <div className="p-4 space-y-3">
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="rounded-xl border border-gray-200 bg-gray-50 p-3">
+                      <p className="text-[9px] font-bold uppercase tracking-wide text-gray-400">
+                        Monthly Total
+                      </p>
+                      <p className="mt-1.5 text-[18px] font-bold text-gray-900">
+                        ₹{totalMonthlySalary.toLocaleString()}
+                      </p>
+                    </div>
+                    <div className="rounded-xl border border-emerald-100 bg-emerald-50 p-3">
+                      <p className="text-[9px] font-bold uppercase tracking-wide text-gray-400">
+                        Today (Present)
+                      </p>
+                      <p className="mt-1.5 text-[18px] font-bold text-emerald-700">
+                        ₹{dailyPayroll.toLocaleString()}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="space-y-1.5 max-h-[145px] overflow-y-auto">
+                    {Object.values(deptMap).map((d: any) => {
+                      const deptPresent = allStaff.filter(
+                        (s: any) =>
+                          s.department === d.dept && presentIds.has(s.id),
+                      );
+                      const deptCost = Math.round(
+                        deptPresent.reduce(
+                          (sum: number, s: any) => sum + Number(s.salary || 0),
+                          0,
+                        ) / 30,
+                      );
+                      return (
+                        <div
+                          key={d.dept}
+                          className="flex items-center justify-between rounded-lg bg-gray-50 px-3 py-2"
+                        >
+                          <div className="flex items-center gap-2">
+                            <span
+                              className={`rounded-md px-1.5 py-0.5 text-[9px] font-bold ${DEPT_COLOR[d.dept] || "bg-gray-100 text-gray-700"}`}
+                            >
+                              {d.dept}
+                            </span>
+                            <span className="text-[11px] text-gray-600">
+                              {d.present}/{d.total}
+                            </span>
+                          </div>
+                          <span className="text-[11px] font-semibold text-gray-900">
+                            ₹{deptCost.toLocaleString()}/day
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
-        </div>
 
-        {/* ATTENDANCE REGISTER */}
-        <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
-          <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3">
-            <div>
-              <h3 className="text-[15px] font-bold text-gray-900">Attendance Register</h3>
-              <p className="mt-0.5 text-[11px] text-gray-500">{dayjs(date).format("dddd, DD MMMM YYYY")} · {selectedBranch?.name}</p>
-            </div>
-            <div className="flex gap-2">
-              <span className="rounded-lg bg-emerald-50 px-3 py-1.5 text-[10px] font-bold text-emerald-700">{presentCount} Present</span>
-              <span className="rounded-lg bg-red-50 px-3 py-1.5 text-[10px] font-bold text-red-700">{absentCount} Absent</span>
-              {lateCount > 0 && <span className="rounded-lg bg-orange-50 px-3 py-1.5 text-[10px] font-bold text-orange-700">{lateCount} Late</span>}
-            </div>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="min-w-full text-[12px]">
-              <thead className="bg-gray-50">
-                <tr className="border-b border-gray-100">
-                  {["Staff", "Dept", "Role", "Clock In", "Clock Out", "Breaks", "Hours", "Salary/Day", "Status"].map(h => (
-                    <th key={h} className="px-4 py-2 text-left text-[10px] font-bold uppercase tracking-wide text-gray-400">{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {allStaff.map((s: any) => {
-                  const att = attendance.find((a: any) => a.userId === s.id);
-                  const isPresent = !!att?.loginTime;
-                  const isLate = isPresent && (dayjs(att.loginTime).hour() > 9 || (dayjs(att.loginTime).hour() === 9 && dayjs(att.loginTime).minute() > 15));
-                  const breaks = att?.breaks || [];
-                  const breakMins = breaks.reduce((sum: number, b: any) => sum + Number(b.totalMinutes || 0), 0);
-                  return (
-                    <tr key={s.id} className={`border-b border-gray-50 transition hover:bg-gray-50/40 ${!isPresent ? "bg-red-50/20" : isLate ? "bg-orange-50/20" : ""}`}>
-                      <td className="px-4 py-2.5">
-                        <div className="flex items-center gap-2.5">
-                          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-red-400 to-pink-500 text-[11px] font-bold text-white">
-                            {s.name?.charAt(0)?.toUpperCase()}
-                          </div>
-                          <div>
-                            <p className="font-semibold text-gray-900">{s.name}</p>
-                            <p className="text-[9px] text-gray-400">{s.phone || ""}</p>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-4 py-2.5">
-                        <span className={`rounded-md px-1.5 py-0.5 text-[9px] font-bold ${DEPT_COLOR[s.department] || "bg-gray-100 text-gray-700"}`}>
-                          {s.department || "—"}
-                        </span>
-                      </td>
-                      <td className="px-4 py-2.5 text-gray-600">{s.role}</td>
-                      <td className="px-4 py-2.5">
-                        <span className={`font-medium ${isLate ? "text-orange-600" : "text-gray-900"}`}>{fmt(att?.loginTime)}</span>
-                        {isLate && <span className="ml-1 text-[9px] text-orange-500">(Late)</span>}
-                      </td>
-                      <td className="px-4 py-2.5 text-gray-600">{fmt(att?.logoutTime)}</td>
-                      <td className="px-4 py-2.5 text-gray-500">{breakMins > 0 ? `${breakMins}m` : "—"}</td>
-                      <td className="px-4 py-2.5 font-semibold text-gray-900">{fmtHrs(Number(att?.totalHours || 0))}</td>
-                      <td className="px-4 py-2.5 text-gray-700">₹{Math.round(Number(s.salary || 0) / 30).toLocaleString()}</td>
-                      <td className="px-4 py-2.5">
-                        <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-semibold ${
-                          isPresent ? (isLate ? "bg-orange-50 text-orange-600" : "bg-emerald-50 text-emerald-600") : "bg-red-50 text-red-600"
-                        }`}>
-                          {isPresent ? (isLate ? "Late" : "Present") : "Absent"}
-                        </span>
-                      </td>
+            {/* ATTENDANCE REGISTER */}
+            <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+              <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3">
+                <div>
+                  <h3 className="text-[15px] font-bold text-gray-900">
+                    Attendance Register
+                  </h3>
+                  <p className="mt-0.5 text-[11px] text-gray-500">
+                    {dayjs(date).format("dddd, DD MMMM YYYY")} ·{" "}
+                    {selectedBranch?.name}
+                  </p>
+                </div>
+                <div className="flex gap-2">
+                  <span className="rounded-lg bg-emerald-50 px-3 py-1.5 text-[10px] font-bold text-emerald-700">
+                    {presentCount} Present
+                  </span>
+                  <span className="rounded-lg border border-red-100 bg-red-50 px-3 py-1.5 text-[10px] font-bold text-red-700">
+                    {absentCount} Absent
+                  </span>
+                  {lateCount > 0 && (
+                    <span className="rounded-lg bg-orange-50 px-3 py-1.5 text-[10px] font-bold text-orange-700">
+                      {lateCount} Late
+                    </span>
+                  )}
+                </div>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="min-w-full text-[12px]">
+                  <thead className="bg-gray-50">
+                    <tr className="border-b border-gray-100">
+                      {[
+                        "Staff",
+                        "Dept",
+                        "Role",
+                        "Clock In",
+                        "Clock Out",
+                        "Breaks",
+                        "Hours",
+                        "Salary/Day",
+                        "Status",
+                      ].map((h) => (
+                        <th
+                          key={h}
+                          className="px-4 py-2 text-left text-[10px] font-bold uppercase tracking-wide text-gray-400"
+                        >
+                          {h}
+                        </th>
+                      ))}
                     </tr>
-                  );
-                })}
-                {allStaff.length === 0 && (
-                  <tr><td colSpan={9} className="py-14 text-center text-[12px] text-gray-400">No staff found for this branch. Add staff in Shops → Staff section.</td></tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-        </>}
+                  </thead>
+                  <tbody>
+                    {allStaff.map((s: any) => {
+                      const att = attendance.find(
+                        (a: any) => a.userId === s.id,
+                      );
+                      const isPresent = !!att?.loginTime;
+                      const isLate =
+                        isPresent &&
+                        (dayjs(att.loginTime).hour() > 9 ||
+                          (dayjs(att.loginTime).hour() === 9 &&
+                            dayjs(att.loginTime).minute() > 15));
+                      const breaks = att?.breaks || [];
+                      const breakMins = breaks.reduce(
+                        (sum: number, b: any) =>
+                          sum + Number(b.totalMinutes || 0),
+                        0,
+                      );
+                      return (
+                        <tr
+                          key={s.id}
+                          className={`border-b border-gray-50 transition hover:bg-gray-50/40 ${!isPresent ? "bg-red-50/60" : isLate ? "bg-orange-50/20" : ""}`}
+                        >
+                          <td className="px-4 py-2.5">
+                            <div className="flex items-center gap-2.5">
+                              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#b10000] text-[11px] font-bold text-white">
+                                {s.name?.charAt(0)?.toUpperCase()}
+                              </div>
+                              <div>
+                                <p className="font-semibold text-gray-900">
+                                  {s.name}
+                                </p>
+                                <p className="text-[9px] text-gray-400">
+                                  {s.phone || ""}
+                                </p>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-4 py-2.5">
+                            <span
+                              className={`rounded-md px-1.5 py-0.5 text-[9px] font-bold ${DEPT_COLOR[s.department] || "bg-gray-100 text-gray-700"}`}
+                            >
+                              {s.department || "—"}
+                            </span>
+                          </td>
+                          <td className="px-4 py-2.5 text-gray-600">
+                            {s.role}
+                          </td>
+                          <td className="px-4 py-2.5">
+                            <span
+                              className={`font-medium ${isLate ? "text-orange-600" : "text-gray-900"}`}
+                            >
+                              {fmt(att?.loginTime)}
+                            </span>
+                            {isLate && (
+                              <span className="ml-1 text-[9px] text-orange-500">
+                                (Late)
+                              </span>
+                            )}
+                          </td>
+                          <td className="px-4 py-2.5 text-gray-600">
+                            {fmt(att?.logoutTime)}
+                          </td>
+                          <td className="px-4 py-2.5 text-gray-500">
+                            {breakMins > 0 ? `${breakMins}m` : "—"}
+                          </td>
+                          <td className="px-4 py-2.5 font-semibold text-gray-900">
+                            {fmtHrs(Number(att?.totalHours || 0))}
+                          </td>
+                          <td className="px-4 py-2.5 text-gray-700">
+                            ₹
+                            {Math.round(
+                              Number(s.salary || 0) / 30,
+                            ).toLocaleString()}
+                          </td>
+                          <td className="px-4 py-2.5">
+                            <span
+                              className={`rounded-full px-2.5 py-0.5 text-[10px] font-semibold ${
+                                isPresent
+                                  ? isLate
+                                    ? "bg-orange-50 text-orange-600"
+                                    : "bg-emerald-50 text-emerald-600"
+                                  : "bg-red-50 text-red-700"
+                              }`}
+                            >
+                              {isPresent
+                                ? isLate
+                                  ? "Late"
+                                  : "Present"
+                                : "Absent"}
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                    {allStaff.length === 0 && (
+                      <tr>
+                        <td
+                          colSpan={9}
+                          className="py-14 text-center text-[12px] text-gray-400"
+                        >
+                          No staff found for this branch. Add staff in Shops →
+                          Staff section.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </>
+        )}
 
         {/* ── PRODUCTIVITY SECTION ─────────────────────── */}
-        {activeSection === "productivity" && (
-          prodLoading ? (
+        {activeSection === "productivity" &&
+          (prodLoading ? (
             <div className="flex min-h-[300px] items-center justify-center">
               <div className="flex flex-col items-center gap-3">
                 <div className="h-8 w-8 animate-spin rounded-full border-2 border-gray-200 border-t-red-500" />
-                <p className="text-[12px] text-gray-500">Calculating productivity...</p>
+                <p className="text-[12px] text-gray-500">
+                  Calculating productivity...
+                </p>
               </div>
             </div>
           ) : (
@@ -356,14 +653,45 @@ export default function Attendance() {
               {/* KPIs */}
               <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
                 {[
-                  { label: "Total Staff", value: productivity?.totals?.totalStaff || 0, sub: "in this branch", color: "blue" },
-                  { label: "Total Hours Worked", value: `${productivity?.totals?.totalHoursWorked || 0}h`, sub: "this month", color: "orange" },
-                  { label: "Monthly Labour Cost", value: `₹${(productivity?.totals?.totalLabourCost || 0).toLocaleString()}`, sub: "total salaries", color: "red" },
-                  { label: "Avg Hours/Staff", value: productivity?.totals?.totalStaff ? `${Math.round((productivity?.totals?.totalHoursWorked || 0) / productivity.totals.totalStaff)}h` : "—", sub: "per person", color: "emerald" },
-                ].map(k => (
-                  <div key={k.label} className={`rounded-xl border p-4 ${k.color === "blue" ? "border-blue-100 bg-blue-50/60" : k.color === "orange" ? "border-orange-100 bg-orange-50/60" : k.color === "red" ? "border-red-100 bg-red-50/60" : "border-emerald-100 bg-emerald-50/60"}`}>
-                    <p className="text-[10px] font-bold uppercase tracking-wide text-gray-500">{k.label}</p>
-                    <p className={`mt-2 text-[22px] font-bold ${k.color === "blue" ? "text-blue-700" : k.color === "orange" ? "text-orange-700" : k.color === "red" ? "text-red-700" : "text-emerald-700"}`}>{k.value}</p>
+                  {
+                    label: "Total Staff",
+                    value: productivity?.totals?.totalStaff || 0,
+                    sub: "in this branch",
+                    color: "blue",
+                  },
+                  {
+                    label: "Total Hours Worked",
+                    value: `${productivity?.totals?.totalHoursWorked || 0}h`,
+                    sub: "this month",
+                    color: "orange",
+                  },
+                  {
+                    label: "Monthly Labour Cost",
+                    value: `₹${(productivity?.totals?.totalLabourCost || 0).toLocaleString()}`,
+                    sub: "total salaries",
+                    color: "red",
+                  },
+                  {
+                    label: "Avg Hours/Staff",
+                    value: productivity?.totals?.totalStaff
+                      ? `${Math.round((productivity?.totals?.totalHoursWorked || 0) / productivity.totals.totalStaff)}h`
+                      : "—",
+                    sub: "per person",
+                    color: "emerald",
+                  },
+                ].map((k) => (
+                  <div
+                    key={k.label}
+                    className={`rounded-xl border p-4 ${k.color === "blue" ? "border-blue-100 bg-blue-50/60" : k.color === "orange" ? "border-orange-100 bg-orange-50/60" : k.color === "red" ? "border-red-100 bg-red-50/60" : "border-emerald-100 bg-emerald-50/60"}`}
+                  >
+                    <p className="text-[10px] font-bold uppercase tracking-wide text-gray-500">
+                      {k.label}
+                    </p>
+                    <p
+                      className={`mt-2 text-[22px] font-bold ${k.color === "blue" ? "text-blue-700" : k.color === "orange" ? "text-orange-700" : k.color === "red" ? "text-red-700" : "text-emerald-700"}`}
+                    >
+                      {k.value}
+                    </p>
                     <p className="mt-1 text-[11px] text-gray-500">{k.sub}</p>
                   </div>
                 ))}
@@ -373,27 +701,61 @@ export default function Attendance() {
               <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
                 <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
                   <div className="border-b border-gray-100 px-4 py-3">
-                    <h3 className="text-[15px] font-bold text-gray-900">Revenue by Shift</h3>
-                    <p className="mt-0.5 text-[11px] text-gray-500">Revenue generated during each kitchen shift window</p>
+                    <h3 className="text-[15px] font-bold text-gray-900">
+                      Revenue by Shift
+                    </h3>
+                    <p className="mt-0.5 text-[11px] text-gray-500">
+                      Revenue generated during each kitchen shift window
+                    </p>
                   </div>
                   <div className="space-y-3 p-4">
                     {[
-                      { label: "Morning (6–12 AM)", key: "morning", color: "bg-yellow-500" },
-                      { label: "Afternoon (12–5 PM)", key: "afternoon", color: "bg-orange-500" },
-                      { label: "Evening (5–10 PM)", key: "evening", color: "bg-red-500" },
-                      { label: "Night (10 PM–6 AM)", key: "night", color: "bg-indigo-500" },
-                    ].map(s => {
+                      {
+                        label: "Morning (6–12 AM)",
+                        key: "morning",
+                        color: "bg-yellow-500",
+                      },
+                      {
+                        label: "Afternoon (12–5 PM)",
+                        key: "afternoon",
+                        color: "bg-orange-500",
+                      },
+                      {
+                        label: "Evening (5–10 PM)",
+                        key: "evening",
+                        color: "bg-[#b10000]",
+                      },
+                      {
+                        label: "Night (10 PM–6 AM)",
+                        key: "night",
+                        color: "bg-indigo-500",
+                      },
+                    ].map((s) => {
                       const rev = productivity?.shiftRevenue?.[s.key] || 0;
-                      const totalRev = Object.values(productivity?.shiftRevenue || {}).reduce((a: number, v: any) => a + v, 0) as number || 1;
+                      const totalRev =
+                        (Object.values(productivity?.shiftRevenue || {}).reduce(
+                          (a: number, v: any) => a + v,
+                          0,
+                        ) as number) || 1;
                       const pct = Math.round((rev / totalRev) * 100);
                       return (
                         <div key={s.key}>
                           <div className="flex items-center justify-between">
-                            <p className="text-[12px] font-semibold text-gray-900">{s.label}</p>
-                            <p className="text-[12px] font-bold text-gray-700">₹{rev.toLocaleString()} <span className="text-[10px] text-gray-400">({pct}%)</span></p>
+                            <p className="text-[12px] font-semibold text-gray-900">
+                              {s.label}
+                            </p>
+                            <p className="text-[12px] font-bold text-gray-700">
+                              ₹{rev.toLocaleString()}{" "}
+                              <span className="text-[10px] text-gray-400">
+                                ({pct}%)
+                              </span>
+                            </p>
                           </div>
                           <div className="mt-1 h-2 overflow-hidden rounded-full bg-gray-100">
-                            <div className={`h-full rounded-full ${s.color} transition-all`} style={{ width: `${pct}%` }} />
+                            <div
+                              className={`h-full rounded-full ${s.color} transition-all`}
+                              style={{ width: `${pct}%` }}
+                            />
                           </div>
                         </div>
                       );
@@ -403,24 +765,41 @@ export default function Attendance() {
 
                 <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
                   <div className="border-b border-gray-100 px-4 py-3">
-                    <h3 className="text-[15px] font-bold text-gray-900">Department Cost Breakdown</h3>
-                    <p className="mt-0.5 text-[11px] text-gray-500">Monthly salary total per department</p>
+                    <h3 className="text-[15px] font-bold text-gray-900">
+                      Department Cost Breakdown
+                    </h3>
+                    <p className="mt-0.5 text-[11px] text-gray-500">
+                      Monthly salary total per department
+                    </p>
                   </div>
                   <div className="divide-y divide-gray-50">
                     {(productivity?.deptData || []).map((d: any) => (
-                      <div key={d.dept} className="flex items-center justify-between px-4 py-3">
+                      <div
+                        key={d.dept}
+                        className="flex items-center justify-between px-4 py-3"
+                      >
                         <div>
-                          <p className="text-[13px] font-bold text-gray-900">{d.dept}</p>
-                          <p className="text-[11px] text-gray-400">{d.count} staff · {d.totalHours}h worked</p>
+                          <p className="text-[13px] font-bold text-gray-900">
+                            {d.dept}
+                          </p>
+                          <p className="text-[11px] text-gray-400">
+                            {d.count} staff · {d.totalHours}h worked
+                          </p>
                         </div>
                         <div className="text-right">
-                          <p className="text-[14px] font-bold text-red-600">₹{d.totalSalary.toLocaleString()}</p>
-                          <p className="text-[10px] text-gray-400">₹{d.avgSalary.toLocaleString()} avg</p>
+                          <p className="text-[14px] font-bold text-red-600">
+                            ₹{d.totalSalary.toLocaleString()}
+                          </p>
+                          <p className="text-[10px] text-gray-400">
+                            ₹{d.avgSalary.toLocaleString()} avg
+                          </p>
                         </div>
                       </div>
                     ))}
                     {!productivity?.deptData?.length && (
-                      <div className="py-8 text-center text-[12px] text-gray-400">No department data available</div>
+                      <div className="py-8 text-center text-[12px] text-gray-400">
+                        No department data available
+                      </div>
                     )}
                   </div>
                 </div>
@@ -429,55 +808,101 @@ export default function Attendance() {
               {/* Per-staff productivity table */}
               <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
                 <div className="border-b border-gray-100 px-4 py-3">
-                  <h3 className="text-[15px] font-bold text-gray-900">Staff Efficiency — This Month</h3>
-                  <p className="mt-0.5 text-[11px] text-gray-500">Hours worked, attendance rate and cost per hour for each staff member</p>
+                  <h3 className="text-[15px] font-bold text-gray-900">
+                    Staff Efficiency — This Month
+                  </h3>
+                  <p className="mt-0.5 text-[11px] text-gray-500">
+                    Hours worked, attendance rate and cost per hour for each
+                    staff member
+                  </p>
                 </div>
                 <div className="overflow-x-auto">
                   <table className="min-w-full text-[12px]">
                     <thead className="bg-gray-50">
                       <tr className="border-b border-gray-100">
-                        {["Staff", "Dept", "Shift", "Days Present", "Hours Worked", "Attendance %", "Monthly Salary", "Cost/Hour"].map(h => (
-                          <th key={h} className="px-4 py-2.5 text-left text-[10px] font-bold uppercase tracking-wide text-gray-400">{h}</th>
+                        {[
+                          "Staff",
+                          "Dept",
+                          "Shift",
+                          "Days Present",
+                          "Hours Worked",
+                          "Attendance %",
+                          "Monthly Salary",
+                          "Cost/Hour",
+                        ].map((h) => (
+                          <th
+                            key={h}
+                            className="px-4 py-2.5 text-left text-[10px] font-bold uppercase tracking-wide text-gray-400"
+                          >
+                            {h}
+                          </th>
                         ))}
                       </tr>
                     </thead>
                     <tbody>
                       {(productivity?.staff || []).map((s: any) => (
-                        <tr key={s.id} className="border-b border-gray-50 hover:bg-gray-50/60">
+                        <tr
+                          key={s.id}
+                          className="border-b border-gray-50 hover:bg-gray-50/60"
+                        >
                           <td className="px-4 py-2.5">
                             <div className="flex items-center gap-2">
-                              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-red-400 to-pink-500 text-[11px] font-bold text-white">
+                              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#b10000] text-[11px] font-bold text-white">
                                 {s.name?.charAt(0)?.toUpperCase()}
                               </div>
                               <div>
-                                <p className="font-semibold text-gray-900">{s.name}</p>
-                                <p className="text-[10px] text-gray-400">{s.role}</p>
+                                <p className="font-semibold text-gray-900">
+                                  {s.name}
+                                </p>
+                                <p className="text-[10px] text-gray-400">
+                                  {s.role}
+                                </p>
                               </div>
                             </div>
                           </td>
-                          <td className="px-4 py-2.5 text-gray-600">{s.department}</td>
-                          <td className="px-4 py-2.5 text-gray-500">{s.shift}</td>
-                          <td className="px-4 py-2.5 text-gray-700">{s.daysPresent}</td>
-                          <td className="px-4 py-2.5 font-semibold text-gray-900">{s.totalHours}h</td>
+                          <td className="px-4 py-2.5 text-gray-600">
+                            {s.department}
+                          </td>
+                          <td className="px-4 py-2.5 text-gray-500">
+                            {s.shift}
+                          </td>
+                          <td className="px-4 py-2.5 text-gray-700">
+                            {s.daysPresent}
+                          </td>
+                          <td className="px-4 py-2.5 font-semibold text-gray-900">
+                            {s.totalHours}h
+                          </td>
                           <td className="px-4 py-2.5">
-                            <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${s.attendanceRate >= 80 ? "bg-emerald-50 text-emerald-600" : s.attendanceRate >= 50 ? "bg-orange-50 text-orange-600" : "bg-red-50 text-red-600"}`}>
+                            <span
+                              className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${s.attendanceRate >= 80 ? "bg-emerald-50 text-emerald-600" : s.attendanceRate >= 50 ? "bg-orange-50 text-orange-600" : "bg-red-50 text-red-700"}`}
+                            >
                               {s.attendanceRate}%
                             </span>
                           </td>
-                          <td className="px-4 py-2.5 font-bold text-red-600">₹{s.monthlySalary.toLocaleString()}</td>
-                          <td className="px-4 py-2.5 text-gray-600">{s.costPerHour > 0 ? `₹${s.costPerHour}/hr` : "—"}</td>
+                          <td className="px-4 py-2.5 font-bold text-red-600">
+                            ₹{s.monthlySalary.toLocaleString()}
+                          </td>
+                          <td className="px-4 py-2.5 text-gray-600">
+                            {s.costPerHour > 0 ? `₹${s.costPerHour}/hr` : "—"}
+                          </td>
                         </tr>
                       ))}
                       {!productivity?.staff?.length && (
-                        <tr><td colSpan={8} className="py-12 text-center text-[12px] text-gray-400">No staff productivity data available</td></tr>
+                        <tr>
+                          <td
+                            colSpan={8}
+                            className="py-12 text-center text-[12px] text-gray-400"
+                          >
+                            No staff productivity data available
+                          </td>
+                        </tr>
                       )}
                     </tbody>
                   </table>
                 </div>
               </div>
             </div>
-          )
-        )}
+          ))}
       </div>
     </main>
   );

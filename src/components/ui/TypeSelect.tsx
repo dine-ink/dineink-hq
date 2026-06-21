@@ -22,7 +22,7 @@ export default function TypeSelect({ value, onChange }: any) {
             <ListboxOption
               key={type}
               value={type}
-              className="cursor-pointer px-3 py-2 hover:bg-red-50 flex justify-between"
+              className="cursor-pointer px-3 py-2 hover:bg-[#b10000] flex justify-between"
             >
               {({ selected }) => (
                 <>

@@ -6,11 +6,30 @@ interface AuthState {
   restaurant: any | null;
 }
 
-const loadFromStorage = (): AuthState => ({
-  user: (() => { try { return JSON.parse(localStorage.getItem("user") || "null"); } catch { return null; } })(),
-  token: localStorage.getItem("token"),
-  restaurant: (() => { try { return JSON.parse(localStorage.getItem("restaurant") || "null"); } catch { return null; } })(),
-});
+const loadFromStorage = (): AuthState => {
+  const user = (() => { try { return JSON.parse(localStorage.getItem("user") || "null"); } catch { return null; } })();
+  const token = localStorage.getItem("token");
+  const restaurant = (() => { try { return JSON.parse(localStorage.getItem("restaurant") || "null"); } catch { return null; } })();
+
+  // Check if JWT is expired before restoring
+  if (token) {
+    try {
+      const payload = JSON.parse(atob(token.split(".")[1]));
+      if (payload.exp && payload.exp * 1000 < Date.now()) {
+        // Token expired — don't restore auth state
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+        return { user: null, token: null, restaurant: null };
+      }
+    } catch {
+      // Invalid token format — clear it
+      localStorage.removeItem("token");
+      return { user: null, token: null, restaurant: null };
+    }
+  }
+
+  return { user, token, restaurant };
+};
 
 const authSlice = createSlice({
   name: "auth",
@@ -31,7 +50,11 @@ const authSlice = createSlice({
       state.user = null;
       state.token = null;
       state.restaurant = null;
-      localStorage.clear();
+      localStorage.removeItem("user");
+      localStorage.removeItem("token");
+      localStorage.removeItem("restaurant");
+      localStorage.removeItem("branches");
+      localStorage.removeItem("selectedBranch");
     },
     updateUser(state, action: PayloadAction<any>) {
       state.user = { ...state.user, ...action.payload };

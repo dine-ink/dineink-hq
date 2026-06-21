@@ -1,6 +1,10 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { EnvelopeIcon, ArrowLeftIcon, CheckCircleIcon } from "@heroicons/react/24/outline";
+import {
+  EnvelopeIcon,
+  ArrowLeftIcon,
+  CheckCircleIcon,
+} from "@heroicons/react/24/outline";
 
 export default function ForgotPassword() {
   const API_URL = import.meta.env.VITE_API_URL;
@@ -52,12 +56,15 @@ export default function ForgotPassword() {
 
         <div className="overflow-hidden rounded-[28px] border border-white/60 bg-white">
           <div className="border-b border-red-50 px-6 py-5">
-            <div className="inline-flex rounded-full bg-red-50 px-4 py-2 text-[10px] font-black uppercase tracking-[0.22em] text-red-600">
+            <div className="inline-flex rounded-full bg-[#b10000] px-4 py-2 text-[10px] font-black uppercase tracking-[0.22em] text-red-600">
               Password Reset
             </div>
-            <h2 className="mt-4 text-[2rem] font-black tracking-tight text-gray-900">Forgot Password</h2>
+            <h2 className="mt-4 text-[2rem] font-black tracking-tight text-gray-900">
+              Forgot Password
+            </h2>
             <p className="mt-2 text-sm leading-6 text-gray-500">
-              Enter the email address linked to your account and we'll send you a reset link.
+              Enter the email address linked to your account and we'll send you
+              a reset link.
             </p>
           </div>
 
@@ -68,9 +75,12 @@ export default function ForgotPassword() {
                   <CheckCircleIcon className="h-8 w-8 text-emerald-500" />
                 </div>
                 <div>
-                  <p className="text-[15px] font-bold text-gray-900">Reset link sent!</p>
+                  <p className="text-[15px] font-bold text-gray-900">
+                    Reset link sent!
+                  </p>
                   <p className="mt-1 text-sm text-gray-500">
-                    Check your inbox at <span className="font-semibold text-gray-700">{email}</span>
+                    Check your inbox at{" "}
+                    <span className="font-semibold text-gray-700">{email}</span>
                   </p>
                 </div>
                 <Link
@@ -84,7 +94,9 @@ export default function ForgotPassword() {
             ) : (
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
-                  <label className="mb-2 block text-sm font-bold text-gray-700">Email Address</label>
+                  <label className="mb-2 block text-sm font-bold text-gray-700">
+                    Email Address
+                  </label>
                   <div className="relative">
                     <EnvelopeIcon className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
                     <input
@@ -92,14 +104,16 @@ export default function ForgotPassword() {
                       required
                       placeholder="Enter your email"
                       value={email}
-                      onChange={e => setEmail(e.target.value)}
+                      onChange={(e) => setEmail(e.target.value)}
                       className="h-11 w-full rounded-2xl border border-gray-200 bg-[#f8fafc] pl-10 pr-4 text-sm font-medium outline-none transition-all focus:border-red-500 focus:ring-4 focus:ring-red-100"
                     />
                   </div>
                 </div>
 
                 {error && (
-                  <p className="rounded-xl bg-red-50 px-4 py-2.5 text-sm font-medium text-red-600">{error}</p>
+                  <p className="rounded-xl bg-[#b10000] px-4 py-2.5 text-sm font-medium text-red-600">
+                    {error}
+                  </p>
                 )}
 
                 <button
