@@ -72,61 +72,61 @@ export default function Signup() {
   };
 
   return (
-    <div className="relative flex h-screen overflow-hidden bg-gradient-to-b from-red-600 via-red-500 to-rose-600">
-      <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute left-[-120px] top-[-120px] h-[220px] w-[220px] rounded-full bg-red-300/20 blur-3xl" />
-        <div className="absolute bottom-[-120px] right-[-120px] h-[220px] w-[220px] rounded-full bg-rose-300/20 blur-3xl" />
+    <div className="relative flex h-screen overflow-hidden bg-[#b10000]">
+      {/* Subtle background blobs */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute -left-32 -top-32 h-64 w-64 rounded-full bg-white/5 blur-3xl" />
+        <div className="absolute -bottom-32 -right-32 h-64 w-64 rounded-full bg-white/5 blur-3xl" />
       </div>
-      {/* LEFT SIDE */}
-      <div className="relative hidden w-[48%] flex-col justify-between overflow-hidden px-6 py-4 lg:flex">
-        <div className="absolute inset-0" />
+
+      {/* LEFT PANEL */}
+      <div className="relative hidden w-[48%] flex-col justify-between overflow-hidden px-8 py-6 lg:flex">
+        {/* Logo */}
         <div className="relative z-10">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-[14px] border border-white/10 bg-white/15 text-lg font-black text-white backdrop-blur-2xl">
+            <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-white/20 bg-white/15 text-lg font-black text-white backdrop-blur-xl">
               D
             </div>
             <div>
-              <h1 className="text-xl font-black tracking-tight text-white">
-                DineInk
-              </h1>
-              <p className="text-[10px] text-red-100">
-                Restaurant Intelligence
-              </p>
+              <h1 className="text-xl font-black tracking-tight text-white">DineInk</h1>
+              <p className="text-[10px] text-red-200">Restaurant Intelligence</p>
             </div>
           </div>
-          <div className="mt-6 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-[10px] font-semibold text-white backdrop-blur-xl">
+
+          <div className="mt-8 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1.5 text-[10px] font-semibold text-white backdrop-blur-xl">
             <SparklesIcon className="h-3 w-3" />
             AI Powered Restaurant ERP
           </div>
-          <h2 className="mt-4 max-w-lg text-[2.2rem] font-black leading-[0.95] tracking-tight text-white">
+
+          <h2 className="mt-5 max-w-sm text-[2.4rem] font-black leading-[1] tracking-tight text-white">
             Build Your Restaurant
             <br />
-            Empire Smarter
+            <span className="text-red-200">Empire Smarter</span>
           </h2>
-          <p className="mt-3 max-w-md text-[13px] leading-6 text-red-100">
+          <p className="mt-4 max-w-sm text-[13px] leading-6 text-red-100">
             Billing, inventory, CRM, analytics, operations and AI-powered
             restaurant intelligence — all inside one operating system.
           </p>
         </div>
-        <div className="relative z-10 mt-4 space-y-3">
+
+        {/* Stats cards */}
+        <div className="relative z-10 space-y-3">
           <div className="grid grid-cols-2 gap-3">
-            <div className="rounded-[18px] border border-white/10 bg-white/10 p-3 backdrop-blur-2xl">
+            <div className="rounded-2xl border border-white/10 bg-white/10 p-4 backdrop-blur-xl">
               <div className="flex items-center justify-between">
-                <div className="rounded-lg bg-white/10 p-1.5">
+                <div className="rounded-xl bg-white/10 p-2">
                   <ChartBarIcon className="h-4 w-4 text-white" />
                 </div>
-                <span className="rounded-full bg-emerald-400/20 px-2 py-0.5 text-[8px] font-bold text-emerald-100">
+                <span className="rounded-full bg-emerald-400/20 px-2 py-0.5 text-[8px] font-bold text-emerald-200">
                   LIVE
                 </span>
               </div>
-              <h3 className="mt-3 text-[1.8rem] font-black text-white">
-                ₹4.8L
-              </h3>
-              <p className="text-[10px] text-red-100">Monthly Revenue Growth</p>
+              <h3 className="mt-3 text-[1.8rem] font-black text-white">₹4.8L</h3>
+              <p className="text-[10px] text-red-200">Monthly Revenue Growth</p>
             </div>
-            <div className="rounded-[18px] border border-white/10 bg-white/10 p-3 backdrop-blur-2xl">
+            <div className="rounded-2xl border border-white/10 bg-white/10 p-4 backdrop-blur-xl">
               <div className="flex items-center justify-between">
-                <div className="rounded-lg bg-white/10 p-1.5">
+                <div className="rounded-xl bg-white/10 p-2">
                   <CpuChipIcon className="h-4 w-4 text-white" />
                 </div>
                 <span className="rounded-full bg-white/15 px-2 py-0.5 text-[8px] font-bold text-white">
@@ -134,75 +134,77 @@ export default function Signup() {
                 </span>
               </div>
               <h3 className="mt-3 text-[1.8rem] font-black text-white">98%</h3>
-              <p className="text-[10px] text-red-100">Forecast Accuracy</p>
+              <p className="text-[10px] text-red-200">Forecast Accuracy</p>
             </div>
           </div>
-          <div className="rounded-[20px] border border-white/10 bg-white/10 p-3.5 backdrop-blur-2xl">
+          <div className="rounded-2xl border border-white/10 bg-white/10 p-4 backdrop-blur-xl">
             <div className="flex items-start justify-between">
               <div>
-                <p className="text-[9px] font-semibold tracking-[0.18em] text-red-100">
-                  RESTAURANT INSIGHTS
+                <p className="text-[9px] font-bold tracking-[0.18em] text-red-200 uppercase">
+                  Restaurant Insights
                 </p>
-                <h3 className="mt-1.5 text-lg font-black text-white">
-                  Scale With Intelligence
-                </h3>
+                <h3 className="mt-1 text-base font-black text-white">Scale With Intelligence</h3>
               </div>
-              <div className="rounded-full bg-emerald-400/20 px-2.5 py-1 text-[8px] font-bold text-emerald-100">
+              <div className="rounded-full bg-emerald-400/20 px-2.5 py-1 text-[8px] font-bold text-emerald-200">
                 ACTIVE
               </div>
             </div>
             <div className="mt-3 grid grid-cols-3 gap-2">
-              <div className="rounded-xl bg-white/10 p-2">
-                <p className="text-[9px] text-red-100">Orders</p>
-                <h4 className="mt-1 text-base font-black text-white">2,842</h4>
+              <div className="rounded-xl bg-white/10 p-2.5">
+                <p className="text-[9px] text-red-200">Orders</p>
+                <h4 className="mt-1 text-sm font-black text-white">2,842</h4>
               </div>
-              <div className="rounded-xl bg-white/10 p-2">
-                <p className="text-[9px] text-red-100">Customers</p>
-                <h4 className="mt-1 text-base font-black text-white">1,240</h4>
+              <div className="rounded-xl bg-white/10 p-2.5">
+                <p className="text-[9px] text-red-200">Customers</p>
+                <h4 className="mt-1 text-sm font-black text-white">1,240</h4>
               </div>
-              <div className="rounded-xl bg-white/10 p-2">
-                <p className="text-[9px] text-red-100">Growth</p>
-                <h4 className="mt-1 text-base font-black text-white">+24%</h4>
+              <div className="rounded-xl bg-white/10 p-2.5">
+                <p className="text-[9px] text-red-200">Growth</p>
+                <h4 className="mt-1 text-sm font-black text-white">+24%</h4>
               </div>
             </div>
           </div>
         </div>
-        <div className="relative z-10 flex items-center justify-between pt-2 text-[10px] text-red-100">
+
+        <div className="relative z-10 flex items-center justify-between text-[10px] text-red-200">
           <p>© 2026 DineInk</p>
           <p>Restaurant Operating System</p>
         </div>
       </div>
-      {/* RIGHT SIDE */}
+
+      {/* RIGHT PANEL */}
       <div className="relative flex flex-1 items-center justify-center px-5 py-4">
         <div className="w-full max-w-[420px]">
+          {/* Mobile logo */}
           <div className="mb-5 flex items-center justify-center gap-3 lg:hidden">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-b from-red-600 via-red-500 to-rose-600 text-lg font-black text-white shadow-xl">
+            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white/15 text-lg font-black text-white border border-white/20">
               D
             </div>
             <div>
-              <h1 className="text-lg font-black text-gray-900">DineInk</h1>
-              <p className="text-[11px] text-gray-500">
-                Restaurant Intelligence
-              </p>
+              <h1 className="text-lg font-black text-white">DineInk</h1>
+              <p className="text-[11px] text-red-200">Restaurant Intelligence</p>
             </div>
           </div>
-          <div className="overflow-hidden rounded-[24px] border border-white/60 bg-white">
-            <div className="border-b border-red-50 px-5 py-3">
-              <div className="inline-flex rounded-full bg-[#b10000] px-4 py-1.5 text-[10px] font-bold uppercase tracking-[0.22em] text-red-600">
+
+          <div className="overflow-hidden rounded-3xl border border-white/20 bg-white shadow-2xl shadow-black/30">
+            {/* Card header */}
+            <div className="border-b border-slate-100 px-6 py-5">
+              <span className="inline-flex items-center rounded-full bg-red-50 border border-red-100 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-[#b10000]">
                 Create Account
-              </div>
-              <h2 className="mt-3 text-[2.2rem] font-black tracking-tight text-gray-900">
+              </span>
+              <h2 className="mt-3 text-3xl font-black tracking-tight text-slate-900">
                 Join DineInk
               </h2>
-              <p className="mt-1.5 text-[13px] leading-5 text-gray-500">
-                Create your restaurant account and start managing your business
-                smarter.
+              <p className="mt-1.5 text-sm leading-5 text-slate-500">
+                Create your restaurant account and start managing your business smarter.
               </p>
             </div>
-            <div className="px-5 py-3">
-              <form className="space-y-2.5" onSubmit={handleSubmit}>
+
+            {/* Form */}
+            <div className="px-6 py-5">
+              <form className="space-y-3" onSubmit={handleSubmit}>
                 <div>
-                  <label className="mb-1 block text-sm font-semibold text-gray-700">
+                  <label className="mb-1.5 block text-sm font-semibold text-slate-700">
                     Full Name
                   </label>
                   <input
@@ -211,11 +213,11 @@ export default function Signup() {
                     required
                     placeholder="Enter your name"
                     onChange={handleChange}
-                    className="h-10 w-full rounded-xl border border-gray-200 bg-[#f8fafc] px-4 text-sm outline-none transition-all focus:border-red-500 focus:ring-4 focus:ring-red-100"
+                    className="h-10 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 text-sm text-slate-900 outline-none transition focus:border-[#b10000] focus:bg-white focus:ring-4 focus:ring-red-100"
                   />
                 </div>
                 <div>
-                  <label className="mb-1 block text-sm font-semibold text-gray-700">
+                  <label className="mb-1.5 block text-sm font-semibold text-slate-700">
                     Email Address
                   </label>
                   <input
@@ -224,11 +226,11 @@ export default function Signup() {
                     required
                     placeholder="Enter your email"
                     onChange={handleChange}
-                    className="h-10 w-full rounded-xl border border-gray-200 bg-[#f8fafc] px-4 text-sm outline-none transition-all focus:border-red-500 focus:ring-4 focus:ring-red-100"
+                    className="h-10 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 text-sm text-slate-900 outline-none transition focus:border-[#b10000] focus:bg-white focus:ring-4 focus:ring-red-100"
                   />
                 </div>
                 <div>
-                  <label className="mb-1 block text-sm font-semibold text-gray-700">
+                  <label className="mb-1.5 block text-sm font-semibold text-slate-700">
                     Phone Number
                   </label>
                   <input
@@ -237,11 +239,11 @@ export default function Signup() {
                     required
                     placeholder="Enter phone number"
                     onChange={handleChange}
-                    className="h-10 w-full rounded-xl border border-gray-200 bg-[#f8fafc] px-4 text-sm outline-none transition-all focus:border-red-500 focus:ring-4 focus:ring-red-100"
+                    className="h-10 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 text-sm text-slate-900 outline-none transition focus:border-[#b10000] focus:bg-white focus:ring-4 focus:ring-red-100"
                   />
                 </div>
                 <div>
-                  <label className="mb-1 block text-sm font-semibold text-gray-700">
+                  <label className="mb-1.5 block text-sm font-semibold text-slate-700">
                     Password
                   </label>
                   <div className="relative">
@@ -251,23 +253,23 @@ export default function Signup() {
                       required
                       placeholder="Create password"
                       onChange={handleChange}
-                      className="h-10 w-full rounded-xl border border-gray-200 bg-[#f8fafc] px-4 pr-12 text-sm outline-none transition-all focus:border-red-500 focus:ring-4 focus:ring-red-100"
+                      className="h-10 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 pr-11 text-sm text-slate-900 outline-none transition focus:border-[#b10000] focus:bg-white focus:ring-4 focus:ring-red-100"
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400"
+                      className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
                     >
                       {showPassword ? (
-                        <EyeSlashIcon className="h-5 w-5" />
+                        <EyeSlashIcon className="h-4.5 w-4.5" />
                       ) : (
-                        <EyeIcon className="h-5 w-5" />
+                        <EyeIcon className="h-4.5 w-4.5" />
                       )}
                     </button>
                   </div>
                 </div>
                 <div>
-                  <label className="mb-1 block text-sm font-semibold text-gray-700">
+                  <label className="mb-1.5 block text-sm font-semibold text-slate-700">
                     Confirm Password
                   </label>
                   <div className="relative">
@@ -277,19 +279,17 @@ export default function Signup() {
                       required
                       placeholder="Confirm password"
                       onChange={handleChange}
-                      className="h-10 w-full rounded-xl border border-gray-200 bg-[#f8fafc] px-4 pr-12 text-sm outline-none transition-all focus:border-red-500 focus:ring-4 focus:ring-red-100"
+                      className="h-10 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 pr-11 text-sm text-slate-900 outline-none transition focus:border-[#b10000] focus:bg-white focus:ring-4 focus:ring-red-100"
                     />
                     <button
                       type="button"
-                      onClick={() =>
-                        setShowConfirmPassword(!showConfirmPassword)
-                      }
-                      className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400"
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
                     >
                       {showConfirmPassword ? (
-                        <EyeSlashIcon className="h-5 w-5" />
+                        <EyeSlashIcon className="h-4.5 w-4.5" />
                       ) : (
-                        <EyeIcon className="h-5 w-5" />
+                        <EyeIcon className="h-4.5 w-4.5" />
                       )}
                     </button>
                   </div>
@@ -297,17 +297,18 @@ export default function Signup() {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="mt-0.5 flex h-10 w-full items-center justify-center rounded-xl bg-gradient-to-r from-[#ff1744] via-[#ff2d55] to-[#ff4d6d] text-sm font-bold text-white shadow-[0_15px_35px_rgba(255,0,80,0.20)] transition-all duration-300 hover:scale-[1.01] disabled:cursor-not-allowed disabled:opacity-50"
+                  className="mt-1 h-10 w-full rounded-xl bg-[#b10000] text-sm font-bold text-white shadow-lg shadow-red-900/20 transition hover:bg-[#8f0000] disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  {loading ? "Creating..." : "Create Account"}
+                  {loading ? "Creating..." : "Create Account →"}
                 </button>
               </form>
             </div>
           </div>
-          <p className="mt-2 text-center text-sm text-white">
+
+          <p className="mt-3 text-center text-sm text-red-200">
             Already have an account?{" "}
-            <Link to="/login" className="font-bold text-black hover:text-black">
-              Sign In
+            <Link to="/login" className="font-bold text-white hover:text-red-100">
+              Sign In →
             </Link>
           </p>
         </div>

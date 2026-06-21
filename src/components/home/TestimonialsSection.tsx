@@ -1,53 +1,51 @@
-function classNames(...classes : String[]) {
-  return classes.filter(Boolean).join(' ')
+function classNames(...classes: String[]) {
+  return classes.filter(Boolean).join(" ");
 }
 
 export default function TestimonialsSection() {
-
   const featuredTestimonial = {
-  body:
-    "DineInk made our billing process much faster. Managing tables, menu items and staff is now simple and smooth.",
-  author: {
-    name: "Arun Kumar",
-    handle: "Spice Garden Restaurant",
-    imageUrl: "https://i.pravatar.cc/150?img=12",
-    logoUrl: "https://dummyimage.com/100x40/ffffff/991b1b&text=DineInk",
-  },
-}
-const testimonials = [
-  [
+    body: "DineInk made our billing process much faster. Managing tables, menu items and staff is now simple and smooth.",
+    author: {
+      name: "Arun Kumar",
+      handle: "Spice Garden Restaurant",
+      imageUrl: "https://i.pravatar.cc/150?img=12",
+      logoUrl: "https://dummyimage.com/100x40/ffffff/991b1b&text=DineInk",
+    },
+  };
+  const testimonials = [
     [
-      {
-        body: "The table management feature is excellent for our dine-in customers.",
-        author: {
-          name: "Priya Sharma",
-          handle: "Cafe Aroma",
-          imageUrl: "https://i.pravatar.cc/150?img=32",
+      [
+        {
+          body: "The table management feature is excellent for our dine-in customers.",
+          author: {
+            name: "Priya Sharma",
+            handle: "Cafe Aroma",
+            imageUrl: "https://i.pravatar.cc/150?img=32",
+          },
         },
-      },
+      ],
     ],
-  ],
-  [
     [
-      {
-        body: "We now manage takeaway and delivery orders much more easily.",
-        author: {
-          name: "Rahul Verma",
-          handle: "Burger Point",
-          imageUrl: "https://i.pravatar.cc/150?img=22",
+      [
+        {
+          body: "We now manage takeaway and delivery orders much more easily.",
+          author: {
+            name: "Rahul Verma",
+            handle: "Burger Point",
+            imageUrl: "https://i.pravatar.cc/150?img=22",
+          },
         },
-      },
-      {
-        body: "Reports and sales tracking have helped us improve daily operations.",
-        author: {
-          name: "Meena Patel",
-          handle: "Royal Biryani",
-          imageUrl: "https://i.pravatar.cc/150?img=45",
+        {
+          body: "Reports and sales tracking have helped us improve daily operations.",
+          author: {
+            name: "Meena Patel",
+            handle: "Royal Biryani",
+            imageUrl: "https://i.pravatar.cc/150?img=45",
+          },
         },
-      },
+      ],
     ],
-  ],
-]
+  ];
 
   return (
     <div className="relative isolate mt-32 sm:mt-56 sm:pt-32">
@@ -73,7 +71,12 @@ const testimonials = [
             strokeWidth={0}
           />
         </svg>
-        <rect fill="url(#55d3d46d-692e-45f2-becd-d8bdc9344f45)" width="100%" height="100%" strokeWidth={0} />
+        <rect
+          fill="url(#55d3d46d-692e-45f2-becd-d8bdc9344f45)"
+          width="100%"
+          height="100%"
+          strokeWidth={0}
+        />
       </svg>
       <div className="relative">
         <div
@@ -83,7 +86,7 @@ const testimonials = [
           <div
             style={{
               clipPath:
-                'polygon(74.1% 44.1%, 100% 61.6%, 97.5% 26.9%, 85.5% 0.1%, 80.7% 2%, 72.5% 32.5%, 60.2% 62.4%, 52.4% 68.1%, 47.5% 58.3%, 45.2% 34.5%, 27.5% 76.7%, 0.1% 64.9%, 17.9% 100%, 27.6% 76.8%, 76.1% 97.7%, 74.1% 44.1%)',
+                "polygon(74.1% 44.1%, 100% 61.6%, 97.5% 26.9%, 85.5% 0.1%, 80.7% 2%, 72.5% 32.5%, 60.2% 62.4%, 52.4% 68.1%, 47.5% 58.3%, 45.2% 34.5%, 27.5% 76.7%, 0.1% 64.9%, 17.9% 100%, 27.6% 76.8%, 76.1% 97.7%, 74.1% 44.1%)",
             }}
             className="ml-[max(50%,38rem)] aspect-[1313/771] w-[82rem] bg-gradient-to-tr from-red-300 to-rose-500"
           />
@@ -95,19 +98,22 @@ const testimonials = [
           <div
             style={{
               clipPath:
-                'polygon(74.1% 44.1%, 100% 61.6%, 97.5% 26.9%, 85.5% 0.1%, 80.7% 2%, 72.5% 32.5%, 60.2% 62.4%, 52.4% 68.1%, 47.5% 58.3%, 45.2% 34.5%, 27.5% 76.7%, 0.1% 64.9%, 17.9% 100%, 27.6% 76.8%, 76.1% 97.7%, 74.1% 44.1%)',
+                "polygon(74.1% 44.1%, 100% 61.6%, 97.5% 26.9%, 85.5% 0.1%, 80.7% 2%, 72.5% 32.5%, 60.2% 62.4%, 52.4% 68.1%, 47.5% 58.3%, 45.2% 34.5%, 27.5% 76.7%, 0.1% 64.9%, 17.9% 100%, 27.6% 76.8%, 76.1% 97.7%, 74.1% 44.1%)",
             }}
-            className="-ml-88 aspect-[1313/771] w-[82rem] flex-none origin-top-right rotate-30 bg-gradient-to-tr from-red-300 to-rose-500 xl:mr-[calc(50%-12rem)] xl:ml-0"              />
+            className="-ml-88 aspect-[1313/771] w-[82rem] flex-none origin-top-right rotate-30 bg-gradient-to-tr from-red-300 to-rose-500 xl:mr-[calc(50%-12rem)] xl:ml-0"
+          />
         </div>
         <div className="mx-auto max-w-7xl px-6 lg:px-8">
           <div className="mx-auto max-w-2xl text-center">
-            <h2 className="text-base font-semibold text-red-700">Trusted by Restaurants</h2>
+            <h2 className="text-base font-semibold text-[#b10000]">
+              Trusted by Restaurants
+            </h2>
             <p className="mt-2 text-4xl font-bold tracking-tight text-gray-900 sm:text-5xl">
               Restaurant owners love using DineInk
             </p>
             <p className="mt-6 text-lg leading-8 text-gray-600">
-              From cafes to fine dining restaurants, DineInk helps businesses simplify
-              billing, menu management, staff access and reporting.
+              From cafes to fine dining restaurants, DineInk helps businesses
+              simplify billing, menu management, staff access and reporting.
             </p>
           </div>
           <div className="mx-auto mt-16 grid max-w-2xl grid-cols-1 grid-rows-1 gap-8 text-sm/6 text-gray-900 sm:mt-20 sm:grid-cols-2 xl:mx-0 xl:max-w-none xl:grid-flow-col xl:grid-cols-4">
@@ -122,23 +128,33 @@ const testimonials = [
                   className="size-10 flex-none rounded-full bg-gray-50"
                 />
                 <div className="flex-auto">
-                  <div className="font-semibold text-gray-900">{featuredTestimonial.author.name}</div>
+                  <div className="font-semibold text-gray-900">
+                    {featuredTestimonial.author.name}
+                  </div>
                   <div className="text-gray-600">{`@${featuredTestimonial.author.handle}`}</div>
                 </div>
-                <img alt="" src={featuredTestimonial.author.logoUrl} className="h-10 w-auto flex-none" />
+                <img
+                  alt=""
+                  src={featuredTestimonial.author.logoUrl}
+                  className="h-10 w-auto flex-none"
+                />
               </figcaption>
             </figure>
             {testimonials.map((columnGroup, columnGroupIdx) => (
-              <div key={columnGroupIdx} className="space-y-8 xl:contents xl:space-y-0">
+              <div
+                key={columnGroupIdx}
+                className="space-y-8 xl:contents xl:space-y-0"
+              >
                 {columnGroup.map((column, columnIdx) => (
                   <div
                     key={columnIdx}
                     className={classNames(
                       (columnGroupIdx === 0 && columnIdx === 0) ||
-                        (columnGroupIdx === testimonials.length - 1 && columnIdx === columnGroup.length - 1)
-                        ? 'xl:row-span-2'
-                        : 'xl:row-start-1',
-                      'space-y-8',
+                        (columnGroupIdx === testimonials.length - 1 &&
+                          columnIdx === columnGroup.length - 1)
+                        ? "xl:row-span-2"
+                        : "xl:row-start-1",
+                      "space-y-8",
                     )}
                   >
                     {column.map((testimonial) => (
@@ -156,7 +172,9 @@ const testimonials = [
                             className="size-10 rounded-full bg-gray-50"
                           />
                           <div>
-                            <div className="font-semibold text-gray-900">{testimonial.author.name}</div>
+                            <div className="font-semibold text-gray-900">
+                              {testimonial.author.name}
+                            </div>
                             <div className="text-gray-600">{`@${testimonial.author.handle}`}</div>
                           </div>
                         </figcaption>

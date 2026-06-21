@@ -54,7 +54,7 @@ export default function Features() {
       <Navbar />
       <main>
         {/* Hero */}
-        <div className="relative isolate overflow-hidden bg-[#b10000] pt-14">
+        <div className="relative isolate overflow-hidden bg-gradient-to-br from-red-50 via-white to-rose-50 pt-14">
           <svg
             aria-hidden="true"
             className="absolute inset-0 -z-10 size-full stroke-red-100 [mask-image:radial-gradient(100%_100%_at_top_right,white,transparent)]"
@@ -71,16 +71,11 @@ export default function Features() {
                 <path d="M100 200V.5M.5 .5H200" fill="none" />
               </pattern>
             </defs>
-            <rect
-              fill="url(#features-grid)"
-              width="100%"
-              height="100%"
-              strokeWidth={0}
-            />
+            <rect fill="url(#features-grid)" width="100%" height="100%" strokeWidth={0} />
           </svg>
           <div className="mx-auto max-w-7xl px-6 py-28 sm:py-36 lg:px-8">
             <div className="mx-auto max-w-2xl text-center">
-              <div className="inline-flex items-center rounded-full border border-red-100 bg-[#b10000] px-4 py-1 text-sm font-medium text-red-700">
+              <div className="inline-flex items-center rounded-full border border-red-100 bg-red-50 px-4 py-1 text-sm font-medium text-[#b10000]">
                 Powerful Restaurant Features
               </div>
               <h1 className="mt-6 text-5xl font-bold tracking-tight text-slate-900 sm:text-6xl">
@@ -93,13 +88,13 @@ export default function Features() {
               <div className="mt-10 flex flex-wrap justify-center gap-4">
                 <a
                   href="/signup"
-                  className="rounded-xl bg-[#b10000] px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-red-200 transition hover:bg-red-700"
+                  className="rounded-xl bg-[#b10000] px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-red-200 transition hover:bg-[#8f0000]"
                 >
                   Get Started Free
                 </a>
                 <a
                   href="/pricing"
-                  className="rounded-xl border border-slate-300 px-6 py-3 text-sm font-semibold text-slate-700 transition hover:border-red-200 hover:bg-[#b10000] hover:text-red-700"
+                  className="rounded-xl border border-slate-300 px-6 py-3 text-sm font-semibold text-slate-700 transition hover:border-red-200 hover:bg-red-50 hover:text-[#b10000]"
                 >
                   View Pricing
                 </a>
@@ -111,19 +106,17 @@ export default function Features() {
         {/* Dashboard preview */}
         <div className="relative overflow-hidden">
           <div className="mx-auto max-w-7xl px-6 lg:px-8">
-            <div className="relative overflow-hidden rounded-[32px] border border-red-100bg-[#b10000] p-6 shadow-2xl">
+            <div className="relative overflow-hidden rounded-[32px] border border-red-100 bg-slate-900 p-6 shadow-2xl">
               <div className="rounded-2xl border border-white/10 bg-slate-800/50 p-4 shadow-inner">
-                {/* Simulated browser chrome */}
                 <div className="mb-3 flex items-center gap-2">
-                  <div className="h-3 w-3 rounded-full bg-[#b10000]/70" />
+                  <div className="h-3 w-3 rounded-full bg-white/30" />
                   <div className="h-3 w-3 rounded-full bg-yellow-500/70" />
                   <div className="h-3 w-3 rounded-full bg-green-500/70" />
                   <div className="ml-3 h-6 flex-1 rounded-md bg-white/10" />
                 </div>
-                {/* Simulated dashboard layout */}
                 <div className="flex gap-3">
                   <div className="w-44 shrink-0 rounded-xl bg-white/5 p-3 space-y-2">
-                    <div className="h-8 w-24 rounded-lg bg-[#b10000]/60" />
+                    <div className="h-8 w-24 rounded-lg bg-white/20" />
                     {[...Array(5)].map((_, i) => (
                       <div key={i} className="h-6 rounded-md bg-white/10" />
                     ))}
@@ -133,7 +126,7 @@ export default function Features() {
                       {[...Array(3)].map((_, i) => (
                         <div key={i} className="rounded-xl bg-white/10 p-4">
                           <div className="h-3 w-16 rounded bg-white/30" />
-                          <div className="mt-3 h-6 w-20 rounded bg-red-400/50" />
+                          <div className="mt-3 h-6 w-20 rounded bg-white/20" />
                         </div>
                       ))}
                     </div>
@@ -167,7 +160,7 @@ export default function Features() {
         {/* Feature cards */}
         <div className="mx-auto mt-20 max-w-7xl px-6 sm:mt-24 lg:px-8">
           <div className="mx-auto max-w-2xl text-center">
-            <h2 className="text-base font-semibold text-red-700">
+            <h2 className="text-base font-semibold text-[#b10000]">
               Core Features
             </h2>
             <p className="mt-2 text-4xl font-bold tracking-tight text-slate-900 sm:text-5xl">
@@ -180,7 +173,7 @@ export default function Features() {
                 key={feature.name}
                 className="rounded-3xl border border-slate-200 bg-white p-8 shadow-sm transition hover:-translate-y-1 hover:border-red-200 hover:shadow-xl"
               >
-                <div className="mb-6 inline-flex rounded-2xl bg-[#b10000] p-4 text-red-600">
+                <div className="mb-6 inline-flex rounded-2xl bg-red-50 p-4 text-[#b10000]">
                   <feature.icon aria-hidden="true" className="h-7 w-7" />
                 </div>
                 <h3 className="text-xl font-semibold text-slate-900">
@@ -196,11 +189,11 @@ export default function Features() {
 
         {/* CTA */}
         <div className="mx-auto mt-24 max-w-7xl px-6 pb-24 lg:px-8">
-          <div className="rounded-[32px]bg-[#b10000] px-8 py-16 text-center shadow-2xl">
+          <div className="rounded-[32px] bg-[#b10000] px-8 py-16 text-center shadow-2xl">
             <h2 className="text-4xl font-bold tracking-tight text-white sm:text-5xl">
               Built for restaurants of every size
             </h2>
-            <p className="mx-auto mt-6 max-w-2xl text-lg leading-8 text-gray-300">
+            <p className="mx-auto mt-6 max-w-2xl text-lg leading-8 text-red-100">
               Whether you run a small café, a cloud kitchen, a fine dining
               restaurant or multiple branches, DineInk scales with your
               business.
@@ -208,7 +201,7 @@ export default function Features() {
             <div className="mt-10 flex flex-wrap justify-center gap-4">
               <a
                 href="/signup"
-                className="rounded-xl bg-[#b10000] px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-red-900/30 transition hover:bg-[#b10000]"
+                className="rounded-xl bg-white px-6 py-3 text-sm font-semibold text-[#b10000] shadow-lg transition hover:bg-red-50"
               >
                 Get Started
               </a>

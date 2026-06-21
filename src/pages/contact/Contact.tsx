@@ -15,7 +15,7 @@ export default function Contact() {
       <main className="pt-24">
         {/* Hero */}
         <div className="mx-auto max-w-7xl px-6 pb-16 pt-12 text-center lg:px-8">
-          <div className="inline-flex items-center rounded-full border border-red-100 bg-[#b10000] px-4 py-1 text-sm font-medium text-red-700">
+          <div className="inline-flex items-center rounded-full border border-red-100 bg-red-50 px-4 py-1 text-sm font-medium text-[#b10000]">
             Contact DineInk
           </div>
           <h1 className="mt-6 text-5xl font-bold tracking-tight text-slate-900 sm:text-6xl">
@@ -32,11 +32,11 @@ export default function Contact() {
           <div className="grid grid-cols-1 gap-8 lg:grid-cols-5">
             {/* Info panel */}
             <div className="lg:col-span-2">
-              <div className="rounded-[32px]bg-[#b10000] p-8 shadow-2xl h-full">
+              <div className="rounded-[32px] bg-[#b10000] p-8 shadow-2xl h-full">
                 <h2 className="text-2xl font-bold text-white">
                   Contact information
                 </h2>
-                <p className="mt-3 text-sm text-gray-300">
+                <p className="mt-3 text-sm text-red-100">
                   Reach out to us through any of the channels below.
                 </p>
 
@@ -47,7 +47,7 @@ export default function Contact() {
                         <BuildingOffice2Icon className="h-5 w-5 text-white" />
                       </div>
                     </dt>
-                    <dd className="text-sm text-gray-300 pt-2">
+                    <dd className="text-sm text-red-100 pt-2">
                       DineInk Solutions
                       <br />
                       Chennai, Tamil Nadu, India
@@ -63,7 +63,7 @@ export default function Contact() {
                     <dd className="pt-2">
                       <a
                         href="tel:+919876543210"
-                        className="text-sm text-gray-300 transition hover:text-white"
+                        className="text-sm text-red-100 transition hover:text-white"
                       >
                         +91 98765 43210
                       </a>
@@ -79,7 +79,7 @@ export default function Contact() {
                     <dd className="pt-2">
                       <a
                         href="mailto:support@dineink.com"
-                        className="text-sm text-gray-300 transition hover:text-white"
+                        className="text-sm text-red-100 transition hover:text-white"
                       >
                         support@dineink.com
                       </a>
@@ -92,7 +92,7 @@ export default function Contact() {
                         <ClockIcon className="h-5 w-5 text-white" />
                       </div>
                     </dt>
-                    <dd className="text-sm text-gray-300 pt-2">
+                    <dd className="text-sm text-red-100 pt-2">
                       Mon – Sat: 9 AM – 7 PM IST
                       <br />
                       Sunday: Closed
@@ -105,13 +105,13 @@ export default function Contact() {
                   <div className="mt-4 flex gap-4">
                     <a
                       href="#"
-                      className="rounded-lg bg-white/10 px-4 py-2 text-sm text-gray-300 transition hover:bg-white/20 hover:text-white"
+                      className="rounded-lg bg-white/10 px-4 py-2 text-sm text-red-100 transition hover:bg-white/20 hover:text-white"
                     >
                       Instagram
                     </a>
                     <a
                       href="#"
-                      className="rounded-lg bg-white/10 px-4 py-2 text-sm text-gray-300 transition hover:bg-white/20 hover:text-white"
+                      className="rounded-lg bg-white/10 px-4 py-2 text-sm text-red-100 transition hover:bg-white/20 hover:text-white"
                     >
                       LinkedIn
                     </a>
@@ -144,7 +144,7 @@ export default function Contact() {
                           name="first-name"
                           type="text"
                           autoComplete="given-name"
-                          className="block w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-900 outline-none transition focus:border-red-500 focus:ring-2 focus:ring-red-100"
+                          className="block w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-900 outline-none transition focus:border-[#b10000] focus:ring-2 focus:ring-red-100"
                         />
                       </div>
                     </div>
@@ -161,7 +161,7 @@ export default function Contact() {
                           name="last-name"
                           type="text"
                           autoComplete="family-name"
-                          className="block w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-900 outline-none transition focus:border-red-500 focus:ring-2 focus:ring-red-100"
+                          className="block w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-900 outline-none transition focus:border-[#b10000] focus:ring-2 focus:ring-red-100"
                         />
                       </div>
                     </div>
@@ -178,7 +178,7 @@ export default function Contact() {
                           name="email"
                           type="email"
                           autoComplete="email"
-                          className="block w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-900 outline-none transition focus:border-red-500 focus:ring-2 focus:ring-red-100"
+                          className="block w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-900 outline-none transition focus:border-[#b10000] focus:ring-2 focus:ring-red-100"
                         />
                       </div>
                     </div>
@@ -195,7 +195,7 @@ export default function Contact() {
                           name="phone-number"
                           type="tel"
                           autoComplete="tel"
-                          className="block w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-900 outline-none transition focus:border-red-500 focus:ring-2 focus:ring-red-100"
+                          className="block w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-900 outline-none transition focus:border-[#b10000] focus:ring-2 focus:ring-red-100"
                         />
                       </div>
                     </div>
@@ -210,7 +210,7 @@ export default function Contact() {
                         <select
                           id="subject"
                           name="subject"
-                          className="block w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-900 outline-none transition focus:border-red-500 focus:ring-2 focus:ring-red-100"
+                          className="block w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-900 outline-none transition focus:border-[#b10000] focus:ring-2 focus:ring-red-100"
                         >
                           <option value="">Select a topic</option>
                           <option>Pricing & Plans</option>
@@ -234,7 +234,7 @@ export default function Contact() {
                           id="message"
                           name="message"
                           rows={5}
-                          className="block w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-900 outline-none transition focus:border-red-500 focus:ring-2 focus:ring-red-100"
+                          className="block w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-900 outline-none transition focus:border-[#b10000] focus:ring-2 focus:ring-red-100"
                           defaultValue=""
                         />
                       </div>
@@ -243,7 +243,7 @@ export default function Contact() {
                   <div className="mt-8 flex justify-end">
                     <button
                       type="submit"
-                      className="rounded-xl bg-[#b10000] px-8 py-3 text-sm font-semibold text-white shadow-lg shadow-red-200 transition hover:bg-red-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600"
+                      className="rounded-xl bg-[#b10000] px-8 py-3 text-sm font-semibold text-white shadow-lg shadow-red-200 transition hover:bg-[#8f0000]"
                     >
                       Send message
                     </button>

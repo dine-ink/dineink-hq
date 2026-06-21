@@ -13,31 +13,31 @@ export default function Home() {
       <main>
         <HeroSection />
         <div className="mx-auto mt-20 max-w-7xl px-6 lg:px-8">
-          <p className="mb-6 text-center text-sm font-semibold text-[#b10000] uppercase tracking-widest">
+          <p className="mb-6 text-center text-sm font-semibold text-red-700 uppercase tracking-widest">
             Trusted by restaurants across India
           </p>
           <div className="rounded-3xl bg-white border border-red-100 shadow-xl p-8">
             <div className="grid grid-cols-2 gap-6 md:grid-cols-4">
-              <div className="rounded-2xl bg-[#b10000] border border-red-900 p-6 text-center">
-                <h3 className="text-3xl font-bold text-white">500+</h3>
-                <p className="mt-2 text-sm text-red-100">
+              <div className="rounded-2xl bg-red-50 border border-red-100 p-6 text-center">
+                <h3 className="text-3xl font-bold text-red-700">500+</h3>
+                <p className="mt-2 text-sm text-slate-600">
                   Restaurants Expected
                 </p>
               </div>
-              <div className="rounded-2xl bg-red-50 border border-red-100 p-6 text-center">
-                <h3 className="text-3xl font-bold text-[#b10000]">10k+</h3>
+              <div className="rounded-2xl bg-rose-50 border border-rose-100 p-6 text-center">
+                <h3 className="text-3xl font-bold text-red-700">10k+</h3>
                 <p className="mt-2 text-sm text-slate-600">
                   Orders Managed Daily
                 </p>
               </div>
-              <div className="rounded-2xl bg-[#b10000] border border-red-900 p-6 text-center">
-                <h3 className="text-3xl font-bold text-white">24/7</h3>
-                <p className="mt-2 text-sm text-red-100">
+              <div className="rounded-2xl bg-red-50 border border-red-100 p-6 text-center">
+                <h3 className="text-3xl font-bold text-red-700">24/7</h3>
+                <p className="mt-2 text-sm text-slate-600">
                   Billing & Kitchen Support
                 </p>
               </div>
-              <div className="rounded-2xl bg-red-50 border border-red-100 p-6 text-center">
-                <h3 className="text-3xl font-bold text-[#b10000]">100%</h3>
+              <div className="rounded-2xl bg-rose-50 border border-rose-100 p-6 text-center">
+                <h3 className="text-3xl font-bold text-red-700">100%</h3>
                 <p className="mt-2 text-sm text-slate-600">
                   Cloud Based Access
                 </p>

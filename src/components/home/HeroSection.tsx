@@ -1,6 +1,6 @@
 export default function HeroSection() {
   return (
-    <div className="relative isolate overflow-hidden bg-[#b10000] pt-14">
+    <div className="relative isolate overflow-hidden bg-gradient-to-br from-red-50 via-white to-rose-100 pt-14">
       <svg
         aria-hidden="true"
         className="absolute inset-0 -z-10 size-full mask-[radial-gradient(100%_100%_at_top_right,white,transparent)] stroke-gray-200"
@@ -34,11 +34,11 @@ export default function HeroSection() {
         <div className="mx-auto max-w-2xl lg:mx-0 lg:flex-auto">
           <div className="flex">
             <div className="relative flex items-center gap-x-4 rounded-full bg-white px-4 py-1 text-sm text-slate-600 ring-1 ring-red-100 hover:ring-red-200">
-              <span className="font-semibold text-red-700">Now launching</span>
+              <span className="font-semibold text-[#b10000]">Now launching</span>
               <span aria-hidden="true" className="h-4 w-px bg-gray-900/10" />
               <a
                 href="/signup"
-                className="rounded-xl bg-red-700 px-5 py-3 text-sm font-semibold text-white shadow-md hover:bg-[#b10000]"
+                className="rounded-xl bg-[#b10000] px-5 py-3 text-sm font-semibold text-white shadow-md hover:bg-[#8f0000]"
               >
                 Get Started
               </a>
