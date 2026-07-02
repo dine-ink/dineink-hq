@@ -14,6 +14,7 @@ export default function Bills() {
   const { user, token } = useAppSelector((s) => s.auth);
   const [search, setSearch] = useState("");
   const [bills, setBills] = useState<any[]>([]);
+  const [statusFilter, setStatusFilter] = useState<string>("ALL");
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(false);
   const rowsPerPage = 10;
@@ -46,18 +47,20 @@ export default function Bills() {
 
   const filtered = bills.filter((b) => {
     const s = search.toLowerCase();
-    // backend returns customer as a flat string and customerPhone separately
     const customerName =
       typeof b.customer === "string" ? b.customer : b.customer?.name || "";
     const customerPhone = b.customerPhone || b.customer?.phone || "";
-    return (
+    const billStatus = b.paymentStatus || b.status || "";
+    const matchesSearch =
       customerName.toLowerCase().includes(s) ||
       customerPhone.includes(search) ||
       (b.paymentMethod || "").toLowerCase().includes(s) ||
       (b.orderType || "").toLowerCase().includes(s) ||
       String(b.total).includes(search) ||
-      String(b.id).includes(search)
-    );
+      String(b.id).includes(search);
+    const matchesStatus =
+      statusFilter === "ALL" || billStatus === statusFilter;
+    return matchesSearch && matchesStatus;
   });
 
   const totalPages = Math.max(Math.ceil(filtered.length / rowsPerPage), 1);
@@ -65,9 +68,13 @@ export default function Bills() {
     (page - 1) * rowsPerPage,
     page * rowsPerPage,
   );
-  const totalSales = filtered.reduce((s, b) => s + (b.total || 0), 0);
-  const avgBill = filtered.length
-    ? Math.round(totalSales / filtered.length)
+  // Exclude CANCELLED bills from revenue and averages
+  const activeBills = filtered.filter(
+    (b) => (b.paymentStatus || b.status) !== "CANCELLED",
+  );
+  const totalSales = activeBills.reduce((s, b) => s + (b.total || 0), 0);
+  const avgBill = activeBills.length
+    ? Math.round(totalSales / activeBills.length)
     : 0;
 
   const AVATAR_GRADS = [
@@ -127,7 +134,7 @@ export default function Bills() {
                 },
                 {
                   label: "Orders",
-                  value: filtered.length,
+                  value: activeBills.length,
                   icon: ShoppingBagIcon,
                   cls: "border-blue-100 bg-blue-50",
                   val: "text-blue-700",
@@ -201,17 +208,29 @@ export default function Bills() {
                   Billing history · {filtered.length} records
                 </p>
               </div>
-              <div className="relative">
-                <MagnifyingGlassIcon className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-gray-400" />
-                <input
-                  placeholder="Search by customer, amount, type..."
-                  value={search}
-                  onChange={(e) => {
-                    setSearch(e.target.value);
-                    setPage(1);
-                  }}
-                  className="h-9 w-full rounded-xl border border-gray-200 bg-white pl-8 pr-3 text-[12px] outline-none transition focus:border-red-400 focus:ring-2 focus:ring-red-100 lg:w-72"
-                />
+              <div className="flex items-center gap-2">
+                <select
+                  value={statusFilter}
+                  onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
+                  className="h-9 rounded-xl border border-gray-200 bg-white px-3 text-[12px] text-gray-700 outline-none transition focus:border-red-400 focus:ring-2 focus:ring-red-100"
+                >
+                  <option value="ALL">All Status</option>
+                  <option value="PAID">Paid</option>
+                  <option value="UNPAID">Unpaid</option>
+                  <option value="CANCELLED">Cancelled</option>
+                </select>
+                <div className="relative">
+                  <MagnifyingGlassIcon className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-gray-400" />
+                  <input
+                    placeholder="Search by customer, amount, type..."
+                    value={search}
+                    onChange={(e) => {
+                      setSearch(e.target.value);
+                      setPage(1);
+                    }}
+                    className="h-9 w-full rounded-xl border border-gray-200 bg-white pl-8 pr-3 text-[12px] outline-none transition focus:border-red-400 focus:ring-2 focus:ring-red-100 lg:w-72"
+                  />
+                </div>
               </div>
             </div>
           </div>
@@ -303,7 +322,13 @@ export default function Bills() {
                         <td className="px-4 py-2.5">
                           <div className="flex flex-col gap-1">
                             <span
-                              className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold ${billStatus === "PAID" ? "bg-emerald-50 text-emerald-600" : "bg-yellow-50 text-yellow-600"}`}
+                              className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                                billStatus === "PAID"
+                                  ? "bg-emerald-50 text-emerald-600"
+                                  : billStatus === "CANCELLED"
+                                    ? "bg-red-50 text-[#b10000]"
+                                    : "bg-yellow-50 text-yellow-600"
+                              }`}
                             >
                               {billStatus}
                             </span>
