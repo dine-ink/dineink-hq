@@ -4,2746 +4,808 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import type { FullReportData } from "./reportData";
 
-// ─── Design system ────────────────────────────────────────────────────────────
+// ─── Design tokens ────────────────────────────────────────────────────────────
 type RGB = [number, number, number];
 
 const C = {
-  red: [239, 68, 68] as RGB,
-  redDk: [185, 28, 28] as RGB,
-  redLt: [254, 226, 226] as RGB,
-  redXLt: [255, 245, 245] as RGB,
-  green: [5, 150, 105] as RGB,
-  greenDk: [4, 120, 87] as RGB,
-  greenLt: [209, 250, 229] as RGB,
-  blue: [37, 99, 235] as RGB,
-  blueDk: [29, 78, 216] as RGB,
-  blueLt: [219, 234, 254] as RGB,
-  purple: [124, 58, 237] as RGB,
+  brand:    [177,   0,   0] as RGB,   // DineInk #b10000
+  brandLt:  [254, 242, 242] as RGB,   // very light red
+  brandMd:  [254, 202, 202] as RGB,
+  ink:      [ 15,  23,  42] as RGB,   // slate-900
+  slate:    [ 51,  65,  85] as RGB,   // slate-700
+  muted:    [100, 116, 139] as RGB,   // slate-500
+  faint:    [148, 163, 184] as RGB,   // slate-400
+  border:   [226, 232, 240] as RGB,   // slate-200
+  surface:  [248, 250, 252] as RGB,   // slate-50
+  white:    [255, 255, 255] as RGB,
+  green:    [  5, 150, 105] as RGB,
+  greenLt:  [209, 250, 229] as RGB,
+  blue:     [ 37,  99, 235] as RGB,
+  blueLt:   [219, 234, 254] as RGB,
+  amber:    [180, 100,   0] as RGB,
+  amberLt:  [254, 243, 199] as RGB,
+  purple:   [109,  40, 217] as RGB,
   purpleLt: [237, 233, 254] as RGB,
-  amber: [217, 119, 6] as RGB,
-  amberLt: [254, 243, 199] as RGB,
-  teal: [13, 148, 136] as RGB,
-  tealLt: [204, 251, 241] as RGB,
-  s900: [15, 23, 42] as RGB,
-  s800: [30, 41, 59] as RGB,
-  s700: [51, 65, 85] as RGB,
-  s600: [71, 85, 105] as RGB,
-  s500: [100, 116, 139] as RGB,
-  s400: [148, 163, 184] as RGB,
-  s300: [203, 213, 225] as RGB,
-  s200: [226, 232, 240] as RGB,
-  s100: [241, 245, 249] as RGB,
-  s50: [248, 250, 252] as RGB,
-  white: [255, 255, 255] as RGB,
+  teal:     [ 13, 148, 136] as RGB,
 };
 
-const PW = 210;
-const PH = 297;
-const ML = 14;
-const MR = 14;
+const PW = 210;   // A4 width mm
+const PH = 297;   // A4 height mm
+const ML = 16;    // left margin
+const MR = 16;    // right margin
 const CW = PW - ML - MR;
-// jsPDF built-in Helvetica only covers Latin-1; use "Rs." instead of the
-// Rupee sign (U+20B9) which renders as "1" and causes garbled output.
-const INR = (v: any) => `Rs.${Number(v || 0).toLocaleString("en-IN")}`;
-const PCT = (v: number, t: number) =>
-  t > 0 ? `${((v / t) * 100).toFixed(1)}%` : "0.0%";
-// Safe ASCII replacements for chars outside Latin-1
-const safe = (s: string) =>
-  s
-    .replace(/₹/g, "Rs.")
-    .replace(/→|➜|→/g, "->")
-    .replace(/←/g, "<-")
-    .replace(/✅/g, "[OK]")
-    .replace(/❌/g, "[X]")
-    .replace(/⚠️|⚠/g, "[!]")
-    .replace(/⭐/g, "[STAR]")
-    .replace(/🧩/g, "[PUZZLE]")
-    .replace(/🐎/g, "[HORSE]")
-    .replace(/🐕/g, "[DOG]")
-    .replace(/🏆/g, "[TOP]")
-    .replace(/🥇/g, "[1]")
-    .replace(/🥈/g, "[2]")
-    .replace(/🥉/g, "[3]")
-    .replace(/−/g, "-") // Unicode minus sign
-    .replace(/’/g, "'") // right single quotation mark
-    .replace(/[^\x00-\xFF]/g, ""); // strip any remaining non-Latin-1
 
-// ─── Low-level primitives ─────────────────────────────────────────────────────
+// jsPDF built-in fonts cover only Latin-1 — replace rupee sign and unicode chars
+const RS = (v: any) => `Rs.${Math.round(Number(v || 0)).toLocaleString("en-IN")}`;
+const PCT = (v: number, t: number) =>
+  t > 0 ? `${((v / t) * 100).toFixed(1)}%` : "0%";
+const safe = (s: string) =>
+  String(s)
+    .replace(/₹/g, "Rs.")
+    .replace(/[→➜]/g, "->")
+    .replace(/✅/g, "OK")
+    .replace(/❌/g, "X")
+    .replace(/[^\x00-\xFF]/g, "");
+
+// ─── Primitives ───────────────────────────────────────────────────────────────
 const fr = (d: any, x: number, y: number, w: number, h: number, c: RGB) => {
   d.setFillColor(...c);
   d.rect(x, y, w, h, "F");
 };
-const rr = (
-  d: any,
-  x: number,
-  y: number,
-  w: number,
-  h: number,
-  r: number,
-  c: RGB,
-) => {
+const rr = (d: any, x: number, y: number, w: number, h: number, r: number, c: RGB) => {
   d.setFillColor(...c);
   d.roundedRect(x, y, w, h, r, r, "F");
 };
-const ln = (
-  d: any,
-  x1: number,
-  y1: number,
-  x2: number,
-  y2: number,
-  c: RGB,
-  lw = 0.3,
-) => {
+const ln = (d: any, x1: number, y1: number, x2: number, y2: number, c: RGB, lw = 0.25) => {
   d.setDrawColor(...c);
   d.setLineWidth(lw);
   d.line(x1, y1, x2, y2);
 };
+const box = (d: any, x: number, y: number, w: number, h: number, c: RGB, lw = 0.3) => {
+  d.setDrawColor(...c);
+  d.setLineWidth(lw);
+  d.rect(x, y, w, h);
+};
 const txt = (
-  d: any,
-  s: string,
-  x: number,
-  y: number,
-  o: {
-    size?: number;
-    bold?: boolean;
-    italic?: boolean;
-    color?: RGB;
-    align?: "left" | "center" | "right";
-  } = {},
+  d: any, s: string, x: number, y: number,
+  o: { size?: number; bold?: boolean; italic?: boolean; color?: RGB; align?: "left"|"center"|"right" } = {},
 ) => {
   d.setFontSize(o.size || 9);
   d.setFont("helvetica", o.bold ? "bold" : o.italic ? "italic" : "normal");
-  d.setTextColor(...(o.color || C.s900));
+  d.setTextColor(...(o.color || C.ink));
   d.text(safe(s), x, y, o.align ? { align: o.align } : undefined);
 };
 
-// ─── UI Components ────────────────────────────────────────────────────────────
-
-function pageHeader(
-  doc: any,
-  page: number,
-  total: number,
-  meta: { restaurantName: string; branchName: string },
-) {
-  fr(doc, 0, PH - 10, PW, 10, C.s900);
-  fr(doc, 0, PH - 10.5, PW, 0.5, C.red);
-  txt(
-    doc,
-    "DineInk Business Intelligence Report  ·  Confidential",
-    ML,
-    PH - 4,
-    { size: 6.5, color: C.s400 },
-  );
-  txt(doc, `${meta.restaurantName} — ${meta.branchName}`, PW / 2, PH - 4, {
-    size: 6.5,
-    color: C.s400,
-    align: "center",
-  });
-  txt(doc, `${page} / ${total}`, PW - ML, PH - 4, {
-    size: 6.5,
-    bold: true,
-    color: [170, 170, 170] as RGB,
-    align: "right",
-  });
+// ─── Page chrome ──────────────────────────────────────────────────────────────
+function pageFooter(doc: any, page: number, total: number, meta: { restaurantName: string; branchName: string; from: string; to: string }) {
+  const fy = PH - 8;
+  ln(doc, ML, fy, PW - MR, fy, C.border, 0.3);
+  txt(doc, `${meta.restaurantName}  |  ${meta.branchName}`, ML, fy + 4, { size: 6.5, color: C.faint });
+  txt(doc, `${meta.from}  to  ${meta.to}`, PW / 2, fy + 4, { size: 6.5, color: C.faint, align: "center" });
+  txt(doc, `Page ${page} of ${total}`, PW - MR, fy + 4, { size: 6.5, bold: true, color: C.brand, align: "right" });
 }
 
-function chapterBanner(
-  doc: any,
-  num: string,
-  title: string,
-  subtitle: string,
-  y: number,
-  accent: RGB = C.red,
-): number {
-  fr(doc, ML, y, CW, 12, C.s900);
-  fr(doc, ML, y, 3, 12, accent);
-  txt(doc, `${num}  ${title.toUpperCase()}`, ML + 6, y + 8.5, {
-    size: 10,
-    bold: true,
-    color: C.white,
-  });
-  if (subtitle)
-    txt(
-      doc,
-      subtitle,
-      ML + 6 + doc.getTextWidth(`${num}  ${title.toUpperCase()}`) + 3,
-      y + 8.5,
-      { size: 7.5, color: C.s400 },
-    );
-  return y + 16;
+// ─── Section heading ──────────────────────────────────────────────────────────
+function sectionHead(doc: any, title: string, subtitle: string, y: number, accent: RGB = C.brand): number {
+  fr(doc, ML, y, CW, 13, C.surface);
+  fr(doc, ML, y, 3.5, 13, accent);
+  txt(doc, title.toUpperCase(), ML + 7, y + 5.5, { size: 8, bold: true, color: C.ink });
+  if (subtitle) txt(doc, subtitle, ML + 7, y + 10.5, { size: 6.5, color: C.muted, italic: true });
+  return y + 17;
 }
 
-function sectionLabel(
-  doc: any,
-  text: string,
-  y: number,
-  accent: RGB = C.s600,
-): number {
-  fr(doc, ML, y, CW, 7, C.s50);
-  fr(doc, ML, y, 2, 7, accent);
-  txt(doc, text, ML + 5, y + 5, { size: 7.5, bold: true, color: C.s700 });
-  return y + 10;
+// ─── Sub-section divider ──────────────────────────────────────────────────────
+function divider(doc: any, label: string, y: number, accent: RGB = C.brand): number {
+  ln(doc, ML, y, PW - MR, y, C.border, 0.3);
+  fr(doc, ML, y, 2.5, 6.5, accent);
+  txt(doc, label, ML + 5, y + 5, { size: 7, bold: true, color: C.slate });
+  return y + 9;
 }
 
-function kpiRow(
+// ─── KPI card grid ────────────────────────────────────────────────────────────
+function kpiGrid(
   doc: any,
   items: { label: string; value: string; sub?: string; accent?: RGB }[],
   y: number,
-  perRow = 4,
+  cols = 4,
 ): number {
-  const w = (CW - (perRow - 1) * 2) / perRow;
-  const h = items[0]?.sub ? 22 : 18;
-  items.slice(0, perRow * 2).forEach((k, i) => {
-    const col = i % perRow;
-    const row = Math.floor(i / perRow);
-    const x = ML + col * (w + 2);
-    const cy = y + row * (h + 2);
-    const accent = k.accent || C.red;
-    // Card
+  const gap = 3;
+  const w = (CW - gap * (cols - 1)) / cols;
+  const h = items.some((k) => k.sub) ? 22 : 18;
+  items.forEach((k, i) => {
+    const col = i % cols;
+    const row = Math.floor(i / cols);
+    const x = ML + col * (w + gap);
+    const cy = y + row * (h + gap);
+    const ac = k.accent || C.brand;
+    // card background + border
     rr(doc, x, cy, w, h, 2, C.white);
-    doc.setDrawColor(...C.s200);
-    doc.setLineWidth(0.25);
+    doc.setDrawColor(...C.border);
+    doc.setLineWidth(0.3);
     doc.roundedRect(x, cy, w, h, 2, 2);
-    fr(doc, x, cy, 2.5, h, accent);
-    txt(doc, k.label.toUpperCase(), x + 4.5, cy + 5, {
-      size: 5.5,
-      bold: true,
-      color: C.s400,
-    });
-    txt(doc, k.value, x + 4.5, cy + 12, {
-      size: 13,
-      bold: true,
-      color: accent,
-    });
-    if (k.sub) txt(doc, k.sub, x + 4.5, cy + 17, { size: 6, color: C.s500 });
+    // top accent stripe
+    fr(doc, x, cy, w, 2.5, ac);
+    // label
+    txt(doc, k.label.toUpperCase(), x + 4, cy + 8, { size: 5.5, bold: true, color: C.faint });
+    // value
+    txt(doc, k.value, x + 4, cy + 15, { size: 12, bold: true, color: ac });
+    if (k.sub) txt(doc, k.sub, x + 4, cy + 20, { size: 5.5, color: C.muted });
   });
-  return y + Math.ceil(items.length / perRow) * (h + 2) + 3;
+  const rows = Math.ceil(items.length / cols);
+  return y + rows * (h + gap) + 3;
 }
 
-function hBar(
-  doc: any,
-  data: { label: string; value: number; color?: RGB }[],
-  x: number,
-  y: number,
-  w: number,
-  title: string,
-): number {
-  const max = Math.max(...data.map((d) => d.value), 1);
-  const barH = 5.5;
-  const gap = 2;
-  const lw = 40;
-  const vw = 18;
-  const bw = w - lw - vw - 2;
-  txt(doc, title, x, y, { size: 7.5, bold: true, color: C.s600 });
-  y += 5;
-  data.slice(0, 10).forEach((d, i) => {
-    const by = y + i * (barH + gap);
-    const fw = Math.max((d.value / max) * bw, 1);
-    const c = d.color || C.red;
-    rr(doc, x + lw, by, bw, barH, 1, C.s100);
-    rr(doc, x + lw, by, fw, barH, 1, c);
-    txt(
-      doc,
-      d.label.length > 19 ? d.label.slice(0, 18) + "…" : d.label,
-      x + lw - 1,
-      by + barH - 1.2,
-      { size: 6.5, color: C.s600, align: "right" },
-    );
-    txt(doc, INR(d.value), x + lw + bw + 2, by + barH - 1.2, {
-      size: 6.5,
-      bold: true,
-      color: c,
-    });
+// ─── Two-column KPI row (label : value) ───────────────────────────────────────
+function labelValueRows(doc: any, rows: [string, string, RGB?][], y: number): number {
+  rows.forEach(([label, value, ac], i) => {
+    const bg = i % 2 === 0 ? C.white : C.surface;
+    fr(doc, ML, y, CW, 7, bg);
+    txt(doc, label, ML + 3, y + 5, { size: 7.5, color: C.slate });
+    txt(doc, value, PW - MR - 3, y + 5, { size: 7.5, bold: true, color: ac || C.ink, align: "right" });
+    y += 7;
   });
-  return y + data.slice(0, 10).length * (barH + gap) + 3;
+  return y + 2;
 }
 
-function colChart(
-  doc: any,
-  data: { label: string; value: number }[],
-  x: number,
-  y: number,
-  w: number,
-  h: number,
-  c: RGB = C.red,
-  title = "",
-): number {
-  if (title) {
-    txt(doc, title, x, y, { size: 7.5, bold: true, color: C.s600 });
-    y += 4;
-  }
-  const max = Math.max(...data.map((d) => d.value), 1);
-  const n2 = data.length;
-  const bw = Math.max((w - (n2 - 1)) / n2, 1.5);
-  const ch = h - 6;
-  fr(doc, x, y, w, ch, C.s50);
-  for (let g = 1; g <= 3; g++)
-    ln(
-      doc,
-      x,
-      y + ch - (g / 3) * ch,
-      x + w,
-      y + ch - (g / 3) * ch,
-      C.s200,
-      0.2,
-    );
-  data.forEach((d, i) => {
-    const bh2 = Math.max((d.value / max) * ch, 1);
-    const bx = x + i * (bw + 1);
-    const by = y + ch - bh2;
-    doc.setFillColor(...c);
-    doc.roundedRect(bx, by, bw, bh2, 0.8, 0.8, "F");
-    if (i % Math.ceil(n2 / 8) === 0 && d.label)
-      txt(doc, d.label.slice(0, 5), bx + bw / 2, y + h - 1, {
-        size: 5,
-        color: C.s500,
-        align: "center",
-      });
-  });
-  ln(doc, x, y + ch, x + w, y + ch, C.s300, 0.5);
-  return y + h + 2;
-}
-
-function premTable(
+// ─── Auto table wrapper ───────────────────────────────────────────────────────
+function table(
   doc: any,
   head: string[][],
-  body: any[][],
-  startY: number,
-  accentColor: RGB,
+  body: (string | number)[][],
+  y: number,
+  accent: RGB = C.brand,
   opts: any = {},
-) {
-  const sanitize = (v: any) => (typeof v === "string" ? safe(v) : v);
-  const safeHead = head.map((row) => row.map(sanitize));
-  const safeBody = body.map((row) => row.map(sanitize));
+): number {
+  if (body.length === 0) return y;
   autoTable(doc, {
-    head: safeHead,
-    body: safeBody,
-    startY,
-    styles: {
-      fontSize: 7.5,
-      cellPadding: { top: 2.5, right: 3, bottom: 2.5, left: 3 },
-      lineColor: C.s200,
-      lineWidth: 0.2,
-      overflow: "ellipsize",
-    },
+    startY: y,
+    head,
+    body,
     headStyles: {
-      fillColor: accentColor,
-      textColor: C.white,
+      fillColor: accent,
+      textColor: [255, 255, 255],
+      fontSize: 7,
       fontStyle: "bold",
-      fontSize: 8,
-      cellPadding: { top: 3, right: 3, bottom: 3, left: 3 },
+      cellPadding: 3,
     },
-    alternateRowStyles: { fillColor: C.s50 },
-    bodyStyles: { textColor: C.s800 },
-    tableLineColor: C.s200,
-    tableLineWidth: 0.3,
+    bodyStyles: {
+      fontSize: 7,
+      cellPadding: 3,
+      textColor: C.ink,
+    },
+    alternateRowStyles: { fillColor: C.surface },
+    styles: { overflow: "ellipsize" },
     margin: { left: ML, right: MR },
-    theme: "grid",
+    theme: "plain",
     ...opts,
   });
-  return (doc as any).lastAutoTable.finalY + 4;
+  return (doc as any).lastAutoTable.finalY + 5;
 }
 
-// ─── MAIN GENERATOR ───────────────────────────────────────────────────────────
+// ─── Horizontal bar chart ─────────────────────────────────────────────────────
+function hBars(
+  doc: any, data: { label: string; value: number; color?: RGB }[],
+  x: number, y: number, w: number, title?: string,
+): number {
+  if (data.length === 0) return y;
+  if (title) { txt(doc, title, x, y, { size: 7, bold: true, color: C.slate }); y += 6; }
+  const max = Math.max(...data.map((d) => d.value), 1);
+  const bh = 5.5, gap = 2.5, lw = 44, vw = 22, bw = w - lw - vw - 2;
+  data.slice(0, 8).forEach((d, i) => {
+    const by = y + i * (bh + gap);
+    const fw = Math.max((d.value / max) * bw, 1.5);
+    const c = d.color || C.brand;
+    fr(doc, x + lw, by, bw, bh, C.surface);
+    rr(doc, x + lw, by, fw, bh, 1, c);
+    const lbl = d.label.length > 22 ? d.label.slice(0, 21) + "…" : d.label;
+    txt(doc, lbl, x + lw - 2, by + bh - 1, { size: 6.5, color: C.slate, align: "right" });
+    txt(doc, RS(d.value), x + lw + bw + 2, by + bh - 1, { size: 6.5, bold: true, color: C.ink });
+  });
+  return y + data.slice(0, 8).length * (bh + gap) + 5;
+}
 
+// ─── Forecast bar chart (smart baseline, clear value + date labels) ───────────
+function forecastBars(
+  doc: any,
+  data: { label: string; value: number }[],
+  x: number, y: number, w: number,
+): number {
+  if (data.length === 0) return y;
+
+  const h      = 50;
+  const yAxisW = 22;
+  const chartX = x + yAxisW;
+  const chartW = w - yAxisW;
+  const n      = data.length;
+  const vals   = data.map((d) => d.value);
+  const maxV   = Math.max(...vals, 1);
+  const minV   = Math.min(...vals, 0);
+
+  // Use a smart baseline: start at 80% of min so differences are visible
+  const baseline = minV > 0 ? Math.floor(minV * 0.75) : 0;
+  const range    = Math.max(maxV - baseline, 1);
+
+  const barGap = Math.max(2, chartW / n * 0.3);
+  const barW   = Math.max(4, (chartW - barGap * (n + 1)) / n);
+
+  // Background
+  fr(doc, chartX, y, chartW, h, C.surface);
+
+  // Horizontal grid lines (4 levels)
+  const steps = 4;
+  for (let g = 0; g <= steps; g++) {
+    const gy  = y + h - (g / steps) * h;
+    const val = baseline + (g / steps) * range;
+    const lbl = val >= 1000 ? `Rs.${(val / 1000).toFixed(1)}k` : `Rs.${Math.round(val)}`;
+    doc.setDrawColor(...(C.border as number[]));
+    doc.setLineWidth(0.2);
+    doc.line(chartX, gy, chartX + chartW, gy);
+    txt(doc, lbl, chartX - 2, gy + 1.2, { size: 4.5, color: C.faint, align: "right" });
+  }
+
+  // Baseline axis
+  doc.setDrawColor(...(C.slate as number[]));
+  doc.setLineWidth(0.4);
+  doc.line(chartX, y + h, chartX + chartW, y + h);
+
+  // Bars
+  data.forEach((d, i) => {
+    const bh  = Math.max(((d.value - baseline) / range) * (h - 3), 3);
+    const bx  = chartX + barGap + i * (barW + barGap);
+    const by  = y + h - bh;
+
+    // soft shadow
+    doc.setFillColor(180, 140, 220);
+    doc.roundedRect(bx + 0.6, by + 0.6, barW, bh, 1.5, 1.5, "F");
+
+    // bar
+    rr(doc, bx, by, barW, bh, 1.5, C.purple);
+
+    // value label above bar
+    const valLbl = d.value >= 1000
+      ? `Rs.${(d.value / 1000).toFixed(1)}k`
+      : `Rs.${Math.round(d.value)}`;
+    doc.setFontSize(5);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(...(C.ink as number[]));
+    doc.text(valLbl, bx + barW / 2, by - 1.5, { align: "center" });
+
+    // date label below bar
+    doc.setFontSize(5.5);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(...(C.slate as number[]));
+    doc.text(d.label, bx + barW / 2, y + h + 5, { align: "center" });
+  });
+
+  // "Predicted Revenue" legend
+  txt(doc, "Predicted daily revenue (next 7 days)", x, y + h + 10, { size: 6, color: C.muted, italic: true });
+
+  return y + h + 16;
+}
+
+// ─── Column bar chart ─────────────────────────────────────────────────────────
+function colBars(
+  doc: any, data: { label: string; value: number }[],
+  x: number, y: number, w: number, h: number, title?: string, color: RGB = C.brand,
+): number {
+  if (data.length === 0) return y;
+  if (title) { txt(doc, title, x, y, { size: 7, bold: true, color: C.slate }); y += 5; }
+
+  const max    = Math.max(...data.map((d) => d.value), 1);
+  const n      = Math.min(data.length, 30);
+  const items  = data.slice(0, n);
+  const yAxisW = 18;                          // left axis labels area
+  const chartX = x + yAxisW;
+  const chartW = w - yAxisW;
+  const chartH = h;
+  const barGap = Math.max(1.5, chartW / n * 0.25);
+  const barW   = Math.max(2, (chartW - barGap * (n + 1)) / n);
+
+  // chart background
+  fr(doc, chartX, y, chartW, chartH, C.surface);
+
+  // horizontal grid lines + y-axis labels (4 lines)
+  const gridLines = 4;
+  for (let g = 0; g <= gridLines; g++) {
+    const gy = y + chartH - (g / gridLines) * chartH;
+    const val = (g / gridLines) * max;
+    // grid line
+    doc.setDrawColor(...C.border);
+    doc.setLineWidth(0.2);
+    doc.line(chartX, gy, chartX + chartW, gy);
+    // y-axis label
+    const label = val >= 1000 ? `${Math.round(val / 1000)}k` : String(Math.round(val));
+    txt(doc, label, chartX - 2, gy + 1, { size: 5, color: C.faint, align: "right" });
+  }
+
+  // baseline
+  doc.setDrawColor(...C.border);
+  doc.setLineWidth(0.4);
+  doc.line(chartX, y + chartH, chartX + chartW, y + chartH);
+
+  // bars
+  items.forEach((d, i) => {
+    const bh  = Math.max((d.value / max) * (chartH - 2), 1.5);
+    const bx  = chartX + barGap + i * (barW + barGap);
+    const by  = y + chartH - bh;
+
+    // bar shadow (subtle)
+    doc.setFillColor(200, 200, 200);
+    doc.roundedRect(bx + 0.5, by + 0.5, barW, bh, 1, 1, "F");
+
+    // bar
+    rr(doc, bx, by, barW, bh, 1, color);
+
+    // value label on top of bar (only when bars are wide enough)
+    if (barW >= 5) {
+      const valLabel = d.value >= 1000 ? `${(d.value / 1000).toFixed(1)}k` : String(Math.round(d.value));
+      doc.setFontSize(4.5);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(...C.ink);
+      doc.text(valLabel, bx + barW / 2, by - 1.2, { align: "center" });
+    }
+
+    // x-axis label
+    if (barW >= 3) {
+      const lbl = d.label.slice(0, 6);
+      doc.setFontSize(4.5);
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(...C.faint);
+      doc.text(lbl, bx + barW / 2, y + chartH + 4, { align: "center" });
+    }
+  });
+
+  return y + chartH + 10;
+}
+
+// ─── MAIN ENTRY ───────────────────────────────────────────────────────────────
 export async function generatePDFReport(
   data: FullReportData,
-  meta: {
-    restaurantName: string;
-    branchName: string;
-    from: string;
-    to: string;
-  },
+  meta: { restaurantName: string; branchName: string; from: string; to: string },
 ): Promise<Uint8Array> {
   const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
 
   const {
-    analytics,
-    bills,
-    expenses,
-    customers,
-    menuItems,
-    kitchenData,
-    attendance,
-    allStaff,
-    cashSessions,
-    branchComparison,
-    cityComparison,
-    heatmap,
-    forecast,
-    rfm,
-    insightsData,
-    inventoryAdjustments,
-    staffProductivity,
+    analytics, bills, expenses, customers, menuItems,
+    kitchenData, attendance, allStaff, cashSessions,
+    branchComparison, forecast, rfm, insightsData, inventoryAdjustments,
   } = data;
 
-  const totalRev = bills.reduce(
-    (s: number, b: any) => s + Number(b.total || 0),
-    0,
-  );
-  const totalGST = bills.reduce(
-    (s: number, b: any) => s + Number(b.cgst || 0) + Number(b.sgst || 0),
-    0,
-  );
-  const totalDisc = bills.reduce(
-    (s: number, b: any) => s + Number(b.discount || 0),
-    0,
-  );
-  const totalExp = expenses.reduce(
-    (s: number, e: any) => s + Number(e.amount || 0),
-    0,
-  );
-  const netProfit = totalRev - totalGST - totalExp;
-  const paidBills = bills.filter((b: any) => b.status === "PAID");
-  const gross = totalRev + totalDisc;
-  const margin = totalRev > 0 ? ((netProfit / totalRev) * 100).toFixed(1) : "0";
+  // ── Pre-compute shared numbers ─────────────────────────────────────────────
+  const activeBills = bills.filter((b: any) => b.status !== "CANCELLED");
+  const totalRev   = activeBills.reduce((s: number, b: any) => s + Number(b.total || 0), 0);
+  const totalGST   = activeBills.reduce((s: number, b: any) => s + Number(b.cgst || 0) + Number(b.sgst || 0), 0);
+  const totalDisc  = activeBills.reduce((s: number, b: any) => s + Number(b.discount || 0), 0);
+  const totalExp   = expenses.reduce((s: number, e: any) => s + Number(e.amount || 0), 0);
+  const paidBills  = activeBills.filter((b: any) => b.status === "PAID");
+  const margin     = totalRev > 0 ? ((( totalRev - totalGST - totalExp) / totalRev) * 100).toFixed(1) : "0";
 
-  // Pre-compute
+  const ins = insightsData || {};
+  const n   = (v: any) => Number(v || 0);
+  const fixedExp  = n(ins.monthlyRent) + n(ins.loanEmi) + n(ins.internet) + n(ins.phoneBills) + n(ins.accounting) + n(ins.insurance) + n(ins.licenses);
+  const varExp    = n(ins.deliveryCharges) + n(ins.packaging) + n(ins.paymentGateway) + n(ins.aggregatorCommission) + n(ins.electricity) + n(ins.gas) + n(ins.maintenance) + n(ins.fuel);
+  const labourExp = allStaff.reduce((s: number, st: any) => s + n(st.salary), 0);
+  const finExp    = n(ins.monthlyLoanEmi) + n(ins.monthlyInterestPayments) + n(ins.caFees) + n(ins.insuranceCost) + n(ins.otherTaxes);
+  // Same priority as Insights.tsx: manual entry → live inventory stock value
+  const inventoryStockValue = (data.ingredients || []).reduce(
+    (sum: number, ing: any) => sum + n(ing.quantity) * n(ing.pricePerUnit), 0,
+  );
+  const foodExp = n(ins.manualFoodCost) > 0
+    ? n(ins.manualFoodCost)
+    : inventoryStockValue > 0
+      ? inventoryStockValue
+      : 0;
+  const insRev    = n(ins.revenue) || totalRev;
+  const totalCosts = fixedExp + varExp + labourExp + finExp + foodExp;
+  const ebitdaAmt  = insRev - totalCosts;
+  const ebitdaPct  = insRev > 0 ? ((ebitdaAmt / insRev) * 100).toFixed(1) : "0";
+
+  // customers
   const now = Date.now();
-  const activeC = customers.filter(
-    (c: any) =>
-      c.lastVisit && (now - new Date(c.lastVisit).getTime()) / 86400000 <= 30,
-  );
-  const atRiskC = customers.filter(
-    (c: any) =>
-      c.lastVisit &&
-      (now - new Date(c.lastVisit).getTime()) / 86400000 > 30 &&
-      (now - new Date(c.lastVisit).getTime()) / 86400000 <= 90,
-  );
-  const churnedC = customers.filter(
-    (c: any) =>
-      !c.lastVisit || (now - new Date(c.lastVisit).getTime()) / 86400000 > 90,
-  );
-  const rfmMap: Record<string, any> = {};
-  (rfm?.customers || []).forEach((c: any) => {
-    rfmMap[c.phone] = c;
-  });
-  const segCounts: Record<string, number> = {};
-  (rfm?.customers || []).forEach((c: any) => {
-    segCounts[c.segment] = (segCounts[c.segment] || 0) + 1;
-  });
-  const byDate: Record<string, { rev: number; orders: number }> = {};
-  bills.forEach((b: any) => {
-    const d = new Date(b.createdAt).toLocaleDateString("en-IN");
-    if (!byDate[d]) byDate[d] = { rev: 0, orders: 0 };
-    byDate[d].rev += Number(b.total || 0);
-    byDate[d].orders++;
-  });
-  const dailyArr = Object.entries(byDate).sort(
-    (a, b) => new Date(a[0]).getTime() - new Date(b[0]).getTime(),
-  );
+  const repeatC  = customers.filter((c: any) => c.visits > 1).length;
+  const activeC  = customers.filter((c: any) => c.lastVisit && (now - new Date(c.lastVisit).getTime()) / 86400000 <= 30);
+
+  // items
   const itemMap: Record<string, { qty: number; rev: number; cat: string }> = {};
-  bills.forEach((b: any) => {
+  activeBills.forEach((b: any) => {
     (b.items || []).forEach((item: any) => {
-      if (!itemMap[item.itemName])
-        itemMap[item.itemName] = { qty: 0, rev: 0, cat: "—" };
+      if (!itemMap[item.itemName]) itemMap[item.itemName] = { qty: 0, rev: 0, cat: "—" };
       itemMap[item.itemName].qty += Number(item.quantity || 0);
       itemMap[item.itemName].rev += Number(item.total || 0);
     });
   });
-  menuItems.forEach((m: any) => {
-    if (itemMap[m.name]) itemMap[m.name].cat = m.category?.name || "—";
-  });
-  const topItems = Object.entries(itemMap).sort((a, b) => b[1].qty - a[1].qty);
-  const payMap: Record<string, { count: number; rev: number }> = {};
-  bills.forEach((b: any) => {
-    const m = b.paymentMethod || "Unknown";
-    if (!payMap[m]) payMap[m] = { count: 0, rev: 0 };
-    payMap[m].count++;
-    payMap[m].rev += Number(b.total || 0);
-  });
-  const otMap: Record<string, { count: number; rev: number }> = {};
-  bills.forEach((b: any) => {
-    const t = (b.orderType || "UNKNOWN").replace("_", " ");
-    if (!otMap[t]) otMap[t] = { count: 0, rev: 0 };
-    otMap[t].count++;
-    otMap[t].rev += Number(b.total || 0);
-  });
-  const ins = insightsData || {};
-  const fixedExp =
-    Number(ins.monthlyRent || 0) +
-    Number(ins.loanEmi || 0) +
-    Number(ins.internet || 0) +
-    Number(ins.phoneBills || 0) +
-    Number(ins.accounting || 0) +
-    Number(ins.insurance || 0) +
-    Number(ins.licenses || 0);
-  const varExp =
-    Number(ins.deliveryCharges || 0) +
-    Number(ins.packaging || 0) +
-    Number(ins.paymentGateway || 0) +
-    Number(ins.aggregatorCommission || 0) +
-    Number(ins.electricity || 0) +
-    Number(ins.gas || 0) +
-    Number(ins.maintenance || 0) +
-    Number(ins.fuel || 0);
-  const labourExp = allStaff.reduce(
-    (s: number, st: any) => s + Number(st.salary || 0),
-    0,
-  );
-  const insRev = Number(ins.revenue || 0) || totalRev;
-  const ebitda =
-    insRev > 0
-      ? (((insRev - (fixedExp + varExp + labourExp)) / insRev) * 100).toFixed(1)
-      : "0";
-  const expByType: Record<string, number> = {};
-  expenses.forEach((e: any) => {
-    expByType[e.expenseType || "Other"] =
-      (expByType[e.expenseType || "Other"] || 0) + Number(e.amount || 0);
-  });
-  const wasteByIng: Record<string, { qty: number; adj: number }> = {};
-  inventoryAdjustments.forEach((a: any) => {
-    const nm = a.ingredient?.name || "Unknown";
-    if (!wasteByIng[nm]) wasteByIng[nm] = { qty: 0, adj: 0 };
-    wasteByIng[nm].qty += Number(a.quantity || 0);
-    wasteByIng[nm].adj++;
+  menuItems.forEach((m: any) => { if (itemMap[m.name]) itemMap[m.name].cat = m.category?.name || "—"; });
+  const topItems = Object.entries(itemMap).sort((a, b) => b[1].rev - a[1].rev);
+
+  // payment & order-type splits
+  const payMap: Record<string, number> = {};
+  const otMap:  Record<string, number> = {};
+  activeBills.forEach((b: any) => {
+    const pm = b.paymentMethod || "Other";
+    const ot = (b.orderType || "OTHER").replace(/_/g, " ");
+    payMap[pm] = (payMap[pm] || 0) + Number(b.total || 0);
+    otMap[ot]  = (otMap[ot]  || 0) + Number(b.total || 0);
   });
 
-  // ──────────────────────────────────────────────────────────────────────────
-  // PAGE 1 — COVER
-  // ──────────────────────────────────────────────────────────────────────────
-  fr(doc, 0, 0, PW, 105, C.s900);
-  doc.setFillColor(30, 41, 59);
-  doc.circle(PW - 20, 20, 38, "F");
-  doc.setFillColor(51, 65, 85);
-  doc.circle(PW - 18, 14, 20, "F");
-  doc.setFillColor(239, 68, 68);
-  doc.circle(PW - 22, 22, 8, "F");
-  rr(doc, ML, 18, 20, 20, 4, C.red);
-  txt(doc, "D", ML + 6.5, 30.5, { size: 13, bold: true, color: C.white });
-  txt(doc, "DineInk", ML + 25, 26, { size: 20, bold: true, color: C.white });
-  txt(doc, "Restaurant Intelligence Platform", ML + 25, 32, {
-    size: 8,
-    color: C.s400,
+  // daily revenue
+  const byDate: Record<string, number> = {};
+  activeBills.forEach((b: any) => {
+    const d = new Date(b.createdAt).toLocaleDateString("en-IN");
+    byDate[d] = (byDate[d] || 0) + Number(b.total || 0);
   });
-  fr(doc, ML, 42, CW, 0.5, C.red);
-  txt(doc, "FULL BUSINESS", ML, 54, { size: 24, bold: true, color: C.white });
-  txt(doc, "INTELLIGENCE REPORT", ML, 64, {
-    size: 24,
-    bold: true,
-    color: C.red,
-  });
-  txt(
-    doc,
-    "22 Modules · 90+ KPIs · 27 Data Sheets · Charts · Analytics · Forecasts",
-    ML,
-    72,
-    { size: 8.5, color: C.s400 },
-  );
-  rr(doc, ML, 79, CW, 20, 3, C.s800);
-  txt(doc, meta.restaurantName, ML + 5, 87, {
-    size: 12,
-    bold: true,
-    color: C.white,
-  });
-  txt(doc, `Branch: ${meta.branchName}`, ML + 5, 93, {
-    size: 8,
-    color: C.s400,
-  });
-  txt(doc, `${meta.from} to${meta.to}`, PW - MR - 3, 87, {
-    size: 8,
-    color: C.s400,
-    align: "right",
-  });
-  txt(
-    doc,
-    new Date().toLocaleDateString("en-IN", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-    }),
-    PW - MR - 3,
-    93,
-    { size: 8, bold: true, color: C.red, align: "right" },
-  );
+  const dailyArr = Object.entries(byDate).sort((a, b) => new Date(a[0]).getTime() - new Date(b[0]).getTime());
 
-  let y = 110;
-  y = kpiRow(
-    doc,
-    [
-      {
-        label: "Total Revenue",
-        value: INR(totalRev),
-        sub: `${bills.length} bills`,
-        accent: C.red,
-      },
-      {
-        label: "Net Profit",
-        value: INR(netProfit),
-        sub: `${margin}% margin`,
-        accent: netProfit >= 0 ? C.green : C.redDk,
-      },
-      {
-        label: "Total Orders",
-        value: String(bills.length),
-        sub: `${paidBills.length} paid`,
-        accent: C.blue,
-      },
-      {
-        label: "Customers",
-        value: String(customers.length),
-        sub: `${customers.filter((c: any) => c.visits > 1).length} repeat`,
-        accent: C.purple,
-      },
-      {
-        label: "GST Collected",
-        value: INR(totalGST),
-        sub: "CGST + SGST",
-        accent: C.amber,
-      },
-      {
-        label: "Expenses",
-        value: INR(totalExp),
-        sub: `${expenses.length} entries`,
-        accent: C.s600,
-      },
-      {
-        label: "Active Customers",
-        value: String(activeC.length),
-        sub: "last 30 days",
-        accent: C.teal,
-      },
-      {
-        label: "EBITDA",
-        value: `${ebitda}%`,
-        sub: "profitability",
-        accent: C.purple,
-      },
-    ],
-    y,
-    4,
-  );
+  // kitchen
+  const avgKitchenTime = kitchenData?.avgPrepTime || kitchenData?.averageTime || 0;
+  const kitchenOrders  = kitchenData?.totalOrders || activeBills.length;
 
-  // TOC
+  // ══════════════════════════════════════════════════════════════════════════
+  //  COVER PAGE
+  // ══════════════════════════════════════════════════════════════════════════
+  // Brand header band
+  fr(doc, 0, 0, PW, 55, C.brand);
+
+  // White DineInk wordmark area
+  fr(doc, ML, 10, 55, 14, C.white);
+  txt(doc, "Dine", ML + 3, 20, { size: 13, bold: true, color: C.brand });
+  txt(doc, "Ink", ML + 3 + doc.getTextWidth("Dine"), 20, { size: 13, bold: true, color: C.ink });
+  txt(doc, "RESTAURANT INTELLIGENCE", ML + 62, 18, { size: 7.5, bold: true, color: C.white });
+  txt(doc, "PLATFORM", ML + 62, 24, { size: 7.5, color: [254, 202, 202] as RGB });
+
+  // Horizontal rule in band
+  fr(doc, ML, 35, CW, 0.5, [254, 202, 202] as RGB);
+
+  // Main title in band
+  txt(doc, "BUSINESS PERFORMANCE", ML, 44, { size: 18, bold: true, color: C.white });
+  txt(doc, "REPORT", PW - MR - 2, 44, { size: 18, bold: true, color: [254, 202, 202] as RGB, align: "right" });
+
+  // Subtitle
+  txt(doc, "Comprehensive Financial & Operational Intelligence", ML, 52, { size: 8, color: [254, 226, 226] as RGB });
+
+  // Restaurant info block
+  fr(doc, 0, 55, PW, 38, C.surface);
+  fr(doc, ML, 62, 3.5, 22, C.brand);
+  txt(doc, meta.restaurantName, ML + 7, 70, { size: 17, bold: true, color: C.ink });
+  txt(doc, `Branch: ${meta.branchName}`, ML + 7, 78, { size: 9, color: C.slate });
+  txt(doc, `Reporting Period: ${meta.from}  to  ${meta.to}`, ML + 7, 85, { size: 8, color: C.muted });
+  txt(doc, `Generated: ${new Date().toLocaleDateString("en-IN", { day: "2-digit", month: "long", year: "numeric" })}`, PW - MR - 3, 85, { size: 7.5, color: C.brand, bold: true, align: "right" });
+  ln(doc, 0, 93, PW, 93, C.border, 0.5);
+
+  // ── Snapshot KPIs on cover ─────────────────────────────────────────────────
+  let y = 100;
+  y = kpiGrid(doc, [
+    { label: "Total Revenue",   value: RS(totalRev),       sub: `${activeBills.length} orders`, accent: C.brand },
+    { label: "Net Profit",      value: RS(totalRev - totalGST - totalExp), sub: `${margin}% margin`,   accent: Number(margin) >= 0 ? C.green : C.brand },
+    { label: "EBITDA",          value: `${ebitdaPct}%`,    sub: `target ${n(ins.targetEbitda) || 0}%`, accent: Number(ebitdaPct) >= n(ins.targetEbitda) ? C.green : C.brand },
+    { label: "Avg Order Value", value: RS(activeBills.length ? totalRev / activeBills.length : 0), sub: "per transaction", accent: C.blue },
+    { label: "Customers",       value: String(customers.length), sub: `${repeatC} returning`, accent: C.purple },
+    { label: "Total GST",       value: RS(totalGST),        sub: "CGST + SGST",         accent: C.amber },
+    { label: "Active Customers",value: String(activeC.length), sub: "last 30 days",     accent: C.teal },
+    { label: "Discounts Given", value: RS(totalDisc),       sub: "across all orders",   accent: C.slate },
+  ], y, 4);
+
+  // Table of Contents
   y += 4;
-  txt(doc, "REPORT CONTENTS", ML, y, { size: 7, bold: true, color: C.s500 });
-  y += 4;
-  ln(doc, ML, y, PW - MR, y, C.s200, 0.3);
-  y += 4;
-  const tocItems = [
-    ["01", "Analytics Overview Dashboard — KPIs, Revenue, Orders, Payments"],
-    ["02", "Billing Overview — Bills, Transactions, Order Types"],
-    ["03", "Customer Overview + Churn + RFM Analysis"],
-    ["04", "Menu Analytics + Menu Engineering Matrix"],
-    ["05", "Financial Reports — P&L, Tax (GST), Expenses, Sales, Discounts"],
-    ["06", "Operations — Table Analytics, Waste Report, Heatmap, Day Analysis"],
-    ["07", "Staff — Attendance, Productivity, Payroll"],
-    ["08", "Cash Reconciliation — Sessions, Differences"],
-    ["09", "Kitchen Analytics — Speed, SLA, Throughput, Items"],
-    [
-      "10",
-      "Business Intelligence — Insights, Forecast, Branch/City Comparison",
-    ],
+  ln(doc, ML, y, PW - MR, y, C.border, 0.3);
+  y += 6;
+  txt(doc, "REPORT CONTENTS", ML, y, { size: 6.5, bold: true, color: C.faint });
+  y += 6;
+  const toc = [
+    ["01", "Executive Summary"],
+    ["02", "Revenue & Order Analysis"],
+    ["03", "Menu Performance"],
+    ["04", "Financial Overview — P&L, Expenses & EBITDA"],
+    ["05", "Customer Intelligence"],
+    ["06", "Operations & Staff"],
   ];
-  tocItems.forEach(([n2, t], i) => {
-    rr(doc, ML, y + i * 7, 7, 5.5, 1, C.red);
-    txt(doc, n2, ML + 1, y + i * 7 + 4, {
-      size: 6,
-      bold: true,
-      color: C.white,
-    });
-    txt(doc, t, ML + 10, y + i * 7 + 4, { size: 7.5, color: C.s700 });
+  toc.forEach(([num, title], i) => {
+    const col = i < 3 ? 0 : 1;
+    const row = i < 3 ? i : i - 3;
+    const tx = ML + col * (CW / 2 + 3);
+    const ty = y + row * 8;
+    fr(doc, tx, ty - 3.5, 7, 6, C.brand);
+    txt(doc, num, tx + 1.5, ty + 0.5, { size: 5.5, bold: true, color: C.white });
+    txt(doc, title, tx + 10, ty + 0.5, { size: 7.5, color: C.slate });
   });
-  pageHeader(doc, 1, 1, meta); // placeholder, updated at end
 
-  // ──────────────────────────────────────────────────────────────────────────
-  // SECTION 01 — ANALYTICS OVERVIEW DASHBOARD
-  // ──────────────────────────────────────────────────────────────────────────
+  // Confidential footer on cover
+  y = PH - 20;
+  ln(doc, ML, y, PW - MR, y, C.border, 0.3);
+  txt(doc, "CONFIDENTIAL — For internal use only. Prepared by DineInk Restaurant Intelligence Platform.", ML, y + 5, { size: 6, color: C.faint, italic: true });
+
+  // ══════════════════════════════════════════════════════════════════════════
+  //  SECTION 01 — EXECUTIVE SUMMARY
+  // ══════════════════════════════════════════════════════════════════════════
   doc.addPage();
   y = ML;
-  y = chapterBanner(
-    doc,
-    "01",
-    "Analytics Overview Dashboard",
-    "Live operational metrics",
-    y,
-  );
+  y = sectionHead(doc, "01  Executive Summary", "Key performance indicators at a glance", y);
 
-  y = kpiRow(
-    doc,
-    [
-      {
-        label: "Revenue",
-        value: INR(totalRev),
-        sub: "Total earnings",
-        accent: C.red,
-      },
-      {
-        label: "Orders",
-        value: String(bills.length),
-        sub: "Completed orders",
-        accent: C.blue,
-      },
-      {
-        label: "Avg Order Value",
-        value: INR(bills.length ? Math.round(totalRev / bills.length) : 0),
-        sub: "Per transaction",
-        accent: C.purple,
-      },
-      {
-        label: "Customers",
-        value: String(customers.length),
-        sub: "Unique visitors",
-        accent: C.teal,
-      },
-      {
-        label: "Peak Hours",
-        value: analytics.peakHours || "—",
-        sub: "Busiest time",
-        accent: C.amber,
-      },
-      {
-        label: "Repeat Rate",
-        value: PCT(
-          customers.filter((c: any) => c.visits > 1).length,
-          customers.length,
-        ),
-        sub: "Returning guests",
-        accent: C.green,
-      },
-    ],
-    y,
-    3,
-  );
+  y = kpiGrid(doc, [
+    { label: "Revenue",          value: RS(totalRev),        sub: "Total billings",         accent: C.brand },
+    { label: "Orders",           value: String(activeBills.length), sub: `${paidBills.length} paid`, accent: C.blue },
+    { label: "Avg Order Value",  value: RS(activeBills.length ? totalRev / activeBills.length : 0), sub: "per bill", accent: C.teal },
+    { label: "Gross Revenue",    value: RS(totalRev + totalDisc), sub: "before discounts",  accent: C.slate },
+    { label: "Discounts",        value: RS(totalDisc),       sub: "total given",            accent: C.amber },
+    { label: "GST Collected",    value: RS(totalGST),        sub: "CGST + SGST",            accent: C.purple },
+    { label: "Net Revenue",      value: RS(totalRev - totalGST), sub: "after tax",          accent: C.ink },
+    { label: "Net Profit (est.)", value: RS(totalRev - totalGST - totalExp), sub: `${margin}% margin`, accent: Number(margin) >= 0 ? C.green : C.brand },
+  ], y, 4);
 
-  y = sectionLabel(doc, "Revenue Trend", y);
-  if (dailyArr.length > 0)
-    y =
-      colChart(
-        doc,
-        dailyArr.map(([d, v]) => ({ label: d.slice(0, 5), value: v.rev })),
-        ML,
-        y,
-        CW,
-        40,
-      ) + 3;
+  y = divider(doc, "Performance Highlights", y);
 
-  const half = (CW - 3) / 2;
-  y = sectionLabel(doc, "Order Split  /  Payment Split", y);
-  const otBars = Object.entries(otMap)
-    .sort((a, b) => b[1].rev - a[1].rev)
-    .map(([t, d], i) => ({
-      label: t,
-      value: d.rev,
-      color: [C.red, C.blue, C.green, C.amber][i % 4] as RGB,
-    }));
-  const pmBars = Object.entries(payMap)
-    .sort((a, b) => b[1].rev - a[1].rev)
-    .map(([m, d], i) => ({
-      label: m,
-      value: d.rev,
-      color: [C.blue, C.purple, C.green, C.amber][i % 4] as RGB,
-    }));
-  const ny1 = hBar(doc, otBars, ML, y, half, "Revenue by Order Type");
-  const ny2 = hBar(
-    doc,
-    pmBars,
-    ML + half + 3,
-    y,
-    half,
-    "Revenue by Payment Method",
-  );
-  y = Math.max(ny1, ny2) + 3;
+  // P&L snapshot table
+  const netRev = totalRev - totalGST;
+  y = labelValueRows(doc, [
+    ["Gross Revenue (before discounts)",    RS(totalRev + totalDisc)],
+    ["Less: Discounts",                    `(${RS(totalDisc)})`,   C.brand],
+    ["Net Revenue",                        RS(totalRev)],
+    ["Less: GST (CGST + SGST)",            `(${RS(totalGST)})`,    C.amber],
+    ["Revenue after Tax",                  RS(netRev),              C.slate],
+    ["Less: Recorded Expenses",            `(${RS(totalExp)})`,    C.brand],
+    ["Estimated Net Profit",               RS(totalRev - totalGST - totalExp), Number(margin) >= 0 ? C.green : C.brand],
+  ], y);
 
-  y = sectionLabel(doc, "Top Selling Items", y);
-  y = premTable(
-    doc,
-    [["#", "Item Name", "Qty Sold", "Revenue", "Category"]],
-    topItems
-      .slice(0, 10)
-      .map(([name, d], i) => [i + 1, name, d.qty, INR(d.rev), d.cat]),
-    y,
-    C.red,
-    {
-      columnStyles: {
-        0: { halign: "center", cellWidth: 10 },
-        2: { halign: "center" },
-        3: { halign: "right" },
-      },
-    },
-  );
+  y = divider(doc, "EBITDA Snapshot", y, C.purple);
+  y = labelValueRows(doc, [
+    ["Revenue",                     RS(insRev)],
+    ["Fixed Expenses",              `(${RS(fixedExp)})`,  C.slate],
+    ["Variable Expenses",           `(${RS(varExp)})`,    C.slate],
+    ["Labour Cost",                 `(${RS(labourExp)})`, C.slate],
+    ["Finance / Tax",               `(${RS(finExp)})`,    C.slate],
+    ["Raw Material / Food Cost",    `(${RS(foodExp)})`,   C.slate],
+    ["EBITDA",                      `${RS(ebitdaAmt)}  (${ebitdaPct}%)`, Number(ebitdaPct) >= 0 ? C.green : C.brand],
+  ], y);
 
-  // ──────────────────────────────────────────────────────────────────────────
-  // SECTION 02 — BILLING OVERVIEW
-  // ──────────────────────────────────────────────────────────────────────────
+  // ══════════════════════════════════════════════════════════════════════════
+  //  SECTION 02 — REVENUE & ORDER ANALYSIS
+  // ══════════════════════════════════════════════════════════════════════════
   doc.addPage();
   y = ML;
-  y = chapterBanner(
-    doc,
-    "02",
-    "Billing Overview",
-    `${bills.length} bills · ${meta.from} to${meta.to}`,
-    y,
-  );
+  y = sectionHead(doc, "02  Revenue & Order Analysis", "Trends, payment methods & order types", y);
 
-  y = kpiRow(
-    doc,
-    [
-      {
-        label: "Revenue",
-        value: INR(totalRev),
-        sub: "Total earnings",
-        accent: C.red,
-      },
-      {
-        label: "Orders",
-        value: String(bills.length),
-        sub: "Total bills",
-        accent: C.blue,
-      },
-      {
-        label: "Avg Bill",
-        value: INR(bills.length ? Math.round(totalRev / bills.length) : 0),
-        sub: "Per bill",
-        accent: C.purple,
-      },
-      {
-        label: "Paid Bills",
-        value: String(paidBills.length),
-        sub: "Completed",
-        accent: C.green,
-      },
-    ],
-    y,
-    4,
-  );
-
-  y = sectionLabel(doc, "Recent Bills", y);
-  y = premTable(
-    doc,
-    [
-      [
-        "Bill No",
-        "Date",
-        "Customer",
-        "Order Type",
-        "Payment",
-        "Subtotal",
-        "GST",
-        "Total",
-        "Status",
-      ],
-    ],
-    bills
-      .slice(0, 20)
-      .map((b: any) => [
-        b.billNo || `#${b.id}`,
-        new Date(b.createdAt).toLocaleDateString("en-IN"),
-        b.customer?.name || "Guest",
-        (b.orderType || "").replace("_", " "),
-        b.paymentMethod || "—",
-        INR(b.subtotal),
-        INR(Number(b.cgst || 0) + Number(b.sgst || 0)),
-        INR(b.total),
-        b.status || "—",
-      ]),
-    y,
-    C.blue,
-    {
-      columnStyles: {
-        5: { halign: "right" },
-        6: { halign: "right" },
-        7: { halign: "right" },
-        8: { halign: "center" },
-      },
-    },
-  );
-
-  // ──────────────────────────────────────────────────────────────────────────
-  // SECTION 03 — CUSTOMERS (Overview + Churn + RFM)
-  // ──────────────────────────────────────────────────────────────────────────
-  doc.addPage();
-  y = ML;
-  y = chapterBanner(
-    doc,
-    "03",
-    "Customer Analytics",
-    "Overview · Churn · RFM Segmentation",
-    y,
-    C.purple,
-  );
-
-  y = kpiRow(
-    doc,
-    [
-      {
-        label: "Total Customers",
-        value: String(customers.length),
-        sub: "all time",
-        accent: C.blue,
-      },
-      {
-        label: "Repeat Customers",
-        value: String(customers.filter((c: any) => c.visits > 1).length),
-        sub: "visited 2+ times",
-        accent: C.green,
-      },
-      {
-        label: "Avg Spend",
-        value: INR(
-          customers.length
-            ? Math.round(
-                customers.reduce(
-                  (s: number, c: any) => s + Number(c.spend || 0),
-                  0,
-                ) / customers.length,
-              )
-            : 0,
-        ),
-        sub: "per customer",
-        accent: C.purple,
-      },
-      {
-        label: "Active",
-        value: String(activeC.length),
-        sub: "last 30 days",
-        accent: C.teal,
-      },
-      {
-        label: "At Risk",
-        value: String(atRiskC.length),
-        sub: "30–90 days",
-        accent: C.amber,
-      },
-      {
-        label: "Churned",
-        value: String(churnedC.length),
-        sub: "90+ days",
-        accent: C.redDk,
-      },
-    ],
-    y,
-    3,
-  );
-
-  y = sectionLabel(doc, "Customer Overview Table", y);
-  y = premTable(
-    doc,
-    [
-      [
-        "Customer",
-        "Visits",
-        "Total Spend",
-        "Avg Bill",
-        "Last Visit",
-        "Segment",
-      ],
-    ],
-    customers
-      .sort((a: any, b: any) => b.spend - a.spend)
-      .slice(0, 15)
-      .map((c: any) => [
-        c.name,
-        c.visits,
-        INR(c.spend),
-        INR(c.visits ? Math.round(Number(c.spend) / c.visits) : 0),
-        c.lastVisit ? new Date(c.lastVisit).toLocaleDateString("en-IN") : "—",
-        rfmMap[c.phone]?.segment ||
-          (c.spend > 5000 ? "VIP" : c.visits > 3 ? "Regular" : "New"),
-      ]),
-    y,
-    C.purple,
-    {
-      columnStyles: {
-        1: { halign: "center" },
-        2: { halign: "right" },
-        3: { halign: "right" },
-        5: { halign: "center" },
-      },
-    },
-  );
-
-  y = sectionLabel(doc, "Churn Analysis — At Risk Customers", y, C.amber);
-  y = premTable(
-    doc,
-    [["Customer", "Phone", "Last Visit", "Days Since", "Visits", "Spend"]],
-    atRiskC
-      .slice(0, 10)
-      .map((c: any) => [
-        c.name,
-        c.phone,
-        c.lastVisit ? new Date(c.lastVisit).toLocaleDateString("en-IN") : "—",
-        Math.floor((now - new Date(c.lastVisit || now).getTime()) / 86400000),
-        c.visits,
-        INR(c.spend),
-      ]),
-    y,
-    C.amber,
-  );
-
-  y = sectionLabel(doc, "RFM Segmentation", y, C.purple);
-  const segC: Record<string, RGB> = {
-    Champion: C.green,
-    Loyal: C.blue,
-    Potential: C.purple,
-    "At Risk": C.amber,
-    Lost: C.redDk,
-  };
-  y = kpiRow(
-    doc,
-    ["Champion", "Loyal", "Potential", "At Risk", "Lost"].map((seg) => ({
-      label: seg,
-      value: String(segCounts[seg] || 0),
-      sub: `${rfm?.customers?.length > 0 ? PCT(segCounts[seg] || 0, rfm.customers.length) : "0%"} of total`,
-      accent: segC[seg] || C.s500,
-    })),
-    y,
-    5,
-  );
-
-  y = premTable(
-    doc,
-    [
-      [
-        "Customer",
-        "Segment",
-        "R",
-        "F",
-        "M",
-        "Total /15",
-        "Last Visit",
-        "Spend",
-      ],
-    ],
-    (rfm?.customers || [])
-      .slice(0, 15)
-      .map((c: any) => [
-        c.name,
-        c.segment,
-        c.R,
-        c.F,
-        c.M,
-        `${c.rfm}/15`,
-        c.lastVisit ? new Date(c.lastVisit).toLocaleDateString("en-IN") : "—",
-        INR(c.monetary),
-      ]),
-    y,
-    C.purple,
-    {
-      columnStyles: {
-        1: { halign: "center" },
-        2: { halign: "center" },
-        3: { halign: "center" },
-        4: { halign: "center" },
-        5: { halign: "center" },
-        7: { halign: "right" },
-      },
-    },
-  );
-
-  // ──────────────────────────────────────────────────────────────────────────
-  // SECTION 04 — MENU ANALYTICS + MENU ENGINEERING
-  // ──────────────────────────────────────────────────────────────────────────
-  doc.addPage();
-  y = ML;
-  y = chapterBanner(
-    doc,
-    "04",
-    "Menu Analytics & Engineering",
-    "Ingredient intelligence · Food cost · Quadrant matrix",
-    y,
-    C.teal,
-  );
-
-  const invVal = (data.ingredients as any[]).reduce(
-    (s: number, i: any) =>
-      s + Number(i.quantity || 0) * Number(i.pricePerUnit || 0),
-    0,
-  );
-  y = kpiRow(
-    doc,
-    [
-      {
-        label: "Inventory Value",
-        value: INR(invVal),
-        sub: "current stock value",
-        accent: C.blue,
-      },
-      {
-        label: "Total Ingredients",
-        value: String((data.ingredients as any[]).length),
-        sub: "in system",
-        accent: C.purple,
-      },
-      {
-        label: "Top Item",
-        value: topItems[0]?.[0] || "—",
-        sub: `${topItems[0]?.[1]?.qty || 0} sold`,
-        accent: C.red,
-      },
-      {
-        label: "Menu Items",
-        value: String(menuItems.length),
-        sub: `${menuItems.filter((m: any) => (m.menuItemIngredients || []).length > 0).length} mapped`,
-        accent: C.teal,
-      },
-    ],
-    y,
-    4,
-  );
-
-  y = sectionLabel(doc, "Top Selling Items — Menu Analytics", y);
-  y =
-    hBar(
+  y = divider(doc, "Daily Revenue Trend", y);
+  if (dailyArr.length > 0) {
+    y = colBars(
       doc,
-      topItems
-        .slice(0, 10)
-        .map(([name, d], i) => ({
-          label: name,
-          value: d.qty,
-          color: [C.red, C.blue, C.green, C.amber, C.purple][i % 5] as RGB,
-        })),
-      ML,
-      y,
-      CW,
-      "Items by Quantity Sold",
-    ) + 4;
-
-  y = sectionLabel(
-    doc,
-    "Menu Engineering Matrix (Stars / Puzzles / Plowhorses / Dogs)",
-    y,
-    C.teal,
-  );
-  const medQty =
-    topItems.length > 0 ? topItems[Math.floor(topItems.length / 2)][1].qty : 0;
-  const engBody = topItems.slice(0, 20).map(([name, d]) => {
-    const mi = menuItems.find((m: any) => m.name === name);
-    const cost = (mi?.menuItemIngredients || []).reduce(
-      (acc: number, ing: any) =>
-        acc +
-        Number(ing.quantity || 0) * Number(ing.ingredient?.pricePerUnit || 0),
-      0,
+      dailyArr.map(([d, rev]) => ({ label: d.slice(0, 5), value: rev })),
+      ML, y, CW, 42, undefined, C.brand,
     );
-    const sp = Number(mi?.price || 0);
-    const marg = sp > 0 ? (((sp - cost) / sp) * 100).toFixed(1) : "0.0";
-    const quad =
-      d.qty >= medQty && parseFloat(marg) >= 50
-        ? "⭐ Star"
-        : d.qty < medQty && parseFloat(marg) >= 50
-          ? "🧩 Puzzle"
-          : d.qty >= medQty
-            ? "🐎 Plowhorse"
-            : "🐕 Dog";
-    return [name, d.qty, INR(d.rev), d.cat, `${marg}%`, quad];
-  });
-  y = premTable(
-    doc,
-    [["Item Name", "Qty Sold", "Revenue", "Category", "Margin %", "Quadrant"]],
-    engBody,
-    y,
-    C.teal,
-    {
-      columnStyles: {
-        1: { halign: "center" },
-        2: { halign: "right" },
-        4: { halign: "center" },
-        5: { halign: "center" },
-      },
-    },
-  );
-
-  // ──────────────────────────────────────────────────────────────────────────
-  // SECTION 05 — FINANCIAL REPORTS
-  // ──────────────────────────────────────────────────────────────────────────
-  doc.addPage();
-  y = ML;
-  y = chapterBanner(
-    doc,
-    "05",
-    "Financial Reports",
-    "P&L · Tax (GST) · Expenses · Sales · Discounts",
-    y,
-    C.green,
-  );
-
-  y = kpiRow(
-    doc,
-    [
-      {
-        label: "Gross Revenue",
-        value: INR(gross),
-        sub: "before discounts",
-        accent: C.red,
-      },
-      {
-        label: "Net Revenue",
-        value: INR(totalRev),
-        sub: "after discounts",
-        accent: C.blue,
-      },
-      {
-        label: "GST Collected",
-        value: INR(totalGST),
-        sub: "CGST + SGST",
-        accent: C.amber,
-      },
-      {
-        label: "Total Expenses",
-        value: INR(totalExp),
-        sub: `${expenses.length} entries`,
-        accent: C.purple,
-      },
-      {
-        label: "Net Profit",
-        value: INR(netProfit),
-        sub: `${margin}% margin`,
-        accent: netProfit >= 0 ? C.green : C.redDk,
-      },
-      {
-        label: "Discounts",
-        value: INR(totalDisc),
-        sub: PCT(totalDisc, gross) + " of gross",
-        accent: C.amber,
-      },
-    ],
-    y,
-    3,
-  );
-
-  y = sectionLabel(doc, "P&L Statement", y, C.green);
-  y = premTable(
-    doc,
-    [["Line Item", "Amount", "% of Revenue", "Notes"]],
-    [
-      ["Gross Revenue (before discounts)", INR(gross), "100.0%", "Baseline"],
-      [
-        "(−) Discounts Applied",
-        `−${INR(totalDisc)}`,
-        `−${PCT(totalDisc, gross)}`,
-        "Revenue reduction",
-      ],
-      ["Net Revenue", INR(totalRev), "—", "After discounts"],
-      [
-        "(−) GST Collected",
-        `−${INR(totalGST)}`,
-        `−${PCT(totalGST, totalRev)}`,
-        "Tax liability",
-      ],
-      [
-        "(−) Operating Expenses",
-        `−${INR(totalExp)}`,
-        `−${PCT(totalExp, totalRev)}`,
-        `${expenses.length} entries`,
-      ],
-      [
-        "ESTIMATED NET PROFIT",
-        INR(netProfit),
-        PCT(netProfit, totalRev),
-        netProfit >= 0 ? "✓ Profitable" : "✗ Loss making",
-      ],
-    ],
-    y,
-    C.green,
-    {
-      columnStyles: { 1: { halign: "right" }, 2: { halign: "center" } },
-      didParseCell: (h: any) => {
-        if (h.row.index === 5) {
-          h.cell.styles.fontStyle = "bold";
-          h.cell.styles.fillColor =
-            netProfit >= 0 ? C.greenLt : [254, 226, 226];
-          h.cell.styles.textColor = netProfit >= 0 ? C.greenDk : C.redDk;
-        }
-      },
-    },
-  );
-
-  y = sectionLabel(doc, "Expense Breakdown", y, C.purple);
-  const expBars = Object.entries(expByType)
-    .sort((a, b) => b[1] - a[1])
-    .map(([t, v], i) => ({
-      label: t,
-      value: v,
-      color: [C.purple, C.blue, C.amber, C.red, C.teal][i % 5] as RGB,
-    }));
-  y = hBar(doc, expBars, ML, y, CW, "Operating Expenses by Category") + 4;
-
-  y = sectionLabel(doc, "Sales Analytics — Payment Channels", y, C.blue);
-  y = premTable(
-    doc,
-    [["Payment Method", "Bills", "Revenue", "Avg Bill", "Share %"]],
-    Object.entries(payMap)
-      .sort((a, b) => b[1].rev - a[1].rev)
-      .map(([m, d]) => [
-        m,
-        d.count,
-        INR(d.rev),
-        INR(d.count ? Math.round(d.rev / d.count) : 0),
-        PCT(d.rev, totalRev),
-      ]),
-    y,
-    C.blue,
-    {
-      columnStyles: {
-        1: { halign: "center" },
-        2: { halign: "right" },
-        3: { halign: "right" },
-        4: { halign: "center" },
-      },
-    },
-  );
-
-  y = sectionLabel(doc, "Order Channel Performance", y, C.blue);
-  y = premTable(
-    doc,
-    [["Order Channel", "Bills", "Revenue", "Avg Bill", "Revenue %"]],
-    Object.entries(otMap)
-      .sort((a, b) => b[1].rev - a[1].rev)
-      .map(([t, d]) => [
-        t,
-        d.count,
-        INR(d.rev),
-        INR(d.count ? Math.round(d.rev / d.count) : 0),
-        PCT(d.rev, totalRev),
-      ]),
-    y,
-    C.blue,
-    {
-      columnStyles: {
-        1: { halign: "center" },
-        2: { halign: "right" },
-        3: { halign: "right" },
-        4: { halign: "center" },
-      },
-    },
-  );
-
-  // ── TAX REPORT ────────────────────────────────────────────────────────────
-  doc.addPage();
-  y = ML;
-  y = chapterBanner(
-    doc,
-    "05b",
-    "Tax Report (GST)",
-    "CGST + SGST breakdown per bill",
-    y,
-    C.amber,
-  );
-
-  const cgstTotal = bills.reduce(
-    (s: number, b: any) => s + Number(b.cgst || 0),
-    0,
-  );
-  const sgstTotal = bills.reduce(
-    (s: number, b: any) => s + Number(b.sgst || 0),
-    0,
-  );
-  y = kpiRow(
-    doc,
-    [
-      {
-        label: "Total CGST",
-        value: INR(cgstTotal),
-        sub: "Central GST collected",
-        accent: C.blue,
-      },
-      {
-        label: "Total SGST",
-        value: INR(sgstTotal),
-        sub: "State GST collected",
-        accent: C.purple,
-      },
-      {
-        label: "Total GST",
-        value: INR(totalGST),
-        sub: "CGST + SGST",
-        accent: C.red,
-      },
-      {
-        label: "Taxable Revenue",
-        value: INR(totalRev - totalGST),
-        sub: "excl. tax",
-        accent: C.green,
-      },
-    ],
-    y,
-    4,
-  );
-
-  y = sectionLabel(doc, "GST Bill-wise Breakdown", y, C.amber);
-  y = premTable(
-    doc,
-    [
-      [
-        "Bill No",
-        "Date",
-        "Order Type",
-        "Subtotal",
-        "CGST",
-        "SGST",
-        "Total GST",
-        "Total",
-        "Status",
-      ],
-    ],
-    bills.map((b: any) => [
-      b.billNo || `#${b.id}`,
-      new Date(b.createdAt).toLocaleDateString("en-IN"),
-      (b.orderType || "").replace("_", " "),
-      INR(b.subtotal),
-      INR(b.cgst),
-      INR(b.sgst),
-      INR(Number(b.cgst || 0) + Number(b.sgst || 0)),
-      INR(b.total),
-      b.status || "—",
-    ]),
-    y,
-    C.amber,
-    {
-      columnStyles: {
-        3: { halign: "right" },
-        4: { halign: "right" },
-        5: { halign: "right" },
-        6: { halign: "right" },
-        7: { halign: "right" },
-        8: { halign: "center" },
-      },
-    },
-  );
-
-  // ── EXPENSE TRACKER ───────────────────────────────────────────────────────
-  doc.addPage();
-  y = ML;
-  y = chapterBanner(
-    doc,
-    "05c",
-    "Expense Tracker",
-    `${expenses.length} entries · Total: ${INR(totalExp)}`,
-    y,
-    C.purple,
-  );
-
-  y = kpiRow(
-    doc,
-    [
-      {
-        label: "Total Expenses",
-        value: INR(totalExp),
-        sub: `${expenses.length} entries`,
-        accent: C.purple,
-      },
-      {
-        label: "Expense/Revenue",
-        value: PCT(totalExp, totalRev),
-        sub: "cost ratio",
-        accent: totalExp / totalRev < 0.3 ? C.green : C.redDk,
-      },
-      {
-        label: "Categories",
-        value: String(Object.keys(expByType).length),
-        sub: "expense types",
-        accent: C.blue,
-      },
-      {
-        label: "Avg per Entry",
-        value: INR(
-          expenses.length ? Math.round(totalExp / expenses.length) : 0,
-        ),
-        sub: "per expense",
-        accent: C.amber,
-      },
-    ],
-    y,
-    4,
-  );
-
-  y = sectionLabel(doc, "Expense Entries", y, C.purple);
-  y = premTable(
-    doc,
-    [["Expense Name", "Category", "Date", "Amount", "Paid By"]],
-    expenses.map((e: any) => [
-      e.title || "—",
-      e.expenseType || "—",
-      new Date(e.expenseDate || e.createdAt).toLocaleDateString("en-IN"),
-      INR(e.amount),
-      e.paidByUser?.name || "—",
-    ]),
-    y,
-    C.purple,
-    { columnStyles: { 3: { halign: "right" }, 4: { halign: "center" } } },
-  );
-
-  // ── DISCOUNT ANALYSIS ─────────────────────────────────────────────────────
-  doc.addPage();
-  y = ML;
-  y = chapterBanner(
-    doc,
-    "05d",
-    "Discount Analysis",
-    "Track every discount — identify patterns and prevent abuse",
-    y,
-    C.amber,
-  );
-
-  const discBills = bills.filter((b: any) => Number(b.discount || 0) > 0);
-  y = kpiRow(
-    doc,
-    [
-      {
-        label: "Total Discounts",
-        value: INR(totalDisc),
-        sub: "revenue given away",
-        accent: C.amber,
-      },
-      {
-        label: "Bills with Discount",
-        value: String(discBills.length),
-        sub: `of ${bills.length} total`,
-        accent: C.blue,
-      },
-      {
-        label: "Avg Discount per Bill",
-        value: INR(
-          discBills.length ? Math.round(totalDisc / discBills.length) : 0,
-        ),
-        sub: "when applied",
-        accent: C.purple,
-      },
-      {
-        label: "Discount % of Revenue",
-        value: PCT(totalDisc, gross),
-        sub: "revenue reduction",
-        accent: totalDisc / gross < 0.05 ? C.green : C.redDk,
-      },
-    ],
-    y,
-    4,
-  );
-
-  y = sectionLabel(doc, "Discounted Bills", y, C.amber);
-  y = premTable(
-    doc,
-    [
-      [
-        "Bill No",
-        "Date",
-        "Customer",
-        "Order Type",
-        "Gross Total",
-        "Discount",
-        "Net Total",
-        "Discount %",
-      ],
-    ],
-    discBills
-      .sort((a: any, b: any) => Number(b.discount) - Number(a.discount))
-      .map((b: any) => {
-        const g = Number(b.total || 0) + Number(b.discount || 0);
-        return [
-          b.billNo || `#${b.id}`,
-          new Date(b.createdAt).toLocaleDateString("en-IN"),
-          b.customer?.name || "Guest",
-          (b.orderType || "").replace("_", " "),
-          INR(g),
-          INR(b.discount),
-          INR(b.total),
-          g > 0 ? `${((Number(b.discount) / g) * 100).toFixed(1)}%` : "0%",
-        ];
-      }),
-    y,
-    C.amber,
-    {
-      columnStyles: {
-        4: { halign: "right" },
-        5: { halign: "right" },
-        6: { halign: "right" },
-        7: { halign: "center" },
-      },
-    },
-  );
-
-  // ── SALES ANALYTICS — FULL BILLS TABLE ───────────────────────────────────
-  doc.addPage();
-  y = ML;
-  y = chapterBanner(
-    doc,
-    "05e",
-    "Sales Analytics — Bills Summary",
-    "Complete transaction log",
-    y,
-    C.blue,
-  );
-
-  y = premTable(
-    doc,
-    [
-      [
-        "Bill No",
-        "Customer",
-        "Order Type",
-        "Payment",
-        "Subtotal",
-        "GST",
-        "Discount",
-        "Total",
-        "Status",
-      ],
-    ],
-    bills.map((b: any) => [
-      b.billNo || `#${b.id}`,
-      b.customer?.name || "Guest",
-      (b.orderType || "").replace("_", " "),
-      b.paymentMethod || "—",
-      INR(b.subtotal),
-      INR(Number(b.cgst || 0) + Number(b.sgst || 0)),
-      INR(b.discount),
-      INR(b.total),
-      b.status || "—",
-    ]),
-    y,
-    C.blue,
-    {
-      columnStyles: {
-        4: { halign: "right" },
-        5: { halign: "right" },
-        6: { halign: "right" },
-        7: { halign: "right" },
-        8: { halign: "center" },
-      },
-    },
-  );
-
-  // ──────────────────────────────────────────────────────────────────────────
-  // SECTION 06 — OPERATIONS (Table, Waste, Heatmap, Day)
-  // ──────────────────────────────────────────────────────────────────────────
-  doc.addPage();
-  y = ML;
-  y = chapterBanner(
-    doc,
-    "06",
-    "Operations Analytics",
-    "Tables · Waste · Hourly Heatmap · Day Analysis",
-    y,
-    C.amber,
-  );
-
-  const tableTurnData = kitchenData?.tableTurnData || [];
-  y = kpiRow(
-    doc,
-    [
-      {
-        label: "Tables Active",
-        value: String(tableTurnData.length),
-        sub: "with orders",
-        accent: C.blue,
-      },
-      {
-        label: "Avg Turn Time",
-        value: `${kitchenData?.summary?.avgTime || 0}m`,
-        sub: "per order",
-        accent: C.amber,
-      },
-      {
-        label: "Waste Entries",
-        value: String(inventoryAdjustments.length),
-        sub: "adjustments",
-        accent: C.redDk,
-      },
-      {
-        label: "Peak Hour",
-        value: heatmap?.peakHour?.label || "—",
-        sub: INR(heatmap?.peakHour?.revenue || 0),
-        accent: C.red,
-      },
-    ],
-    y,
-    4,
-  );
-
-  y = sectionLabel(doc, "Table Turn Rate", y, C.blue);
-  y = premTable(
-    doc,
-    [["Table", "Orders", "Avg Turn Time (min)", "Performance"]],
-    tableTurnData
-      .slice(0, 12)
-      .map((t: any) => [
-        t.name || t.tableName,
-        t.count,
-        t.avgTime,
-        t.avgTime <= 30 ? "✅ Fast" : t.avgTime <= 45 ? "⚡ Normal" : "⚠️ Slow",
-      ]),
-    y,
-    C.blue,
-    {
-      columnStyles: {
-        1: { halign: "center" },
-        2: { halign: "center" },
-        3: { halign: "center" },
-      },
-    },
-  );
-
-  y = sectionLabel(doc, "Top Wasted Ingredients", y, C.amber);
-  y =
-    hBar(
-      doc,
-      Object.entries(wasteByIng)
-        .sort((a, b) => b[1].qty - a[1].qty)
-        .slice(0, 8)
-        .map(([name, d]) => ({ label: name, value: d.qty, color: C.amber })),
-      ML,
-      y,
-      CW,
-      "Waste by Ingredient (Qty)",
-    ) + 3;
-
-  y = sectionLabel(doc, "Hourly Revenue Pattern", y, C.red);
-  const hourlyData = (heatmap?.hourlyData || []).filter(
-    (h: any) => h.revenue > 0,
-  );
-  y =
-    colChart(
-      doc,
-      hourlyData
-        .filter((h: any) => h.hour >= 6)
-        .map((h: any) => ({ label: h.label, value: h.revenue })),
-      ML,
-      y,
-      CW,
-      35,
-      C.red,
-    ) + 3;
-
-  y = sectionLabel(doc, "Day of Week Analysis", y, C.purple);
-  y = premTable(
-    doc,
-    [["Day", "Revenue", "Orders", "Avg Bill", "Revenue Share %", "Rating"]],
-    (heatmap?.dailyData || []).map((d: any) => [
-      d.name,
-      INR(d.revenue),
-      d.orders,
-      INR(d.orders ? Math.round(d.revenue / d.orders) : 0),
-      PCT(
-        d.revenue,
-        (heatmap?.dailyData || []).reduce(
-          (s: number, x: any) => s + x.revenue,
-          0,
-        ),
-      ),
-      d.revenue ===
-      Math.max(...(heatmap?.dailyData || []).map((x: any) => x.revenue))
-        ? "[BEST]"
-        : "Normal",
-    ]),
-    y,
-    C.purple,
-    {
-      columnStyles: {
-        1: { halign: "right" },
-        2: { halign: "center" },
-        3: { halign: "right" },
-        4: { halign: "center" },
-        5: { halign: "center" },
-      },
-    },
-  );
-
-  // ── HOURLY HEATMAP DETAILS ────────────────────────────────────────────────
-  doc.addPage();
-  y = ML;
-  y = chapterBanner(
-    doc,
-    "06b",
-    "Hourly Revenue Heatmap",
-    "Revenue patterns by hour and day of week",
-    y,
-    C.red,
-  );
-
-  y = kpiRow(
-    doc,
-    [
-      {
-        label: "Peak Hour",
-        value: heatmap?.peakHour?.label || "—",
-        sub: INR(heatmap?.peakHour?.revenue || 0),
-        accent: C.red,
-      },
-      {
-        label: "Best Day",
-        value: heatmap?.peakDay?.name || "—",
-        sub: INR(heatmap?.peakDay?.revenue || 0),
-        accent: C.blue,
-      },
-      {
-        label: "Peak Hour Orders",
-        value: String(heatmap?.peakHour?.orders || 0),
-        sub: "orders in peak hour",
-        accent: C.green,
-      },
-      {
-        label: "Best Day Orders",
-        value: String(heatmap?.peakDay?.orders || 0),
-        sub: "orders on best day",
-        accent: C.purple,
-      },
-    ],
-    y,
-    4,
-  );
-
-  y = sectionLabel(doc, "Revenue by Hour of Day", y, C.red);
-  const hrAll = (heatmap?.hourlyData || []).filter((h: any) => h.hour >= 6);
-  if (hrAll.length > 0)
-    y =
-      colChart(
-        doc,
-        hrAll.map((h: any) => ({ label: h.label, value: h.revenue })),
-        ML,
-        y,
-        CW,
-        38,
-        C.red,
-      ) + 3;
-  y = premTable(
-    doc,
-    [["Hour", "Revenue", "Orders", "Avg Bill", "Revenue Share"]],
-    hrAll.map((h: any) => [
-      h.label,
-      INR(h.revenue),
-      h.orders,
-      INR(h.orders ? Math.round(h.revenue / h.orders) : 0),
-      PCT(
-        h.revenue,
-        (heatmap?.hourlyData || []).reduce(
-          (s: number, x: any) => s + x.revenue,
-          0,
-        ),
-      ),
-    ]),
-    y,
-    C.red,
-    {
-      columnStyles: {
-        1: { halign: "right" },
-        2: { halign: "center" },
-        3: { halign: "right" },
-        4: { halign: "center" },
-      },
-    },
-  );
-
-  y = sectionLabel(doc, "Revenue by Day of Week", y, C.blue);
-  const dayAll = heatmap?.dailyData || [];
-  if (dayAll.length > 0)
-    y =
-      colChart(
-        doc,
-        dayAll.map((d: any) => ({
-          label: d.short || d.name?.slice(0, 3),
-          value: d.revenue,
-        })),
-        ML,
-        y,
-        CW,
-        36,
-        C.blue,
-      ) + 3;
-  y = premTable(
-    doc,
-    [["Day", "Revenue", "Orders", "Avg Bill", "Revenue Share", "Performance"]],
-    dayAll.map((d: any) => [
-      d.name,
-      INR(d.revenue),
-      d.orders,
-      INR(d.avgBill || (d.orders ? Math.round(d.revenue / d.orders) : 0)),
-      PCT(
-        d.revenue,
-        dayAll.reduce((s: number, x: any) => s + x.revenue, 0),
-      ),
-      d.revenue === Math.max(...dayAll.map((x: any) => x.revenue))
-        ? "[BEST]"
-        : d.revenue < Math.max(...dayAll.map((x: any) => x.revenue)) * 0.3
-          ? "Slow"
-          : "Normal",
-    ]),
-    y,
-    C.blue,
-    {
-      columnStyles: {
-        1: { halign: "right" },
-        2: { halign: "center" },
-        3: { halign: "right" },
-        4: { halign: "center" },
-        5: { halign: "center" },
-      },
-    },
-  );
-
-  // ── TABLE ANALYTICS DETAILED ──────────────────────────────────────────────
-  doc.addPage();
-  y = ML;
-  y = chapterBanner(
-    doc,
-    "06c",
-    "Table Analytics — Detailed",
-    "Revenue per table · Turn rate · Performance",
-    y,
-    C.teal,
-  );
-
-  const tdFull = kitchenData?.tableTurnData || [];
-  const totalTableRev = tdFull.reduce(
-    (s: number, t: any) => s + Number(t.revenue || 0),
-    0,
-  );
-  y = kpiRow(
-    doc,
-    [
-      {
-        label: "Tables Active",
-        value: String(tdFull.length),
-        sub: "with recorded orders",
-        accent: C.blue,
-      },
-      {
-        label: "Avg Turn Time",
-        value: `${kitchenData?.summary?.avgTime || 0}m`,
-        sub: "avg per order",
-        accent: C.amber,
-      },
-      {
-        label: "Total Orders",
-        value: String(tdFull.reduce((s: number, t: any) => s + t.count, 0)),
-        sub: "dine-in orders",
-        accent: C.green,
-      },
-    ],
-    y,
-    3,
-  );
-
-  if (tdFull.length > 0) {
-    const tRevBars = tdFull
-      .sort((a: any, b: any) => b.count - a.count)
-      .map((t: any, i: number) => ({
-        label: t.name || t.tableName,
-        value: t.count,
-        color: [C.teal, C.blue, C.green, C.amber, C.red][i % 5] as RGB,
-      }));
-    const tTimeBars = tdFull
-      .filter((t: any) => t.avgTime > 0)
-      .sort((a: any, b: any) => b.avgTime - a.avgTime)
-      .map((t: any) => ({
-        label: t.name || t.tableName,
-        value: t.avgTime,
-        color: C.amber,
-      }));
-    const nt1 = hBar(doc, tRevBars, ML, y, half, "Orders per Table");
-    const nt2 = hBar(
-      doc,
-      tTimeBars,
-      ML + half + 3,
-      y,
-      half,
-      "Avg Turn Time per Table (min)",
-    );
-    y = Math.max(nt1, nt2) + 4;
+  } else {
+    txt(doc, "No daily revenue data available.", ML, y + 5, { size: 7.5, color: C.muted, italic: true });
+    y += 12;
   }
 
-  y = sectionLabel(doc, "Table Performance Summary", y, C.teal);
-  y = premTable(
-    doc,
-    [
-      [
-        "Table",
-        "Orders",
-        "Avg Turn (min)",
-        "Revenue",
-        "Avg Rev/Order",
-        "Performance",
-      ],
-    ],
-    tdFull.map((t: any) => [
-      t.name || t.tableName,
-      t.count,
-      t.avgTime,
-      INR(t.revenue || 0),
-      INR(t.count ? Math.round((t.revenue || 0) / t.count) : 0),
-      t.avgTime <= 30 ? "Fast" : t.avgTime <= 45 ? "Normal" : "Slow",
-    ]),
-    y,
-    C.teal,
-    {
-      columnStyles: {
-        1: { halign: "center" },
-        2: { halign: "center" },
-        3: { halign: "right" },
-        4: { halign: "right" },
-        5: { halign: "center" },
-      },
-    },
-  );
+  // Payment method + Order type splits side by side
+  const halfW = (CW - 5) / 2;
+  y = divider(doc, "Revenue by Payment Method  /  Revenue by Order Type", y);
+  const pmData = Object.entries(payMap).sort((a, b) => b[1] - a[1]).map(([l, v], i) => ({
+    label: l, value: v, color: ([C.brand, C.blue, C.green, C.amber, C.teal] as RGB[])[i % 5],
+  }));
+  const otData = Object.entries(otMap).sort((a, b) => b[1] - a[1]).map(([l, v], i) => ({
+    label: l, value: v, color: ([C.purple, C.teal, C.green, C.amber] as RGB[])[i % 4],
+  }));
+  const yBefore = y;
+  hBars(doc, pmData, ML, y, halfW);
+  hBars(doc, otData, ML + halfW + 5, yBefore, halfW);
+  y = yBefore + Math.max(pmData.length, otData.length) * 8 + 10;
 
-  // ── WASTE REPORT DETAILED ────────────────────────────────────────────────
-  doc.addPage();
-  y = ML;
-  y = chapterBanner(
-    doc,
-    "06d",
-    "Waste & Inventory Report",
-    "Wastage · Damage · Expired · Adjustment Log",
-    y,
-    C.amber,
-  );
-
-  const wastage = inventoryAdjustments.filter(
-    (a: any) =>
-      a.adjustmentType === "WASTAGE" || a.adjustmentType === "EXPIRED",
-  );
-  const damage = inventoryAdjustments.filter(
-    (a: any) => a.adjustmentType === "DAMAGE",
-  );
-  y = kpiRow(
-    doc,
-    [
-      {
-        label: "Total Adjustments",
-        value: String(inventoryAdjustments.length),
-        sub: "all types",
-        accent: C.s600,
-      },
-      {
-        label: "Wastage / Expired",
-        value: String(wastage.length),
-        sub: "items wasted",
-        accent: C.amber,
-      },
-      {
-        label: "Damage",
-        value: String(damage.length),
-        sub: "items damaged",
-        accent: C.redDk,
-      },
-      {
-        label: "Unique Ingredients",
-        value: String(Object.keys(wasteByIng).length),
-        sub: "affected",
-        accent: C.purple,
-      },
-    ],
-    y,
-    4,
-  );
-
-  y = sectionLabel(doc, "Top Wasted Ingredients", y, C.amber);
-  const wasteBars = Object.entries(wasteByIng)
-    .sort((a, b) => b[1].qty - a[1].qty)
-    .slice(0, 10)
-    .map(([name, d]) => ({ label: name, value: d.qty, color: C.amber }));
-  if (wasteBars.length > 0)
-    y =
-      hBar(doc, wasteBars, ML, y, CW, "Waste by Ingredient (Total Quantity)") +
-      4;
-
-  y = sectionLabel(doc, "Ingredient Waste Table", y, C.amber);
-  y = premTable(
-    doc,
-    [["Ingredient", "Total Qty Wasted", "Adjustments", "Avg per Entry"]],
-    Object.entries(wasteByIng)
-      .sort((a, b) => b[1].qty - a[1].qty)
-      .slice(0, 20)
-      .map(([name, d]) => [
-        name,
-        d.qty.toFixed(2),
-        d.adj,
-        d.adj > 0 ? (d.qty / d.adj).toFixed(2) : 0,
-      ]),
-    y,
-    C.amber,
-    {
-      columnStyles: {
-        1: { halign: "center" },
-        2: { halign: "center" },
-        3: { halign: "center" },
-      },
-    },
-  );
-
-  y = sectionLabel(doc, "Waste Adjustment Log", y, C.redDk);
-  y = premTable(
-    doc,
-    [["Date", "Ingredient", "Type", "Quantity", "Reason", "Updated By"]],
-    inventoryAdjustments.map((a: any) => [
-      new Date(a.createdAt).toLocaleDateString("en-IN"),
-      a.ingredient?.name || "—",
-      a.adjustmentType || "—",
-      Number(a.quantity || 0).toFixed(2),
-      a.reason || "—",
-      a.updatedBy?.name || "—",
-    ]),
-    y,
-    C.redDk,
-    {
-      columnStyles: {
-        2: { halign: "center" },
-        3: { halign: "center" },
-        5: { halign: "center" },
-      },
-    },
-  );
-
-  // ──────────────────────────────────────────────────────────────────────────
-  // SECTION 07 — STAFF (Attendance + Productivity + Payroll)
-  // ──────────────────────────────────────────────────────────────────────────
-  doc.addPage();
-  y = ML;
-  y = chapterBanner(
-    doc,
-    "07",
-    "Staff Analytics",
-    "Attendance · Productivity · Payroll",
-    y,
-    C.s700,
-  );
-
-  const presentCount = new Set(
-    attendance.filter((a: any) => a.loginTime).map((a: any) => a.userId),
-  ).size;
-  const sp = staffProductivity || {};
-  y = kpiRow(
-    doc,
-    [
-      {
-        label: "Total Staff",
-        value: String(allStaff.length),
-        sub: "registered",
-        accent: C.blue,
-      },
-      {
-        label: "Present Today",
-        value: String(presentCount),
-        sub: "clocked in",
-        accent: C.green,
-      },
-      {
-        label: "Absent",
-        value: String(allStaff.length - presentCount),
-        sub: "not in",
-        accent: C.redDk,
-      },
-      {
-        label: "Labour Cost",
-        value: INR(
-          sp.totals?.totalLabourCost ||
-            allStaff.reduce(
-              (s: number, st: any) => s + Number(st.salary || 0),
-              0,
-            ),
-        ),
-        sub: "monthly",
-        accent: C.purple,
-      },
-      {
-        label: "Hours Worked",
-        value: `${sp.totals?.totalHoursWorked || 0}h`,
-        sub: "total",
-        accent: C.amber,
-      },
-      {
-        label: "Avg Hours",
-        value: sp.totals?.totalStaff
-          ? `${Math.round((sp.totals?.totalHoursWorked || 0) / sp.totals.totalStaff)}h`
-          : "—",
-        sub: "per staff",
-        accent: C.teal,
-      },
-    ],
-    y,
-    3,
-  );
-
-  y = sectionLabel(doc, "Attendance Register", y);
-  y = premTable(
-    doc,
-    [
-      [
-        "Staff Name",
-        "Dept",
-        "Role",
-        "Clock In",
-        "Clock Out",
-        "Hours",
-        "Status",
-      ],
-    ],
-    allStaff.slice(0, 15).map((s: any) => {
-      const att = attendance.find((a: any) => a.userId === s.id);
-      const isP = !!att?.loginTime;
-      const isL = isP && new Date(att.loginTime).getHours() > 9;
-      return [
-        s.name,
-        s.department || "—",
-        s.role,
-        att?.loginTime
-          ? new Date(att.loginTime).toLocaleTimeString("en-IN", {
-              hour: "2-digit",
-              minute: "2-digit",
-            })
-          : "—",
-        att?.logoutTime
-          ? new Date(att.logoutTime).toLocaleTimeString("en-IN", {
-              hour: "2-digit",
-              minute: "2-digit",
-            })
-          : "—",
-        Number(att?.totalHours || 0).toFixed(1),
-        isP ? (isL ? "Late" : "Present") : "Absent",
-      ];
+  y = divider(doc, "Daily Revenue Details", y);
+  y = table(doc,
+    [["Date", "Revenue", "Orders"]],
+    dailyArr.slice(0, 20).map(([d, rev]) => {
+      const dayOrders = activeBills.filter((b: any) => new Date(b.createdAt).toLocaleDateString("en-IN") === d).length;
+      return [d, RS(rev), String(dayOrders)];
     }),
-    y,
-    C.s800,
-    {
-      columnStyles: {
-        3: { halign: "center" },
-        4: { halign: "center" },
-        5: { halign: "center" },
-        6: { halign: "center" },
-      },
-    },
-  );
-
-  y = sectionLabel(doc, "Revenue by Shift", y, C.amber);
-  const srev = sp.shiftRevenue || {};
-  const totalShiftRev = Object.values(srev).reduce(
-    (s: number, v: any) => s + Number(v),
-    0,
-  );
-  y = premTable(
-    doc,
-    [["Shift", "Revenue", "% of Total"]],
-    [
-      [
-        "Morning (6–12)",
-        INR(srev.morning || 0),
-        PCT(Number(srev.morning || 0), totalShiftRev),
-      ],
-      [
-        "Afternoon (12–5)",
-        INR(srev.afternoon || 0),
-        PCT(Number(srev.afternoon || 0), totalShiftRev),
-      ],
-      [
-        "Evening (5–10)",
-        INR(srev.evening || 0),
-        PCT(Number(srev.evening || 0), totalShiftRev),
-      ],
-      [
-        "Night (10–6)",
-        INR(srev.night || 0),
-        PCT(Number(srev.night || 0), totalShiftRev),
-      ],
-    ],
-    y,
-    C.amber,
+    y, C.brand,
     { columnStyles: { 1: { halign: "right" }, 2: { halign: "center" } } },
   );
 
-  y = sectionLabel(doc, "Department Cost Breakdown", y, C.purple);
-  y = premTable(
-    doc,
-    [["Department", "Staff", "Hours", "Total Salary", "Avg Salary"]],
-    (sp.deptData || []).map((d: any) => [
-      d.dept,
-      d.count,
-      `${d.totalHours}h`,
-      INR(d.totalSalary),
-      INR(d.avgSalary),
+  // ══════════════════════════════════════════════════════════════════════════
+  //  SECTION 03 — MENU PERFORMANCE
+  // ══════════════════════════════════════════════════════════════════════════
+  doc.addPage();
+  y = ML;
+  y = sectionHead(doc, "03  Menu Performance", "Top-selling items by revenue and quantity", y);
+
+  y = divider(doc, "Top 10 Items by Revenue", y);
+  y = hBars(doc, topItems.slice(0, 10).map(([name, d]) => ({ label: name, value: d.rev })), ML, y, CW);
+
+  y = divider(doc, "Full Item Performance Table", y);
+  y = table(doc,
+    [["Item", "Category", "Qty Sold", "Revenue", "Avg Price", "Revenue Share"]],
+    topItems.slice(0, 30).map(([name, d]) => [
+      name,
+      d.cat,
+      String(d.qty),
+      RS(d.rev),
+      RS(d.qty ? d.rev / d.qty : 0),
+      PCT(d.rev, totalRev),
     ]),
-    y,
-    C.purple,
+    y, C.brand,
     {
       columnStyles: {
-        1: { halign: "center" },
         2: { halign: "center" },
         3: { halign: "right" },
         4: { halign: "right" },
-      },
-    },
-  );
-
-  // ── STAFF PRODUCTIVITY EFFICIENCY TABLE ───────────────────────────────────
-  doc.addPage();
-  y = ML;
-  y = chapterBanner(
-    doc,
-    "07b",
-    "Staff Productivity — Efficiency Table",
-    "Hours worked · Cost per hour · Attendance rate",
-    y,
-    C.s700,
-  );
-
-  y = premTable(
-    doc,
-    [
-      [
-        "Staff Name",
-        "Dept",
-        "Shift",
-        "Days Present",
-        "Hours Worked",
-        "Attendance %",
-        "Monthly Salary",
-        "Cost/Hour",
-      ],
-    ],
-    (sp.staff || allStaff).map((s: any) => [
-      s.name,
-      s.department || "—",
-      s.shift || "—",
-      s.daysPresent !== undefined ? s.daysPresent : "—",
-      s.totalHours !== undefined ? `${s.totalHours}h` : "—",
-      s.attendanceRate !== undefined ? `${s.attendanceRate}%` : "—",
-      INR(s.monthlySalary || s.salary),
-      s.costPerHour ? INR(s.costPerHour) : "—",
-    ]),
-    y,
-    C.s800,
-    {
-      columnStyles: {
-        3: { halign: "center" },
-        4: { halign: "center" },
         5: { halign: "center" },
-        6: { halign: "right" },
-        7: { halign: "right" },
       },
     },
   );
 
-  // ──────────────────────────────────────────────────────────────────────────
-  // SECTION 08 — CASH RECONCILIATION
-  // ──────────────────────────────────────────────────────────────────────────
+  // ══════════════════════════════════════════════════════════════════════════
+  //  SECTION 04 — FINANCIAL OVERVIEW
+  // ══════════════════════════════════════════════════════════════════════════
   doc.addPage();
   y = ML;
-  y = chapterBanner(
-    doc,
-    "08",
-    "Cash Reconciliation",
-    `${cashSessions.length} daily sessions`,
-    y,
-    C.green,
-  );
+  y = sectionHead(doc, "04  Financial Overview", "P&L, Expense Breakdown & EBITDA Analysis", y);
 
-  const shortfall = cashSessions.reduce(
-    (s: number, r: any) =>
-      s + Math.abs(Math.min(0, Number(r.cashDifference || 0))),
-    0,
-  );
-  const surplus = cashSessions.reduce(
-    (s: number, r: any) => s + Math.max(0, Number(r.cashDifference || 0)),
-    0,
-  );
-  y = kpiRow(
-    doc,
-    [
-      {
-        label: "Sessions",
-        value: String(cashSessions.length),
-        sub: "recorded",
-        accent: C.blue,
-      },
-      {
-        label: "Shortfall",
-        value: INR(shortfall),
-        sub: "total deficit",
-        accent: C.redDk,
-      },
-      {
-        label: "Surplus",
-        value: INR(surplus),
-        sub: "total excess",
-        accent: C.green,
-      },
-      {
-        label: "Net Difference",
-        value: INR(surplus - shortfall),
-        sub: "surplus − shortfall",
-        accent: surplus >= shortfall ? C.green : C.redDk,
-      },
-    ],
-    y,
-    4,
-  );
+  y = kpiGrid(doc, [
+    { label: "EBITDA %",      value: `${ebitdaPct}%`,   sub: `target ${n(ins.targetEbitda) || 0}%`,  accent: Number(ebitdaPct) >= n(ins.targetEbitda) ? C.green : C.brand },
+    { label: "Fixed Costs",   value: RS(fixedExp),       sub: "monthly",            accent: C.blue },
+    { label: "Variable Costs",value: RS(varExp),         sub: "monthly",            accent: C.amber },
+    { label: "Labour",        value: RS(labourExp),      sub: `${allStaff.length} staff`, accent: C.purple },
+    { label: "Finance / Tax", value: RS(finExp),         sub: "monthly",            accent: C.teal },
+    { label: "Raw Material",  value: RS(foodExp),        sub: "food cost",          accent: C.brand },
+    { label: "Total Costs",   value: RS(totalCosts),     sub: "all categories",     accent: C.slate },
+    { label: "Revenue",       value: RS(insRev),         sub: "target / actual",    accent: C.ink },
+  ], y, 4);
 
-  if (cashSessions.length > 0) {
-    y = sectionLabel(doc, "Cash Difference Trend", y, C.green);
-    y =
-      colChart(
-        doc,
-        cashSessions
-          .slice(0, 20)
-          .map((s: any) => ({
-            label: new Date(s.businessDate)
-              .toLocaleDateString("en-IN")
-              .slice(0, 5),
-            value: Math.abs(Number(s.cashDifference || 0)),
-          })),
-        ML,
-        y,
-        CW,
-        32,
-        C.green,
-      ) + 3;
-  }
-
-  y = sectionLabel(doc, "Session History", y, C.green);
-  y = premTable(
-    doc,
-    [["Date", "Opened By", "Opening", "Expected", "Actual", "Diff", "Status"]],
-    cashSessions
-      .slice(0, 15)
-      .map((s: any) => [
-        new Date(s.businessDate).toLocaleDateString("en-IN"),
-        s.openedBy?.name || "—",
-        INR(s.openingCash),
-        INR(s.expectedCash),
-        INR(s.actualCash || s.closingCash),
-        INR(s.cashDifference),
-        s.status || "OPEN",
-      ]),
-    y,
-    C.green,
-    {
-      columnStyles: {
-        2: { halign: "right" },
-        3: { halign: "right" },
-        4: { halign: "right" },
-        5: { halign: "right" },
-        6: { halign: "center" },
-      },
-    },
-  );
-
-  // ──────────────────────────────────────────────────────────────────────────
-  // SECTION 09 — KITCHEN ANALYTICS
-  // ──────────────────────────────────────────────────────────────────────────
-  doc.addPage();
-  y = ML;
-  y = chapterBanner(
-    doc,
-    "09",
-    "Kitchen Performance Analytics",
-    "Speed · SLA · Throughput · Slowest Orders",
-    y,
-    C.amber,
-  );
-
-  const ks = kitchenData?.summary || {};
-  y = kpiRow(
-    doc,
-    [
-      {
-        label: "Total Orders",
-        value: String(ks.totalOrders || 0),
-        sub: "completed",
-        accent: C.blue,
-      },
-      {
-        label: "Avg Completion",
-        value: `${ks.avgTime || 0}m`,
-        sub: "from order to serve",
-        accent: ks.avgTime <= 30 ? C.green : C.amber,
-      },
-      {
-        label: "SLA Compliance",
-        value: `${ks.slaPercent || 0}%`,
-        sub: "orders < 30 min",
-        accent: (ks.slaPercent || 0) >= 80 ? C.green : C.redDk,
-      },
-      {
-        label: "Fastest Order",
-        value: `${ks.fastestOrder || 0}m`,
-        sub: "best time",
-        accent: C.green,
-      },
-      {
-        label: "Peak Hour",
-        value: ks.peakHourLabel || "—",
-        sub: "highest load",
-        accent: C.amber,
-      },
-    ],
-    y,
-    5,
-  );
-
-  y = sectionLabel(doc, "Kitchen Throughput by Hour", y, C.amber);
-  const kHourly = (kitchenData?.hourlyData || []).filter(
-    (h: any) => h.orders > 0,
-  );
-  if (kHourly.length > 0)
-    y =
-      colChart(
-        doc,
-        kHourly.map((h: any) => ({ label: h.label, value: h.orders })),
-        ML,
-        y,
-        CW,
-        35,
-        C.amber,
-      ) + 3;
-
-  y = sectionLabel(doc, "Completion Time by Hour (vs 30-min SLA)", y, C.red);
-  y = premTable(
-    doc,
-    [["Hour", "Orders", "Avg Time (min)", "SLA Status"]],
-    kHourly.map((h: any) => [
-      h.label,
-      h.orders,
-      `${h.avgTime} min`,
-      h.avgTime <= 30 ? "✅ Within SLA" : "⚠️ Over SLA",
-    ]),
-    y,
-    C.amber,
-    {
-      columnStyles: {
-        1: { halign: "center" },
-        2: { halign: "center" },
-        3: { halign: "center" },
-      },
-    },
-  );
-
-  y = sectionLabel(
-    doc,
-    "Speed by Order Type  /  Top Kitchen Items",
-    y,
-    C.amber,
-  );
-  const kOtBars = (kitchenData?.orderTypeSpeeds || []).map((o: any) => ({
-    label: o.type,
-    value: o.avgTime,
-    color: C.amber,
-  }));
-  const kItemBars = (kitchenData?.topItems || [])
-    .slice(0, 8)
-    .map((item: any) => ({
-      label: item.name,
-      value: item.count,
-      color: C.red,
-    }));
-  const ky1 = hBar(
-    doc,
-    kOtBars,
-    ML,
-    y,
-    half,
-    "Avg Completion by Order Type (min)",
-  );
-  const ky2 = hBar(
-    doc,
-    kItemBars,
-    ML + half + 3,
-    y,
-    half,
-    "Top Kitchen Items (Qty Prepared)",
-  );
-  y = Math.max(ky1, ky2) + 3;
-
-  y = sectionLabel(doc, "Slowest Orders — Investigation Needed", y, C.redDk);
-  y = premTable(
-    doc,
-    [["Order ID", "Type", "Table", "Duration", "Started At", "SLA"]],
-    (kitchenData?.slowestOrders || [])
-      .slice(0, 10)
-      .map((o: any) => [
-        `#${o.id}`,
-        (o.orderType || "").replace("_", " "),
-        o.tableName || "—",
-        `${o.durationMinutes} min`,
-        new Date(o.startedAt).toLocaleTimeString("en-IN"),
-        o.durationMinutes <= 30 ? "[OK]" : "[MISSED]",
-      ]),
-    y,
-    C.redDk,
-    { columnStyles: { 3: { halign: "center" }, 5: { halign: "center" } } },
-  );
-
-  y = sectionLabel(doc, "Top Kitchen Items", y, C.amber);
-  y = premTable(
-    doc,
-    [["#", "Item Name", "Times Prepared", "Kitchen Load %"]],
-    (kitchenData?.topItems || []).slice(0, 15).map((item: any, i: number) => {
-      const maxKit = (kitchenData?.topItems || [])[0]?.count || 1;
-      return [
-        i + 1,
-        item.name,
-        item.count,
-        `${((item.count / maxKit) * 100).toFixed(1)}%`,
-      ];
-    }),
-    y,
-    C.amber,
-    {
-      columnStyles: {
-        0: { halign: "center", cellWidth: 12 },
-        2: { halign: "center" },
-        3: { halign: "center" },
-      },
-    },
-  );
-
-  y = sectionLabel(doc, "Daily Completion Trend", y, C.orange);
-  y = premTable(
-    doc,
-    [["Date", "Orders Completed", "Avg Completion Time (min)", "SLA Status"]],
-    (kitchenData?.dailyTrend || []).map((d: any) => [
-      d.date,
-      d.orders,
-      `${d.avgTime} min`,
-      d.orders === 0
-        ? "—"
-        : d.avgTime <= 30
-          ? "[OK] Within SLA"
-          : "[MISSED] Over SLA",
-    ]),
-    y,
-    C.orange,
-    {
-      columnStyles: {
-        1: { halign: "center" },
-        2: { halign: "center" },
-        3: { halign: "center" },
-      },
-    },
-  );
-
-  // ──────────────────────────────────────────────────────────────────────────
-  // SECTION 10 — BUSINESS INTELLIGENCE (Insights + Forecast + Comparison)
-  // ──────────────────────────────────────────────────────────────────────────
-  doc.addPage();
-  y = ML;
-  y = chapterBanner(
-    doc,
-    "10",
-    "Business Intelligence",
-    "Insights · Revenue Forecast · Branch/City Comparison",
-    y,
-    C.purple,
-  );
-
-  y = kpiRow(
-    doc,
-    [
-      {
-        label: "EBITDA %",
-        value: `${ebitda}%`,
-        sub: `target: ${ins.targetEbitda || 0}%`,
-        accent:
-          parseFloat(ebitda) >= (ins.targetEbitda || 0) ? C.green : C.redDk,
-      },
-      {
-        label: "Fixed Expenses",
-        value: INR(fixedExp),
-        sub: "monthly",
-        accent: C.blue,
-      },
-      {
-        label: "Variable Exp.",
-        value: INR(varExp),
-        sub: "monthly",
-        accent: C.amber,
-      },
-      {
-        label: "Labour Cost",
-        value: INR(labourExp),
-        sub: "monthly salaries",
-        accent: C.purple,
-      },
-    ],
-    y,
-    4,
-  );
-
-  y = sectionLabel(doc, "Revenue Targets (EBITDA Scenarios)", y, C.purple);
-  y = premTable(
-    doc,
-    [["EBITDA Target", "Revenue Required", "Gap", "Status"]],
+  y = divider(doc, "EBITDA Scenario Planning — Revenue Required to Hit Targets", y, C.purple);
+  y = table(doc,
+    [["EBITDA Target", "Revenue Required", "Current Revenue", "Gap", "Status"]],
     [0, 5, 10, 15, 20, 25].map((target) => {
-      const req = (fixedExp + varExp + labourExp) / (1 - target / 100);
-      const gap = req - insRev;
+      const req  = totalCosts / (1 - target / 100);
+      const gap  = req - insRev;
       return [
         `${target}%`,
-        INR(req),
-        gap <= 0 ? "—" : `+${INR(gap)}`,
-        gap <= 0 ? "✅ Achieved" : "❌ Gap",
+        RS(req),
+        RS(insRev),
+        gap <= 0 ? "Achieved" : `+${RS(gap)}`,
+        gap <= 0 ? "Achieved" : "Gap",
       ];
     }),
-    y,
-    C.purple,
+    y, C.purple,
     {
       columnStyles: {
         1: { halign: "right" },
         2: { halign: "right" },
-        3: { halign: "center" },
+        3: { halign: "right" },
+        4: { halign: "center" },
       },
     },
   );
 
-  y = sectionLabel(doc, "Revenue Forecast — 7-Day Prediction", y, C.blue);
-  const fSum = (forecast as any)?.summary || {};
-  y = kpiRow(
-    doc,
+  y = divider(doc, "Expense Breakdown", y);
+  y = table(doc,
+    [["Expense Category", "Amount", "% of Total Costs"]],
     [
-      {
-        label: "Last 7-Day Avg",
-        value: INR(fSum.avg7 || 0),
-        sub: "daily",
-        accent: C.blue,
-      },
-      {
-        label: "Growth Rate",
-        value: `${fSum.growthPercent >= 0 ? "+" : ""}${fSum.growthPercent || 0}%`,
-        sub: "week-on-week",
-        accent: (fSum.growthPercent || 0) >= 0 ? C.green : C.redDk,
-      },
-      {
-        label: "Next 7D Total",
-        value: INR(fSum.forecastTotal || 0),
-        sub: "predicted",
-        accent: C.purple,
-      },
+      ["Fixed (Rent, EMI, Licenses…)",    RS(fixedExp),  PCT(fixedExp,  totalCosts)],
+      ["Variable (Electricity, Packaging…)", RS(varExp), PCT(varExp,   totalCosts)],
+      ["Labour (Staff Salaries)",         RS(labourExp), PCT(labourExp, totalCosts)],
+      ["Finance / Tax",                   RS(finExp),    PCT(finExp,    totalCosts)],
+      ["Raw Material / Food",             RS(foodExp),   PCT(foodExp,   totalCosts)],
+      ["Total",                           RS(totalCosts), "100%"],
     ],
-    y,
-    3,
+    y, C.brand,
+    { columnStyles: { 1: { halign: "right" }, 2: { halign: "center" } } },
   );
 
-  const fcBars = ((forecast as any)?.forecast || []).map((f: any) => ({
-    label: f.date.slice(0, 5),
-    value: f.predicted,
-    color: C.purple,
-  }));
-  if (fcBars.length > 0)
-    y =
-      colChart(doc, fcBars, ML, y, CW, 35, C.purple, "7-Day Revenue Forecast") +
-      3;
+  if (expenses.length > 0) {
+    // Group expenses by type
+    const expByType: Record<string, number> = {};
+    expenses.forEach((e: any) => { expByType[e.expenseType || "Other"] = (expByType[e.expenseType || "Other"] || 0) + n(e.amount); });
+    y = divider(doc, "Recorded Expense Entries by Category", y);
+    y = table(doc,
+      [["Category", "Amount", "% of Recorded Expenses"]],
+      Object.entries(expByType).sort((a, b) => b[1] - a[1]).map(([cat, amt]) => [cat, RS(amt), PCT(amt, totalExp)]),
+      y, C.brand,
+      { columnStyles: { 1: { halign: "right" }, 2: { halign: "center" } } },
+    );
+  }
 
-  if (branchComparison.length > 0) {
-    y = sectionLabel(doc, "Branch vs Branch Comparison", y, C.blue);
-    const branchBars = branchComparison.map((b: any, i: number) => ({
-      label: b.branch?.name || "—",
-      value: b.revenue,
-      color: [C.red, C.blue, C.green, C.amber, C.purple][i % 5] as RGB,
-    }));
-    y = hBar(doc, branchBars, ML, y, CW, "Revenue by Branch") + 3;
-    y = premTable(
-      doc,
-      [["Branch", "Revenue", "Orders", "Avg Bill", "Net Profit", "Staff"]],
-      branchComparison.map((b: any) => [
-        b.branch?.name || "—",
-        INR(b.revenue),
-        b.orders,
-        INR(b.orders ? Math.round(b.revenue / b.orders) : 0),
-        INR(b.netProfit),
-        b.staffCount,
+  // ══════════════════════════════════════════════════════════════════════════
+  //  SECTION 05 — CUSTOMER INTELLIGENCE
+  // ══════════════════════════════════════════════════════════════════════════
+  doc.addPage();
+  y = ML;
+  y = sectionHead(doc, "05  Customer Intelligence", "Retention, frequency & lifetime value", y);
+
+  const atRiskC  = customers.filter((c: any) => c.lastVisit && (now - new Date(c.lastVisit).getTime()) / 86400000 > 30 && (now - new Date(c.lastVisit).getTime()) / 86400000 <= 90);
+  const churnedC = customers.filter((c: any) => !c.lastVisit || (now - new Date(c.lastVisit).getTime()) / 86400000 > 90);
+
+  y = kpiGrid(doc, [
+    { label: "Total Customers",   value: String(customers.length),   sub: "all time",            accent: C.brand },
+    { label: "Repeat Customers",  value: String(repeatC),             sub: PCT(repeatC, customers.length), accent: C.green },
+    { label: "Active (30 days)",  value: String(activeC.length),      sub: "recently visited",    accent: C.teal },
+    { label: "At Risk (30–90d)",  value: String(atRiskC.length),      sub: "need re-engagement",  accent: C.amber },
+    { label: "Churned (>90d)",    value: String(churnedC.length),     sub: "lost customers",      accent: C.brand },
+    { label: "New Customers",     value: String(customers.filter((c: any) => c.visits === 1).length), sub: "visited once", accent: C.blue },
+    { label: "Avg Visits",        value: customers.length ? (customers.reduce((s: number, c: any) => s + (c.visits || 0), 0) / customers.length).toFixed(1) : "0", sub: "per customer", accent: C.purple },
+    { label: "Avg Spend/Customer",value: RS(customers.length ? totalRev / customers.length : 0), sub: "lifetime avg",    accent: C.slate },
+  ], y, 4);
+
+  y = divider(doc, "Customer Retention Summary", y);
+  y = table(doc,
+    [["Segment", "Count", "% of Base", "Description"]],
+    [
+      ["Active",   String(activeC.length),  PCT(activeC.length,  customers.length), "Visited in last 30 days"],
+      ["At Risk",  String(atRiskC.length),  PCT(atRiskC.length,  customers.length), "Last visit 30–90 days ago"],
+      ["Churned",  String(churnedC.length), PCT(churnedC.length, customers.length), "Not seen in 90+ days"],
+    ],
+    y, C.teal,
+    { columnStyles: { 1: { halign: "center" }, 2: { halign: "center" } } },
+  );
+
+  if (customers.length > 0) {
+    const topCustomers = [...customers]
+      .sort((a: any, b: any) => (b.totalSpend || 0) - (a.totalSpend || 0))
+      .slice(0, 15);
+    y = divider(doc, "Top Customers by Total Spend", y);
+    y = table(doc,
+      [["Customer", "Phone", "Visits", "Total Spend", "Avg per Visit"]],
+      topCustomers.map((c: any) => [
+        c.name || "Walk-in",
+        c.phone || "—",
+        String(c.visits || 0),
+        RS(c.totalSpend || 0),
+        RS(c.visits ? (c.totalSpend || 0) / c.visits : 0),
       ]),
-      y,
-      C.blue,
+      y, C.brand,
+      { columnStyles: { 2: { halign: "center" }, 3: { halign: "right" }, 4: { halign: "right" } } },
+    );
+  }
+
+  // ══════════════════════════════════════════════════════════════════════════
+  //  SECTION 06 — OPERATIONS & STAFF
+  // ══════════════════════════════════════════════════════════════════════════
+  doc.addPage();
+  y = ML;
+  y = sectionHead(doc, "06  Operations & Staff", "Kitchen performance, attendance & payroll", y);
+
+  y = kpiGrid(doc, [
+    { label: "Total Staff",       value: String(allStaff.length),    sub: "on payroll",          accent: C.brand },
+    { label: "Monthly Payroll",   value: RS(labourExp),              sub: "total salaries",       accent: C.blue },
+    { label: "Avg Salary",        value: RS(allStaff.length ? labourExp / allStaff.length : 0), sub: "per staff", accent: C.purple },
+    { label: "Kitchen Orders",    value: String(kitchenOrders),      sub: "processed",            accent: C.teal },
+    { label: "Avg Prep Time",     value: `${avgKitchenTime} min`,    sub: "kitchen speed",        accent: avgKitchenTime <= 30 ? C.green : C.amber },
+    { label: "Cash Sessions",     value: String(cashSessions.length), sub: "reconciliation sessions", accent: C.slate },
+  ], y, 3);
+
+  if (allStaff.length > 0) {
+    y = divider(doc, "Staff Payroll Summary", y);
+    y = table(doc,
+      [["Name", "Role", "Monthly Salary", "% of Labour Cost"]],
+      [...allStaff].sort((a: any, b: any) => (b.salary || 0) - (a.salary || 0)).map((st: any) => [
+        st.name || "—",
+        st.role || "—",
+        RS(st.salary || 0),
+        PCT(n(st.salary), labourExp),
+      ]),
+      y, C.brand,
+      { columnStyles: { 2: { halign: "right" }, 3: { halign: "center" } } },
+    );
+  }
+
+  if (cashSessions.length > 0) {
+    y = divider(doc, "Cash Reconciliation Sessions", y);
+    y = table(doc,
+      [["Date", "Opening", "Closing", "Expected", "Difference", "Status"]],
+      cashSessions.slice(0, 15).map((s: any) => {
+        const diff = n(s.closingBalance) - n(s.expectedBalance);
+        return [
+          s.date ? new Date(s.date).toLocaleDateString("en-IN") : "—",
+          RS(s.openingBalance),
+          RS(s.closingBalance),
+          RS(s.expectedBalance),
+          diff === 0 ? "Rs.0" : (diff > 0 ? `+${RS(diff)}` : RS(diff)),
+          Math.abs(diff) < 50 ? "Balanced" : diff > 0 ? "Surplus" : "Short",
+        ];
+      }),
+      y, C.teal,
       {
         columnStyles: {
           1: { halign: "right" },
-          2: { halign: "center" },
+          2: { halign: "right" },
           3: { halign: "right" },
           4: { halign: "right" },
           5: { halign: "center" },
@@ -2752,44 +814,64 @@ export async function generatePDFReport(
     );
   }
 
-  if (cityComparison.length > 1) {
-    y = sectionLabel(doc, "City vs City Comparison", y, C.purple);
-    const cityBars = cityComparison.map((c: any, i: number) => ({
-      label: c.city || "Unknown",
-      value: c.revenue,
-      color: [C.purple, C.blue, C.green, C.amber][i % 4] as RGB,
-    }));
-    y = hBar(doc, cityBars, ML, y, CW, "Revenue by City") + 3;
-    y = premTable(
-      doc,
-      [["City", "Branches", "Revenue", "Orders", "Net Profit"]],
-      cityComparison.map((c: any) => [
-        c.city || "—",
-        c.branches?.length || 0,
-        INR(c.revenue),
-        c.orders,
-        INR(c.netProfit),
-      ]),
-      y,
-      C.purple,
-      {
-        columnStyles: {
-          1: { halign: "center" },
-          2: { halign: "right" },
-          3: { halign: "center" },
-          4: { halign: "right" },
-        },
-      },
-    );
+  if (inventoryAdjustments.length > 0) {
+    const wasteMap: Record<string, number> = {};
+    inventoryAdjustments.filter((a: any) => a.adjustmentType === "WASTE").forEach((a: any) => {
+      const nm = a.ingredient?.name || "Unknown";
+      wasteMap[nm] = (wasteMap[nm] || 0) + n(a.quantity);
+    });
+    if (Object.keys(wasteMap).length > 0) {
+      y = divider(doc, "Inventory Waste Summary", y, C.amber);
+      y = table(doc,
+        [["Ingredient", "Qty Wasted", "Unit"]],
+        Object.entries(wasteMap).sort((a, b) => b[1] - a[1]).slice(0, 12).map(([ing, qty]) => {
+          const unit = inventoryAdjustments.find((a: any) => a.ingredient?.name === ing)?.ingredient?.unit || "—";
+          return [ing, qty.toFixed(2), unit];
+        }),
+        y, C.amber,
+        { columnStyles: { 1: { halign: "right" }, 2: { halign: "center" } } },
+      );
+    }
   }
 
-  // ──────────────────────────────────────────────────────────────────────────
-  // BACK-FILL PAGE FOOTERS
-  // ──────────────────────────────────────────────────────────────────────────
+  // Forecast — show as table only (predicted, not actual data)
+  const fSum = (forecast as any)?.summary || {};
+  if (fSum.forecastTotal) {
+    y = divider(doc, "7-Day Revenue Forecast  (Estimated — Not Actual Data)", y, C.purple);
+    y = kpiGrid(doc, [
+      { label: "7-Day Avg",     value: RS(fSum.avg7 || 0),           sub: "daily average",    accent: C.blue   },
+      { label: "Growth Rate",   value: `${fSum.growthPercent >= 0 ? "+" : ""}${fSum.growthPercent || 0}%`, sub: "week-on-week", accent: (fSum.growthPercent || 0) >= 0 ? C.green : C.brand },
+      { label: "Next 7D Total", value: RS(fSum.forecastTotal || 0),  sub: "predicted",        accent: C.purple },
+    ], y, 3);
+    const fcRows = ((forecast as any)?.forecast || []).map((f: any, i: number) => [
+      `Day ${i + 1}`,
+      f.date.slice(5, 10).replace("-", "/"),
+      RS(f.predicted),
+      i === 0 ? "—" : (() => {
+        const prev = (forecast as any).forecast[i - 1]?.predicted || 0;
+        const diff = f.predicted - prev;
+        return diff === 0 ? "No change" : (diff > 0 ? `+${RS(diff)}` : RS(diff));
+      })(),
+    ]);
+    if (fcRows.length > 0) {
+      txt(doc, "Note: These are algorithm-generated estimates based on historical trends.", ML, y, { size: 6, color: C.muted, italic: true });
+      y += 6;
+      y = table(doc,
+        [["Day", "Date", "Predicted Revenue", "Change vs Prior Day"]],
+        fcRows,
+        y, C.purple,
+        { columnStyles: { 2: { halign: "right" }, 3: { halign: "right" } } },
+      );
+    }
+  }
+
+  // ══════════════════════════════════════════════════════════════════════════
+  //  BACK-FILL FOOTERS
+  // ══════════════════════════════════════════════════════════════════════════
   const total = doc.getNumberOfPages();
   for (let p = 1; p <= total; p++) {
     doc.setPage(p);
-    pageHeader(doc, p, total, meta);
+    pageFooter(doc, p, total, meta);
   }
 
   return doc.output("arraybuffer") as Uint8Array;

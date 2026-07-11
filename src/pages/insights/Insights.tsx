@@ -60,6 +60,7 @@ export default function Insights() {
   const [ingredients, setIngredients] = useState<any>({});
   const [loading, setLoading] = useState(false);
   const [restockHistory, setRestockHistory] = useState<any[]>([]);
+  const [inventoryStockValue, setInventoryStockValue] = useState(0);
   const [insightsData, setInsightsData] = useState<any>({
     monthlyRent: 0,
     loanEmi: 0,
@@ -95,6 +96,7 @@ export default function Insights() {
     weekendSalesIncrease: 0,
     plannedExpansion: "",
     revenue: 0,
+    manualFoodCost: 0,
   });
   const n = (v: any) => Number(v) || 0;
   const totalFixedExpenses =
@@ -122,13 +124,11 @@ export default function Insights() {
     n(insightsData.caFees) +
     n(insightsData.insuranceCost) +
     n(insightsData.otherTaxes);
-  const totalExpenses =
-    totalFixedExpenses +
-    totalVariableExpenses +
-    totalLabourCost +
-    totalFinanceCost;
   const revenue = insightsData.revenue || 0;
-  const ebitda = revenue - totalExpenses;
+  // effectiveFoodCost: use manual entry when set, otherwise fall back to
+  // inventory-restock-calculated value (computed below from restockHistory)
+  // We reference actualFoodCost after it's declared, so we compute it inline.
+  const manualFoodCostSet = n(insightsData.manualFoodCost) > 0;
   const restockData = restockHistory || [];
   const totalPurchaseValue = restockData.reduce((sum: number, item: any) => {
     return sum + Number(item.TotalPurchaseAmount || 0);
@@ -145,9 +145,23 @@ export default function Insights() {
   const actualFoodCost = restockData.reduce((sum: number, item: any) => {
     return sum + Number(item.MonthlyRMExpense || 0);
   }, 0);
+  // Use manual entry when set, otherwise use inventory-calculated food cost
+  // Priority: manual entry → live inventory stock value → restock-history RM expense
+  const effectiveFoodCost = manualFoodCostSet
+    ? n(insightsData.manualFoodCost)
+    : inventoryStockValue > 0
+      ? inventoryStockValue
+      : actualFoodCost;
+  const totalExpenses =
+    totalFixedExpenses +
+    totalVariableExpenses +
+    totalLabourCost +
+    totalFinanceCost +
+    effectiveFoodCost;
+  const ebitda = revenue - totalExpenses;
   /* FOOD COST % */
   const actualFoodCostPercentage = revenue
-    ? ((actualFoodCost / revenue) * 100).toFixed(1)
+    ? ((effectiveFoodCost / revenue) * 100).toFixed(1)
     : "0";
   /* INVENTORY TURNOVER */
   const inventoryTurnover = inventoryValue
@@ -283,8 +297,30 @@ export default function Insights() {
         // fetch error
       }
     };
+    const fetchInventoryStock = async () => {
+      try {
+        if (!user?.restaurantId || !selectedBranch?.id) return;
+        const res = await fetch(
+          `${API_URL}/api/inventory/${user.restaurantId}/menu-management?branchId=${selectedBranch.id}`,
+          { headers: { Authorization: `Bearer ${token}` } },
+        );
+        const json = await res.json();
+        if (json.success) {
+          const total = (json.data?.ingredients || []).reduce(
+            (sum: number, ing: any) =>
+              sum + Number(ing.quantity || 0) * Number(ing.pricePerUnit || 0),
+            0,
+          );
+          setInventoryStockValue(total);
+        }
+      } catch {
+        // silently ignored
+      }
+    };
+
     fetchInsights();
     fetchRestockHistory();
+    fetchInventoryStock();
   }, [selectedBranch]);
   const handleGenerate = async () => {
     try {
@@ -1096,7 +1132,7 @@ export default function Insights() {
 
               {/* ================= COST BREAKDOWN ================= */}
 
-              <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+              <div className="grid grid-cols-2 gap-3 xl:grid-cols-5">
                 {[
                   {
                     label: "Fixed",
@@ -1124,6 +1160,13 @@ export default function Insights() {
                     value: totalFinanceCost,
                     icon: Landmark,
                     color: "violet",
+                  },
+
+                  {
+                    label: "Raw Material",
+                    value: effectiveFoodCost,
+                    icon: ShoppingCart,
+                    color: "red",
                   },
                 ].map((item) => {
                   const Icon = item.icon;
@@ -1283,6 +1326,10 @@ export default function Insights() {
                       icon: Activity,
                     },
                     {
+                      label: "Raw Material Cost",
+                      icon: ShoppingCart,
+                    },
+                    {
                       label: "Labour",
                       icon: Users,
                     },
@@ -1339,6 +1386,8 @@ export default function Insights() {
                           <h1 className="text-xl font-bold tracking-tight text-gray-900">
                             {insightsSection === "Labour"
                               ? "Labour Intelligence"
+                              : insightsSection === "Raw Material Cost"
+                              ? "Raw Material / Food Cost"
                               : insightsSection}
                           </h1>
 
@@ -1647,6 +1696,86 @@ export default function Insights() {
                               </p>
                             </div>
                           ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  {insightsSection === "Raw Material Cost" && (
+                    <div className="space-y-4">
+                      {/* KPI */}
+                      <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+                        <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+                          <p className="text-[12px] font-medium uppercase tracking-wide text-gray-400">
+                            This Month's Food Cost
+                          </p>
+                          <p className="mt-2 text-2xl font-bold tracking-tight text-gray-900">
+                            ₹{effectiveFoodCost.toLocaleString()}
+                          </p>
+                          <p className="mt-2 text-[12px] text-gray-500">
+                            {manualFoodCostSet ? "Manual entry" : "From inventory data"}
+                          </p>
+                        </div>
+                        <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+                          <p className="text-[12px] font-medium uppercase tracking-wide text-gray-400">
+                            Food Cost %
+                          </p>
+                          <p className={`mt-2 text-2xl font-bold tracking-tight ${Number(actualFoodCostPercentage) > 35 ? "text-red-600" : "text-emerald-600"}`}>
+                            {actualFoodCostPercentage}%
+                          </p>
+                          <p className="mt-2 text-[12px] text-gray-500">
+                            Target: &lt;35% of revenue
+                          </p>
+                        </div>
+                        <div className="rounded-xl border border-blue-100 bg-blue-50 p-4">
+                          <div className="flex items-start gap-3">
+                            <Sparkles className="mt-0.5 h-4 w-4 text-blue-600" />
+                            <p className="text-sm leading-6 text-blue-900">
+                              {manualFoodCostSet
+                                ? "Using your manually entered raw material cost for EBITDA calculation."
+                                : inventoryStockValue > 0
+                                  ? "No manual entry set. Using current inventory stock value (qty × unit price) for EBITDA. Enter a total below to override."
+                                  : "No manual entry set and no inventory stock found. Enter a total below to include raw material cost in EBITDA."}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* FORM */}
+                      <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+                        <div className="mb-5">
+                          <h3 className="text-lg font-semibold text-gray-900">
+                            Manual Raw Material Cost
+                          </h3>
+                          <p className="mt-1 text-sm text-gray-500">
+                            Enter your total monthly spend on raw materials / groceries. When set, this
+                            overrides the per-ingredient inventory calculation in your EBITDA.
+                          </p>
+                        </div>
+
+                        <div className="max-w-sm">
+                          <label className="mb-2 block text-sm font-medium text-gray-700">
+                            Monthly Total RM Spend
+                          </label>
+                          <div className="relative">
+                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-400">
+                              ₹
+                            </span>
+                            <input
+                              type="number"
+                              value={insightsData.manualFoodCost || ""}
+                              onChange={(e) =>
+                                setInsightsData({
+                                  ...insightsData,
+                                  manualFoodCost: Number(e.target.value),
+                                })
+                              }
+                              placeholder="0"
+                              className="w-full rounded-xl border border-gray-200 bg-gray-50 py-2.5 pl-8 pr-3 text-sm outline-none transition-all duration-200 focus:border-red-300 focus:bg-white"
+                            />
+                          </div>
+                          <p className="mt-2 text-[11px] text-gray-400">
+                            Leave at 0 to auto-calculate from inventory restock data
+                          </p>
                         </div>
                       </div>
                     </div>

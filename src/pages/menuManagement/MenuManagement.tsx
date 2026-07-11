@@ -3383,6 +3383,13 @@ export default function MenuManagement() {
                             <td className="px-4 py-3">
                               <select
                                 value={String(row.ingredientId || "")}
+                                onChange={(e) =>
+                                  setIngredientMappings((prev) =>
+                                    prev.map((r, i) =>
+                                      i === index ? { ...r, ingredientId: e.target.value } : r,
+                                    ),
+                                  )
+                                }
                                 className="
                         h-10
                         w-full
@@ -3413,6 +3420,13 @@ export default function MenuManagement() {
                               <input
                                 type="number"
                                 value={row.quantity || ""}
+                                onChange={(e) =>
+                                  setIngredientMappings((prev) =>
+                                    prev.map((r, i) =>
+                                      i === index ? { ...r, quantity: e.target.value } : r,
+                                    ),
+                                  )
+                                }
                                 className="
                         h-10
                         w-24
@@ -3430,6 +3444,13 @@ export default function MenuManagement() {
                             <td className="px-4 py-3">
                               <select
                                 value={row.unit || "gm"}
+                                onChange={(e) =>
+                                  setIngredientMappings((prev) =>
+                                    prev.map((r, i) =>
+                                      i === index ? { ...r, unit: e.target.value } : r,
+                                    ),
+                                  )
+                                }
                                 className="
                         h-10
                         rounded-xl
@@ -3453,7 +3474,21 @@ export default function MenuManagement() {
 
                             <td className="px-4 py-3">
                               <span className="rounded-full bg-indigo-50 px-3 py-1 text-[12px] font-bold text-indigo-600">
-                                ₹0.00
+                                {(() => {
+                                  const ing = allIngredients.find(
+                                    (i: any) => String(i.id) === String(row.ingredientId),
+                                  );
+                                  const ppu = parseFloat(ing?.pricePerUnit) || 0;
+                                  const qty = parseFloat(row.quantity) || 0;
+                                  const ingUnit = ing?.unit || "";
+                                  const mapUnit = row.unit || "gm";
+                                  let pricePerMapUnit = ppu;
+                                  if (ingUnit === "Kg" && mapUnit === "gm") pricePerMapUnit = ppu / 1000;
+                                  else if (ingUnit === "gm" && mapUnit === "Kg") pricePerMapUnit = ppu * 1000;
+                                  else if (ingUnit === "Litre" && mapUnit === "ml") pricePerMapUnit = ppu / 1000;
+                                  else if (ingUnit === "ml" && mapUnit === "Litre") pricePerMapUnit = ppu * 1000;
+                                  return `₹${(pricePerMapUnit * qty).toFixed(2)}`;
+                                })()}
                               </span>
                             </td>
 
@@ -3461,6 +3496,13 @@ export default function MenuManagement() {
                               <input
                                 type="number"
                                 value={row.wastage || ""}
+                                onChange={(e) =>
+                                  setIngredientMappings((prev) =>
+                                    prev.map((r, i) =>
+                                      i === index ? { ...r, wastage: e.target.value } : r,
+                                    ),
+                                  )
+                                }
                                 className="
                         h-10
                         w-20
@@ -3477,6 +3519,11 @@ export default function MenuManagement() {
 
                             <td className="px-4 py-3">
                               <button
+                                onClick={() =>
+                                  setIngredientMappings((prev) =>
+                                    prev.filter((_, i) => i !== index),
+                                  )
+                                }
                                 className="
                         rounded-xl
                         border
