@@ -4,19 +4,17 @@ import {
   BarChart3,
   Users,
   Clock3,
-  Repeat,
+  TrendingUp,
 } from "lucide-react";
 
 type Props = {
   analytics?: any;
+  ebitda?: number | null;
+  ebitdaPct?: number | null;
 };
 
-export default function AnalyticsOverview({ analytics }: Props) {
-  const repeatCustomers = analytics?.totalCustomers
-    ? Math.round(
-        (analytics?.repeatCustomersCount / analytics?.totalCustomers) * 100,
-      )
-    : 0;
+export default function AnalyticsOverview({ analytics, ebitda, ebitdaPct }: Props) {
+  const ebitdaPositive = ebitda == null || ebitda >= 0;
 
   const stats = [
     {
@@ -65,13 +63,17 @@ export default function AnalyticsOverview({ analytics }: Props) {
       sub: "Busiest time",
     },
     {
-      name: "Repeat Rate",
-      value: `${repeatCustomers}%`,
-      icon: Repeat,
-      accent: "bg-pink-500",
-      iconBg: "bg-pink-50",
-      iconColor: "text-pink-500",
-      sub: "Returning guests",
+      name: "EBITDA",
+      value: ebitda == null ? "—" : `₹${Math.round(ebitda).toLocaleString()}`,
+      icon: TrendingUp,
+      accent: ebitdaPositive ? "bg-emerald-500" : "bg-red-500",
+      iconBg: ebitdaPositive ? "bg-emerald-50" : "bg-red-50",
+      iconColor: ebitdaPositive ? "text-emerald-500" : "text-red-500",
+      sub: ebitda == null
+        ? "Set expenses in Insights"
+        : ebitdaPct != null
+          ? `${ebitdaPct > 0 ? "+" : ""}${ebitdaPct.toFixed(1)}% margin`
+          : ebitdaPositive ? "Profitable period" : "Loss period",
     },
   ];
 

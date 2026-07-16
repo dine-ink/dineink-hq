@@ -35,6 +35,10 @@ export default function Dashboard() {
   const [showSetupModal, setShowSetupModal] = useState(false);
   const [hasRestaurant, setHasRestaurant] = useState<boolean | null>(null);
   const [analytics, setAnalytics] = useState<any>(null);
+  const [insightsData, setInsightsData] = useState<any>(null);
+  const [staffData, setStaffData] = useState<any[]>([]);
+  const [restockHistory, setRestockHistory] = useState<any[]>([]);
+  const [inventoryStockValue, setInventoryStockValue] = useState(0);
 
   const isSingleDay = from === to;
 
@@ -135,10 +139,120 @@ export default function Dashboard() {
       }
     };
 
+    const fetchInsights = async () => {
+      try {
+        if (!selectedBranch?.id || !user?.restaurantId) return;
+        const res = await fetch(
+          `${API_URL}/api/analytics/insights/${user.restaurantId}/${selectedBranch.id}`,
+          { signal, headers: { Authorization: `Bearer ${token}` } },
+        );
+        const data = await res.json();
+        if (data.success && data.data) {
+          const normalized = Object.fromEntries(
+            Object.entries(data.data).map(([k, v]) => [k, v == null ? 0 : v]),
+          );
+          setInsightsData(normalized);
+        }
+      } catch (e) {
+        if (e instanceof DOMException) return;
+      }
+    };
+
+    const fetchStaff = async () => {
+      try {
+        if (!selectedBranch?.id || !user?.restaurantId) return;
+        const res = await fetch(
+          `${API_URL}/api/restaurant/staff/${user.restaurantId}/${selectedBranch.id}`,
+          { signal, headers: { Authorization: `Bearer ${token}` } },
+        );
+        const data = await res.json();
+        if (data.success) setStaffData(data.data || []);
+      } catch (e) {
+        if (e instanceof DOMException) return;
+      }
+    };
+
+    const fetchRestockHistory = async () => {
+      try {
+        if (!user?.restaurantId) return;
+        const res = await fetch(
+          `${API_URL}/api/inventory/${user.restaurantId}/get-restock-history`,
+          { signal, headers: { Authorization: `Bearer ${token}` } },
+        );
+        const data = await res.json();
+        if (data.success) {
+          const now = new Date();
+          const currentMonth = now.getMonth() + 1;
+          const currentYear = now.getFullYear();
+          const monthData = (data.data || []).find(
+            (item: any) => item.month === currentMonth && item.year === currentYear,
+          );
+          if (monthData) {
+            setRestockHistory(
+              monthData.data.map((item: any) => ({
+                MonthlyRMExpense: Number(
+                  item["Monthly RM Expense"] ||
+                    Number(item["Opening Stock Value"] || 0) +
+                      Number(item["Total Purchase Amount"] || 0) -
+                      Number(
+                        item["Week5 Closing Value"] || item["Week4 Closing Value"] ||
+                        item["Week3 Closing Value"] || item["Week2 Closing Value"] ||
+                        item["Week1 Closing Value"] || 0,
+                      ),
+                ),
+              })),
+            );
+          }
+        }
+      } catch (e) {
+        if (e instanceof DOMException) return;
+      }
+    };
+
+    const fetchInventoryStock = async () => {
+      try {
+        if (!selectedBranch?.id || !user?.restaurantId) return;
+        const res = await fetch(
+          `${API_URL}/api/inventory/${user.restaurantId}/menu-management?branchId=${selectedBranch.id}`,
+          { signal, headers: { Authorization: `Bearer ${token}` } },
+        );
+        const data = await res.json();
+        if (data.success) {
+          const total = (data.data?.ingredients || []).reduce(
+            (sum: number, ing: any) =>
+              sum + Number(ing.quantity || 0) * Number(ing.pricePerUnit || 0),
+            0,
+          );
+          setInventoryStockValue(total);
+        }
+      } catch (e) {
+        if (e instanceof DOMException) return;
+      }
+    };
+
     fetchDashboard();
     fetchAnalytics();
+    fetchInsights();
+    fetchStaff();
+    fetchRestockHistory();
+    fetchInventoryStock();
     return () => ctrl.abort();
   }, [preset, from, to, selectedBranch?.id, token, user?.restaurantId]);
+
+  const dashboardEbitda = (() => {
+    if (!insightsData) return null;
+    const n = (v: any) => Number(v) || 0;
+    const fixed = n(insightsData.monthlyRent) + n(insightsData.loanEmi) + n(insightsData.internet) + n(insightsData.phoneBills) + n(insightsData.accounting) + n(insightsData.insurance) + n(insightsData.licenses);
+    const variable = n(insightsData.deliveryCharges) + n(insightsData.packaging) + n(insightsData.paymentGateway) + n(insightsData.aggregatorCommission) + n(insightsData.electricity) + n(insightsData.gas) + n(insightsData.maintenance) + n(insightsData.fuel);
+    const labour = staffData.reduce((sum: number, s: any) => sum + (s.salary || 0), 0);
+    const finance = n(insightsData.monthlyLoanEmi) + n(insightsData.monthlyInterestPayments) + n(insightsData.caFees) + n(insightsData.insuranceCost) + n(insightsData.otherTaxes);
+    const actualFoodCost = restockHistory.reduce((sum: number, r: any) => sum + Number(r.MonthlyRMExpense || 0), 0);
+    const foodCost = n(insightsData.manualFoodCost) > 0
+      ? n(insightsData.manualFoodCost)
+      : inventoryStockValue > 0 ? inventoryStockValue : actualFoodCost;
+    const totalExp = fixed + variable + labour + finance + foodCost;
+    return n(analytics?.totalRevenue) - totalExp;
+  })();
 
   if (hasRestaurant === null) {
     return (
@@ -264,7 +378,15 @@ export default function Dashboard() {
           </div>
         </div>
 
-        <StatsStrip analytics={analytics} />
+        <StatsStrip
+          analytics={analytics}
+          ebitda={dashboardEbitda}
+          ebitdaPct={
+            dashboardEbitda != null && (analytics?.totalRevenue || 0) > 0
+              ? (dashboardEbitda / analytics.totalRevenue) * 100
+              : null
+          }
+        />
 
         <div className="grid grid-cols-1 gap-3 xl:grid-cols-12">
           <div className={`xl:col-span-7 ${CHART_CARD}`}>
@@ -473,7 +595,7 @@ export default function Dashboard() {
         </div>
 
         <div className="grid grid-cols-1 gap-3 xl:grid-cols-12">
-          <div className={`xl:col-span-4 ${CHART_CARD} p-3`}>
+          <div className={`xl:col-span-3 ${CHART_CARD} p-3`}>
             <div className="mb-3 flex items-start justify-between">
               <div>
                 <div className="inline-flex rounded-full bg-gray-100 px-2 py-1 text-[9px] font-bold uppercase tracking-wide text-gray-600">
@@ -586,7 +708,7 @@ export default function Dashboard() {
             </div>
           </div>
 
-          <div className={`xl:col-span-5 ${CHART_CARD} p-3`}>
+          <div className={`xl:col-span-3 ${CHART_CARD} p-3`}>
             <div className="mb-3">
               <div className="inline-flex rounded-full bg-gray-100 px-2 py-1 text-[9px] font-bold uppercase tracking-wide text-gray-600">
                 Trending
@@ -599,38 +721,93 @@ export default function Dashboard() {
               </p>
             </div>
             <div className="space-y-2">
-              {analytics?.topItems?.slice(0, 5).map((item: any) => (
-                <div
-                  key={item.name}
-                  className="rounded-xl border border-gray-100 bg-gray-50/60 p-2.5 transition hover:bg-gray-50"
-                >
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="truncate text-[12px] font-semibold text-gray-900">
-                      {item.name}
-                    </p>
-                    <div className="flex h-7 min-w-[32px] items-center justify-center rounded-lg bg-[#b10000] px-2 text-[11px] font-bold text-white">
-                      {item.quantity}
+              {(() => {
+                const items = analytics?.topItems || [];
+                const max = Math.max(...items.map((i: any) => i.quantity), 1);
+                return items.length > 0 ? items.slice(0, 5).map((item: any) => (
+                  <div
+                    key={item.name}
+                    className="rounded-xl border border-gray-100 bg-gray-50/60 p-2.5 transition hover:bg-gray-50"
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="truncate text-[12px] font-semibold text-gray-900">
+                        {item.name}
+                      </p>
+                      <div className="flex h-7 min-w-[32px] items-center justify-center rounded-lg bg-[#b10000] px-2 text-[11px] font-bold text-white">
+                        {item.quantity}
+                      </div>
+                    </div>
+                    <div className="mt-2 flex items-center gap-2">
+                      <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-gray-200">
+                        <div
+                          className="h-full rounded-full bg-[#b10000] transition-all"
+                          style={{ width: `${Math.round((item.quantity / max) * 100)}%` }}
+                        />
+                      </div>
+                      <p className="min-w-[28px] text-right text-[9px] font-semibold text-gray-400">
+                        {Math.round((item.quantity / max) * 100)}%
+                      </p>
                     </div>
                   </div>
-                  <div className="mt-2 flex items-center gap-2">
-                    <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-gray-200">
-                      <div
-                        className="h-full rounded-full bg-[#b10000] transition-all"
-                        style={{
-                          width: `${Math.min(item.quantity * 10, 100)}%`,
-                        }}
-                      />
-                    </div>
-                    <p className="min-w-[28px] text-right text-[9px] font-semibold text-gray-400">
-                      {Math.min(item.quantity * 10, 100)}%
-                    </p>
+                )) : (
+                  <div className="flex h-[120px] items-center justify-center text-[12px] text-gray-400">
+                    No item data yet
                   </div>
-                </div>
-              )) || (
-                <div className="flex h-[120px] items-center justify-center text-[12px] text-gray-400">
-                  No item data yet
-                </div>
-              )}
+                );
+              })()}
+            </div>
+          </div>
+
+          <div className={`xl:col-span-3 ${CHART_CARD} p-3`}>
+            <div className="mb-3">
+              <div className="inline-flex rounded-full bg-[#b10000]/10 px-2 py-1 text-[9px] font-bold uppercase tracking-wide text-[#b10000]">
+                Categories
+              </div>
+              <h3 className="mt-1.5 text-[15px] font-bold text-gray-900">
+                Top Selling Categories
+              </h3>
+              <p className="mt-0.5 text-[11px] text-gray-500">
+                Best performing menu categories
+              </p>
+            </div>
+            <div className="space-y-2">
+              {(() => {
+                const cats = analytics?.topCategories || [];
+                const max = Math.max(...cats.map((c: any) => c.quantity), 1);
+                return cats.length > 0 ? cats.slice(0, 5).map((cat: any, i: number) => {
+                  const colors = ["bg-[#b10000]", "bg-orange-500", "bg-amber-500", "bg-emerald-500", "bg-blue-500"];
+                  return (
+                    <div
+                      key={cat.name}
+                      className="rounded-xl border border-gray-100 bg-gray-50/60 p-2.5 transition hover:bg-gray-50"
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="truncate text-[12px] font-semibold text-gray-900">
+                          {cat.name}
+                        </p>
+                        <div className={`flex h-7 min-w-[32px] items-center justify-center rounded-lg px-2 text-[11px] font-bold text-white ${colors[i] || "bg-gray-400"}`}>
+                          {cat.quantity}
+                        </div>
+                      </div>
+                      <div className="mt-2 flex items-center gap-2">
+                        <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-gray-200">
+                          <div
+                            className={`h-full rounded-full transition-all ${colors[i] || "bg-gray-400"}`}
+                            style={{ width: `${Math.round((cat.quantity / max) * 100)}%` }}
+                          />
+                        </div>
+                        <p className="min-w-[28px] text-right text-[9px] font-semibold text-gray-400">
+                          {Math.round((cat.quantity / max) * 100)}%
+                        </p>
+                      </div>
+                    </div>
+                  );
+                }) : (
+                  <div className="flex h-[120px] items-center justify-center text-[12px] text-gray-400">
+                    No category data yet
+                  </div>
+                );
+              })()}
             </div>
           </div>
         </div>

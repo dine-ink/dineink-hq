@@ -5,6 +5,7 @@ import {
   MagnifyingGlassIcon,
   ChartBarIcon,
   CalendarDaysIcon,
+  XMarkIcon,
 } from "@heroicons/react/24/outline";
 import { IndianRupeeIcon, ShoppingBagIcon } from "lucide-react";
 
@@ -15,8 +16,11 @@ export default function Bills() {
   const [search, setSearch] = useState("");
   const [bills, setBills] = useState<any[]>([]);
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(false);
+  const [selectedBill, setSelectedBill] = useState<any>(null);
   const rowsPerPage = 10;
 
   useEffect(() => {
@@ -60,7 +64,10 @@ export default function Bills() {
       String(b.id).includes(search);
     const matchesStatus =
       statusFilter === "ALL" || billStatus === statusFilter;
-    return matchesSearch && matchesStatus;
+    const billDate = b.createdAt ? new Date(b.createdAt) : null;
+    const matchesFrom = !dateFrom || (billDate && billDate >= new Date(dateFrom));
+    const matchesTo = !dateTo || (billDate && billDate <= new Date(dateTo + "T23:59:59"));
+    return matchesSearch && matchesStatus && matchesFrom && matchesTo;
   });
 
   const totalPages = Math.max(Math.ceil(filtered.length / rowsPerPage), 1);
@@ -68,7 +75,6 @@ export default function Bills() {
     (page - 1) * rowsPerPage,
     page * rowsPerPage,
   );
-  // Exclude CANCELLED bills from revenue and averages
   const activeBills = filtered.filter(
     (b) => (b.paymentStatus || b.status) !== "CANCELLED",
   );
@@ -133,7 +139,7 @@ export default function Bills() {
                   icon_cls: "text-emerald-600",
                 },
                 {
-                  label: "Orders",
+                  label: "Bills",
                   value: activeBills.length,
                   icon: ShoppingBagIcon,
                   cls: "border-blue-100 bg-blue-50",
@@ -205,10 +211,34 @@ export default function Bills() {
                   Recent Bills
                 </h2>
                 <p className="mt-0.5 text-[11px] text-gray-500">
-                  Billing history · {filtered.length} records
+                  Billing history · {filtered.length} records · click a row to view details
                 </p>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="flex items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-2.5 h-9">
+                  <CalendarDaysIcon className="h-3.5 w-3.5 text-gray-400 shrink-0" />
+                  <input
+                    type="date"
+                    value={dateFrom}
+                    onChange={(e) => { setDateFrom(e.target.value); setPage(1); }}
+                    className="text-[12px] text-gray-700 outline-none bg-transparent"
+                  />
+                  <span className="text-[11px] text-gray-300">—</span>
+                  <input
+                    type="date"
+                    value={dateTo}
+                    onChange={(e) => { setDateTo(e.target.value); setPage(1); }}
+                    className="text-[12px] text-gray-700 outline-none bg-transparent"
+                  />
+                  {(dateFrom || dateTo) && (
+                    <button
+                      onClick={() => { setDateFrom(""); setDateTo(""); setPage(1); }}
+                      className="ml-1 text-[10px] font-bold text-gray-400 hover:text-red-500 transition"
+                    >
+                      ✕
+                    </button>
+                  )}
+                </div>
                 <select
                   value={statusFilter}
                   onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
@@ -228,7 +258,7 @@ export default function Bills() {
                       setSearch(e.target.value);
                       setPage(1);
                     }}
-                    className="h-9 w-full rounded-xl border border-gray-200 bg-white pl-8 pr-3 text-[12px] outline-none transition focus:border-red-400 focus:ring-2 focus:ring-red-100 lg:w-72"
+                    className="h-9 w-full rounded-xl border border-gray-200 bg-white pl-8 pr-3 text-[12px] outline-none transition focus:border-red-400 focus:ring-2 focus:ring-red-100 lg:w-64"
                   />
                 </div>
               </div>
@@ -261,7 +291,6 @@ export default function Bills() {
               <tbody>
                 {paginated.length > 0 ? (
                   paginated.map((b: any) => {
-                    // backend returns customer as flat string, customerPhone separately
                     const custName =
                       typeof b.customer === "string"
                         ? b.customer
@@ -277,7 +306,8 @@ export default function Bills() {
                     return (
                       <tr
                         key={b.id}
-                        className="border-b border-gray-50 transition hover:bg-gray-50/60"
+                        onClick={() => setSelectedBill(b)}
+                        className="cursor-pointer border-b border-gray-50 transition hover:bg-red-50/40"
                       >
                         <td className="px-4 py-2.5">
                           <p className="font-bold text-gray-900">{billNo}</p>
@@ -412,6 +442,186 @@ export default function Bills() {
           </div>
         </div>
       </div>
+
+      {/* ── BILL DETAIL DRAWER ───────────────────────── */}
+      {selectedBill && (
+        <div className="fixed inset-0 z-50 flex">
+          {/* Backdrop */}
+          <div
+            className="flex-1 bg-black/40 backdrop-blur-sm"
+            onClick={() => setSelectedBill(null)}
+          />
+          {/* Panel */}
+          <div className="flex h-full w-full max-w-md flex-col overflow-hidden bg-white shadow-2xl">
+            {/* Drawer header */}
+            <div className="flex items-center justify-between border-b border-gray-100 bg-white px-5 py-4">
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#b10000]">
+                  Bill Details
+                </p>
+                <h2 className="mt-0.5 text-[17px] font-black text-gray-900">
+                  {selectedBill.billNo || selectedBill.orderNo || `#${selectedBill.id}`}
+                </h2>
+              </div>
+              <button
+                onClick={() => setSelectedBill(null)}
+                className="flex h-8 w-8 items-center justify-center rounded-xl border border-gray-200 text-gray-400 transition hover:border-red-300 hover:bg-red-50 hover:text-red-500"
+              >
+                <XMarkIcon className="h-4 w-4" />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto">
+              {/* Meta info */}
+              <div className="grid grid-cols-2 gap-3 border-b border-gray-100 px-5 py-4">
+                {[
+                  {
+                    label: "Customer",
+                    value:
+                      typeof selectedBill.customer === "string"
+                        ? selectedBill.customer
+                        : selectedBill.customer?.name || "Walk-in",
+                  },
+                  {
+                    label: "Phone",
+                    value:
+                      selectedBill.customerPhone ||
+                      selectedBill.customer?.phone ||
+                      "—",
+                  },
+                  {
+                    label: "Order Type",
+                    value: (selectedBill.orderType || "—").replace("_", " "),
+                  },
+                  {
+                    label: "Payment",
+                    value: selectedBill.paymentMethod || "—",
+                  },
+                  {
+                    label: "Status",
+                    value: selectedBill.paymentStatus || selectedBill.status || "—",
+                  },
+                  {
+                    label: "Date",
+                    value: selectedBill.createdAt
+                      ? new Date(selectedBill.createdAt).toLocaleString(
+                          "en-IN",
+                          { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" },
+                        )
+                      : "—",
+                  },
+                ].map((f) => (
+                  <div key={f.label}>
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-gray-400">
+                      {f.label}
+                    </p>
+                    <p className="mt-0.5 text-[12px] font-semibold text-gray-800">
+                      {f.value}
+                    </p>
+                  </div>
+                ))}
+              </div>
+
+              {/* Items */}
+              <div className="px-5 py-4">
+                <p className="mb-3 text-[10px] font-bold uppercase tracking-[0.16em] text-gray-400">
+                  Items Ordered
+                </p>
+                {(selectedBill.items || []).length === 0 ? (
+                  <p className="text-[12px] text-gray-400">No items found</p>
+                ) : (
+                  <div className="flex flex-col gap-1.5">
+                    {/* Header row */}
+                    <div className="grid grid-cols-[1fr_48px_72px_72px] gap-2 pb-1.5 border-b border-gray-100">
+                      {["Item", "Qty", "Price", "Total"].map((h) => (
+                        <p key={h} className="text-[10px] font-bold uppercase tracking-[0.12em] text-gray-400 last:text-right">
+                          {h}
+                        </p>
+                      ))}
+                    </div>
+                    {(selectedBill.items || []).map((item: any, idx: number) => (
+                      <div
+                        key={item.id ?? idx}
+                        className="grid grid-cols-[1fr_48px_72px_72px] gap-2 rounded-lg px-0 py-1.5 items-center"
+                      >
+                        <p className="text-[12px] font-semibold text-gray-800 leading-tight">
+                          {item.itemName || item.name || "—"}
+                        </p>
+                        <p className="text-[12px] text-gray-500 text-center">
+                          ×{item.quantity}
+                        </p>
+                        <p className="text-[12px] text-gray-500 text-right">
+                          ₹{Number(item.price || 0).toLocaleString()}
+                        </p>
+                        <p className="text-[12px] font-semibold text-gray-800 text-right">
+                          ₹{Number(item.total || 0).toLocaleString()}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Financial summary */}
+              <div className="border-t border-gray-100 px-5 py-4">
+                <p className="mb-3 text-[10px] font-bold uppercase tracking-[0.16em] text-gray-400">
+                  Bill Summary
+                </p>
+                <div className="flex flex-col gap-2">
+                  {[
+                    { label: "Subtotal", value: selectedBill.subtotal },
+                    selectedBill.discount > 0 && {
+                      label: "Discount",
+                      value: -selectedBill.discount,
+                      cls: "text-emerald-600",
+                    },
+                    selectedBill.gst > 0 && { label: "GST", value: selectedBill.gst },
+                    (selectedBill.cgst > 0 || selectedBill.sgst > 0) && {
+                      label: `CGST / SGST`,
+                      value: (selectedBill.cgst || 0) + (selectedBill.sgst || 0),
+                    },
+                    selectedBill.serviceCharge > 0 && {
+                      label: "Service Charge",
+                      value: selectedBill.serviceCharge,
+                    },
+                    selectedBill.packingCharge > 0 && {
+                      label: "Packing Charge",
+                      value: selectedBill.packingCharge,
+                    },
+                  ]
+                    .filter(Boolean)
+                    .map((row: any) => (
+                      <div key={row.label} className="flex items-center justify-between">
+                        <p className="text-[12px] text-gray-500">{row.label}</p>
+                        <p className={`text-[12px] font-semibold ${row.cls || "text-gray-800"}`}>
+                          {row.value < 0 ? "−" : ""}₹{Math.abs(Number(row.value || 0)).toLocaleString()}
+                        </p>
+                      </div>
+                    ))}
+
+                  <div className="mt-1 flex items-center justify-between rounded-xl bg-gray-50 px-3 py-2.5">
+                    <p className="text-[13px] font-black text-gray-900">Total</p>
+                    <p className="text-[15px] font-black text-[#b10000]">
+                      ₹{Number(selectedBill.total || 0).toLocaleString()}
+                    </p>
+                  </div>
+
+                  {selectedBill.notes && (
+                    <div className="mt-1 rounded-xl border border-gray-100 bg-yellow-50/60 px-3 py-2">
+                      <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-yellow-600">
+                        Notes
+                      </p>
+                      <p className="mt-0.5 text-[12px] text-gray-700">
+                        {selectedBill.notes}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }
