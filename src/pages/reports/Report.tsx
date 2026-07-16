@@ -63,6 +63,13 @@ export default function Report() {
   const [lifecycleMonth, setLifecycleMonth] = useState(new Date().getMonth() + 1);
   const [lifecycleYear, setLifecycleYear] = useState(new Date().getFullYear());
   const [expandedIngredients, setExpandedIngredients] = useState<Set<number>>(new Set());
+  const [compareDishAId, setCompareDishAId] = useState("");
+  const [compareDishBId, setCompareDishBId] = useState("");
+  const [heatmapItemId, setHeatmapItemId] = useState("");
+  const [heatmapCategoryId, setHeatmapCategoryId] = useState("");
+  const [wastageSortBy, setWastageSortBy] = useState<
+    "weight" | "price" | "product"
+  >("weight");
 
   useEffect(() => {
     const fetchReports = async () => {
@@ -166,6 +173,41 @@ export default function Report() {
     };
     fetchLifecycle();
   }, [activeTab, lifecycleMonth, lifecycleYear, selectedBranch?.id]);
+
+  useEffect(() => {
+    if (
+      activeTab !== "Hourly Heatmap" ||
+      !selectedBranch?.id ||
+      !user?.restaurantId
+    )
+      return;
+    const fetchHeatmap = async () => {
+      try {
+        const bParam = `branchId=${selectedBranch.id}`;
+        const filterParam = heatmapItemId
+          ? `&itemId=${heatmapItemId}`
+          : heatmapCategoryId
+            ? `&categoryId=${heatmapCategoryId}`
+            : "";
+        const res = await fetch(
+          `${API_URL}/api/analytics/${user.restaurantId}/hourly-heatmap?${bParam}&from=${from}&to=${to}${filterParam}`,
+          { headers: { Authorization: `Bearer ${token}` } },
+        );
+        const json = await res.json();
+        if (json.success) setHeatmapData(json.data);
+      } catch {
+        /* silent */
+      }
+    };
+    fetchHeatmap();
+  }, [
+    activeTab,
+    heatmapItemId,
+    heatmapCategoryId,
+    selectedBranch?.id,
+    from,
+    to,
+  ]);
 
   // ===== COMPUTED METRICS =====
   const totalRevenue = bills.reduce((s, b) => s + Number(b.total || 0), 0);
@@ -1342,8 +1384,68 @@ export default function Report() {
                 sellingPrice > 0
                   ? ((sellingPrice - recipeCost) / sellingPrice) * 100
                   : 0;
-              return { ...mi, ...sales, recipeCost, margin };
+              const foodCostPercent =
+                sellingPrice > 0 ? (recipeCost / sellingPrice) * 100 : 0;
+              // Price that would yield a 65% profit margin (35% food cost ratio)
+              const suggestedPrice = recipeCost > 0 ? recipeCost / 0.35 : 0;
+              return {
+                ...mi,
+                ...sales,
+                recipeCost,
+                margin,
+                foodCostPercent,
+                suggestedPrice,
+              };
             });
+
+            // ── Best sellers — ranked by quantity sold, not bucketed ──────────
+            const bestSellers = [...itemsWithCost]
+              .sort((a, b) => b.qty - a.qty)
+              .slice(0, 10);
+
+            // ── Profitability rankings — across all dishes, and per category ──
+            const mostProfitableOverall = itemsWithCost
+              .filter((i) => i.price > 0)
+              .slice()
+              .sort((a, b) => b.margin - a.margin)
+              .slice(0, 10);
+
+            const categoryStatsMap: Record<string, any> = {};
+            itemsWithCost.forEach((item: any) => {
+              const catName = item.category?.name || "Uncategorized";
+              if (!categoryStatsMap[catName]) {
+                categoryStatsMap[catName] = {
+                  name: catName,
+                  items: [] as any[],
+                };
+              }
+              categoryStatsMap[catName].items.push(item);
+            });
+            const categoryRanking = Object.values(categoryStatsMap)
+              .map((c: any) => {
+                const priced = c.items.filter((i: any) => i.price > 0);
+                const avgMargin = priced.length
+                  ? priced.reduce((s: number, i: any) => s + i.margin, 0) /
+                    priced.length
+                  : 0;
+                const avgFoodCostPercent = priced.length
+                  ? priced.reduce(
+                      (s: number, i: any) => s + i.foodCostPercent,
+                      0,
+                    ) / priced.length
+                  : 0;
+                const topDish = [...c.items].sort(
+                  (a: any, b: any) => b.margin - a.margin,
+                )[0];
+                return {
+                  name: c.name,
+                  count: c.items.length,
+                  avgMargin,
+                  avgFoodCostPercent,
+                  topDish,
+                };
+              })
+              .sort((a: any, b: any) => b.avgMargin - a.avgMargin);
 
             const medianQty =
               itemsWithCost.length > 0
@@ -1400,9 +1502,484 @@ export default function Report() {
               const c = classify(item);
               (quadrants as any)[c.label].push({ ...item, cls: c });
             });
+            Object.values(quadrants).forEach((arr) =>
+              arr.sort((a: any, b: any) => b.qty - a.qty),
+            );
 
             return (
-              <div className="space-y-3">
+              <div className="space-y-6">
+                {/* ===== BEST SELLERS (ranked by qty, with food cost% + margin) ===== */}
+                <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+                  <div className="px-4 py-3">
+                    <h3 className="text-[15px] font-bold text-gray-900">
+                      Best Sellers
+                    </h3>
+                    <p className="mt-0.5 text-[11px] text-gray-500">
+                      Ranked by units sold · food cost% and margin% shown side
+                      by side · suggested price targets a 65% profit margin
+                    </p>
+                  </div>
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full text-[12px]">
+                      <thead className="bg-gray-50/70">
+                        <tr className="border-b border-gray-100">
+                          {[
+                            "Item",
+                            "Category",
+                            "Sold",
+                            "Revenue",
+                            "Price",
+                            "Food Cost %",
+                            "Margin %",
+                            "Suggested Price (65% profit)",
+                          ].map((h) => (
+                            <th
+                              key={h}
+                              className="px-3 py-2 text-left text-[10px] font-bold uppercase tracking-wide text-gray-400"
+                            >
+                              {h}
+                            </th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {bestSellers.map((item: any) => (
+                          <tr
+                            key={item.id}
+                            className="border-b border-gray-100 hover:bg-gray-50/40"
+                          >
+                            <td className="px-3 py-2 font-semibold text-gray-900">
+                              {item.name}
+                            </td>
+                            <td className="px-3 py-2 text-gray-500">
+                              {item.category?.name || "—"}
+                            </td>
+                            <td className="px-3 py-2 font-bold text-gray-900">
+                              {item.qty}
+                            </td>
+                            <td className="px-3 py-2 text-gray-700">
+                              ₹{Math.round(item.revenue).toLocaleString()}
+                            </td>
+                            <td className="px-3 py-2 text-gray-700">
+                              ₹{item.price}
+                            </td>
+                            <td className="px-3 py-2 text-gray-600">
+                              {item.foodCostPercent.toFixed(1)}%
+                            </td>
+                            <td className="px-3 py-2">
+                              <span
+                                className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${item.margin >= 60 ? "bg-emerald-100 text-emerald-700" : item.margin >= 40 ? "bg-orange-100 text-orange-700" : "bg-red-100 text-red-700"}`}
+                              >
+                                {item.margin.toFixed(1)}%
+                              </span>
+                            </td>
+                            <td className="px-3 py-2 text-gray-700">
+                              {item.suggestedPrice > 0
+                                ? `₹${Math.round(item.suggestedPrice)}`
+                                : "—"}
+                            </td>
+                          </tr>
+                        ))}
+                        {bestSellers.length === 0 && (
+                          <tr>
+                            <td
+                              colSpan={8}
+                              className="px-3 py-6 text-center text-[11px] text-gray-400"
+                            >
+                              No sales data yet
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                {/* ===== ALTERNATE DISH COMPARE ===== */}
+                {(() => {
+                  const dishA = itemsWithCost.find(
+                    (i: any) => String(i.id) === compareDishAId,
+                  );
+                  const dishB = itemsWithCost.find(
+                    (i: any) => String(i.id) === compareDishBId,
+                  );
+                  const rows: Array<{
+                    label: string;
+                    a: any;
+                    b: any;
+                    format?: (v: any) => string;
+                  }> = [
+                    { label: "Category", a: dishA?.category?.name, b: dishB?.category?.name },
+                    {
+                      label: "Selling Price",
+                      a: dishA?.price,
+                      b: dishB?.price,
+                      format: (v) => (v != null ? `₹${v}` : "—"),
+                    },
+                    {
+                      label: "Recipe (Food) Cost",
+                      a: dishA?.recipeCost,
+                      b: dishB?.recipeCost,
+                      format: (v) => (v != null ? `₹${Number(v).toFixed(2)}` : "—"),
+                    },
+                    {
+                      label: "Food Cost %",
+                      a: dishA?.foodCostPercent,
+                      b: dishB?.foodCostPercent,
+                      format: (v) => (v != null ? `${Number(v).toFixed(1)}%` : "—"),
+                    },
+                    {
+                      label: "Profit Margin %",
+                      a: dishA?.margin,
+                      b: dishB?.margin,
+                      format: (v) => (v != null ? `${Number(v).toFixed(1)}%` : "—"),
+                    },
+                    {
+                      label: "Units Sold",
+                      a: dishA?.qty,
+                      b: dishB?.qty,
+                    },
+                    {
+                      label: "Suggested Price (65% profit)",
+                      a: dishA?.suggestedPrice,
+                      b: dishB?.suggestedPrice,
+                      format: (v) => (v > 0 ? `₹${Math.round(v)}` : "—"),
+                    },
+                  ];
+                  return (
+                    <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+                      <div className="px-4 py-3">
+                        <h3 className="text-[15px] font-bold text-gray-900">
+                          Compare Dishes
+                        </h3>
+                        <p className="mt-0.5 text-[11px] text-gray-500">
+                          Compare a proposed/alternate dish against an
+                          existing one on cost, price and margin
+                        </p>
+                      </div>
+                      <div className="grid grid-cols-1 gap-3 px-4 pb-4 sm:grid-cols-2">
+                        <select
+                          value={compareDishAId}
+                          onChange={(e) => setCompareDishAId(e.target.value)}
+                          className="h-9 rounded-xl border border-gray-200 bg-white px-3 text-[12px] font-medium text-gray-700 outline-none"
+                        >
+                          <option value="">Select existing dish…</option>
+                          {itemsWithCost.map((i: any) => (
+                            <option key={i.id} value={String(i.id)}>
+                              {i.name}
+                            </option>
+                          ))}
+                        </select>
+                        <select
+                          value={compareDishBId}
+                          onChange={(e) => setCompareDishBId(e.target.value)}
+                          className="h-9 rounded-xl border border-gray-200 bg-white px-3 text-[12px] font-medium text-gray-700 outline-none"
+                        >
+                          <option value="">Select alternate dish…</option>
+                          {itemsWithCost.map((i: any) => (
+                            <option key={i.id} value={String(i.id)}>
+                              {i.name}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      {dishA && dishB ? (
+                        <div className="overflow-x-auto border-t border-gray-100">
+                          <table className="min-w-full text-[12px]">
+                            <thead className="bg-gray-50/70">
+                              <tr className="border-b border-gray-100">
+                                <th className="px-3 py-2 text-left text-[10px] font-bold uppercase tracking-wide text-gray-400">
+                                  Metric
+                                </th>
+                                <th className="px-3 py-2 text-left text-[10px] font-bold uppercase tracking-wide text-gray-400">
+                                  {dishA.name}
+                                </th>
+                                <th className="px-3 py-2 text-left text-[10px] font-bold uppercase tracking-wide text-gray-400">
+                                  {dishB.name}
+                                </th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {rows.map((r) => (
+                                <tr
+                                  key={r.label}
+                                  className="border-b border-gray-100"
+                                >
+                                  <td className="px-3 py-2 font-semibold text-gray-500">
+                                    {r.label}
+                                  </td>
+                                  <td className="px-3 py-2 text-gray-900">
+                                    {r.format ? r.format(r.a) : (r.a ?? "—")}
+                                  </td>
+                                  <td className="px-3 py-2 text-gray-900">
+                                    {r.format ? r.format(r.b) : (r.b ?? "—")}
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      ) : (
+                        <p className="px-4 pb-4 text-[12px] text-gray-400">
+                          Pick two dishes above to compare them
+                        </p>
+                      )}
+                    </div>
+                  );
+                })()}
+
+                {/* ===== MENU ITEM SPLIT — PRICE HIGH / USAGE HIGH ===== */}
+                {(() => {
+                  const highestPriced = [...itemsWithCost]
+                    .sort((a, b) => b.price - a.price)
+                    .slice(0, 10);
+                  const highestUsage = [...itemsWithCost]
+                    .sort((a, b) => b.qty - a.qty)
+                    .slice(0, 10);
+                  return (
+                    <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
+                      <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+                        <div className="px-4 py-3">
+                          <h3 className="text-[15px] font-bold text-gray-900">
+                            Menu Split — Price High
+                          </h3>
+                          <p className="mt-0.5 text-[11px] text-gray-500">
+                            Highest priced items on the menu
+                          </p>
+                        </div>
+                        <div className="overflow-x-auto">
+                          <table className="min-w-full text-[12px]">
+                            <thead className="bg-gray-50/70">
+                              <tr className="border-b border-gray-100">
+                                {["Item", "Category", "Price", "Sold"].map(
+                                  (h) => (
+                                    <th
+                                      key={h}
+                                      className="px-3 py-2 text-left text-[10px] font-bold uppercase tracking-wide text-gray-400"
+                                    >
+                                      {h}
+                                    </th>
+                                  ),
+                                )}
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {highestPriced.map((item: any) => (
+                                <tr
+                                  key={item.id}
+                                  className="border-b border-gray-100 hover:bg-gray-50/40"
+                                >
+                                  <td className="px-3 py-2 font-semibold text-gray-900">
+                                    {item.name}
+                                  </td>
+                                  <td className="px-3 py-2 text-gray-500">
+                                    {item.category?.name || "—"}
+                                  </td>
+                                  <td className="px-3 py-2 font-bold text-gray-900">
+                                    ₹{item.price}
+                                  </td>
+                                  <td className="px-3 py-2 text-gray-600">
+                                    {item.qty}
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+
+                      <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+                        <div className="px-4 py-3">
+                          <h3 className="text-[15px] font-bold text-gray-900">
+                            Menu Split — Usage High
+                          </h3>
+                          <p className="mt-0.5 text-[11px] text-gray-500">
+                            Highest volume/most-ordered items on the menu
+                          </p>
+                        </div>
+                        <div className="overflow-x-auto">
+                          <table className="min-w-full text-[12px]">
+                            <thead className="bg-gray-50/70">
+                              <tr className="border-b border-gray-100">
+                                {["Item", "Category", "Sold", "Price"].map(
+                                  (h) => (
+                                    <th
+                                      key={h}
+                                      className="px-3 py-2 text-left text-[10px] font-bold uppercase tracking-wide text-gray-400"
+                                    >
+                                      {h}
+                                    </th>
+                                  ),
+                                )}
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {highestUsage.map((item: any) => (
+                                <tr
+                                  key={item.id}
+                                  className="border-b border-gray-100 hover:bg-gray-50/40"
+                                >
+                                  <td className="px-3 py-2 font-semibold text-gray-900">
+                                    {item.name}
+                                  </td>
+                                  <td className="px-3 py-2 text-gray-500">
+                                    {item.category?.name || "—"}
+                                  </td>
+                                  <td className="px-3 py-2 font-bold text-gray-900">
+                                    {item.qty}
+                                  </td>
+                                  <td className="px-3 py-2 text-gray-600">
+                                    ₹{item.price}
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
+
+                {/* ===== PROFITABILITY RANKINGS ===== */}
+                <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
+                  <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+                    <div className="px-4 py-3">
+                      <h3 className="text-[15px] font-bold text-gray-900">
+                        Most Profitable Dishes — All Menu
+                      </h3>
+                      <p className="mt-0.5 text-[11px] text-gray-500">
+                        Ranked by profit margin %, across every dish
+                      </p>
+                    </div>
+                    <div className="overflow-x-auto">
+                      <table className="min-w-full text-[12px]">
+                        <thead className="bg-gray-50/70">
+                          <tr className="border-b border-gray-100">
+                            {["Rank", "Item", "Category", "Margin %"].map(
+                              (h) => (
+                                <th
+                                  key={h}
+                                  className="px-3 py-2 text-left text-[10px] font-bold uppercase tracking-wide text-gray-400"
+                                >
+                                  {h}
+                                </th>
+                              ),
+                            )}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {mostProfitableOverall.map(
+                            (item: any, idx: number) => (
+                              <tr
+                                key={item.id}
+                                className="border-b border-gray-100 hover:bg-gray-50/40"
+                              >
+                                <td className="px-3 py-2 text-gray-400">
+                                  #{idx + 1}
+                                </td>
+                                <td className="px-3 py-2 font-semibold text-gray-900">
+                                  {item.name}
+                                </td>
+                                <td className="px-3 py-2 text-gray-500">
+                                  {item.category?.name || "—"}
+                                </td>
+                                <td className="px-3 py-2">
+                                  <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-700">
+                                    {item.margin.toFixed(1)}%
+                                  </span>
+                                </td>
+                              </tr>
+                            ),
+                          )}
+                          {mostProfitableOverall.length === 0 && (
+                            <tr>
+                              <td
+                                colSpan={4}
+                                className="px-3 py-6 text-center text-[11px] text-gray-400"
+                              >
+                                No priced dishes yet
+                              </td>
+                            </tr>
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+
+                  <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+                    <div className="px-4 py-3">
+                      <h3 className="text-[15px] font-bold text-gray-900">
+                        Category Food Cost &amp; Profitability
+                      </h3>
+                      <p className="mt-0.5 text-[11px] text-gray-500">
+                        Avg. food cost% and margin% per menu category, ranked
+                        by margin — with each category's most profitable dish
+                      </p>
+                    </div>
+                    <div className="overflow-x-auto">
+                      <table className="min-w-full text-[12px]">
+                        <thead className="bg-gray-50/70">
+                          <tr className="border-b border-gray-100">
+                            {[
+                              "Category",
+                              "Items",
+                              "Food Cost %",
+                              "Margin %",
+                              "Top Dish",
+                            ].map((h) => (
+                              <th
+                                key={h}
+                                className="px-3 py-2 text-left text-[10px] font-bold uppercase tracking-wide text-gray-400"
+                              >
+                                {h}
+                              </th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {categoryRanking.map((cat: any) => (
+                            <tr
+                              key={cat.name}
+                              className="border-b border-gray-100 hover:bg-gray-50/40"
+                            >
+                              <td className="px-3 py-2 font-semibold text-gray-900">
+                                {cat.name}
+                              </td>
+                              <td className="px-3 py-2 text-gray-500">
+                                {cat.count}
+                              </td>
+                              <td className="px-3 py-2 text-gray-600">
+                                {cat.avgFoodCostPercent.toFixed(1)}%
+                              </td>
+                              <td className="px-3 py-2">
+                                <span
+                                  className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${cat.avgMargin >= 60 ? "bg-emerald-100 text-emerald-700" : cat.avgMargin >= 40 ? "bg-orange-100 text-orange-700" : "bg-red-100 text-red-700"}`}
+                                >
+                                  {cat.avgMargin.toFixed(1)}%
+                                </span>
+                              </td>
+                              <td className="px-3 py-2 text-gray-500">
+                                {cat.topDish?.name || "—"}
+                              </td>
+                            </tr>
+                          ))}
+                          {categoryRanking.length === 0 && (
+                            <tr>
+                              <td
+                                colSpan={5}
+                                className="px-3 py-6 text-center text-[11px] text-gray-400"
+                              >
+                                No categories yet
+                              </td>
+                            </tr>
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+
                 <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
                   {[
                     {
@@ -1525,6 +2102,9 @@ export default function Report() {
                                     </td>
                                     <td className="px-3 py-2 text-gray-600">
                                       ₹{item.recipeCost.toFixed(2)}
+                                      <span className="ml-1 text-gray-400">
+                                        ({item.foodCostPercent.toFixed(0)}%)
+                                      </span>
                                     </td>
                                     <td className="px-3 py-2">
                                       <span
@@ -1870,8 +2450,11 @@ export default function Report() {
             const wastageByIngredient = inventoryAdjustments.reduce(
               (acc: any, a: any) => {
                 const name = a.ingredient?.name || "Unknown";
-                if (!acc[name]) acc[name] = { name, qty: 0, adjustments: 0 };
-                acc[name].qty += Number(a.quantity || 0);
+                if (!acc[name])
+                  acc[name] = { name, qty: 0, cost: 0, adjustments: 0 };
+                const qty = Number(a.quantity || 0);
+                acc[name].qty += qty;
+                acc[name].cost += qty * Number(a.ingredient?.pricePerUnit || 0);
                 acc[name].adjustments++;
                 return acc;
               },
@@ -1880,6 +2463,10 @@ export default function Report() {
             const topWaste = Object.values(wastageByIngredient)
               .sort((a: any, b: any) => b.qty - a.qty)
               .slice(0, 10);
+            const totalWastageCost = Object.values(wastageByIngredient).reduce(
+              (s: number, i: any) => s + i.cost,
+              0,
+            );
 
             return (
               <div className="space-y-3">
@@ -1912,6 +2499,13 @@ export default function Report() {
                       sub: "affected",
                       cls: "border-violet-100 bg-violet-50/60",
                       val: "text-violet-700",
+                    },
+                    {
+                      label: "Total Wastage Cost",
+                      value: `₹${Math.round(totalWastageCost).toLocaleString()}`,
+                      sub: "qty × unit price",
+                      cls: "border-amber-100 bg-amber-50/60",
+                      val: "text-amber-700",
                     },
                   ].map((k) => (
                     <div
@@ -2036,6 +2630,7 @@ export default function Report() {
                             "Ingredient",
                             "Type",
                             "Quantity",
+                            "Cost",
                             "Reason",
                             "Updated By",
                           ].map((h) => (
@@ -2079,6 +2674,13 @@ export default function Report() {
                               {Number(a.quantity || 0).toFixed(2)}{" "}
                               {a.ingredient?.unit || ""}
                             </td>
+                            <td className="px-4 py-2.5 text-gray-700">
+                              ₹
+                              {(
+                                Number(a.quantity || 0) *
+                                Number(a.ingredient?.pricePerUnit || 0)
+                              ).toFixed(2)}
+                            </td>
                             <td className="px-4 py-2.5 text-gray-600 max-w-[180px] truncate">
                               {a.reason || "—"}
                             </td>
@@ -2090,7 +2692,7 @@ export default function Report() {
                         {inventoryAdjustments.length === 0 && (
                           <tr>
                             <td
-                              colSpan={6}
+                              colSpan={7}
                               className="py-12 text-center text-[12px] text-gray-400"
                             >
                               No inventory adjustments logged. Use the
@@ -2190,15 +2792,45 @@ export default function Report() {
                   {/* Formula legend */}
                   <div className="rounded-xl border border-gray-100 bg-gray-50 px-4 py-3 text-[11px] text-gray-500">
                     <span className="font-semibold text-gray-700">Wastage Formula: </span>
-                    Wastage = Opening Stock + Purchases − Closing Stock − Expected Consumption (dishes)
+                    Wastage = Opening Stock + Purchases − Closing Stock − Expected Consumption per SOP (recipe qty × dishes sold)
                     &nbsp;&nbsp;|&nbsp;&nbsp;
                     <span className="font-semibold text-gray-700">Wastage % </span>= (Wastage ÷ Total Received) × 100
                     &nbsp;&nbsp;|&nbsp;&nbsp;
                     <span className="font-semibold text-gray-700">Wastage Cost </span>= Wastage Qty × Unit Price
                   </div>
 
+                  {/* Wastage report view — weight / product / price */}
+                  <div className="flex items-center gap-2 rounded-xl border border-gray-200 bg-white p-2">
+                    <span className="pl-2 text-[11px] font-bold uppercase tracking-wide text-gray-400">
+                      View by
+                    </span>
+                    {(
+                      [
+                        { key: "weight", label: "Weightage" },
+                        { key: "product", label: "Product" },
+                        { key: "price", label: "Price" },
+                      ] as const
+                    ).map((v) => (
+                      <button
+                        key={v.key}
+                        onClick={() => setWastageSortBy(v.key)}
+                        className={`rounded-lg px-3 py-1.5 text-[12px] font-semibold transition ${wastageSortBy === v.key ? "bg-[#b10000] text-white" : "text-gray-500 hover:bg-gray-50"}`}
+                      >
+                        {v.label}
+                      </button>
+                    ))}
+                  </div>
+
                   {/* Per-ingredient cards */}
-                  {lifecycleData.map((ing: any) => {
+                  {[...lifecycleData]
+                    .sort((a: any, b: any) => {
+                      if (wastageSortBy === "price")
+                        return b.wastageCost - a.wastageCost;
+                      if (wastageSortBy === "product")
+                        return a.name.localeCompare(b.name);
+                      return b.wastageQty - a.wastageQty;
+                    })
+                    .map((ing: any) => {
                     const expanded = expandedIngredients.has(ing.ingredientId);
                     const avail = ing.available || 1;
                     const dishPct = Math.min(100, (ing.expectedConsumption / avail) * 100);
@@ -2368,30 +3000,97 @@ export default function Report() {
         {/* ===== HOURLY HEATMAP ===== */}
         {activeTab === "Hourly Heatmap" && (
           <div className="space-y-3">
+            {/* ===== DEMAND BY ITEM / CATEGORY FILTER ===== */}
+            <div className="flex flex-wrap items-center gap-2 rounded-xl border border-gray-200 bg-white p-3">
+              <span className="text-[11px] font-bold uppercase tracking-wide text-gray-400">
+                Demand for
+              </span>
+              <select
+                value={heatmapItemId}
+                onChange={(e) => {
+                  setHeatmapItemId(e.target.value);
+                  setHeatmapCategoryId("");
+                }}
+                className="h-9 rounded-xl border border-gray-200 bg-white px-3 text-[12px] font-medium text-gray-700 outline-none"
+              >
+                <option value="">Whole Menu (all orders)</option>
+                {menuItems.map((mi: any) => (
+                  <option key={mi.id} value={String(mi.id)}>
+                    {mi.name}
+                  </option>
+                ))}
+              </select>
+              <span className="text-[11px] text-gray-400">or category</span>
+              <select
+                value={heatmapCategoryId}
+                onChange={(e) => {
+                  setHeatmapCategoryId(e.target.value);
+                  setHeatmapItemId("");
+                }}
+                className="h-9 rounded-xl border border-gray-200 bg-white px-3 text-[12px] font-medium text-gray-700 outline-none"
+              >
+                <option value="">All Categories</option>
+                {[
+                  ...new Map(
+                    menuItems
+                      .filter((mi: any) => mi.category)
+                      .map((mi: any) => [mi.category.id, mi.category]),
+                  ).values(),
+                ].map((cat: any) => (
+                  <option key={cat.id} value={String(cat.id)}>
+                    {cat.name}
+                  </option>
+                ))}
+              </select>
+              {(heatmapItemId || heatmapCategoryId) && (
+                <button
+                  onClick={() => {
+                    setHeatmapItemId("");
+                    setHeatmapCategoryId("");
+                  }}
+                  className="text-[11px] font-semibold text-[#b10000] underline decoration-dotted"
+                >
+                  Clear filter
+                </button>
+              )}
+            </div>
+
             <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
               {[
                 {
                   label: "Peak Hour",
                   value: heatmapData?.peakHour?.label || "—",
-                  sub: `₹${(heatmapData?.peakHour?.revenue || 0).toLocaleString()} revenue`,
+                  sub: heatmapData?.itemFiltered
+                    ? `${heatmapData?.peakHour?.orders || 0} sold in that hour`
+                    : `₹${(heatmapData?.peakHour?.revenue || 0).toLocaleString()} revenue`,
                   color: "red",
                 },
                 {
                   label: "Best Day",
                   value: heatmapData?.peakDay?.name || "—",
-                  sub: `₹${(heatmapData?.peakDay?.revenue || 0).toLocaleString()} revenue`,
+                  sub: heatmapData?.itemFiltered
+                    ? `${heatmapData?.peakDay?.orders || 0} sold that day`
+                    : `₹${(heatmapData?.peakDay?.revenue || 0).toLocaleString()} revenue`,
                   color: "emerald",
                 },
                 {
-                  label: "Peak Hour Orders",
+                  label: heatmapData?.itemFiltered
+                    ? "Peak Hour Qty"
+                    : "Peak Hour Orders",
                   value: heatmapData?.peakHour?.orders || 0,
-                  sub: "orders in that hour",
+                  sub: heatmapData?.itemFiltered
+                    ? "units sold in that hour"
+                    : "orders in that hour",
                   color: "blue",
                 },
                 {
-                  label: "Best Day Orders",
+                  label: heatmapData?.itemFiltered
+                    ? "Best Day Qty"
+                    : "Best Day Orders",
                   value: heatmapData?.peakDay?.orders || 0,
-                  sub: "orders on that day",
+                  sub: heatmapData?.itemFiltered
+                    ? "units sold that day"
+                    : "orders on that day",
                   color: "orange",
                 },
               ].map((k) => (

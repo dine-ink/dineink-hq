@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAppSelector } from "../../store";
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
@@ -17,6 +18,7 @@ import {
   BanknotesIcon,
   FireIcon,
   XMarkIcon,
+  PencilSquareIcon,
 } from "@heroicons/react/24/outline";
 import React from "react";
 import {
@@ -167,6 +169,15 @@ const iconMap: any = {
   MdLunchDining,
   MdBreakfastDining,
 };
+
+// Menu item `type` is a free-text DB field, so older items (e.g. seeded via
+// onboarding) may be stored as "Veg"/"Non Veg" instead of "VEG"/"NON_VEG".
+// Normalize before comparing so the veg/non-veg badge is never wrong.
+const isVegType = (type: any) =>
+  String(type || "")
+    .toLowerCase()
+    .replace(/[\s_-]/g, "") === "veg";
+
 const tabs = [
   {
     id: "menu",
@@ -202,9 +213,17 @@ const tabs = [
     icon: ChartBarIcon,
     description: "Inventory ageing, wastage and operational analytics",
   },
+
+  {
+    id: "operations",
+    name: "Operations",
+    icon: MdChecklist,
+    description: "SOP checklists for prep, portioning and hygiene",
+  },
 ];
 
 export default function MenuManagement() {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("menu");
   const [viewMode, setViewMode] = useState("pie");
 
@@ -228,9 +247,38 @@ export default function MenuManagement() {
   );
   const [uploadingRestock, setUploadingRestock] = useState(false);
   const [vendors, setVendors] = useState<any[]>([]);
+  const [priceHistoryModal, setPriceHistoryModal] = useState<{
+    open: boolean;
+    ingredientId: number | null;
+    ingredientName: string;
+    category: string;
+    index: number;
+    history: any[];
+    newPrice: string;
+    loading: boolean;
+  }>({
+    open: false,
+    ingredientId: null,
+    ingredientName: "",
+    category: "",
+    index: -1,
+    history: [],
+    newPrice: "",
+    loading: false,
+  });
   const { branches, selectedBranch } = useAppSelector((s) => s.branch);
   const { user, token } = useAppSelector((s) => s.auth);
   const [selectedWeek, setSelectedWeek] = useState("week1");
+  const [todayAuditCount, setTodayAuditCount] = useState<number | null>(null);
+  const [sopChecklists, setSopChecklists] = useState<any[]>([]);
+  const [sopForm, setSopForm] = useState<{
+    id: number | null;
+    title: string;
+    category: string;
+    menuItemId: string;
+    steps: string[];
+  }>({ id: null, title: "", category: "", menuItemId: "", steps: [""] });
+  const [showSopForm, setShowSopForm] = useState(false);
   const API_URL = import.meta.env.VITE_API_URL;
 
   // ── Menu tab CRUD state ──────────────────────────────────────────────────
@@ -241,7 +289,15 @@ export default function MenuManagement() {
   const [itemAvailFilter, setItemAvailFilter] = useState("");
   const [showAddItemForm, setShowAddItemForm] = useState(false);
   const [editingItem, setEditingItem] = useState<any>(null);
-  const blankItemForm = { name: "", categoryId: "", type: "VEG", price: "", prepTime: "", description: "", isAvailable: true };
+  const blankItemForm = {
+    name: "",
+    categoryId: "",
+    type: "VEG",
+    price: "",
+    prepTime: "",
+    description: "",
+    isAvailable: true,
+  };
   const [itemForm, setItemForm] = useState<any>(blankItemForm);
   const [showMenuCategory, setShowMenuCategory] = useState(false);
   const [menuCatName, setMenuCatName] = useState("");
@@ -266,7 +322,10 @@ export default function MenuManagement() {
     try {
       const res = await fetch(`${API_URL}/api/restaurant/categories`, {
         method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
         body: JSON.stringify({ restaurantId: user.restaurantId, name }),
       });
       const data = await res.json();
@@ -275,19 +334,29 @@ export default function MenuManagement() {
         setMenuCatName("");
         setShowMenuCategory(false);
       }
-    } catch { /* silent */ }
+    } catch {
+      /* silent */
+    }
   };
 
   const handleDeleteMenuCategory = async (id: number) => {
-    if (!window.confirm("Delete this category? Items in it will lose their category.")) return;
+    if (
+      !window.confirm(
+        "Delete this category? Items in it will lose their category.",
+      )
+    )
+      return;
     try {
       const res = await fetch(`${API_URL}/api/restaurant/categories/${id}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await res.json();
-      if (data.success) setCategories((prev: any[]) => prev.filter((c: any) => c.id !== id));
-    } catch { /* silent */ }
+      if (data.success)
+        setCategories((prev: any[]) => prev.filter((c: any) => c.id !== id));
+    } catch {
+      /* silent */
+    }
   };
 
   const handleSaveMenuItem = async () => {
@@ -308,7 +377,10 @@ export default function MenuManagement() {
         : `${API_URL}/api/restaurant/menu-items`;
       const res = await fetch(url, {
         method: isEdit ? "PUT" : "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
         body: JSON.stringify(payload),
       });
       const data = await res.json();
@@ -322,7 +394,9 @@ export default function MenuManagement() {
         setEditingItem(null);
         setItemForm(blankItemForm);
       }
-    } catch { /* silent */ } finally {
+    } catch {
+      /* silent */
+    } finally {
       setSavingItem(false);
     }
   };
@@ -335,34 +409,54 @@ export default function MenuManagement() {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await res.json();
-      if (data.success) setMenuItems((prev: any[]) => prev.filter((m: any) => m.id !== id));
-    } catch { /* silent */ }
+      if (data.success)
+        setMenuItems((prev: any[]) => prev.filter((m: any) => m.id !== id));
+    } catch {
+      /* silent */
+    }
   };
 
   const handleToggleAvailability = async (item: any) => {
     try {
-      const res = await fetch(`${API_URL}/api/restaurant/menu-items/${item.id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ isAvailable: !item.isAvailable }),
-      });
+      const res = await fetch(
+        `${API_URL}/api/restaurant/menu-items/${item.id}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ isAvailable: !item.isAvailable }),
+        },
+      );
       const data = await res.json();
       if (data.success)
-        setMenuItems((prev: any[]) => prev.map((m: any) => (m.id === item.id ? data.data : m)));
-    } catch { /* silent */ }
+        setMenuItems((prev: any[]) =>
+          prev.map((m: any) => (m.id === item.id ? data.data : m)),
+        );
+    } catch {
+      /* silent */
+    }
   };
 
   // ── Filtered menu items ───────────────────────────────────────────────────
   const filteredMenuItems = menuItems
     .filter((item: any) => {
-      const matchSearch = !itemSearch || item.name.toLowerCase().includes(itemSearch.toLowerCase());
-      const matchCat    = !itemCatFilter || String(item.categoryId) === itemCatFilter;
-      const matchType   = !itemTypeFilter || item.type === itemTypeFilter;
-      const matchAvail  = !itemAvailFilter || (itemAvailFilter === "Available" ? item.isAvailable : !item.isAvailable);
+      const matchSearch =
+        !itemSearch ||
+        item.name.toLowerCase().includes(itemSearch.toLowerCase());
+      const matchCat =
+        !itemCatFilter || String(item.categoryId) === itemCatFilter;
+      const matchType = !itemTypeFilter || item.type === itemTypeFilter;
+      const matchAvail =
+        !itemAvailFilter ||
+        (itemAvailFilter === "Available"
+          ? item.isAvailable
+          : !item.isAvailable);
       return matchSearch && matchCat && matchType && matchAvail;
     })
     .sort((a: any, b: any) => {
-      if (itemPriceSort === "asc")  return a.price - b.price;
+      if (itemPriceSort === "asc") return a.price - b.price;
       if (itemPriceSort === "desc") return b.price - a.price;
       return 0;
     });
@@ -416,6 +510,7 @@ export default function MenuManagement() {
           if (!ingredientConsumptionMap[key]) {
             ingredientConsumptionMap[key] = {
               ingredient: ingredient.name,
+              category: ingredient.category?.name || "Other",
               unit: mapping.unit,
               consumed: 0,
               totalCost: 0,
@@ -594,6 +689,76 @@ export default function MenuManagement() {
     }
   };
 
+  const openPriceHistory = async (
+    category: string,
+    index: number,
+    ingredient: any,
+  ) => {
+    if (!ingredient?.id) return;
+    setPriceHistoryModal({
+      open: true,
+      ingredientId: ingredient.id,
+      ingredientName: ingredient.name,
+      category,
+      index,
+      history: [],
+      newPrice: "",
+      loading: true,
+    });
+    try {
+      const res = await fetch(
+        `${API_URL}/api/ingredients/price-history/${ingredient.id}`,
+        { headers: { Authorization: `Bearer ${token}` } },
+      );
+      const data = await res.json();
+      setPriceHistoryModal((prev) => ({
+        ...prev,
+        history: data.success ? data.data || [] : [],
+        loading: false,
+      }));
+    } catch {
+      setPriceHistoryModal((prev) => ({ ...prev, loading: false }));
+    }
+  };
+
+  const handleUpdateIngredientPrice = async () => {
+    const { ingredientId, newPrice, category, index } = priceHistoryModal;
+    if (!ingredientId || !newPrice || Number(newPrice) <= 0) return;
+    try {
+      const res = await fetch(`${API_URL}/api/ingredients/price-update`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          ingredientId,
+          restaurantId: user.restaurantId,
+          newPrice: Number(newPrice),
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setIngredients((prev: any) => {
+          const updated = { ...prev };
+          if (updated[category]?.[index]) {
+            updated[category][index] = {
+              ...updated[category][index],
+              pricePerUnit: Number(newPrice),
+            };
+          }
+          return updated;
+        });
+        openPriceHistory(category, index, {
+          id: ingredientId,
+          name: priceHistoryModal.ingredientName,
+        });
+      }
+    } catch {
+      // fetch error
+    }
+  };
+
   const handleRemoveIngredient = (category: string, index: number) => {
     setIngredients((prev: any) => {
       const updated = { ...prev };
@@ -667,31 +832,151 @@ export default function MenuManagement() {
   const downloadInventoryTemplate = async () => {
     const workbook = new ExcelJS.Workbook();
 
-    const currentMonth = new Date().toLocaleString("default", {
-      month: "long",
-    });
-
-    const currentYear = new Date().getFullYear();
+    const now = new Date();
+    const currentMonth = now.toLocaleString("default", { month: "long" });
+    const currentYear = now.getFullYear();
+    const currentMonthNum = now.getMonth() + 1;
 
     /* =========================================================
-     DATA SOURCE
+     DATA SOURCE — fetch fresh from backend in parallel so we always
+     have the latest data with no stale-state or race-condition issues
   ========================================================= */
 
-    const sourceData = restockHistory?.length
-      ? restockHistory
-      : Object.entries(ingredients).flatMap(([category, items]: any) =>
-          items.map((item: any) => ({
-            Category: category,
-            Ingredient: item.name,
-            Unit: item.unit || "Kg",
-          })),
+    const monthStart = `${currentYear}-${String(currentMonthNum).padStart(2, "0")}-01`;
+    const lastDay = new Date(currentYear, currentMonthNum, 0).getDate();
+    const monthEnd = `${currentYear}-${String(currentMonthNum).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
+
+    let savedWeeks: Record<string, any[]> = {};
+    let freshMenuItems: any[] = [];
+    let monthBills: any[] = [];
+
+    try {
+      const [restockRes, mappingRes, billsRes] = await Promise.all([
+        fetch(
+          `${API_URL}/api/inventory/${user.restaurantId}/get-restock-history?branchId=${selectedBranch?.id || ""}`,
+          { headers: { Authorization: `Bearer ${token}` } },
+        ),
+        fetch(`${API_URL}/api/inventory/${user.restaurantId}/get-mapped-menu`, {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+        fetch(
+          `${API_URL}/api/bills/${user.restaurantId}/restaurantwise?branchId=${selectedBranch?.id || ""}&from=${monthStart}&to=${monthEnd}`,
+          { headers: { Authorization: `Bearer ${token}` } },
+        ),
+      ]);
+
+      const [restockJson, mappingJson, billsJson] = await Promise.all([
+        restockRes.json(),
+        mappingRes.json(),
+        billsRes.json(),
+      ]);
+
+      if (restockJson.success && Array.isArray(restockJson.data)) {
+        const record = restockJson.data.find(
+          (r: any) => r.month === currentMonthNum && r.year === currentYear,
         );
+        if (record?.data && !Array.isArray(record.data)) {
+          savedWeeks = record.data;
+        }
+      }
+
+      if (mappingJson.success) {
+        freshMenuItems = mappingJson.data || [];
+      }
+
+      if (billsJson.success) {
+        monthBills = billsJson.bills || [];
+      }
+    } catch {
+      // silent — fall back to baseRows / zero consumption
+    }
+
+    // Normalize small units to human-friendly larger units in the template
+    const normalizeIngUnit = (unit: string): string => {
+      const u = (unit || "").toLowerCase();
+      if (u === "gram" || u === "gm" || u === "g") return "Kg";
+      if (u === "ml" || u === "millilitre" || u === "milliliter")
+        return "Litre";
+      return unit || "Kg";
+    };
+    // Multiplier to convert a saved quantity to the normalized unit (gram→Kg = /1000, etc.)
+    const ingUnitMult = (unit: string): number => {
+      const u = (unit || "").toLowerCase();
+      return u === "gram" ||
+        u === "gm" ||
+        u === "g" ||
+        u === "ml" ||
+        u === "millilitre" ||
+        u === "milliliter"
+        ? 1 / 1000
+        : 1;
+    };
+
+    const baseRows = Object.entries(ingredients).flatMap(
+      ([category, items]: any) =>
+        items.map((item: any) => ({
+          Category: category,
+          Ingredient: item.name,
+          Unit: normalizeIngUnit(item.unit || "Kg"),
+        })),
+    );
+
+    /* =========================================================
+     CONSUMPTION CALCULATION — deduct orders from stock per week
+  ========================================================= */
+
+    // Build menuItemId → ingredient mappings from freshly fetched data
+    const itemIngMap = new Map<number, any[]>();
+    for (const mi of freshMenuItems) {
+      if (mi.id && mi.menuItemIngredients?.length) {
+        itemIngMap.set(mi.id, mi.menuItemIngredients);
+      }
+    }
+
+    // weekConsumed[weekIndex][ingredientName.lower] = qty consumed in that calendar week (always in Kg/Litre)
+    // Week 0 = days 1-7, Week 1 = days 8-14, etc. — use day-of-month to avoid timezone edge cases
+    const weekConsumed: Record<number, Record<string, number>> = {};
+    for (const bill of monthBills) {
+      if (!bill.createdAt) continue;
+      const dayOfMonth = new Date(bill.createdAt).getDate();
+      const wIdx = Math.floor((dayOfMonth - 1) / 7);
+      if (wIdx > 4) continue;
+      if (!weekConsumed[wIdx]) weekConsumed[wIdx] = {};
+      for (const item of bill.items || []) {
+        if (!item.menuItemId) continue;
+        const mappings = itemIngMap.get(item.menuItemId);
+        if (!mappings) continue;
+        const soldQty = Number(item.quantity || 0);
+        for (const m of mappings) {
+          const key = (m.ingredient?.name || "").toLowerCase().trim();
+          let consumed = Number(m.quantity || 0) * soldQty;
+          const mUnit = (m.unit || "").toLowerCase();
+          // Always normalize consumed to Kg/Litre regardless of ingredient base unit
+          if (mUnit === "gram" || mUnit === "gm" || mUnit === "g")
+            consumed /= 1000;
+          else if (
+            mUnit === "ml" ||
+            mUnit === "millilitre" ||
+            mUnit === "milliliter"
+          )
+            consumed /= 1000;
+          weekConsumed[wIdx][key] = (weekConsumed[wIdx][key] || 0) + consumed;
+        }
+      }
+    }
+
+    // closing stock of week N carries forward as opening stock of week N+1
+    const prevClosing: Record<string, number> = {};
 
     /* =========================================================
      CREATE 5 WEEK SHEETS
   ========================================================= */
 
     for (let week = 1; week <= 5; week++) {
+      const weekKey = `week${week}`;
+      const weekRows: any[] = savedWeeks[weekKey] || [];
+      const sourceData = weekRows.length > 0 ? weekRows : baseRows;
+
       const worksheet = workbook.addWorksheet(
         `Week-${week}-${currentMonth}-${currentYear}`,
       );
@@ -799,6 +1084,17 @@ export default function MenuManagement() {
 
       sourceData.forEach((rowData: any) => {
         const row = worksheet.getRow(rowNumber);
+        const ingName = (rowData.Ingredient || "").toLowerCase().trim();
+
+        // If saved data was in gram/ml, convert quantities to Kg/Litre for consistent display
+        const mult = ingUnitMult(rowData.Unit || "Kg");
+
+        // Week 1: use stored/entered opening qty; weeks 2-5: carry forward prev week's closing
+        const openingQty =
+          week === 1
+            ? Number(rowData["Opening Qty"] || 0) * mult
+            : (prevClosing[ingName] ??
+              Number(rowData["Opening Qty"] || 0) * mult);
 
         /* =====================================================
          BASIC INFO
@@ -808,15 +1104,15 @@ export default function MenuManagement() {
 
         row.getCell(2).value = rowData.Ingredient || "";
 
-        row.getCell(3).value = rowData.Unit || "Kg";
+        row.getCell(3).value = normalizeIngUnit(rowData.Unit || "Kg");
 
         /* =====================================================
          OPENING STOCK
       ===================================================== */
 
-        row.getCell(4).value = rowData.OpeningQty || 0;
+        row.getCell(4).value = openingQty;
 
-        row.getCell(5).value = rowData.OpeningPrice || 0;
+        row.getCell(5).value = Number(rowData["Opening Price"] || 0);
 
         row.getCell(6).value = {
           formula: `D${rowNumber}*E${rowNumber}`,
@@ -839,11 +1135,14 @@ export default function MenuManagement() {
 
           const totalCol = worksheet.getColumn(currentCol + 2).letter;
 
-          // DEFAULT VALUES
+          // Restore saved values, converting gram/ml → Kg/Litre if needed
 
-          row.getCell(currentCol).value = 0;
+          row.getCell(currentCol).value =
+            Number(rowData[`Day ${day} Qty`] || 0) * mult;
 
-          row.getCell(currentCol + 1).value = 0;
+          row.getCell(currentCol + 1).value = Number(
+            rowData[`Day ${day} Price`] || 0,
+          );
 
           // DAILY TOTAL
 
@@ -890,9 +1189,16 @@ export default function MenuManagement() {
           formula: `F${rowNumber}+${purchaseCol}${rowNumber}`,
         };
 
-        // CLOSING STOCK QTY
+        // CLOSING STOCK QTY — opening + purchases - consumption (all values normalized to Kg/Litre)
+        const weekPurchaseQty = [1, 2, 3, 4, 5, 6, 7].reduce(
+          (sum, d) => sum + Number(rowData[`Day ${d} Qty`] || 0) * mult,
+          0,
+        );
+        const consumed = weekConsumed[week - 1]?.[ingName] || 0;
+        const closingQty = Math.max(0, openingQty + weekPurchaseQty - consumed);
+        prevClosing[ingName] = closingQty;
 
-        row.getCell(currentCol + 3).value = 0;
+        row.getCell(currentCol + 3).value = closingQty;
 
         // CLOSING VALUE
 
@@ -1368,7 +1674,7 @@ export default function MenuManagement() {
     }
   });
 
-  /* STOCK RISK */
+  /* STOCK MISMATCH — consumption exceeds recorded stock */
 
   ingredientAnalytics.forEach((item: any) => {
     const allIngredients = Object.values(ingredients || {}).flat() as any[];
@@ -1385,15 +1691,54 @@ export default function MenuManagement() {
         color: "bg-[#b10000]",
         text: "text-white",
       });
-    } else if (remaining < 2) {
-      aiAlerts.push({
-        title: "Low Stock Alert",
-        desc: `${item.ingredient} stock running low`,
-        color: "bg-yellow-500",
-        text: "text-yellow-600",
-      });
     }
   });
+
+  /* LOW STOCK — checked against every ingredient (not just ones with sales
+     history), using each ingredient's own configurable reorder level. */
+
+  Object.values(ingredients || {})
+    .flat()
+    .forEach((ingredientData: any) => {
+      if (!ingredientData?.name) return;
+      const remaining = Number(ingredientData.quantity ?? 0);
+      const reorderLevel =
+        ingredientData.reorderLevel != null &&
+        ingredientData.reorderLevel !== ""
+          ? Number(ingredientData.reorderLevel)
+          : 2;
+      if (remaining <= reorderLevel) {
+        const linkedVendor = ingredientData.vendor?.[0]?.vendor;
+        aiAlerts.push({
+          title: "Low Stock Alert",
+          desc: `${ingredientData.name} stock running low (${remaining} ${ingredientData.unit || ""} left)`,
+          color: "bg-yellow-500",
+          text: "text-yellow-600",
+          vendorId: linkedVendor?.id,
+          vendorName: linkedVendor?.name,
+          ingredientName: ingredientData.name,
+        });
+      }
+    });
+  /* DAILY STOCK AUDIT REMINDER — after branch closing time, if today's
+     closing-stock audit hasn't been submitted yet. */
+  if (selectedBranch?.closingTime && todayAuditCount === 0) {
+    const [closeH, closeM] = selectedBranch.closingTime
+      .split(":")
+      .map(Number);
+    const now = new Date();
+    const nowMinutes = now.getHours() * 60 + now.getMinutes();
+    const closingMinutes = (closeH || 0) * 60 + (closeM || 0);
+    if (nowMinutes >= closingMinutes) {
+      aiAlerts.push({
+        title: "Daily Stock Pending",
+        desc: `Closing time (${selectedBranch.closingTime}) has passed — submit today's closing stock audit`,
+        color: "bg-orange-500",
+        text: "text-orange-600",
+      });
+    }
+  }
+
   /* HIGH WASTAGE */
   ingredientMappings.forEach((mapping: any) => {
     const waste = Number(mapping.wastage || 0);
@@ -1458,6 +1803,7 @@ export default function MenuManagement() {
                 unit: item.unit,
                 purchasePrice: item.purchasePrice,
                 pricePerUnit: item.pricePerUnit,
+                reorderLevel: item.reorderLevel,
                 vendor: item.ingredientVendors,
               });
 
@@ -1543,6 +1889,7 @@ export default function MenuManagement() {
             }) || [];
 
           setRestocks(formattedRestocks);
+          setRestockHistory(currentMonthRestock?.data || {});
           setCategories(json.data.categories || []);
         }
       } catch {
@@ -1553,6 +1900,111 @@ export default function MenuManagement() {
     fetchMenuItemMappings();
     fetchBills();
   }, [selectedBranch?.id, selectedWeek]);
+
+  useEffect(() => {
+    const fetchTodayAuditStatus = async () => {
+      if (!selectedBranch?.id) return;
+      try {
+        const today = new Date().toISOString().split("T")[0];
+        const res = await fetch(
+          `${API_URL}/api/inventory/daily-audit/history?branchId=${selectedBranch.id}&from=${today}&to=${today}`,
+          { headers: { Authorization: `Bearer ${token}` } },
+        );
+        const data = await res.json();
+        setTodayAuditCount(data.success ? (data.data || []).length : null);
+      } catch {
+        setTodayAuditCount(null);
+      }
+    };
+    fetchTodayAuditStatus();
+  }, [selectedBranch?.id]);
+
+  const fetchSopChecklists = async () => {
+    if (!user?.restaurantId) return;
+    try {
+      const res = await fetch(
+        `${API_URL}/api/sop/${user.restaurantId}?branchId=${selectedBranch?.id || ""}`,
+        { headers: { Authorization: `Bearer ${token}` } },
+      );
+      const data = await res.json();
+      if (data.success) setSopChecklists(data.data || []);
+    } catch {
+      /* silent */
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === "operations") fetchSopChecklists();
+  }, [activeTab, selectedBranch?.id]);
+
+  const resetSopForm = () =>
+    setSopForm({
+      id: null,
+      title: "",
+      category: "",
+      menuItemId: "",
+      steps: [""],
+    });
+
+  const handleSaveSop = async () => {
+    const steps = sopForm.steps.map((s) => s.trim()).filter(Boolean);
+    if (!sopForm.title.trim() || !steps.length) return;
+    try {
+      const payload = {
+        restaurantId: user.restaurantId,
+        branchId: selectedBranch?.id,
+        menuItemId: sopForm.menuItemId ? Number(sopForm.menuItemId) : null,
+        title: sopForm.title.trim(),
+        category: sopForm.category.trim() || null,
+        steps,
+      };
+      const res = await fetch(
+        sopForm.id
+          ? `${API_URL}/api/sop/${sopForm.id}`
+          : `${API_URL}/api/sop`,
+        {
+          method: sopForm.id ? "PUT" : "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify(payload),
+        },
+      );
+      const data = await res.json();
+      if (data.success) {
+        setShowSopForm(false);
+        resetSopForm();
+        fetchSopChecklists();
+      }
+    } catch {
+      /* silent */
+    }
+  };
+
+  const handleEditSop = (sop: any) => {
+    setSopForm({
+      id: sop.id,
+      title: sop.title,
+      category: sop.category || "",
+      menuItemId: sop.menuItemId ? String(sop.menuItemId) : "",
+      steps: Array.isArray(sop.steps) && sop.steps.length ? sop.steps : [""],
+    });
+    setShowSopForm(true);
+  };
+
+  const handleDeleteSop = async (id: number) => {
+    if (!window.confirm("Delete this SOP checklist?")) return;
+    try {
+      await fetch(`${API_URL}/api/sop/${id}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      fetchSopChecklists();
+    } catch {
+      /* silent */
+    }
+  };
 
   const inventoryValue = allIngredients.reduce((acc: number, item: any) => {
     return acc + Number(item.quantity || 0) * Number(item.pricePerUnit || 0);
@@ -1729,7 +2181,11 @@ export default function MenuManagement() {
                     + Category
                   </button>
                   <button
-                    onClick={() => { setEditingItem(null); setItemForm(blankItemForm); setShowAddItemForm(true); }}
+                    onClick={() => {
+                      setEditingItem(null);
+                      setItemForm(blankItemForm);
+                      setShowAddItemForm(true);
+                    }}
                     className="h-11 rounded-xl bg-[#b10000] px-4 text-[13px] font-semibold text-white shadow-sm transition hover:bg-[#950000]"
                   >
                     + Add Item
@@ -1747,14 +2203,23 @@ export default function MenuManagement() {
                     autoFocus
                     value={menuCatName}
                     onChange={(e) => setMenuCatName(e.target.value)}
-                    onKeyDown={(e) => { if (e.key === "Enter") handleCreateMenuCategory(); if (e.key === "Escape") setShowMenuCategory(false); }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") handleCreateMenuCategory();
+                      if (e.key === "Escape") setShowMenuCategory(false);
+                    }}
                     placeholder="Category name (e.g. Starters, Mains, Desserts…)"
                     className="flex-1 rounded-lg border border-emerald-200 bg-white px-3 py-2 text-sm outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
                   />
-                  <button onClick={handleCreateMenuCategory} className="flex h-8 items-center gap-1.5 rounded-lg bg-emerald-600 px-3 text-[12px] font-semibold text-white transition hover:bg-emerald-700">
+                  <button
+                    onClick={handleCreateMenuCategory}
+                    className="flex h-8 items-center gap-1.5 rounded-lg bg-emerald-600 px-3 text-[12px] font-semibold text-white transition hover:bg-emerald-700"
+                  >
                     <PlusIcon className="h-3.5 w-3.5" /> Add
                   </button>
-                  <button onClick={() => setShowMenuCategory(false)} className="flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-500 hover:bg-gray-50">
+                  <button
+                    onClick={() => setShowMenuCategory(false)}
+                    className="flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-500 hover:bg-gray-50"
+                  >
                     <XMarkIcon className="h-4 w-4" />
                   </button>
                 </div>
@@ -1799,12 +2264,16 @@ export default function MenuManagement() {
                             <div className="relative">
                               <select
                                 value={itemCatFilter}
-                                onChange={(e) => setItemCatFilter(e.target.value)}
+                                onChange={(e) =>
+                                  setItemCatFilter(e.target.value)
+                                }
                                 className="h-9 w-full appearance-none rounded-xl border border-gray-200 bg-white pl-3 pr-9 text-[12px] font-medium text-gray-700 outline-none transition-all duration-200 hover:border-red-200 focus:border-red-300 focus:ring-2 focus:ring-red-100"
                               >
                                 <option value="">All Categories</option>
                                 {categories.map((cat: any) => (
-                                  <option key={cat.id} value={String(cat.id)}>{cat.name}</option>
+                                  <option key={cat.id} value={String(cat.id)}>
+                                    {cat.name}
+                                  </option>
                                 ))}
                               </select>
 
@@ -1840,7 +2309,9 @@ export default function MenuManagement() {
                             <div className="relative">
                               <select
                                 value={itemTypeFilter}
-                                onChange={(e) => setItemTypeFilter(e.target.value)}
+                                onChange={(e) =>
+                                  setItemTypeFilter(e.target.value)
+                                }
                                 className="h-9 w-full appearance-none rounded-xl border border-gray-200 bg-white pl-3 pr-9 text-[12px] font-medium text-gray-700 outline-none transition-all duration-200 hover:border-red-200 focus:border-red-300 focus:ring-2 focus:ring-red-100"
                               >
                                 <option value="">All Types</option>
@@ -1880,7 +2351,9 @@ export default function MenuManagement() {
                             <div className="relative">
                               <select
                                 value={itemPriceSort}
-                                onChange={(e) => setItemPriceSort(e.target.value)}
+                                onChange={(e) =>
+                                  setItemPriceSort(e.target.value)
+                                }
                                 className="h-9 w-full appearance-none rounded-xl border border-gray-200 bg-white pl-3 pr-9 text-[12px] font-medium text-gray-700 outline-none transition-all duration-200 hover:border-red-200 focus:border-red-300 focus:ring-2 focus:ring-red-100"
                               >
                                 <option value="">Sort Price</option>
@@ -1920,7 +2393,9 @@ export default function MenuManagement() {
                             <div className="relative">
                               <select
                                 value={itemAvailFilter}
-                                onChange={(e) => setItemAvailFilter(e.target.value)}
+                                onChange={(e) =>
+                                  setItemAvailFilter(e.target.value)
+                                }
                                 className="h-9 w-full appearance-none rounded-xl border border-gray-200 bg-white pl-3 pr-9 text-[12px] font-medium text-gray-700 outline-none transition-all duration-200 hover:border-red-200 focus:border-red-300 focus:ring-2 focus:ring-red-100"
                               >
                                 <option value="">All Status</option>
@@ -2009,12 +2484,12 @@ export default function MenuManagement() {
                             <td className="px-5 py-4">
                               <span
                                 className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-semibold ${
-                                  item.type === "VEG"
+                                  isVegType(item.type)
                                     ? "bg-emerald-50 text-emerald-600"
                                     : "bg-red-50 text-red-700"
                                 }`}
                               >
-                                {item.type === "VEG" ? "Veg" : "Non Veg"}
+                                {isVegType(item.type) ? "Veg" : "Non Veg"}
                               </span>
                             </td>
 
@@ -2051,7 +2526,19 @@ export default function MenuManagement() {
                                   {item.isAvailable ? "Mark Off" : "Mark On"}
                                 </button>
                                 <button
-                                  onClick={() => { setEditingItem(item); setItemForm({ name: item.name, categoryId: String(item.categoryId || ""), type: item.type || "VEG", price: String(item.price), prepTime: String(item.prepTime || ""), description: item.description || "", isAvailable: item.isAvailable }); setShowAddItemForm(true); }}
+                                  onClick={() => {
+                                    setEditingItem(item);
+                                    setItemForm({
+                                      name: item.name,
+                                      categoryId: String(item.categoryId || ""),
+                                      type: item.type || "VEG",
+                                      price: String(item.price),
+                                      prepTime: String(item.prepTime || ""),
+                                      description: item.description || "",
+                                      isAvailable: item.isAvailable,
+                                    });
+                                    setShowAddItemForm(true);
+                                  }}
                                   className="rounded-xl border border-gray-200 px-3 py-2 text-[12px] font-semibold text-gray-700 transition hover:bg-gray-50"
                                 >
                                   Edit
@@ -2068,8 +2555,14 @@ export default function MenuManagement() {
                         ))
                       ) : (
                         <tr>
-                          <td colSpan={6} className="px-6 py-16 text-center text-sm text-gray-400">
-                            {itemSearch || itemCatFilter || itemTypeFilter || itemAvailFilter
+                          <td
+                            colSpan={6}
+                            className="px-6 py-16 text-center text-sm text-gray-400"
+                          >
+                            {itemSearch ||
+                            itemCatFilter ||
+                            itemTypeFilter ||
+                            itemAvailFilter
                               ? "No items match your filters"
                               : "No menu items yet — click + Add Item to get started"}
                           </td>
@@ -2083,28 +2576,79 @@ export default function MenuManagement() {
           )}
           {/* ── ADD / EDIT ITEM MODAL ── */}
           {showAddItemForm && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setShowAddItemForm(false)}>
-              <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <div
+              className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+              onClick={() => setShowAddItemForm(false)}
+            >
+              <div
+                className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl"
+                onClick={(e) => e.stopPropagation()}
+              >
                 <div className="mb-4 flex items-center justify-between">
-                  <h3 className="text-[17px] font-bold text-gray-900">{editingItem ? "Edit Item" : "Add Menu Item"}</h3>
-                  <button onClick={() => setShowAddItemForm(false)} className="flex h-7 w-7 items-center justify-center rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50"><XMarkIcon className="h-4 w-4" /></button>
+                  <h3 className="text-[17px] font-bold text-gray-900">
+                    {editingItem ? "Edit Item" : "Add Menu Item"}
+                  </h3>
+                  <button
+                    onClick={() => setShowAddItemForm(false)}
+                    className="flex h-7 w-7 items-center justify-center rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50"
+                  >
+                    <XMarkIcon className="h-4 w-4" />
+                  </button>
                 </div>
                 <div className="space-y-3">
                   <div>
-                    <label className="mb-1 block text-[11px] font-bold uppercase tracking-wide text-gray-500">Item Name *</label>
-                    <input value={itemForm.name} onChange={(e) => setItemForm((f: any) => ({ ...f, name: e.target.value }))} placeholder="e.g. Paneer Butter Masala" className="h-9 w-full rounded-xl border border-gray-200 px-3 text-[13px] outline-none focus:border-red-300 focus:ring-2 focus:ring-red-100" />
+                    <label className="mb-1 block text-[11px] font-bold uppercase tracking-wide text-gray-500">
+                      Item Name *
+                    </label>
+                    <input
+                      value={itemForm.name}
+                      onChange={(e) =>
+                        setItemForm((f: any) => ({
+                          ...f,
+                          name: e.target.value,
+                        }))
+                      }
+                      placeholder="e.g. Paneer Butter Masala"
+                      className="h-9 w-full rounded-xl border border-gray-200 px-3 text-[13px] outline-none focus:border-red-300 focus:ring-2 focus:ring-red-100"
+                    />
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="mb-1 block text-[11px] font-bold uppercase tracking-wide text-gray-500">Category</label>
-                      <select value={itemForm.categoryId} onChange={(e) => setItemForm((f: any) => ({ ...f, categoryId: e.target.value }))} className="h-9 w-full rounded-xl border border-gray-200 px-3 text-[13px] outline-none focus:border-red-300 focus:ring-2 focus:ring-red-100">
+                      <label className="mb-1 block text-[11px] font-bold uppercase tracking-wide text-gray-500">
+                        Category
+                      </label>
+                      <select
+                        value={itemForm.categoryId}
+                        onChange={(e) =>
+                          setItemForm((f: any) => ({
+                            ...f,
+                            categoryId: e.target.value,
+                          }))
+                        }
+                        className="h-9 w-full rounded-xl border border-gray-200 px-3 text-[13px] outline-none focus:border-red-300 focus:ring-2 focus:ring-red-100"
+                      >
                         <option value="">No Category</option>
-                        {categories.map((cat: any) => <option key={cat.id} value={String(cat.id)}>{cat.name}</option>)}
+                        {categories.map((cat: any) => (
+                          <option key={cat.id} value={String(cat.id)}>
+                            {cat.name}
+                          </option>
+                        ))}
                       </select>
                     </div>
                     <div>
-                      <label className="mb-1 block text-[11px] font-bold uppercase tracking-wide text-gray-500">Type</label>
-                      <select value={itemForm.type} onChange={(e) => setItemForm((f: any) => ({ ...f, type: e.target.value }))} className="h-9 w-full rounded-xl border border-gray-200 px-3 text-[13px] outline-none focus:border-red-300 focus:ring-2 focus:ring-red-100">
+                      <label className="mb-1 block text-[11px] font-bold uppercase tracking-wide text-gray-500">
+                        Type
+                      </label>
+                      <select
+                        value={itemForm.type}
+                        onChange={(e) =>
+                          setItemForm((f: any) => ({
+                            ...f,
+                            type: e.target.value,
+                          }))
+                        }
+                        className="h-9 w-full rounded-xl border border-gray-200 px-3 text-[13px] outline-none focus:border-red-300 focus:ring-2 focus:ring-red-100"
+                      >
                         <option value="VEG">Veg</option>
                         <option value="NON_VEG">Non Veg</option>
                       </select>
@@ -2112,27 +2656,98 @@ export default function MenuManagement() {
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="mb-1 block text-[11px] font-bold uppercase tracking-wide text-gray-500">Price (₹) *</label>
-                      <input type="number" min="0" value={itemForm.price} onChange={(e) => setItemForm((f: any) => ({ ...f, price: e.target.value }))} placeholder="0" className="h-9 w-full rounded-xl border border-gray-200 px-3 text-[13px] outline-none focus:border-red-300 focus:ring-2 focus:ring-red-100" />
+                      <label className="mb-1 block text-[11px] font-bold uppercase tracking-wide text-gray-500">
+                        Price (₹) *
+                      </label>
+                      <input
+                        type="number"
+                        min="0"
+                        value={itemForm.price}
+                        onChange={(e) =>
+                          setItemForm((f: any) => ({
+                            ...f,
+                            price: e.target.value,
+                          }))
+                        }
+                        placeholder="0"
+                        className="h-9 w-full rounded-xl border border-gray-200 px-3 text-[13px] outline-none focus:border-red-300 focus:ring-2 focus:ring-red-100"
+                      />
                     </div>
                     <div>
-                      <label className="mb-1 block text-[11px] font-bold uppercase tracking-wide text-gray-500">Prep Time (min)</label>
-                      <input type="number" min="0" value={itemForm.prepTime} onChange={(e) => setItemForm((f: any) => ({ ...f, prepTime: e.target.value }))} placeholder="0" className="h-9 w-full rounded-xl border border-gray-200 px-3 text-[13px] outline-none focus:border-red-300 focus:ring-2 focus:ring-red-100" />
+                      <label className="mb-1 block text-[11px] font-bold uppercase tracking-wide text-gray-500">
+                        Prep Time (min)
+                      </label>
+                      <input
+                        type="number"
+                        min="0"
+                        value={itemForm.prepTime}
+                        onChange={(e) =>
+                          setItemForm((f: any) => ({
+                            ...f,
+                            prepTime: e.target.value,
+                          }))
+                        }
+                        placeholder="0"
+                        className="h-9 w-full rounded-xl border border-gray-200 px-3 text-[13px] outline-none focus:border-red-300 focus:ring-2 focus:ring-red-100"
+                      />
                     </div>
                   </div>
                   <div>
-                    <label className="mb-1 block text-[11px] font-bold uppercase tracking-wide text-gray-500">Description</label>
-                    <input value={itemForm.description} onChange={(e) => setItemForm((f: any) => ({ ...f, description: e.target.value }))} placeholder="Optional description" className="h-9 w-full rounded-xl border border-gray-200 px-3 text-[13px] outline-none focus:border-red-300 focus:ring-2 focus:ring-red-100" />
+                    <label className="mb-1 block text-[11px] font-bold uppercase tracking-wide text-gray-500">
+                      Description
+                    </label>
+                    <input
+                      value={itemForm.description}
+                      onChange={(e) =>
+                        setItemForm((f: any) => ({
+                          ...f,
+                          description: e.target.value,
+                        }))
+                      }
+                      placeholder="Optional description"
+                      className="h-9 w-full rounded-xl border border-gray-200 px-3 text-[13px] outline-none focus:border-red-300 focus:ring-2 focus:ring-red-100"
+                    />
                   </div>
                   <div className="flex items-center gap-2">
-                    <input type="checkbox" id="isAvail" checked={itemForm.isAvailable} onChange={(e) => setItemForm((f: any) => ({ ...f, isAvailable: e.target.checked }))} className="accent-[#b10000]" />
-                    <label htmlFor="isAvail" className="text-[13px] font-medium text-gray-700">Available for ordering</label>
+                    <input
+                      type="checkbox"
+                      id="isAvail"
+                      checked={itemForm.isAvailable}
+                      onChange={(e) =>
+                        setItemForm((f: any) => ({
+                          ...f,
+                          isAvailable: e.target.checked,
+                        }))
+                      }
+                      className="accent-[#b10000]"
+                    />
+                    <label
+                      htmlFor="isAvail"
+                      className="text-[13px] font-medium text-gray-700"
+                    >
+                      Available for ordering
+                    </label>
                   </div>
                 </div>
                 <div className="mt-5 flex justify-end gap-2">
-                  <button onClick={() => setShowAddItemForm(false)} className="rounded-xl border border-gray-200 px-4 py-2 text-[13px] font-semibold text-gray-700 hover:bg-gray-50">Cancel</button>
-                  <button onClick={handleSaveMenuItem} disabled={savingItem || !itemForm.name.trim() || !itemForm.price} className="rounded-xl bg-[#b10000] px-5 py-2 text-[13px] font-semibold text-white shadow-sm transition hover:bg-[#950000] disabled:opacity-50">
-                    {savingItem ? "Saving…" : editingItem ? "Save Changes" : "Add Item"}
+                  <button
+                    onClick={() => setShowAddItemForm(false)}
+                    className="rounded-xl border border-gray-200 px-4 py-2 text-[13px] font-semibold text-gray-700 hover:bg-gray-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleSaveMenuItem}
+                    disabled={
+                      savingItem || !itemForm.name.trim() || !itemForm.price
+                    }
+                    className="rounded-xl bg-[#b10000] px-5 py-2 text-[13px] font-semibold text-white shadow-sm transition hover:bg-[#950000] disabled:opacity-50"
+                  >
+                    {savingItem
+                      ? "Saving…"
+                      : editingItem
+                        ? "Save Changes"
+                        : "Add Item"}
                   </button>
                 </div>
               </div>
@@ -2406,6 +3021,7 @@ export default function MenuManagement() {
                                     "Unit",
                                     "Purchase",
                                     "Unit Price",
+                                    "Reorder At",
                                     "Vendor",
                                     "Action",
                                   ].map((head) => (
@@ -2572,9 +3188,60 @@ export default function MenuManagement() {
                                       {/* PRICE */}
 
                                       <td className="px-4 py-2.5">
-                                        <div className="inline-flex rounded-full bg-gray-100 px-3 py-1 text-[12px] font-bold text-gray-700">
-                                          ₹{item?.pricePerUnit || 0}
+                                        <div className="flex items-center gap-1.5">
+                                          <div className="inline-flex rounded-full bg-gray-100 px-3 py-1 text-[12px] font-bold text-gray-700">
+                                            ₹{item?.pricePerUnit || 0}
+                                          </div>
+                                          {item?.id && (
+                                            <button
+                                              type="button"
+                                              title="Update price / view history"
+                                              onClick={() =>
+                                                openPriceHistory(
+                                                  category,
+                                                  index,
+                                                  item,
+                                                )
+                                              }
+                                              className="text-[10px] font-semibold text-[#b10000] underline decoration-dotted hover:text-[#950000]"
+                                            >
+                                              History
+                                            </button>
+                                          )}
                                         </div>
+                                      </td>
+
+                                      {/* REORDER LEVEL */}
+
+                                      <td className="px-4 py-2.5">
+                                        <input
+                                          type="number"
+                                          placeholder="e.g. 5"
+                                          value={item?.reorderLevel ?? ""}
+                                          onChange={(e) =>
+                                            handleFieldChange(
+                                              category,
+                                              index,
+                                              "reorderLevel",
+                                              e.target.value,
+                                            )
+                                          }
+                                          className="
+                                  h-9
+                                  w-24
+                                  rounded-lg
+                                  border
+                                  border-gray-200
+                                  bg-white
+                                  px-3
+                                  text-[13px]
+                                  outline-none
+                                  transition
+                                  focus:border-red-200
+                                  focus:ring-2
+                                  focus:ring-red-100
+                                "
+                                        />
                                       </td>
 
                                       {/* VENDOR */}
@@ -2582,7 +3249,9 @@ export default function MenuManagement() {
                                       <td className="px-4 py-2.5">
                                         <select
                                           value={
-                                            item?.vendor?.[0]?.vendor?.id || ""
+                                            item?.vendorId ??
+                                            item?.vendor?.[0]?.vendor?.id ??
+                                            ""
                                           }
                                           onChange={(e) =>
                                             handleFieldChange(
@@ -2684,6 +3353,98 @@ export default function MenuManagement() {
                       <CloudArrowUpIcon className="h-4 w-4" />
                       Save Ingredients
                     </button>
+                  </div>
+                </div>
+              )}
+
+              {/* PRICE HISTORY / UPDATE MODAL */}
+              {priceHistoryModal.open && (
+                <div
+                  className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+                  onClick={() =>
+                    setPriceHistoryModal((prev) => ({ ...prev, open: false }))
+                  }
+                >
+                  <div
+                    className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <div className="mb-4 flex items-center justify-between">
+                      <h3 className="text-[17px] font-bold text-gray-900">
+                        {priceHistoryModal.ingredientName} — Price
+                      </h3>
+                      <button
+                        onClick={() =>
+                          setPriceHistoryModal((prev) => ({
+                            ...prev,
+                            open: false,
+                          }))
+                        }
+                        className="flex h-7 w-7 items-center justify-center rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50"
+                      >
+                        <XMarkIcon className="h-4 w-4" />
+                      </button>
+                    </div>
+
+                    <div className="space-y-3">
+                      <div>
+                        <label className="mb-1 block text-[11px] font-bold uppercase tracking-wide text-gray-500">
+                          Update Price/Unit (₹)
+                        </label>
+                        <div className="flex gap-2">
+                          <input
+                            type="number"
+                            value={priceHistoryModal.newPrice}
+                            onChange={(e) =>
+                              setPriceHistoryModal((prev) => ({
+                                ...prev,
+                                newPrice: e.target.value,
+                              }))
+                            }
+                            placeholder="New price per unit"
+                            className="h-9 flex-1 rounded-lg border border-gray-200 bg-white px-3 text-[13px] outline-none transition focus:border-red-200 focus:ring-2 focus:ring-red-100"
+                          />
+                          <button
+                            onClick={handleUpdateIngredientPrice}
+                            className="h-9 rounded-lg bg-[#b10000] px-4 text-[12px] font-semibold text-white transition hover:bg-[#950000]"
+                          >
+                            Update
+                          </button>
+                        </div>
+                      </div>
+
+                      <div>
+                        <p className="mb-1.5 text-[11px] font-bold uppercase tracking-wide text-gray-500">
+                          History
+                        </p>
+                        <div className="max-h-56 space-y-1.5 overflow-y-auto">
+                          {priceHistoryModal.loading && (
+                            <p className="text-[12px] text-gray-400">
+                              Loading...
+                            </p>
+                          )}
+                          {!priceHistoryModal.loading &&
+                            priceHistoryModal.history.length === 0 && (
+                              <p className="text-[12px] text-gray-400">
+                                No price changes recorded yet
+                              </p>
+                            )}
+                          {priceHistoryModal.history.map((h: any) => (
+                            <div
+                              key={h.id}
+                              className="flex items-center justify-between rounded-lg border border-gray-100 bg-gray-50/60 px-3 py-2 text-[12px]"
+                            >
+                              <span className="text-gray-500">
+                                {new Date(h.createdAt).toLocaleDateString()}
+                              </span>
+                              <span className="font-semibold text-gray-900">
+                                ₹{h.oldPrice ?? "—"} → ₹{h.newPrice}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
               )}
@@ -2843,7 +3604,11 @@ export default function MenuManagement() {
                       </h3>
 
                       <p className="mt-1 text-[12px] text-gray-500">
-                        Weekly stock & purchase tracking
+                        {new Date().toLocaleString("default", {
+                          month: "long",
+                        })}{" "}
+                        {new Date().getFullYear()} &mdash; Weekly stock &amp;
+                        purchase tracking
                       </p>
                     </div>
 
@@ -3218,7 +3983,7 @@ export default function MenuManagement() {
                       font-semibold
 
                       ${
-                        item.type === "VEG"
+                        isVegType(item.type)
                           ? "bg-emerald-100 text-emerald-700"
                           : "bg-red-100 text-red-700"
                       }
@@ -3275,9 +4040,7 @@ export default function MenuManagement() {
                               iconMap[selectedMenuItem?.category?.icon] ||
                               MdRestaurant;
 
-                            return (
-                              <Icon className="text-[24px] text-white" />
-                            );
+                            return <Icon className="text-[24px] text-white" />;
                           })()}
                         </div>
 
@@ -3386,7 +4149,9 @@ export default function MenuManagement() {
                                 onChange={(e) =>
                                   setIngredientMappings((prev) =>
                                     prev.map((r, i) =>
-                                      i === index ? { ...r, ingredientId: e.target.value } : r,
+                                      i === index
+                                        ? { ...r, ingredientId: e.target.value }
+                                        : r,
                                     ),
                                   )
                                 }
@@ -3423,7 +4188,9 @@ export default function MenuManagement() {
                                 onChange={(e) =>
                                   setIngredientMappings((prev) =>
                                     prev.map((r, i) =>
-                                      i === index ? { ...r, quantity: e.target.value } : r,
+                                      i === index
+                                        ? { ...r, quantity: e.target.value }
+                                        : r,
                                     ),
                                   )
                                 }
@@ -3447,7 +4214,9 @@ export default function MenuManagement() {
                                 onChange={(e) =>
                                   setIngredientMappings((prev) =>
                                     prev.map((r, i) =>
-                                      i === index ? { ...r, unit: e.target.value } : r,
+                                      i === index
+                                        ? { ...r, unit: e.target.value }
+                                        : r,
                                     ),
                                   )
                                 }
@@ -3476,17 +4245,29 @@ export default function MenuManagement() {
                               <span className="rounded-full bg-indigo-50 px-3 py-1 text-[12px] font-bold text-indigo-600">
                                 {(() => {
                                   const ing = allIngredients.find(
-                                    (i: any) => String(i.id) === String(row.ingredientId),
+                                    (i: any) =>
+                                      String(i.id) === String(row.ingredientId),
                                   );
-                                  const ppu = parseFloat(ing?.pricePerUnit) || 0;
+                                  const ppu =
+                                    parseFloat(ing?.pricePerUnit) || 0;
                                   const qty = parseFloat(row.quantity) || 0;
                                   const ingUnit = ing?.unit || "";
                                   const mapUnit = row.unit || "gm";
                                   let pricePerMapUnit = ppu;
-                                  if (ingUnit === "Kg" && mapUnit === "gm") pricePerMapUnit = ppu / 1000;
-                                  else if (ingUnit === "gm" && mapUnit === "Kg") pricePerMapUnit = ppu * 1000;
-                                  else if (ingUnit === "Litre" && mapUnit === "ml") pricePerMapUnit = ppu / 1000;
-                                  else if (ingUnit === "ml" && mapUnit === "Litre") pricePerMapUnit = ppu * 1000;
+                                  if (ingUnit === "Kg" && mapUnit === "gm")
+                                    pricePerMapUnit = ppu / 1000;
+                                  else if (ingUnit === "gm" && mapUnit === "Kg")
+                                    pricePerMapUnit = ppu * 1000;
+                                  else if (
+                                    ingUnit === "Litre" &&
+                                    mapUnit === "ml"
+                                  )
+                                    pricePerMapUnit = ppu / 1000;
+                                  else if (
+                                    ingUnit === "ml" &&
+                                    mapUnit === "Litre"
+                                  )
+                                    pricePerMapUnit = ppu * 1000;
                                   return `₹${(pricePerMapUnit * qty).toFixed(2)}`;
                                 })()}
                               </span>
@@ -3499,7 +4280,9 @@ export default function MenuManagement() {
                                 onChange={(e) =>
                                   setIngredientMappings((prev) =>
                                     prev.map((r, i) =>
-                                      i === index ? { ...r, wastage: e.target.value } : r,
+                                      i === index
+                                        ? { ...r, wastage: e.target.value }
+                                        : r,
                                     ),
                                   )
                                 }
@@ -3987,28 +4770,55 @@ export default function MenuManagement() {
                         </div>
                       </div>
 
-                      {/* ALERT */}
+                      {/* ALERTS */}
 
-                      <div className="mt-4 rounded-xl border border-emerald-100 bg-emerald-50/60 px-4 py-3">
-                        <div className="flex items-start justify-between gap-3">
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <p className="text-[14px] font-bold text-gray-900">
-                                Inventory Healthy
-                              </p>
+                      <div className="mt-4 space-y-2">
+                        {aiAlerts.slice(0, 6).map((alert: any, idx: number) => (
+                          <div
+                            key={idx}
+                            className="rounded-xl border border-gray-100 bg-gray-50/60 px-4 py-3"
+                          >
+                            <div className="flex items-start justify-between gap-3">
+                              <div>
+                                <div className="flex items-center gap-2">
+                                  <p className="text-[14px] font-bold text-gray-900">
+                                    {alert.title}
+                                  </p>
 
-                              <span className="text-[10px] font-semibold text-gray-400">
-                                Live
-                              </span>
+                                  <span className="text-[10px] font-semibold text-gray-400">
+                                    Live
+                                  </span>
+                                </div>
+
+                                <p className={`mt-1 text-[12px] ${alert.text || "text-gray-500"}`}>
+                                  {alert.desc}
+                                </p>
+
+                                {alert.vendorId && (
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      navigate("/dashboard/vendors", {
+                                        state: {
+                                          restockVendorId: alert.vendorId,
+                                          restockIngredientName:
+                                            alert.ingredientName,
+                                        },
+                                      })
+                                    }
+                                    className="mt-2 rounded-lg bg-[#b10000] px-2.5 py-1 text-[11px] font-semibold text-white transition hover:bg-[#950000]"
+                                  >
+                                    Restock from {alert.vendorName}
+                                  </button>
+                                )}
+                              </div>
+
+                              <div
+                                className={`h-2.5 w-2.5 shrink-0 rounded-full ${alert.color || "bg-gray-400"}`}
+                              />
                             </div>
-
-                            <p className="mt-1 text-[12px] text-gray-500">
-                              No operational risks detected
-                            </p>
                           </div>
-
-                          <div className="h-2.5 w-2.5 rounded-full bg-emerald-500" />
-                        </div>
+                        ))}
                       </div>
                     </div>
 
@@ -4185,6 +4995,253 @@ export default function MenuManagement() {
                   </table>
                 </div> */}
               {/* </div> */}
+            </div>
+          )}
+
+          {/* ================= OPERATIONS (SOP CHECKLISTS) ================= */}
+          {activeTab === "operations" && (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-[16px] font-bold text-gray-900">
+                    SOP Checklists
+                  </h3>
+                  <p className="mt-0.5 text-[12px] text-gray-500">
+                    Standard operating procedures for prep, portioning and
+                    hygiene — optionally tied to a menu item
+                  </p>
+                </div>
+                <button
+                  onClick={() => {
+                    resetSopForm();
+                    setShowSopForm(true);
+                  }}
+                  className="flex h-10 items-center gap-2 rounded-xl bg-[#b10000] px-4 text-[13px] font-semibold text-white shadow-sm transition hover:bg-[#950000]"
+                >
+                  <PlusIcon className="h-4 w-4" /> Add SOP
+                </button>
+              </div>
+
+              {sopChecklists.length === 0 ? (
+                <div className="flex min-h-[200px] items-center justify-center rounded-2xl border border-dashed border-gray-200 bg-white p-10 text-center">
+                  <div>
+                    <MdChecklist className="mx-auto h-8 w-8 text-gray-300" />
+                    <p className="mt-3 text-[13px] font-semibold text-gray-600">
+                      No SOP checklists yet
+                    </p>
+                    <p className="mt-1 text-[12px] text-gray-400">
+                      Add prep steps, portioning standards or hygiene
+                      checklists for your team to follow
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+                  {sopChecklists.map((sop: any) => (
+                    <div
+                      key={sop.id}
+                      className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm"
+                    >
+                      <div className="flex items-start justify-between gap-3 border-b border-gray-100 px-4 py-3">
+                        <div>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <h4 className="text-[14px] font-bold text-gray-900">
+                              {sop.title}
+                            </h4>
+                            {sop.category && (
+                              <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-semibold text-gray-600">
+                                {sop.category}
+                              </span>
+                            )}
+                          </div>
+                          {sop.menuItem?.name && (
+                            <p className="mt-0.5 text-[11px] text-gray-500">
+                              Linked to {sop.menuItem.name}
+                            </p>
+                          )}
+                        </div>
+                        <div className="flex shrink-0 gap-1">
+                          <button
+                            onClick={() => handleEditSop(sop)}
+                            className="flex h-7 w-7 items-center justify-center rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50"
+                          >
+                            <PencilSquareIcon className="h-3.5 w-3.5" />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteSop(sop.id)}
+                            className="flex h-7 w-7 items-center justify-center rounded-lg border border-gray-200 text-red-500 hover:bg-red-50"
+                          >
+                            <XMarkIcon className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                      <ol className="space-y-1.5 px-4 py-3 text-[12px] text-gray-700">
+                        {(Array.isArray(sop.steps) ? sop.steps : []).map(
+                          (step: string, i: number) => (
+                            <li key={i} className="flex gap-2">
+                              <span className="font-bold text-gray-400">
+                                {i + 1}.
+                              </span>
+                              <span>{step}</span>
+                            </li>
+                          ),
+                        )}
+                      </ol>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* ADD / EDIT SOP MODAL */}
+              {showSopForm && (
+                <div
+                  className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+                  onClick={() => setShowSopForm(false)}
+                >
+                  <div
+                    className="w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-2xl bg-white p-6 shadow-xl"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <div className="mb-4 flex items-center justify-between">
+                      <h3 className="text-[17px] font-bold text-gray-900">
+                        {sopForm.id ? "Edit SOP" : "Add SOP Checklist"}
+                      </h3>
+                      <button
+                        onClick={() => setShowSopForm(false)}
+                        className="flex h-7 w-7 items-center justify-center rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50"
+                      >
+                        <XMarkIcon className="h-4 w-4" />
+                      </button>
+                    </div>
+
+                    <div className="space-y-3">
+                      <div>
+                        <label className="mb-1 block text-[11px] font-bold uppercase tracking-wide text-gray-500">
+                          Title *
+                        </label>
+                        <input
+                          value={sopForm.title}
+                          onChange={(e) =>
+                            setSopForm((f) => ({
+                              ...f,
+                              title: e.target.value,
+                            }))
+                          }
+                          placeholder="e.g. Paneer Butter Masala — Prep SOP"
+                          className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm outline-none focus:border-red-300 focus:ring-2 focus:ring-red-100"
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="mb-1 block text-[11px] font-bold uppercase tracking-wide text-gray-500">
+                            Category
+                          </label>
+                          <input
+                            value={sopForm.category}
+                            onChange={(e) =>
+                              setSopForm((f) => ({
+                                ...f,
+                                category: e.target.value,
+                              }))
+                            }
+                            placeholder="Prep / Hygiene / Portioning"
+                            className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm outline-none focus:border-red-300 focus:ring-2 focus:ring-red-100"
+                          />
+                        </div>
+                        <div>
+                          <label className="mb-1 block text-[11px] font-bold uppercase tracking-wide text-gray-500">
+                            Linked Menu Item
+                          </label>
+                          <select
+                            value={sopForm.menuItemId}
+                            onChange={(e) =>
+                              setSopForm((f) => ({
+                                ...f,
+                                menuItemId: e.target.value,
+                              }))
+                            }
+                            className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm outline-none focus:border-red-300 focus:ring-2 focus:ring-red-100"
+                          >
+                            <option value="">None</option>
+                            {menuItems.map((mi: any) => (
+                              <option key={mi.id} value={String(mi.id)}>
+                                {mi.name}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="mb-1 block text-[11px] font-bold uppercase tracking-wide text-gray-500">
+                          Steps *
+                        </label>
+                        <div className="space-y-2">
+                          {sopForm.steps.map((step, i) => (
+                            <div key={i} className="flex gap-2">
+                              <input
+                                value={step}
+                                onChange={(e) =>
+                                  setSopForm((f) => ({
+                                    ...f,
+                                    steps: f.steps.map((s, idx) =>
+                                      idx === i ? e.target.value : s,
+                                    ),
+                                  }))
+                                }
+                                placeholder={`Step ${i + 1}`}
+                                className="flex-1 rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm outline-none focus:border-red-300 focus:ring-2 focus:ring-red-100"
+                              />
+                              {sopForm.steps.length > 1 && (
+                                <button
+                                  onClick={() =>
+                                    setSopForm((f) => ({
+                                      ...f,
+                                      steps: f.steps.filter(
+                                        (_, idx) => idx !== i,
+                                      ),
+                                    }))
+                                  }
+                                  className="flex h-9 w-9 items-center justify-center rounded-lg border border-gray-200 text-gray-400 hover:bg-gray-50"
+                                >
+                                  <XMarkIcon className="h-3.5 w-3.5" />
+                                </button>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                        <button
+                          onClick={() =>
+                            setSopForm((f) => ({
+                              ...f,
+                              steps: [...f.steps, ""],
+                            }))
+                          }
+                          className="mt-2 flex items-center gap-1.5 text-[12px] font-semibold text-[#b10000] hover:text-[#950000]"
+                        >
+                          <PlusIcon className="h-3.5 w-3.5" /> Add Step
+                        </button>
+                      </div>
+
+                      <div className="flex justify-end gap-2 pt-2">
+                        <button
+                          onClick={() => setShowSopForm(false)}
+                          className="rounded-xl border border-gray-200 px-4 py-2 text-[13px] font-semibold text-gray-600 hover:bg-gray-50"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          onClick={handleSaveSop}
+                          className="rounded-xl bg-[#b10000] px-4 py-2 text-[13px] font-semibold text-white hover:bg-[#950000]"
+                        >
+                          Save SOP
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>

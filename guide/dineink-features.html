@@ -1,0 +1,882 @@
+<title>DineInk — Feature Guide</title>
+<style>
+  :root {
+    --ink: #201a17;
+    --paper: #f7f4ef;
+    --paper-raised: #ffffff;
+    --accent: #b10000;
+    --accent-deep: #6b0000;
+    --accent-tint: #b1000012;
+    --line: rgba(32,26,23,.14);
+    --muted: #78716c;
+    --serif: Iowan Old Style, "Palatino Linotype", Georgia, "Times New Roman", serif;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --ink: #f1ebe4;
+      --paper: #17130f;
+      --paper-raised: #201a15;
+      --accent: #e2483f;
+      --accent-deep: #ff6b5f;
+      --accent-tint: #e2483f1a;
+      --line: rgba(241,235,228,.14);
+      --muted: #a89f96;
+    }
+  }
+  :root[data-theme="dark"] {
+    --ink: #f1ebe4;
+    --paper: #17130f;
+    --paper-raised: #201a15;
+    --accent: #e2483f;
+    --accent-deep: #ff6b5f;
+    --accent-tint: #e2483f1a;
+    --line: rgba(241,235,228,.14);
+    --muted: #a89f96;
+  }
+  :root[data-theme="light"] {
+    --ink: #201a17;
+    --paper: #f7f4ef;
+    --paper-raised: #ffffff;
+    --accent: #b10000;
+    --accent-deep: #6b0000;
+    --accent-tint: #b1000012;
+    --line: rgba(32,26,23,.14);
+    --muted: #78716c;
+  }
+
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--sans);
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: inherit; }
+  a:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  .shell {
+    display: grid;
+    grid-template-columns: 260px minmax(0, 1fr);
+    max-width: 1180px;
+    margin: 0 auto;
+  }
+
+  /* ---------- Sidebar ---------- */
+  .sidebar {
+    position: sticky;
+    top: 0;
+    align-self: start;
+    height: 100vh;
+    overflow-y: auto;
+    padding: 2rem 1.25rem 2rem 1.5rem;
+    border-right: 1px solid var(--line);
+  }
+  .brand {
+    font-family: var(--serif);
+    font-size: 1.3rem;
+    letter-spacing: 0.01em;
+    margin: 0 0 0.15rem;
+  }
+  .brand em { color: var(--accent); font-style: normal; }
+  .brand-sub {
+    font-size: 0.72rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.09em;
+    margin: 0 0 1.75rem;
+  }
+  .toc-group { margin-bottom: 1.4rem; }
+  .toc-label {
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--muted);
+    margin: 0 0 0.5rem;
+  }
+  .toc-group ul { list-style: none; margin: 0; padding: 0; }
+  .toc-group a {
+    display: block;
+    text-decoration: none;
+    font-size: 0.87rem;
+    color: var(--ink);
+    padding: 0.28rem 0;
+    opacity: 0.78;
+    border-left: 2px solid transparent;
+    padding-left: 0.6rem;
+    margin-left: -0.62rem;
+    transition: opacity .15s, border-color .15s;
+  }
+  .toc-group a:hover { opacity: 1; border-left-color: var(--accent); }
+
+  /* ---------- Main ---------- */
+  main { padding: 2.75rem 2.5rem 6rem; min-width: 0; }
+
+  .cover { margin-bottom: 3.5rem; max-width: 640px; }
+  .kicker {
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--accent);
+    margin: 0 0 0.9rem;
+  }
+  h1.title {
+    font-family: var(--serif);
+    font-size: clamp(2.1rem, 4vw, 2.7rem);
+    line-height: 1.12;
+    margin: 0 0 1rem;
+    text-wrap: balance;
+  }
+  .cover p.lede {
+    font-size: 1.02rem;
+    line-height: 1.65;
+    color: var(--muted);
+    margin: 0 0 1.4rem;
+  }
+  .stat-row { display: flex; gap: 2rem; flex-wrap: wrap; }
+  .stat b {
+    display: block;
+    font-family: var(--serif);
+    font-size: 1.5rem;
+    color: var(--accent);
+  }
+  .stat span {
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: var(--muted);
+  }
+
+  section.module { margin-bottom: 3.6rem; scroll-margin-top: 1.5rem; }
+  .module-head { border-bottom: 1px solid var(--line); padding-bottom: 1.1rem; margin-bottom: 1.5rem; }
+  .module-eyebrow {
+    font-family: var(--mono);
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--muted);
+    margin: 0 0 0.3rem;
+  }
+  h2.module-title {
+    font-family: var(--serif);
+    font-size: 1.7rem;
+    margin: 0 0 0.55rem;
+    text-wrap: balance;
+  }
+  .module-desc { margin: 0; color: var(--muted); line-height: 1.6; max-width: 62ch; font-size: 0.96rem; }
+
+  .subgroup { margin-bottom: 1.9rem; }
+  .subgroup:last-child { margin-bottom: 0; }
+  h3.subgroup-title {
+    font-family: var(--mono);
+    font-size: 0.74rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--accent);
+    margin: 0 0 0.8rem;
+  }
+
+  .feature { display: grid; grid-template-columns: minmax(0,1fr); gap: 0.2rem; padding: 0.9rem 0; border-top: 1px solid var(--line); }
+  .subgroup .feature:first-of-type { border-top: none; padding-top: 0; }
+  .feature-name {
+    font-family: var(--serif);
+    font-size: 1.02rem;
+    font-weight: 700;
+    margin: 0;
+  }
+  .feature-what { margin: 0.15rem 0 0; font-size: 0.91rem; line-height: 1.55; }
+  .feature-why { margin: 0.3rem 0 0; font-size: 0.88rem; line-height: 1.5; color: var(--muted); }
+  .feature-why::before { content: "Why: "; color: var(--accent); font-weight: 600; }
+  .feature-loc {
+    display: inline-block;
+    margin-top: 0.45rem;
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    color: var(--muted);
+    background: var(--accent-tint);
+    padding: 0.15rem 0.5rem;
+    border-radius: 3px;
+  }
+
+  .note {
+    margin-top: 1.6rem;
+    padding: 0.9rem 1.1rem;
+    background: var(--paper-raised);
+    border: 1px solid var(--line);
+    border-left: 3px solid var(--accent);
+    border-radius: 4px;
+    font-size: 0.86rem;
+    line-height: 1.55;
+    color: var(--muted);
+  }
+  .note b { color: var(--ink); }
+
+  footer.doc-footer {
+    max-width: 62ch;
+    padding-top: 2rem;
+    border-top: 1px solid var(--line);
+    color: var(--muted);
+    font-size: 0.85rem;
+    line-height: 1.6;
+  }
+
+  @media (max-width: 860px) {
+    .shell { grid-template-columns: 1fr; }
+    .sidebar { position: relative; height: auto; border-right: none; border-bottom: 1px solid var(--line); }
+    main { padding: 2rem 1.25rem 4rem; }
+  }
+</style>
+
+<div class="shell">
+  <nav class="sidebar">
+    <p class="brand">Dine<em>Ink</em></p>
+    <p class="brand-sub">Feature Guide</p>
+
+    <div class="toc-group">
+      <p class="toc-label">Getting Started</p>
+      <ul><li><a href="#onboarding">Guided Onboarding</a></li></ul>
+    </div>
+    <div class="toc-group">
+      <p class="toc-label">Front of House</p>
+      <ul>
+        <li><a href="#dashboard">Dashboard</a></li>
+        <li><a href="#bills">Bills</a></li>
+        <li><a href="#customers">Customers</a></li>
+        <li><a href="#cash">Cash</a></li>
+      </ul>
+    </div>
+    <div class="toc-group">
+      <p class="toc-label">Kitchen &amp; Inventory</p>
+      <ul>
+        <li><a href="#menu-management">Menu &amp; Inventory</a></li>
+        <li><a href="#vendors">Vendors</a></li>
+        <li><a href="#stock-audit">Daily Stock Audit</a></li>
+        <li><a href="#kitchen">Kitchen</a></li>
+      </ul>
+    </div>
+    <div class="toc-group">
+      <p class="toc-label">People</p>
+      <ul><li><a href="#attendance">Attendance</a></li></ul>
+    </div>
+    <div class="toc-group">
+      <p class="toc-label">Business Intelligence</p>
+      <ul>
+        <li><a href="#insights">Insights</a></li>
+        <li><a href="#reports">Reports</a></li>
+        <li><a href="#compare">Compare</a></li>
+      </ul>
+    </div>
+    <div class="toc-group">
+      <p class="toc-label">Configuration</p>
+      <ul><li><a href="#settings">Settings &amp; Shops</a></li></ul>
+    </div>
+  </nav>
+
+  <main>
+    <div class="cover">
+      <p class="kicker">Internal &amp; Pitch Reference</p>
+      <h1 class="title">Everything DineInk does, and why it's there</h1>
+      <p class="lede">DineInk runs the full back-of-house and front-of-house operation for a restaurant — from the day a new branch is set up, through billing, kitchen throughput, inventory, staffing, and the financial reporting an owner needs to know if the business is actually profitable. This guide covers every real, working feature in the app: what it does, and why a restaurant owner would use it.</p>
+      <div class="stat-row">
+        <div class="stat"><b>14</b><span>Modules</span></div>
+        <div class="stat"><b>12</b><span>Report Views</span></div>
+        <div class="stat"><b>80+</b><span>Features</span></div>
+      </div>
+    </div>
+
+    <!-- ===================== ONBOARDING ===================== -->
+    <section class="module" id="onboarding">
+      <div class="module-head">
+        <p class="module-eyebrow">Getting Started</p>
+        <h2 class="module-title">Guided Onboarding</h2>
+        <p class="module-desc">The setup a new restaurant walks through before going live — one guided flow instead of piecing configuration together across scattered screens.</p>
+      </div>
+
+      <div class="feature">
+        <p class="feature-name">5-Step Setup Wizard</p>
+        <p class="feature-what">A progress-tracked wizard walks a new owner through Restaurant Details (name, GST number, logo), Branch Setup (address, table count with auto-generated tables), Menu Setup (categories with icons, items with price/prep time/veg-or-non-veg), Billing Settings (GST%, service charge, payment methods, which billing modes are active), and Staff Setup (roles, departments, shifts, login access).</p>
+        <p class="feature-why">Gets a restaurant — even a multi-branch one — fully configured and operational in one sitting, rather than requiring an owner to hunt through six different settings screens before they can take a single order.</p>
+        <span class="feature-loc">Shown automatically to new accounts</span>
+      </div>
+      <div class="feature">
+        <p class="feature-name">Multi-Branch Setup From Day One</p>
+        <p class="feature-what">An owner can add more than one branch during setup, each with its own address, table count, and billing configuration — with the option to copy one branch's billing setup to another or apply it to all branches at once.</p>
+        <p class="feature-why">Restaurant groups don't have to repeat identical configuration work branch by branch.</p>
+        <span class="feature-loc">Onboarding → Branch Setup</span>
+      </div>
+    </section>
+
+    <!-- ===================== DASHBOARD ===================== -->
+    <section class="module" id="dashboard">
+      <div class="module-head">
+        <p class="module-eyebrow">Front of House</p>
+        <h2 class="module-title">Dashboard</h2>
+        <p class="module-desc">The home screen after login — a live snapshot of how the business is doing right now, for the selected branch and date range.</p>
+      </div>
+
+      <div class="feature">
+        <p class="feature-name">Live KPI Strip</p>
+        <p class="feature-what">Six headline numbers: total revenue, completed orders, average order value, unique customers, the single busiest hour, and EBITDA with margin %.</p>
+        <p class="feature-why">Everything an owner needs to check "how's business today" without opening a single report.</p>
+        <span class="feature-loc">Dashboard → top of page</span>
+      </div>
+      <div class="feature">
+        <p class="feature-name">Revenue &amp; Orders Charts</p>
+        <p class="feature-what">A trend chart of revenue and a bar chart of order counts over the selected range — hourly for a single day, daily across a longer window.</p>
+        <p class="feature-why">Spot sales trends, slow periods, or spikes at a glance, and see whether a revenue change is driven by more orders or bigger tickets.</p>
+        <span class="feature-loc">Dashboard → charts</span>
+      </div>
+      <div class="feature">
+        <p class="feature-name">Order Channel Split</p>
+        <p class="feature-what">A donut chart of dine-in vs. online order share.</p>
+        <p class="feature-why">Shows channel mix for staffing and marketing decisions.</p>
+        <span class="feature-loc">Dashboard</span>
+      </div>
+      <div class="feature">
+        <p class="feature-name">Payment Method Split</p>
+        <p class="feature-what">Revenue broken down by how customers actually paid (cash, card, UPI, etc.).</p>
+        <p class="feature-why">Useful for negotiating processor fees or planning terminal needs.</p>
+        <span class="feature-loc">Dashboard</span>
+      </div>
+      <div class="feature">
+        <p class="feature-name">Top Selling Items &amp; Categories</p>
+        <p class="feature-what">Ranked lists of the best-performing dishes and menu categories by quantity sold.</p>
+        <p class="feature-why">Informs promotion, stocking, and menu-design decisions.</p>
+        <span class="feature-loc">Dashboard</span>
+      </div>
+      <div class="feature">
+        <p class="feature-name">Recent Orders</p>
+        <p class="feature-what">A table of the most recent bills — customer, order type, payment method, amount, status, date.</p>
+        <p class="feature-why">A quick audit trail without opening the full Bills page.</p>
+        <span class="feature-loc">Dashboard</span>
+      </div>
+    </section>
+
+    <!-- ===================== BILLS ===================== -->
+    <section class="module" id="bills">
+      <div class="module-head">
+        <p class="module-eyebrow">Front of House</p>
+        <h2 class="module-title">Bills</h2>
+        <p class="module-desc">Every transaction and every order still being prepared, in one searchable feed.</p>
+      </div>
+
+      <div class="feature">
+        <p class="feature-name">Unified Transaction Feed</p>
+        <p class="feature-what">Shows finalized bills and still-open kitchen orders together, sorted by recency, so nothing is hidden across two separate screens.</p>
+        <p class="feature-why">An owner or manager sees the complete picture — what's paid and what's still cooking — in one place.</p>
+        <span class="feature-loc">Bills</span>
+      </div>
+      <div class="feature">
+        <p class="feature-name">Search &amp; Filters</p>
+        <p class="feature-what">Filter by customer name, phone, payment method, order type, amount, or bill ID, and narrow to a date range.</p>
+        <p class="feature-why">Find one transaction fast instead of scrolling a long list.</p>
+        <span class="feature-loc">Bills</span>
+      </div>
+      <div class="feature">
+        <p class="feature-name">Revenue &amp; Bills Summary Cards</p>
+        <p class="feature-what">Total revenue, bill count, average bill, and paid-bill count for whatever is currently filtered — cancelled bills are excluded from the totals.</p>
+        <p class="feature-why">An accurate at-a-glance sales snapshot for any slice of the data an owner is looking at.</p>
+        <span class="feature-loc">Bills</span>
+      </div>
+      <div class="feature">
+        <p class="feature-name">Bill Detail Drawer</p>
+        <p class="feature-what">Click any transaction to see the full itemized breakdown — every line item, plus subtotal, discount, GST, CGST/SGST, service charge, packing charge, and grand total.</p>
+        <p class="feature-why">Lets an owner audit exactly how any single bill's final amount was built.</p>
+        <span class="feature-loc">Bills → click a row</span>
+      </div>
+    </section>
+
+    <!-- ===================== CUSTOMERS ===================== -->
+    <section class="module" id="customers">
+      <div class="module-head">
+        <p class="module-eyebrow">Front of House</p>
+        <h2 class="module-title">Customers</h2>
+        <p class="module-desc">Who the restaurant's customers are, how much they're worth, and which ones need a reason to come back.</p>
+      </div>
+
+      <div class="subgroup">
+        <h3 class="subgroup-title">Overview</h3>
+        <div class="feature">
+          <p class="feature-name">Customer Directory &amp; Search</p>
+          <p class="feature-what">A searchable table of every customer for the branch — visit count, average bill, total spend, preferred order type, last visit.</p>
+          <p class="feature-why">A quick, searchable directory of who's spending and how much, without digging through raw order data.</p>
+          <span class="feature-loc">Customers → Overview</span>
+        </div>
+        <div class="feature">
+          <p class="feature-name">Customer Segment Tags</p>
+          <p class="feature-what">Each customer is tagged VIP (spend over ₹5,000), Regular (more than 3 visits), or New.</p>
+          <p class="feature-why">Spot high-value customers in the list at a glance.</p>
+          <span class="feature-loc">Customers → Overview</span>
+        </div>
+      </div>
+
+      <div class="subgroup">
+        <h3 class="subgroup-title">Churn Analysis</h3>
+        <div class="feature">
+          <p class="feature-name">Active / At Risk / Churned Buckets</p>
+          <p class="feature-what">Every customer is automatically sorted by days since last visit: Active (within 30 days), At Risk (30–90 days), or Churned (90+ days).</p>
+          <p class="feature-why">See how many customers are drifting away before they're gone for good — without manual analysis.</p>
+          <span class="feature-loc">Customers → Churn Analysis</span>
+        </div>
+        <div class="feature">
+          <p class="feature-name">Top 10 by Spend, At-Risk List, Churned List</p>
+          <p class="feature-what">Three ranked lists: your highest-value customers, customers 30–90 days quiet, and customers gone 90+ days — each with visit count, spend, and last-visit date.</p>
+          <p class="feature-why">Concrete, actionable lists for retention outreach or win-back campaigns, prioritized by who matters most.</p>
+          <span class="feature-loc">Customers → Churn Analysis</span>
+        </div>
+      </div>
+
+      <div class="subgroup">
+        <h3 class="subgroup-title">RFM Scoring</h3>
+        <div class="feature">
+          <p class="feature-name">Recency / Frequency / Monetary Segmentation</p>
+          <p class="feature-what">Every customer is scored 1–5 on Recency, Frequency, and Monetary value, rolled up into five segments: Champion, Loyal, Potential, At Risk, Lost — with customer count and revenue per segment.</p>
+          <p class="feature-why">An industry-standard way to identify best customers, growth opportunities, and customers about to be lost — beyond simple spend sorting.</p>
+          <span class="feature-loc">Customers → RFM Score</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================== CASH ===================== -->
+    <section class="module" id="cash">
+      <div class="module-head">
+        <p class="module-eyebrow">Front of House</p>
+        <h2 class="module-title">Cash</h2>
+        <p class="module-desc">A daily reconciliation report for the physical cash drawer — did what's counted match what the system expected?</p>
+      </div>
+
+      <div class="feature">
+        <p class="feature-name">Daily Cash Session Reconciliation</p>
+        <p class="feature-what">For each day's register session, shows who opened it, opening float, system-expected cash (opening + cash-only sales), the physically counted closing amount, and the difference.</p>
+        <p class="feature-why">Visibility into whether the drawer balanced every day, without needing to be there at close-out.</p>
+        <span class="feature-loc">Cash</span>
+      </div>
+      <div class="feature">
+        <p class="feature-name">Discrepancy Alerts</p>
+        <p class="feature-what">A banner and per-row flag highlight any session where counted cash was off by more than ₹500, with a running total of shortfall vs. surplus.</p>
+        <p class="feature-why">Flags a variance large enough to warrant investigation — theft, a counting error, or unrecorded cash spend.</p>
+        <span class="feature-loc">Cash</span>
+      </div>
+      <div class="feature">
+        <p class="feature-name">Cash Trend Charts</p>
+        <p class="feature-what">A line chart of the daily cash difference and a bar chart comparing opening vs. closing cash across the period.</p>
+        <p class="feature-why">Spot a recurring shortfall pattern (same day, same shift) rather than treating every variance as a one-off.</p>
+        <span class="feature-loc">Cash</span>
+      </div>
+    </section>
+
+    <!-- ===================== MENU MANAGEMENT ===================== -->
+    <section class="module" id="menu-management">
+      <div class="module-head">
+        <p class="module-eyebrow">Kitchen &amp; Inventory</p>
+        <h2 class="module-title">Menu &amp; Inventory Management</h2>
+        <p class="module-desc">Listed in the sidebar as "Operations" — the control center for the menu itself, ingredient stock, recipe costing, and kitchen procedures.</p>
+      </div>
+
+      <div class="subgroup">
+        <h3 class="subgroup-title">Menu</h3>
+        <div class="feature">
+          <p class="feature-name">Menu Item &amp; Category Management</p>
+          <p class="feature-what">Create, edit, and delete menu items and categories — name, description, price, prep time, veg/non-veg type, and an availability toggle — plus sort and filter by price, type, and category.</p>
+          <p class="feature-why">The single source of truth for what's on the menu and what it costs the customer.</p>
+          <span class="feature-loc">Operations → Menu</span>
+        </div>
+      </div>
+
+      <div class="subgroup">
+        <h3 class="subgroup-title">Ingredients</h3>
+        <div class="feature">
+          <p class="feature-name">Ingredient Inventory</p>
+          <p class="feature-what">Every ingredient organized by category, with quantity on hand, unit, purchase price, computed price-per-unit, and a configurable reorder level.</p>
+          <p class="feature-why">One place to see and maintain the raw-material stock the kitchen runs on.</p>
+          <span class="feature-loc">Operations → Ingredients</span>
+        </div>
+        <div class="feature">
+          <p class="feature-name">Vendor Assignment &amp; Price History</p>
+          <p class="feature-what">Assign which vendor supplies each ingredient, and update an ingredient's price with a recorded, auditable history of every past change.</p>
+          <p class="feature-why">Know who to call when stock runs low, and keep a clean paper trail on cost changes over time.</p>
+          <span class="feature-loc">Operations → Ingredients</span>
+        </div>
+      </div>
+
+      <div class="subgroup">
+        <h3 class="subgroup-title">Restock</h3>
+        <div class="feature">
+          <p class="feature-name">Monthly Restock Ledger</p>
+          <p class="feature-what">A per-ingredient monthly record of opening stock, purchases, spend, and closing stock, with Excel template download and upload for offline data entry.</p>
+          <p class="feature-why">Keeps a running, exportable record of what came in and what it cost, month over month.</p>
+          <span class="feature-loc">Operations → Restock</span>
+        </div>
+      </div>
+
+      <div class="subgroup">
+        <h3 class="subgroup-title">Item Mapping</h3>
+        <div class="feature">
+          <p class="feature-name">Recipe Costing</p>
+          <p class="feature-what">Map exact ingredient quantities to each dish and instantly see that dish's recipe cost, profit margin, and food-cost percentage — with AI-assisted ingredient suggestions to speed up mapping a new dish.</p>
+          <p class="feature-why">Answers the question every menu-pricing decision depends on: what does this dish actually cost to make?</p>
+          <span class="feature-loc">Operations → Item Mapping</span>
+        </div>
+      </div>
+
+      <div class="subgroup">
+        <h3 class="subgroup-title">Analytics</h3>
+        <div class="feature">
+          <p class="feature-name">Ingredient Consumption Analytics</p>
+          <p class="feature-what">See which ingredients are consumed the most and which cost the most, filterable by ingredient category.</p>
+          <p class="feature-why">Surfaces exactly where inventory spend is concentrated.</p>
+          <span class="feature-loc">Operations → Analytics</span>
+        </div>
+        <div class="feature">
+          <p class="feature-name">Operational Alerts</p>
+          <p class="feature-what">Real-time alerts for low stock (with a one-click "Restock from [Vendor]" action straight to a purchase invoice), stock mismatches, over-portioning (a dish's food cost running too high), and a reminder to complete the daily stock audit once closing time has passed.</p>
+          <p class="feature-why">Puts the problems that need attention today in front of the owner, instead of requiring them to go looking.</p>
+          <span class="feature-loc">Operations → Analytics</span>
+        </div>
+      </div>
+
+      <div class="subgroup">
+        <h3 class="subgroup-title">Operations (SOP)</h3>
+        <div class="feature">
+          <p class="feature-name">SOP Checklists</p>
+          <p class="feature-what">Standard operating procedures — prep steps, portioning standards, hygiene checklists — written as ordered checklists, optionally linked to a specific dish.</p>
+          <p class="feature-why">Keeps quality and consistency documented and repeatable, rather than living only in one chef's head.</p>
+          <span class="feature-loc">Operations → Operations tab</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================== VENDORS ===================== -->
+    <section class="module" id="vendors">
+      <div class="module-head">
+        <p class="module-eyebrow">Kitchen &amp; Inventory</p>
+        <h2 class="module-title">Vendors</h2>
+        <p class="module-desc">The supplier relationships behind every ingredient — contacts, what they supply, and what's owed.</p>
+      </div>
+
+      <div class="feature">
+        <p class="feature-name">Vendor Directory</p>
+        <p class="feature-what">Create and manage vendor contact records — name, phone, email, address.</p>
+        <p class="feature-why">A single, organized list of every supplier the restaurant works with.</p>
+        <span class="feature-loc">Vendors</span>
+      </div>
+      <div class="feature">
+        <p class="feature-name">Payments &amp; Invoice Tracking</p>
+        <p class="feature-what">Record purchase invoices and payments per vendor, with outstanding balance tracked automatically.</p>
+        <p class="feature-why">Know exactly what's owed to which supplier without cross-referencing paper receipts.</p>
+        <span class="feature-loc">Vendors → vendor detail</span>
+      </div>
+      <div class="feature">
+        <p class="feature-name">Ingredients Supplied View</p>
+        <p class="feature-what">Open any vendor to see every ingredient they supply and its current price, in one list.</p>
+        <p class="feature-why">Answers "what do we buy from this vendor, and at what price?" without leaving the vendor's page.</p>
+        <span class="feature-loc">Vendors → View Details</span>
+      </div>
+    </section>
+
+    <!-- ===================== STOCK AUDIT ===================== -->
+    <section class="module" id="stock-audit">
+      <div class="module-head">
+        <p class="module-eyebrow">Kitchen &amp; Inventory</p>
+        <h2 class="module-title">Daily Stock Audit</h2>
+        <p class="module-desc">The end-of-day ritual that turns raw stock counts into a real wastage number.</p>
+      </div>
+
+      <div class="feature">
+        <p class="feature-name">End-of-Day Closing Stock Entry</p>
+        <p class="feature-what">Staff enter the actual counted closing quantity for each ingredient at the end of the day, with a field for notes.</p>
+        <p class="feature-why">Captures the ground truth needed to know what was actually used versus what should have been used.</p>
+        <span class="feature-loc">Stock Audit</span>
+      </div>
+      <div class="feature">
+        <p class="feature-name">Automatic Wastage Calculation</p>
+        <p class="feature-what">Compares opening stock minus the expected consumption (from recipes × dishes actually sold) against the real closing count, to compute wastage automatically.</p>
+        <p class="feature-why">Turns a manual stock count into an immediate wastage figure — no spreadsheet math required.</p>
+        <span class="feature-loc">Stock Audit</span>
+      </div>
+    </section>
+
+    <!-- ===================== KITCHEN ===================== -->
+    <section class="module" id="kitchen">
+      <div class="module-head">
+        <p class="module-eyebrow">Kitchen &amp; Inventory</p>
+        <h2 class="module-title">Kitchen</h2>
+        <p class="module-desc">How fast the kitchen is actually running, broken down by hour, order type, and table.</p>
+      </div>
+
+      <div class="feature">
+        <p class="feature-name">Kitchen KPI Summary</p>
+        <p class="feature-what">Total completed orders, average completion time, SLA compliance %, fastest order, and peak hour, for the selected range.</p>
+        <p class="feature-why">An instant read on kitchen speed and whether it's hitting its own service target.</p>
+        <span class="feature-loc">Kitchen</span>
+      </div>
+      <div class="feature">
+        <p class="feature-name">Throughput &amp; Speed Charts</p>
+        <p class="feature-what">Orders completed by hour, average completion time by hour, a daily completion trend, and speed compared across order types.</p>
+        <p class="feature-why">Pinpoints exactly when and where the kitchen slows down, so staffing can be adjusted to match.</p>
+        <span class="feature-loc">Kitchen</span>
+      </div>
+      <div class="feature">
+        <p class="feature-name">Table Turn Rate</p>
+        <p class="feature-what">For dine-in orders, each table's order count and average completion time, tagged Fast, Normal, or Slow.</p>
+        <p class="feature-why">Identifies which tables or sections are a bottleneck for seating throughput.</p>
+        <span class="feature-loc">Kitchen</span>
+      </div>
+      <div class="feature">
+        <p class="feature-name">Top Items &amp; Slowest Orders</p>
+        <p class="feature-what">The most frequently prepared dishes, and a list of the slowest completed orders with an SLA met/missed flag.</p>
+        <p class="feature-why">Supports prep planning for high-volume dishes, and gives concrete outliers to investigate rather than just an average.</p>
+        <span class="feature-loc">Kitchen</span>
+      </div>
+    </section>
+
+    <!-- ===================== ATTENDANCE ===================== -->
+    <section class="module" id="attendance">
+      <div class="module-head">
+        <p class="module-eyebrow">People</p>
+        <h2 class="module-title">Attendance</h2>
+        <p class="module-desc">Who's working, when, and what it's costing — by day and by month.</p>
+      </div>
+
+      <div class="feature">
+        <p class="feature-name">Daily Attendance Register</p>
+        <p class="feature-what">Clock-in/out times, break minutes, hours worked, an estimated daily wage, and a Present/Late/Absent status for every staff member, for any selected date.</p>
+        <p class="feature-why">A single daily view of who showed up and for how long, without a physical register.</p>
+        <span class="feature-loc">Attendance</span>
+      </div>
+      <div class="feature">
+        <p class="feature-name">Department &amp; Monthly Trend Charts</p>
+        <p class="feature-what">A chart comparing total vs. present staff per department, and a monthly line chart of daily headcount against the full-team benchmark.</p>
+        <p class="feature-why">Spot understaffed departments on a given day, or recurring attendance dips across the month.</p>
+        <span class="feature-loc">Attendance</span>
+      </div>
+      <div class="feature">
+        <p class="feature-name">Staff Productivity</p>
+        <p class="feature-what">Month-to-date labour totals, revenue generated by shift window, a department-by-department cost breakdown, and a per-staff efficiency table with attendance rate and cost-per-hour.</p>
+        <p class="feature-why">Rolls up labour cost and utilization for the month in one place, and flags which staff have low attendance or high effective cost.</p>
+        <span class="feature-loc">Attendance → Productivity</span>
+      </div>
+    </section>
+
+    <!-- ===================== INSIGHTS ===================== -->
+    <section class="module" id="insights">
+      <div class="module-head">
+        <p class="module-eyebrow">Business Intelligence</p>
+        <h2 class="module-title">Insights</h2>
+        <p class="module-desc">Where an owner tells the app about their real costs, so profitability numbers are grounded in reality, not just revenue.</p>
+      </div>
+
+      <div class="feature">
+        <p class="feature-name">Profitability Overview</p>
+        <p class="feature-what">Revenue, net profit, EBITDA %, and prime cost % (food + labour as a share of revenue), plus a tracker comparing current EBITDA against a self-set target.</p>
+        <p class="feature-why">Turns raw revenue into the profitability question that actually matters: is the restaurant making money after real costs?</p>
+        <span class="feature-loc">Insights → Overview</span>
+      </div>
+      <div class="feature">
+        <p class="feature-name">Revenue Targets Planner</p>
+        <p class="feature-what">Shows the revenue needed to hit each of several EBITDA benchmarks (0–25%), given current expenses.</p>
+        <p class="feature-why">Directly answers "how much more do I need to sell to hit X% profitability?"</p>
+        <span class="feature-loc">Insights → Overview</span>
+      </div>
+      <div class="feature">
+        <p class="feature-name">Cost Breakdown &amp; Food Cost Tracking</p>
+        <p class="feature-what">Fixed, variable, labour, tax, and raw-material costs as a share of the month's expenses, with food-cost % flagged if it climbs over 35%.</p>
+        <p class="feature-why">Shows an owner exactly where money is going, and surfaces food cost — one of the most important health metrics in the business — without spreadsheet math.</p>
+        <span class="feature-loc">Insights → Setup → Raw Material Cost</span>
+      </div>
+      <div class="feature">
+        <p class="feature-name">Labour Intelligence</p>
+        <p class="feature-what">Total labour cost, average salary, department-by-department salary breakdown, and a full staff roster with role, salary, and shift — pulled directly from real staff records.</p>
+        <p class="feature-why">Gives labour-cost visibility tied to actual headcount, not an estimate.</p>
+        <span class="feature-loc">Insights → Setup → Labour</span>
+      </div>
+      <div class="feature">
+        <p class="feature-name">Financial Targets &amp; Tax/Finance Setup</p>
+        <p class="feature-what">Set target percentages for EBITDA, food cost, gross margin, and prime cost, and record GST, loan EMI, interest, accounting fees, and insurance so they're included in every profitability calculation.</p>
+        <p class="feature-why">Makes sure financing and tax overhead are counted, not forgotten — and gives an owner reference benchmarks to set realistic goals against.</p>
+        <span class="feature-loc">Insights → Setup</span>
+      </div>
+      <div class="note"><b>Note:</b> Insights' profitability numbers (EBITDA, Net Profit, Prime Cost, Food Cost) are only as accurate as the expense and inventory figures an owner keeps up to date — this module is a calculator built on real revenue data plus the owner's own inputs, not a fully automatic accounting system.</div>
+    </section>
+
+    <!-- ===================== REPORTS ===================== -->
+    <section class="module" id="reports">
+      <div class="module-head">
+        <p class="module-eyebrow">Business Intelligence</p>
+        <h2 class="module-title">Reports</h2>
+        <p class="module-desc">Twelve report views, all filterable by date range and branch, covering financials, the menu, wastage, and demand patterns in depth.</p>
+      </div>
+
+      <div class="subgroup">
+        <h3 class="subgroup-title">Financial Reports</h3>
+        <div class="feature">
+          <p class="feature-name">P&amp;L Statement</p>
+          <p class="feature-what">A full income &amp; expenditure statement — gross revenue down to net profit/loss — plus a revenue trend chart and a channel-split donut chart.</p>
+          <p class="feature-why">One page to see whether the restaurant is actually profitable after tax and logged expenses, not just how much revenue came in.</p>
+          <span class="feature-loc">Reports → P&amp;L Statement</span>
+        </div>
+        <div class="feature">
+          <p class="feature-name">Tax Report</p>
+          <p class="feature-what">CGST, SGST, and total GST collected, with a bill-by-bill breakdown and accurate period totals.</p>
+          <p class="feature-why">A ready reference for GST filing and reconciliation.</p>
+          <span class="feature-loc">Reports → Tax Report</span>
+        </div>
+        <div class="feature">
+          <p class="feature-name">Expense Tracker</p>
+          <p class="feature-what">Total expenses by category, an expense-to-revenue ratio, and the most recent individual entries.</p>
+          <p class="feature-why">Shows where operating cash is going and whether costs are creeping up relative to sales.</p>
+          <span class="feature-loc">Reports → Expense Tracker</span>
+        </div>
+        <div class="feature">
+          <p class="feature-name">Sales Analytics</p>
+          <p class="feature-what">Revenue broken down by payment method and by order channel (dine-in/takeaway/delivery), plus a paid-vs-unpaid summary.</p>
+          <p class="feature-why">Shows how customers are ordering and paying, and how much revenue is still uncollected.</p>
+          <span class="feature-loc">Reports → Sales Analytics</span>
+        </div>
+        <div class="feature">
+          <p class="feature-name">Discount Analysis</p>
+          <p class="feature-what">Total discounts given, average discount per bill, and every discounted bill listed, with anything over 20% flagged.</p>
+          <p class="feature-why">Catches excessive discounting patterns that are invisible bill-by-bill on paper receipts.</p>
+          <span class="feature-loc">Reports → Discount Analysis</span>
+        </div>
+      </div>
+
+      <div class="subgroup">
+        <h3 class="subgroup-title">Menu Intelligence</h3>
+        <div class="feature">
+          <p class="feature-name">Menu Engineering Matrix</p>
+          <p class="feature-what">Classifies every dish into Star / Puzzle / Plowhorse / Dog based on sales volume and margin, with a specific tip per quadrant (promote, reprice, remove, etc.).</p>
+          <p class="feature-why">A classic, at-a-glance way to decide which dishes to push, fix, or drop from the menu.</p>
+          <span class="feature-loc">Reports → Menu Engineering</span>
+        </div>
+        <div class="feature">
+          <p class="feature-name">Best Sellers &amp; Most Profitable Dishes</p>
+          <p class="feature-what">A true sales-ranked best-sellers list with food-cost % and margin % side by side, plus separate rankings for most-profitable dish overall and by category.</p>
+          <p class="feature-why">Separates "sells the most" from "makes the most money" — two very different, both important, questions.</p>
+          <span class="feature-loc">Reports → Menu Engineering</span>
+        </div>
+        <div class="feature">
+          <p class="feature-name">Category Food Cost</p>
+          <p class="feature-what">Average food cost % and margin % rolled up per menu category, with each category's top dish.</p>
+          <p class="feature-why">Shows which parts of the menu (not just individual dishes) are pulling margin down.</p>
+          <span class="feature-loc">Reports → Menu Engineering</span>
+        </div>
+        <div class="feature">
+          <p class="feature-name">Compare Dishes &amp; Suggested Pricing</p>
+          <p class="feature-what">Pick two dishes to compare cost, price, and margin side by side; every dish also shows a suggested selling price that would hit a 65% profit margin.</p>
+          <p class="feature-why">Makes repricing decisions concrete instead of guesswork — what should this actually cost to hit the margin we want?</p>
+          <span class="feature-loc">Reports → Menu Engineering</span>
+        </div>
+        <div class="feature">
+          <p class="feature-name">Menu Split — Price High / Usage High</p>
+          <p class="feature-what">Two ranked views: the highest-priced items on the menu, and the highest-volume sellers.</p>
+          <p class="feature-why">Two different levers for menu strategy — premium positioning versus volume drivers.</p>
+          <span class="feature-loc">Reports → Menu Engineering</span>
+        </div>
+      </div>
+
+      <div class="subgroup">
+        <h3 class="subgroup-title">Operational Reports</h3>
+        <div class="feature">
+          <p class="feature-name">Table Analytics</p>
+          <p class="feature-what">Revenue and average turn time per table, with a High/Low performance badge.</p>
+          <p class="feature-why">Shows which tables generate the most revenue and which sit occupied too long.</p>
+          <span class="feature-loc">Reports → Table Analytics</span>
+        </div>
+        <div class="feature">
+          <p class="feature-name">Waste Report &amp; Stock Lifecycle</p>
+          <p class="feature-what">Logged wastage/damage/expiry entries with cost attached, plus a full per-ingredient wastage lifecycle (opening → purchases → consumption → closing) viewable by weight, by product, or by price.</p>
+          <p class="feature-why">Wastage against SOP-expected consumption, broken down every way an owner would need to act on it — how much, of what, and what it cost.</p>
+          <span class="feature-loc">Reports → Waste Report / Stock Lifecycle</span>
+        </div>
+        <div class="feature">
+          <p class="feature-name">Hourly Heatmap</p>
+          <p class="feature-what">Revenue and order volume by hour of day and day of week, with an item/category filter to see when a specific dish or category is in highest demand.</p>
+          <p class="feature-why">Answers "when should we staff up" both restaurant-wide and for a specific menu category.</p>
+          <span class="feature-loc">Reports → Hourly Heatmap</span>
+        </div>
+        <div class="feature">
+          <p class="feature-name">Day Analysis</p>
+          <p class="feature-what">Revenue, orders, and average bill by day of week, with Peak/Busy/Slow labels.</p>
+          <p class="feature-why">Plan staffing, promotions, or prep around real weekly demand patterns.</p>
+          <span class="feature-loc">Reports → Day Analysis</span>
+        </div>
+        <div class="feature">
+          <p class="feature-name">Revenue Forecast</p>
+          <p class="feature-what">A 7-day-ahead revenue projection based on recent trend, with a daily breakdown and expected range.</p>
+          <p class="feature-why">A lightweight, forward-looking number for cash-flow, staffing, and purchasing decisions.</p>
+          <span class="feature-loc">Reports → Revenue Forecast</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================== COMPARE ===================== -->
+    <section class="module" id="compare">
+      <div class="module-head">
+        <p class="module-eyebrow">Business Intelligence</p>
+        <h2 class="module-title">Compare</h2>
+        <p class="module-desc">For multi-branch operators — put every location side by side and see who's actually winning.</p>
+      </div>
+
+      <div class="feature">
+        <p class="feature-name">Branch vs. Branch / City vs. City</p>
+        <p class="feature-what">Toggle the entire comparison between individual outlets and cities (branches grouped by shared city).</p>
+        <p class="feature-why">Analyze performance at whichever level matches how the business is actually organized.</p>
+        <span class="feature-loc">Compare</span>
+      </div>
+      <div class="feature">
+        <p class="feature-name">Winner Cards &amp; Full Metric Table</p>
+        <p class="feature-what">Highlights which location has the highest revenue, most orders, best average bill, and most profit — then a full table of Revenue, Orders, Avg Bill, Discounts, GST, Expenses, Net Profit, and Staff across every location, with the best performer per row flagged.</p>
+        <p class="feature-why">Immediately surfaces the best and worst performing location without reading a full table row by row — then gives the detail to back it up.</p>
+        <span class="feature-loc">Compare</span>
+      </div>
+      <div class="feature">
+        <p class="feature-name">Order Mix &amp; Payment Preference by Location</p>
+        <p class="feature-what">Order-type breakdown and payment-method mix, shown per branch/city.</p>
+        <p class="feature-why">Reveals whether one location's business runs differently — more delivery, more cash — informing local decisions.</p>
+        <span class="feature-loc">Compare</span>
+      </div>
+    </section>
+
+    <!-- ===================== SETTINGS ===================== -->
+    <section class="module" id="settings">
+      <div class="module-head">
+        <p class="module-eyebrow">Configuration</p>
+        <h2 class="module-title">Settings &amp; Shops</h2>
+        <p class="module-desc">Restaurant, branch, table, and staff configuration — everything an owner needs to keep the operation's setup accurate as it grows.</p>
+      </div>
+
+      <div class="feature">
+        <p class="feature-name">Restaurant Profile</p>
+        <p class="feature-what">The organization-wide name, contact details, GST number, and logo — separate from any individual branch's own information.</p>
+        <p class="feature-why">A single, consistent identity used across the whole account.</p>
+        <span class="feature-loc">Settings</span>
+      </div>
+      <div class="feature">
+        <p class="feature-name">Branch Management</p>
+        <p class="feature-what">Add, edit, close, or reopen branches — address, contact details, and a closing time used to trigger the daily stock audit reminder.</p>
+        <p class="feature-why">Central place to onboard a new outlet or adjust an existing one's details and hours.</p>
+        <span class="feature-loc">Settings → Branches, or Shops</span>
+      </div>
+      <div class="feature">
+        <p class="feature-name">Table &amp; Staff Management</p>
+        <p class="feature-what">Per branch: manage the table/seating list (name, capacity), and the staff directory (role, department, shift, salary, login access).</p>
+        <p class="feature-why">Keeps floor plan and headcount records accurate per location.</p>
+        <span class="feature-loc">Shops</span>
+      </div>
+      <div class="feature">
+        <p class="feature-name">Per-Branch Billing Configuration</p>
+        <p class="feature-what">Toggle which billing modes are active (table-wise, quick billing, takeaway, delivery, QR ordering, KOT), set GST % and service charge %, and choose accepted payment methods — independently per branch.</p>
+        <p class="feature-why">Different locations can legitimately run different tax rates or accept different payment types.</p>
+        <span class="feature-loc">Shops / Settings → Branches</span>
+      </div>
+    </section>
+
+    <footer class="doc-footer">
+      Every feature above reflects the app's actual, working behavior as of this guide's writing. Where a screen showed placeholder or not-yet-wired functionality during review, it was left out of this document rather than described as complete.
+    </footer>
+  </main>
+</div>

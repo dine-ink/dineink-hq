@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useAppSelector } from "../../store";
 import {
   TruckIcon,
@@ -17,6 +18,8 @@ const API_URL = import.meta.env.VITE_API_URL;
 export default function Vendors() {
   const { user, token } = useAppSelector((s) => s.auth);
   const { selectedBranch } = useAppSelector((s) => s.branch);
+  const location = useLocation();
+  const navigate = useNavigate();
 
   const [vendors, setVendors] = useState<any[]>([]);
   const [outstanding, setOutstanding] = useState<any[]>([]);
@@ -41,7 +44,8 @@ export default function Vendors() {
     vendor: any | null;
     payments: any[];
     invoices: any[];
-  }>({ open: false, vendor: null, payments: [], invoices: [] });
+    ingredients: any[];
+  }>({ open: false, vendor: null, payments: [], invoices: [], ingredients: [] });
 
   // Forms
   const [vendorForm, setVendorForm] = useState({
@@ -105,6 +109,25 @@ export default function Vendors() {
     fetchOutstanding();
   }, [selectedBranch?.id]);
 
+  // Deep-link from a low-stock alert (Menu Management → Analytics) — open the
+  // purchase invoice modal for the vendor tied to the ingredient running low.
+  useEffect(() => {
+    const restockVendorId = (location.state as any)?.restockVendorId;
+    const restockIngredientName = (location.state as any)?.restockIngredientName;
+    if (!restockVendorId || !vendors.length) return;
+    const vendor = vendors.find((v: any) => v.id === restockVendorId);
+    if (!vendor) return;
+    setInvoiceModal({ open: true, vendor });
+    setInvoiceForm((f) => ({
+      ...f,
+      notes: restockIngredientName
+        ? `Restock: ${restockIngredientName} (low stock)`
+        : f.notes,
+    }));
+    navigate(location.pathname, { replace: true, state: {} });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [vendors, location.state]);
+
   const openVendorModal = (v?: any) => {
     setVendorForm(
       v
@@ -157,16 +180,24 @@ export default function Vendors() {
 
   const openDetailModal = async (vendor: any) => {
     try {
-      const [pRes, iRes] = await Promise.all([
+      const [pRes, iRes, ingRes] = await Promise.all([
         fetch(`${API_URL}/api/vendors/${vendor.id}/payments`, { headers }),
         fetch(`${API_URL}/api/vendors/${vendor.id}/invoices`, { headers }),
+        fetch(`${API_URL}/api/ingredients/vendors/${vendor.id}/ingredients`, {
+          headers,
+        }),
       ]);
-      const [pData, iData] = await Promise.all([pRes.json(), iRes.json()]);
+      const [pData, iData, ingData] = await Promise.all([
+        pRes.json(),
+        iRes.json(),
+        ingRes.json(),
+      ]);
       setDetailModal({
         open: true,
         vendor,
         payments: pData.data || [],
         invoices: iData.data || [],
+        ingredients: ingData.data || [],
       });
     } catch {
       /* silent */
@@ -783,6 +814,7 @@ export default function Vendors() {
                     vendor: null,
                     payments: [],
                     invoices: [],
+                    ingredients: [],
                   })
                 }
                 className="text-gray-400 hover:text-gray-600"
@@ -872,6 +904,63 @@ export default function Vendors() {
                   </div>
                 )}
               </div>
+            </div>
+
+            {/* Ingredients Supplied */}
+            <div className="mt-4">
+              <p className="mb-2 text-[11px] font-bold uppercase tracking-wide text-gray-500">
+                Ingredients Supplied
+              </p>
+              {detailModal.ingredients.length === 0 ? (
+                <p className="text-[11px] text-gray-400">
+                  No ingredients linked to this vendor yet — assign this
+                  vendor to ingredients from Menu Management → Ingredients
+                </p>
+              ) : (
+                <div className="overflow-x-auto rounded-lg border border-gray-100">
+                  <table className="min-w-full text-[11px]">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        {["Ingredient", "Category", "Unit", "Purchase Price", "Price/Unit"].map(
+                          (h) => (
+                            <th
+                              key={h}
+                              className="px-3 py-2 text-left text-[10px] font-bold uppercase tracking-wide text-gray-400"
+                            >
+                              {h}
+                            </th>
+                          ),
+                        )}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {detailModal.ingredients.map((ing: any) => (
+                        <tr key={ing.id} className="border-t border-gray-100">
+                          <td className="px-3 py-2 font-semibold text-gray-900">
+                            {ing.name}
+                          </td>
+                          <td className="px-3 py-2 text-gray-500">
+                            {ing.category}
+                          </td>
+                          <td className="px-3 py-2 text-gray-500">
+                            {ing.unit || "—"}
+                          </td>
+                          <td className="px-3 py-2 text-gray-700">
+                            {ing.purchasePrice != null
+                              ? `₹${ing.purchasePrice}`
+                              : "—"}
+                          </td>
+                          <td className="px-3 py-2 text-gray-700">
+                            {ing.pricePerUnit != null
+                              ? `₹${ing.pricePerUnit}`
+                              : "—"}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
           </div>
         </div>
