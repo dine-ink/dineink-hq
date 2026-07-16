@@ -1,11 +1,12 @@
 import { Link, useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   EyeIcon,
   EyeSlashIcon,
   SparklesIcon,
   ChartBarIcon,
   CpuChipIcon,
+  ArrowLeftIcon,
 } from "@heroicons/react/24/outline";
 import { useAppDispatch } from "../../store";
 import { setAuth } from "../../store/slices/authSlice";
@@ -16,6 +17,7 @@ export default function Signup() {
   const dispatch = useAppDispatch();
   const API_URL = import.meta.env.VITE_API_URL;
 
+  const [step, setStep] = useState<"form" | "otp">("form");
   const [form, setForm] = useState({
     name: "",
     email: "",
@@ -23,6 +25,9 @@ export default function Signup() {
     password: "",
     confirmPassword: "",
   });
+  const [otp, setOtp] = useState("");
+  const [otpError, setOtpError] = useState("");
+  const [resendCooldown, setResendCooldown] = useState(0);
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -31,15 +36,79 @@ export default function Signup() {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const t = setTimeout(() => setResendCooldown((c) => c - 1), 1000);
+    return () => clearTimeout(t);
+  }, [resendCooldown]);
+
+  const sendOtp = async () => {
+    const res = await fetch(`${API_URL}/api/auth/signup/send-otp`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: form.email }),
+    });
+    return res.json();
+  };
+
+  const handleSendOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     if (form.password !== form.confirmPassword) {
       alert("Passwords do not match");
       return;
     }
+    if (form.password.length < 6) {
+      alert("Password must be at least 6 characters");
+      return;
+    }
     try {
       setLoading(true);
-      const res = await fetch(`${API_URL}/api/auth/signup`, {
+      const data = await sendOtp();
+      if (data.success) {
+        setOtp("");
+        setOtpError("");
+        setStep("otp");
+        setResendCooldown(30);
+      } else {
+        alert(data.message || "Could not send verification code");
+      }
+    } catch (error) {
+      console.error(error);
+      alert("Something went wrong");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResendOtp = async () => {
+    if (resendCooldown > 0) return;
+    try {
+      setLoading(true);
+      const data = await sendOtp();
+      if (data.success) {
+        setOtpError("");
+        setResendCooldown(30);
+      } else {
+        setOtpError(data.message || "Could not resend code");
+      }
+    } catch (error) {
+      console.error(error);
+      setOtpError("Something went wrong");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleVerifyOtp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (otp.trim().length !== 6) {
+      setOtpError("Enter the 6-digit code");
+      return;
+    }
+    try {
+      setLoading(true);
+      setOtpError("");
+      const res = await fetch(`${API_URL}/api/auth/signup/verify-otp`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -47,6 +116,7 @@ export default function Signup() {
           email: form.email,
           phone: form.phone,
           password: form.password,
+          otp,
         }),
       });
       const data = await res.json();
@@ -61,11 +131,11 @@ export default function Signup() {
         dispatch(setBranches(data.branches || []));
         navigate("/dashboard");
       } else {
-        alert(data.message || "Signup failed");
+        setOtpError(data.message || "Verification failed");
       }
     } catch (error) {
       console.error(error);
-      alert("Something went wrong");
+      setOtpError("Something went wrong");
     } finally {
       setLoading(false);
     }
@@ -189,20 +259,34 @@ export default function Signup() {
           <div className="overflow-hidden rounded-3xl border border-white/20 bg-white shadow-2xl shadow-black/30">
             {/* Card header */}
             <div className="border-b border-slate-100 px-6 py-5">
+              {step === "otp" && (
+                <button
+                  type="button"
+                  onClick={() => setStep("form")}
+                  className="mb-3 flex items-center gap-1 text-xs font-semibold text-slate-400 hover:text-slate-600"
+                >
+                  <ArrowLeftIcon className="h-3.5 w-3.5" /> Change email
+                </button>
+              )}
               <span className="inline-flex items-center rounded-full bg-red-50 border border-red-100 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-[#b10000]">
-                Create Account
+                {step === "form" ? "Create Account" : "Verify Email"}
               </span>
               <h2 className="mt-3 text-3xl font-black tracking-tight text-slate-900">
-                Join DineInk
+                {step === "form" ? "Join DineInk" : "Check your inbox"}
               </h2>
               <p className="mt-1.5 text-sm leading-5 text-slate-500">
-                Create your restaurant account and start managing your business smarter.
+                {step === "form"
+                  ? "Create your restaurant account and start managing your business smarter."
+                  : (
+                    <>We sent a 6-digit code to <span className="font-semibold text-slate-700">{form.email}</span>. Enter it below to finish creating your account.</>
+                  )}
               </p>
             </div>
 
-            {/* Form */}
+            {step === "form" ? (
+            /* Form */
             <div className="px-6 py-5">
-              <form className="space-y-3" onSubmit={handleSubmit}>
+              <form className="space-y-3" onSubmit={handleSendOtp}>
                 <div>
                   <label className="mb-1.5 block text-sm font-semibold text-slate-700">
                     Full Name
@@ -299,10 +383,56 @@ export default function Signup() {
                   disabled={loading}
                   className="mt-1 h-10 w-full rounded-xl bg-[#b10000] text-sm font-bold text-white shadow-lg shadow-red-900/20 transition hover:bg-[#8f0000] disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  {loading ? "Creating..." : "Create Account →"}
+                  {loading ? "Sending Code..." : "Send Verification Code →"}
                 </button>
               </form>
             </div>
+            ) : (
+            /* OTP */
+            <div className="px-6 py-5">
+              <form className="space-y-3" onSubmit={handleVerifyOtp}>
+                <div>
+                  <label className="mb-1.5 block text-sm font-semibold text-slate-700">
+                    Verification Code
+                  </label>
+                  <input
+                    value={otp}
+                    onChange={(e) => {
+                      setOtp(e.target.value.replace(/\D/g, "").slice(0, 6));
+                      setOtpError("");
+                    }}
+                    inputMode="numeric"
+                    autoFocus
+                    placeholder="Enter 6-digit code"
+                    className="h-12 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 text-center text-xl font-bold tracking-[0.5em] text-slate-900 outline-none transition focus:border-[#b10000] focus:bg-white focus:ring-4 focus:ring-red-100"
+                  />
+                  {otpError && (
+                    <p className="mt-1.5 text-xs font-semibold text-red-600">{otpError}</p>
+                  )}
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="mt-1 h-10 w-full rounded-xl bg-[#b10000] text-sm font-bold text-white shadow-lg shadow-red-900/20 transition hover:bg-[#8f0000] disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {loading ? "Verifying..." : "Verify & Create Account →"}
+                </button>
+
+                <p className="text-center text-xs text-slate-400">
+                  Didn't get the code?{" "}
+                  <button
+                    type="button"
+                    onClick={handleResendOtp}
+                    disabled={resendCooldown > 0 || loading}
+                    className="font-bold text-[#b10000] hover:text-[#8f0000] disabled:cursor-not-allowed disabled:text-slate-300"
+                  >
+                    {resendCooldown > 0 ? `Resend in ${resendCooldown}s` : "Resend code"}
+                  </button>
+                </p>
+              </form>
+            </div>
+            )}
           </div>
 
           <p className="mt-3 text-center text-sm text-red-200">
