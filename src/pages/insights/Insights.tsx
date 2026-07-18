@@ -45,6 +45,19 @@ import {
   BadgePercent,
 } from "lucide-react";
 import React from "react";
+import {
+  ResponsiveContainer,
+  PieChart as RePieChart,
+  Pie,
+  Cell,
+  Tooltip as ReTooltip,
+  BarChart as ReBarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  ReferenceLine,
+} from "recharts";
 
 const tabs = ["Overview", "Insights Setup"];
 
@@ -1122,143 +1135,210 @@ export default function Insights() {
                   </span>
                 </div>
 
-                {/* TARGET GRID */}
+                {/* TARGET CHART */}
 
-                <div className="grid grid-cols-2 gap-3 xl:grid-cols-6">
-                  {[0, 5, 10, 15, 20, 25].map((target) => {
-                    const requiredRevenue = totalExpenses / (1 - target / 100);
-
-                    const extraNeeded = requiredRevenue - revenue;
-
-                    return (
-                      <div
-                        key={target}
-                        className={`rounded-2xl border p-3 shadow-sm transition-all ${
-                          target >= 20
-                            ? "border-emerald-100 bg-emerald-50/40"
-                            : target >= 10
-                              ? "border-orange-100 bg-orange-50/40"
-                              : "border-gray-200 bg-gray-50"
-                        }`}
-                      >
-                        <div className="flex items-center justify-between">
-                          <p
-                            className={`text-[10px] font-bold uppercase tracking-[0.14em] ${
-                              target >= 20
-                                ? "text-emerald-500"
-                                : target >= 10
-                                  ? "text-orange-500"
-                                  : "text-gray-500"
-                            }`}
+                {(() => {
+                  const revenueTargetData = [0, 5, 10, 15, 20, 25].map(
+                    (target) => ({
+                      target: `${target}%`,
+                      targetNum: target,
+                      required: totalExpenses / (1 - target / 100),
+                    }),
+                  );
+                  return (
+                    <>
+                      <div className="h-[260px] w-full">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <ReBarChart
+                            data={revenueTargetData}
+                            layout="vertical"
+                            margin={{ top: 20, right: 24, left: 0, bottom: 0 }}
                           >
-                            {target}% EBITDA
-                          </p>
-                          <div
-                            className={`h-2 w-2 rounded-full ${
-                              target >= 20
-                                ? "bg-emerald-500"
-                                : target >= 10
-                                  ? "bg-orange-500"
-                                  : "bg-gray-400"
-                            }`}
-                          />
-                        </div>
-                        <p className="mt-3 text-[24px] font-bold leading-none tracking-tight text-gray-900">
-                          ₹{Math.round(requiredRevenue).toLocaleString()}
-                        </p>
-                        <p
-                          className={`mt-2 text-[11px] font-semibold ${extraNeeded <= 0 ? "text-emerald-600" : "text-[#b10000]"}`}
-                        >
-                          {extraNeeded <= 0
-                            ? "Target achieved"
-                            : `+₹${Math.round(extraNeeded).toLocaleString()}`}
-                        </p>
-                        <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/80">
-                          <div
-                            className={`h-full rounded-full ${
-                              target >= 20
-                                ? "bg-emerald-500"
-                                : target >= 10
-                                  ? "bg-orange-500"
-                                  : "bg-gray-500"
-                            }`}
-                            style={{ width: `${Math.min(target * 4, 100)}%` }}
-                          />
-                        </div>
+                            <CartesianGrid
+                              strokeDasharray="3 3"
+                              horizontal={false}
+                              stroke="#f1f5f9"
+                            />
+                            <XAxis
+                              type="number"
+                              tickFormatter={(v) => `₹${Math.round(v / 1000)}k`}
+                              tick={{ fontSize: 10, fill: "#9ca3af" }}
+                              axisLine={false}
+                              tickLine={false}
+                            />
+                            <YAxis
+                              type="category"
+                              dataKey="target"
+                              tick={{
+                                fontSize: 11,
+                                fill: "#374151",
+                                fontWeight: 600,
+                              }}
+                              axisLine={false}
+                              tickLine={false}
+                              width={44}
+                            />
+                            <ReTooltip
+                              formatter={(v: number) => [
+                                `₹${Math.round(v).toLocaleString()}`,
+                                "Revenue Required",
+                              ]}
+                              labelFormatter={(l) => `${l} EBITDA target`}
+                            />
+                            <Bar dataKey="required" radius={[0, 6, 6, 0]} barSize={20}>
+                              {revenueTargetData.map((d) => (
+                                <Cell
+                                  key={d.target}
+                                  fill={
+                                    d.targetNum >= 20
+                                      ? "#10b981"
+                                      : d.targetNum >= 10
+                                        ? "#f97316"
+                                        : "#9ca3af"
+                                  }
+                                />
+                              ))}
+                            </Bar>
+                            <ReferenceLine
+                              x={mtdRevenue}
+                              stroke="#3b82f6"
+                              strokeWidth={2}
+                              label={{
+                                value: "MTD",
+                                position: "top",
+                                fill: "#3b82f6",
+                                fontSize: 10,
+                                fontWeight: 700,
+                              }}
+                            />
+                            <ReferenceLine
+                              x={projectedMonthEndRevenue}
+                              stroke="#b10000"
+                              strokeDasharray="4 2"
+                              strokeWidth={2}
+                              label={{
+                                value: "Projected",
+                                position: "top",
+                                fill: "#b10000",
+                                fontSize: 10,
+                                fontWeight: 700,
+                              }}
+                            />
+                          </ReBarChart>
+                        </ResponsiveContainer>
                       </div>
-                    );
-                  })}
-                </div>
+                      <p className="mt-2 text-[11px] text-gray-500">
+                        Bars show the revenue needed to hit each EBITDA
+                        target this month. Blue = revenue so far (MTD),
+                        red dashed = projected month-end revenue at the
+                        current daily pace.
+                      </p>
+                    </>
+                  );
+                })()}
               </div>
 
               {/* ================= COST BREAKDOWN ================= */}
 
-              <div className="grid grid-cols-2 gap-3 xl:grid-cols-5">
-                {[
-                  {
-                    label: "Fixed",
-                    value: totalFixedExpenses,
-                    icon: Wallet,
-                    color: "blue",
-                  },
+              <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+                <div className="mb-4 flex items-center justify-between">
+                  <div className="flex items-start gap-3">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gray-100">
+                      <PieChart className="h-4 w-4 text-gray-700" />
+                    </div>
+                    <div>
+                      <h3 className="text-[18px] font-bold tracking-tight text-gray-900">
+                        Expense Split
+                      </h3>
+                      <p className="mt-1 text-[12px] text-gray-500">
+                        Where this month's costs are going
+                      </p>
+                    </div>
+                  </div>
+                  <span className="rounded-full bg-gray-100 px-3 py-1 text-[10px] font-semibold text-gray-600">
+                    ₹{Math.round(totalExpenses).toLocaleString()} total
+                  </span>
+                </div>
 
-                  {
-                    label: "Variable",
-                    value: totalVariableExpenses,
-                    icon: BarChart3,
-                    color: "orange",
-                  },
+                {(() => {
+                  const costBreakdownData = [
+                    { label: "Fixed", value: totalFixedExpenses, icon: Wallet, color: "#3b82f6" },
+                    { label: "Variable", value: totalVariableExpenses, icon: BarChart3, color: "#f97316" },
+                    { label: "Labour", value: totalLabourCost, icon: Users, color: "#10b981" },
+                    { label: "Tax", value: totalFinanceCost, icon: Landmark, color: "#8b5cf6" },
+                    { label: "Raw Material", value: effectiveFoodCost, icon: ShoppingCart, color: "#ef4444" },
+                  ].filter((d) => d.value > 0);
 
-                  {
-                    label: "Labour",
-                    value: totalLabourCost,
-                    icon: Users,
-                    color: "emerald",
-                  },
-
-                  {
-                    label: "Tax",
-                    value: totalFinanceCost,
-                    icon: Landmark,
-                    color: "violet",
-                  },
-
-                  {
-                    label: "Raw Material",
-                    value: effectiveFoodCost,
-                    icon: ShoppingCart,
-                    color: "red",
-                  },
-                ].map((item) => {
-                  const Icon = item.icon;
+                  if (!costBreakdownData.length) {
+                    return (
+                      <div className="flex h-[180px] items-center justify-center rounded-xl border border-dashed border-gray-200 bg-gray-50">
+                        <p className="text-[12px] text-gray-400">
+                          No expense data yet — fill these in under Insights
+                          Setup.
+                        </p>
+                      </div>
+                    );
+                  }
 
                   return (
-                    <div
-                      key={item.label}
-                      className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm"
-                    >
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-gray-400">
-                            {item.label}
-                          </p>
-                          <p className="mt-2 text-[22px] font-bold tracking-tight text-gray-900">
-                            ₹{Math.round(item.value).toLocaleString()}
-                          </p>
-                          <p className="mt-1 text-[11px] text-gray-500">
-                            {totalExpenses > 0
-                              ? ((item.value / totalExpenses) * 100).toFixed(1)
-                              : "0.0"}
-                            % of expenses
-                          </p>
-                        </div>
-                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gray-100">
-                          <Icon className="h-4 w-4 text-gray-700" />
-                        </div>
+                    <div className="flex flex-col items-center gap-4 lg:flex-row">
+                      <div className="h-[220px] w-[220px] shrink-0">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <RePieChart>
+                            <Pie
+                              data={costBreakdownData}
+                              dataKey="value"
+                              nameKey="label"
+                              innerRadius={55}
+                              outerRadius={90}
+                              paddingAngle={2}
+                            >
+                              {costBreakdownData.map((d) => (
+                                <Cell key={d.label} fill={d.color} />
+                              ))}
+                            </Pie>
+                            <ReTooltip
+                              formatter={(v: number) => `₹${Math.round(v).toLocaleString()}`}
+                            />
+                          </RePieChart>
+                        </ResponsiveContainer>
+                      </div>
+                      <div className="w-full flex-1 space-y-2">
+                        {costBreakdownData.map((item) => {
+                          const Icon = item.icon;
+                          return (
+                            <div
+                              key={item.label}
+                              className="flex items-center justify-between rounded-xl border border-gray-200 bg-gray-50 px-3 py-2.5"
+                            >
+                              <div className="flex items-center gap-2.5">
+                                <span
+                                  className="h-2.5 w-2.5 shrink-0 rounded-full"
+                                  style={{ background: item.color }}
+                                />
+                                <Icon className="h-3.5 w-3.5 text-gray-500" />
+                                <span className="text-[12px] font-semibold text-gray-700">
+                                  {item.label}
+                                </span>
+                              </div>
+                              <div className="text-right">
+                                <p className="text-[13px] font-bold text-gray-900">
+                                  ₹{Math.round(item.value).toLocaleString()}
+                                </p>
+                                <p className="text-[10px] text-gray-400">
+                                  {totalExpenses > 0
+                                    ? ((item.value / totalExpenses) * 100).toFixed(1)
+                                    : "0.0"}
+                                  % of expenses
+                                </p>
+                              </div>
+                            </div>
+                          );
+                        })}
                       </div>
                     </div>
                   );
-                })}
+                })()}
               </div>
 
               {/* ================= BREAK-EVEN & MONTHLY PROGRESS ================= */}
