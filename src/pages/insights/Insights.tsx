@@ -61,6 +61,7 @@ export default function Insights() {
   const [loading, setLoading] = useState(false);
   const [restockHistory, setRestockHistory] = useState<any[]>([]);
   const [inventoryStockValue, setInventoryStockValue] = useState(0);
+  const [mtdAnalytics, setMtdAnalytics] = useState<any>(null);
   const [insightsData, setInsightsData] = useState<any>({
     monthlyRent: 0,
     loanEmi: 0,
@@ -191,6 +192,44 @@ export default function Insights() {
     ? (((totalVariableExpenses + totalLabourCost) / revenue) * 100).toFixed(1)
     : 0;
 
+  /* ================= BREAK-EVEN & MONTHLY PROGRESS ================= */
+  const today = new Date();
+  const daysInMonth = new Date(
+    today.getFullYear(),
+    today.getMonth() + 1,
+    0,
+  ).getDate();
+  const daysElapsed = today.getDate();
+  const mtdRevenue = n(mtdAnalytics?.totalRevenue);
+  const breakEvenRevenue = totalExpenses; // revenue needed to hit 0% EBITDA
+  const dailyRunRate = daysElapsed > 0 ? mtdRevenue / daysElapsed : 0;
+  const projectedMonthEndRevenue = dailyRunRate * daysInMonth;
+  const monthlyTarget =
+    n(insightsData.monthlyRevenueGoal) > 0
+      ? n(insightsData.monthlyRevenueGoal)
+      : breakEvenRevenue;
+  const pctOfMonthElapsed = (daysElapsed / daysInMonth) * 100;
+  const pctOfBreakEvenCovered = breakEvenRevenue
+    ? Math.min((mtdRevenue / breakEvenRevenue) * 100, 100)
+    : 0;
+  const breakEvenDay =
+    dailyRunRate > 0 ? Math.ceil(breakEvenRevenue / dailyRunRate) : null;
+  const hasBrokenEven = mtdRevenue >= breakEvenRevenue && breakEvenRevenue > 0;
+  const onTrackForTarget = projectedMonthEndRevenue >= monthlyTarget;
+
+  /* ================= DELIVERY / AGGREGATOR PROFITABILITY ================= */
+  const revenueByOrderType = mtdAnalytics?.revenueByOrderType || {};
+  const deliveryRevenue = n(revenueByOrderType.ONLINE) + n(revenueByOrderType.DELIVERY);
+  const dineInTakeawayRevenue = Object.entries(revenueByOrderType)
+    .filter(([type]) => type !== "ONLINE" && type !== "DELIVERY")
+    .reduce((sum, [, v]) => sum + n(v), 0);
+  const deliveryRelatedCost = n(insightsData.deliveryCharges) + n(insightsData.aggregatorCommission);
+  const deliveryMargin = deliveryRevenue - deliveryRelatedCost;
+  const deliveryCostPercentage = deliveryRevenue
+    ? (deliveryRelatedCost / deliveryRevenue) * 100
+    : 0;
+  const hasDeliveryOrders = deliveryRevenue > 0;
+
   useEffect(() => {
     const fetchInsights = async () => {
       try {
@@ -318,9 +357,31 @@ export default function Insights() {
       }
     };
 
+    // Month-to-date revenue (calendar month, not a rolling 30-day window) —
+    // powers the Break-Even Progress and Delivery Profitability cards below.
+    const fetchMtdAnalytics = async () => {
+      try {
+        if (!user?.restaurantId || !selectedBranch?.id) return;
+        const now = new Date();
+        const from = new Date(now.getFullYear(), now.getMonth(), 1)
+          .toISOString()
+          .slice(0, 10);
+        const to = now.toISOString().slice(0, 10);
+        const res = await fetch(
+          `${API_URL}/api/analytics/${user.restaurantId}/restaurantDashboardOverview?branchId=${selectedBranch.id}&range=month&from=${from}&to=${to}`,
+          { headers: { Authorization: `Bearer ${token}` } },
+        );
+        const json = await res.json();
+        if (json.success) setMtdAnalytics(json.data);
+      } catch {
+        // silently ignored
+      }
+    };
+
     fetchInsights();
     fetchRestockHistory();
     fetchInventoryStock();
+    fetchMtdAnalytics();
   }, [selectedBranch]);
   const handleGenerate = async () => {
     try {
@@ -1198,6 +1259,213 @@ export default function Insights() {
                     </div>
                   );
                 })}
+              </div>
+
+              {/* ================= BREAK-EVEN & MONTHLY PROGRESS ================= */}
+
+              <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+                <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+                  <div className="flex items-start gap-3">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-50">
+                      <Rocket className="h-4 w-4 text-emerald-600" />
+                    </div>
+                    <div>
+                      <h3 className="text-[18px] font-bold tracking-tight text-gray-900">
+                        Break-Even & Monthly Progress
+                      </h3>
+                      <p className="mt-1 text-[12px] text-gray-500">
+                        Day {daysElapsed} of {daysInMonth} · pace against this
+                        month's costs
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap gap-2">
+                    {[
+                      {
+                        label: "MTD Revenue",
+                        value: `₹${Math.round(mtdRevenue).toLocaleString()}`,
+                        color: "blue",
+                      },
+                      {
+                        label: "Break-Even At",
+                        value: `₹${Math.round(breakEvenRevenue).toLocaleString()}`,
+                        color: "violet",
+                      },
+                      {
+                        label: "Status",
+                        value: hasBrokenEven
+                          ? "Costs Covered"
+                          : breakEvenDay && breakEvenDay <= daysInMonth
+                            ? `Break-even ~Day ${breakEvenDay}`
+                            : "Behind Pace",
+                        color: hasBrokenEven
+                          ? "emerald"
+                          : breakEvenDay && breakEvenDay <= daysInMonth
+                            ? "orange"
+                            : "red",
+                      },
+                    ].map((item) => (
+                      <div
+                        key={item.label}
+                        className="rounded-xl border border-gray-200 bg-gray-50 px-3 py-2"
+                      >
+                        <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-gray-400">
+                          {item.label}
+                        </p>
+                        <p
+                          className={`text-[15px] font-bold ${
+                            item.color === "emerald"
+                              ? "text-emerald-600"
+                              : item.color === "red"
+                                ? "text-red-600"
+                                : item.color === "violet"
+                                  ? "text-violet-600"
+                                  : item.color === "orange"
+                                    ? "text-orange-600"
+                                    : "text-blue-600"
+                          }`}
+                        >
+                          {item.value}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Break-even coverage bar */}
+                <div className="mt-4">
+                  <div className="mb-2 flex items-center justify-between">
+                    <p className="text-[11px] text-gray-500">
+                      Break-even coverage (revenue vs. total costs)
+                    </p>
+                    <p className="text-[11px] font-semibold text-emerald-600">
+                      {pctOfBreakEvenCovered.toFixed(0)}%
+                    </p>
+                  </div>
+                  <div className="h-2 overflow-hidden rounded-full bg-gray-100">
+                    <div
+                      className={`h-full rounded-full ${hasBrokenEven ? "bg-emerald-500" : "bg-orange-500"}`}
+                      style={{ width: `${pctOfBreakEvenCovered}%` }}
+                    />
+                  </div>
+                </div>
+
+                {/* Month elapsed vs projected month-end */}
+                <div className="mt-4 flex flex-col gap-2 rounded-xl border border-gray-100 bg-gray-50 p-3 sm:flex-row sm:items-center sm:justify-between">
+                  <p className="text-[12px] text-gray-600">
+                    {pctOfMonthElapsed.toFixed(0)}% of the month has passed —
+                    at the current daily pace (₹
+                    {Math.round(dailyRunRate).toLocaleString()}/day) you're
+                    projected to close the month at{" "}
+                    <span className="font-semibold text-gray-900">
+                      ₹{Math.round(projectedMonthEndRevenue).toLocaleString()}
+                    </span>
+                    .
+                  </p>
+                  <span
+                    className={`shrink-0 rounded-full px-3 py-1 text-[10px] font-bold ${
+                      onTrackForTarget
+                        ? "bg-emerald-100 text-emerald-700"
+                        : "bg-red-100 text-red-700"
+                    }`}
+                  >
+                    {onTrackForTarget ? "On Track" : "Behind Target"}
+                  </span>
+                </div>
+              </div>
+
+              {/* ================= DELIVERY / AGGREGATOR PROFITABILITY ================= */}
+
+              <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+                <div className="mb-4 flex items-center justify-between">
+                  <div className="flex items-start gap-3">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-orange-50">
+                      <Bike className="h-4 w-4 text-orange-600" />
+                    </div>
+                    <div>
+                      <h3 className="text-[18px] font-bold tracking-tight text-gray-900">
+                        Delivery Profitability
+                      </h3>
+                      <p className="mt-1 text-[12px] text-gray-500">
+                        Online/delivery revenue vs. delivery + aggregator
+                        costs, this month
+                      </p>
+                    </div>
+                  </div>
+                  {hasDeliveryOrders && (
+                    <span
+                      className={`rounded-full px-3 py-1 text-[10px] font-bold ${
+                        deliveryMargin >= 0
+                          ? "bg-emerald-100 text-emerald-700"
+                          : "bg-red-100 text-red-700"
+                      }`}
+                    >
+                      {deliveryMargin >= 0 ? "Profitable" : "Loss-Making"}
+                    </span>
+                  )}
+                </div>
+
+                {hasDeliveryOrders ? (
+                  <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+                    {[
+                      {
+                        label: "Delivery Revenue",
+                        value: `₹${Math.round(deliveryRevenue).toLocaleString()}`,
+                        color: "blue",
+                      },
+                      {
+                        label: "Dine-In / Takeaway",
+                        value: `₹${Math.round(dineInTakeawayRevenue).toLocaleString()}`,
+                        color: "gray",
+                      },
+                      {
+                        label: "Delivery + Aggregator Cost",
+                        value: `₹${Math.round(deliveryRelatedCost).toLocaleString()}`,
+                        color: "red",
+                      },
+                      {
+                        label: "Net Delivery Margin",
+                        value: `₹${Math.round(deliveryMargin).toLocaleString()}`,
+                        color: deliveryMargin >= 0 ? "emerald" : "red",
+                      },
+                    ].map((item) => (
+                      <div
+                        key={item.label}
+                        className="rounded-xl border border-gray-200 bg-gray-50 p-3"
+                      >
+                        <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-gray-400">
+                          {item.label}
+                        </p>
+                        <p
+                          className={`mt-2 text-[18px] font-bold ${
+                            item.color === "emerald"
+                              ? "text-emerald-600"
+                              : item.color === "red"
+                                ? "text-red-600"
+                                : item.color === "gray"
+                                  ? "text-gray-700"
+                                  : "text-blue-600"
+                          }`}
+                        >
+                          {item.value}
+                        </p>
+                        {item.label === "Delivery + Aggregator Cost" && (
+                          <p className="mt-1 text-[11px] text-gray-500">
+                            {deliveryCostPercentage.toFixed(1)}% of delivery
+                            revenue
+                          </p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="rounded-xl border border-dashed border-gray-200 bg-gray-50 py-8 text-center">
+                    <p className="text-[12px] text-gray-400">
+                      No online/delivery orders recorded this month yet.
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
           )}
