@@ -250,7 +250,22 @@ export default function Dashboard() {
     const foodCost = n(insightsData.manualFoodCost) > 0
       ? n(insightsData.manualFoodCost)
       : inventoryStockValue > 0 ? inventoryStockValue : actualFoodCost;
-    const totalExp = fixed + variable + labour + finance + foodCost;
+    const totalMonthlyExp = fixed + variable + labour + finance + foodCost;
+
+    // insightsData's cost fields are monthly figures, but analytics.totalRevenue
+    // is scoped to whatever date range is selected (Today/Week/custom range) —
+    // prorate costs to that range so picking "Today" doesn't compare one day's
+    // revenue against a full month of rent, EMIs and salaries.
+    const daysInSelectedRange =
+      from && to
+        ? Math.max(
+            1,
+            Math.round(
+              (new Date(to).getTime() - new Date(from).getTime()) / 86_400_000,
+            ) + 1,
+          )
+        : 30;
+    const totalExp = totalMonthlyExp * (daysInSelectedRange / 30);
     return n(analytics?.totalRevenue) - totalExp;
   })();
 

@@ -543,42 +543,47 @@ export default function MenuManagement() {
     return Object.values(ingredientConsumptionMap);
   }, [bills, menuItems]);
 
-  const avgFoodCost =
-    mappedMenuItems.length > 0
-      ? (
-          mappedMenuItems.reduce((acc: number, item: any) => {
-            const sellingPrice = Number(item.price || 0);
-            if (sellingPrice <= 0) return acc;
-            const recipeCost = (item.menuItemIngredients || []).reduce(
-              (sum: number, mapping: any) => {
-                const ingredient = mapping.ingredient;
-                if (!ingredient) return sum;
-                const qty = Number(mapping.quantity || 0);
-                const price = Number(ingredient.pricePerUnit || 0);
-                const mappingUnit = mapping.unit?.toLowerCase();
-                const ingredientUnit = ingredient.unit?.toLowerCase();
-                let cost = 0;
-                if (mappingUnit === ingredientUnit) {
-                  cost = qty * price;
-                } else if (
-                  ingredientUnit === "kg" &&
-                  (mappingUnit === "gram" || mappingUnit === "gm")
-                ) {
-                  cost = (qty / 1000) * price;
-                } else if (ingredientUnit === "litre" && mappingUnit === "ml") {
-                  cost = (qty / 1000) * price;
-                } else {
-                  cost = qty * price;
-                }
-                return sum + cost;
-              },
-              0,
-            );
-            const foodCost = (recipeCost / sellingPrice) * 100;
-            return acc + foodCost;
-          }, 0) / mappedMenuItems.length
-        ).toFixed(1)
-      : 0;
+  const avgFoodCost = (() => {
+    // Items with no price set contribute nothing to the sum, so they must
+    // also be excluded from the divisor — dividing by the full item count
+    // (including unpriced items) silently understated the average.
+    let totalFoodCostPct = 0;
+    let pricedItemCount = 0;
+    mappedMenuItems.forEach((item: any) => {
+      const sellingPrice = Number(item.price || 0);
+      if (sellingPrice <= 0) return;
+      const recipeCost = (item.menuItemIngredients || []).reduce(
+        (sum: number, mapping: any) => {
+          const ingredient = mapping.ingredient;
+          if (!ingredient) return sum;
+          const qty = Number(mapping.quantity || 0);
+          const price = Number(ingredient.pricePerUnit || 0);
+          const mappingUnit = mapping.unit?.toLowerCase();
+          const ingredientUnit = ingredient.unit?.toLowerCase();
+          let cost = 0;
+          if (mappingUnit === ingredientUnit) {
+            cost = qty * price;
+          } else if (
+            ingredientUnit === "kg" &&
+            (mappingUnit === "gram" || mappingUnit === "gm")
+          ) {
+            cost = (qty / 1000) * price;
+          } else if (ingredientUnit === "litre" && mappingUnit === "ml") {
+            cost = (qty / 1000) * price;
+          } else {
+            cost = qty * price;
+          }
+          return sum + cost;
+        },
+        0,
+      );
+      totalFoodCostPct += (recipeCost / sellingPrice) * 100;
+      pricedItemCount++;
+    });
+    return pricedItemCount > 0
+      ? (totalFoodCostPct / pricedItemCount).toFixed(1)
+      : "0";
+  })();
 
   const avgRecipeCost =
     mappedItems.length > 0
