@@ -1075,6 +1075,7 @@ export default function Settings() {
                           { field: "pincode", label: "Pincode" },
                           { field: "phone", label: "Phone" },
                           { field: "email", label: "Email" },
+                          { field: "openingTime", label: "Opening Time" },
                           { field: "closingTime", label: "Closing Time" },
                           { field: "address", label: "Address" },
                         ].map((f) => (
@@ -1088,7 +1089,11 @@ export default function Settings() {
                               {f.label}
                             </p>
                             <input
-                              type={f.field === "closingTime" ? "time" : "text"}
+                              type={
+                                f.field === "closingTime" || f.field === "openingTime"
+                                  ? "time"
+                                  : "text"
+                              }
                               value={(branch as any)[f.field] || ""}
                               onChange={(e) =>
                                 updateBranch(branch.id, f.field, e.target.value)

@@ -35,6 +35,28 @@ const fmt = (t: string) => (t ? dayjs(t).format("h:mm A") : "—");
 const fmtHrs = (h: number) =>
   h > 0 ? `${Math.floor(h)}h ${Math.round((h % 1) * 60)}m` : "—";
 
+// Late-arrival cutoff is the branch's own opening time + a 15-minute grace
+// period — falls back to 9:00 AM if the branch hasn't set an opening time,
+// so shops that open in the afternoon/evening/overnight aren't marked late
+// against a morning assumption that doesn't apply to them.
+const DEFAULT_OPENING_TIME = "09:00";
+const LATE_GRACE_MINUTES = 15;
+
+const lateCutoffMinutes = (openingTime?: string | null) => {
+  const [h, m] = (openingTime || DEFAULT_OPENING_TIME).split(":").map(Number);
+  return (h || 0) * 60 + (m || 0) + LATE_GRACE_MINUTES;
+};
+
+const isLateArrival = (loginTime: string, openingTime?: string | null) => {
+  const d = dayjs(loginTime);
+  return d.hour() * 60 + d.minute() > lateCutoffMinutes(openingTime);
+};
+
+const lateCutoffLabel = (openingTime?: string | null) => {
+  const mins = lateCutoffMinutes(openingTime);
+  return dayjs().hour(Math.floor(mins / 60)).minute(mins % 60).format("h:mm A");
+};
+
 export default function Attendance() {
   const API_URL = import.meta.env.VITE_API_URL;
   const { selectedBranch } = useAppSelector((s) => s.branch);
@@ -177,10 +199,7 @@ export default function Attendance() {
   const absentCount = allStaff.filter((s: any) => !presentIds.has(s.id)).length;
   const lateCount = attendance.filter((a: any) => {
     if (!a.loginTime) return false;
-    return (
-      dayjs(a.loginTime).hour() > 9 ||
-      (dayjs(a.loginTime).hour() === 9 && dayjs(a.loginTime).minute() > 15)
-    );
+    return isLateArrival(a.loginTime, selectedBranch?.openingTime);
   }).length;
   const totalHours = attendance.reduce(
     (s: number, a: any) => s + effectiveHours(a) + Number(a.overtimeHours || 0),
@@ -334,7 +353,7 @@ export default function Attendance() {
                 {
                   label: "Late Arrivals",
                   value: lateCount,
-                  sub: "after 9:15 AM",
+                  sub: `after ${lateCutoffLabel(selectedBranch?.openingTime)}`,
                   cls: "border-orange-100 bg-orange-50/60",
                   val: "text-orange-700",
                 },
@@ -598,9 +617,7 @@ export default function Attendance() {
                       const isPresent = !!att?.loginTime;
                       const isLate =
                         isPresent &&
-                        (dayjs(att.loginTime).hour() > 9 ||
-                          (dayjs(att.loginTime).hour() === 9 &&
-                            dayjs(att.loginTime).minute() > 15));
+                        isLateArrival(att.loginTime, selectedBranch?.openingTime);
                       const breaks = att?.breaks || [];
                       const breakMins = breaks.reduce(
                         (sum: number, b: any) =>
