@@ -57,6 +57,32 @@ const lateCutoffLabel = (openingTime?: string | null) => {
   return dayjs().hour(Math.floor(mins / 60)).minute(mins % 60).format("h:mm A");
 };
 
+// Standard hours-per-day assumption used to convert a monthly salary into an
+// hourly rate, split by shift type since a morning/evening shift and a full
+// day shift don't cover the same number of hours. Owner-configurable per
+// branch in Settings → Branches → Payroll Policy; falls back to defaults.
+const getStandardShiftHours = (shift: string | undefined, branch: any) => {
+  const s = (shift || "").toUpperCase();
+  if (s === "MORNING") return Number(branch?.morningShiftHours) || 6;
+  if (s === "EVENING") return Number(branch?.eveningShiftHours) || 6;
+  return Number(branch?.fullDayShiftHours) || 10;
+};
+
+const hourlyRate = (staff: any, branch: any) => {
+  const standardHours = getStandardShiftHours(staff?.shift, branch);
+  return standardHours > 0 ? Number(staff?.salary || 0) / (30 * standardHours) : 0;
+};
+
+// Overtime hours (owner-entered on top of the regular shift) are paid at the
+// branch's configurable overtime multiplier over the derived hourly rate.
+const overtimePay = (staff: any, att: any, branch: any) =>
+  Number(att?.overtimeHours || 0) *
+  hourlyRate(staff, branch) *
+  (Number(branch?.overtimeRateMultiplier) || 1.5);
+
+const dailyPay = (staff: any, att: any, branch: any) =>
+  Math.round(Number(staff?.salary || 0) / 30 + overtimePay(staff, att, branch));
+
 export default function Attendance() {
   const API_URL = import.meta.env.VITE_API_URL;
   const { selectedBranch } = useAppSelector((s) => s.branch);
@@ -209,15 +235,16 @@ export default function Attendance() {
     (s: number, st: any) => s + Number(st.salary || 0),
     0,
   );
-  const dailyPayroll =
-    presentCount > 0
-      ? Math.round(
-          allStaff
-            .filter((s: any) => presentIds.has(s.id))
-            .reduce((sum: number, s: any) => sum + Number(s.salary || 0), 0) /
-            30,
-        )
-      : 0;
+  const dailyPayroll = allStaff
+    .filter((s: any) => presentIds.has(s.id))
+    .reduce((sum: number, s: any) => {
+      const att = attendance.find((a: any) => a.userId === s.id);
+      return sum + dailyPay(s, att, selectedBranch);
+    }, 0);
+  const totalOvertimeCost = allStaff.reduce((sum: number, s: any) => {
+    const att = attendance.find((a: any) => a.userId === s.id);
+    return sum + overtimePay(s, att, selectedBranch);
+  }, 0);
 
   const deptMap = allStaff.reduce((acc: any, s: any) => {
     const d = s.department || "OTHER";
@@ -520,18 +547,26 @@ export default function Attendance() {
                       </p>
                     </div>
                   </div>
+                  {totalOvertimeCost > 0 && (
+                    <div className="rounded-xl border border-amber-100 bg-amber-50 px-3 py-2">
+                      <p className="text-[10px] font-semibold text-amber-700">
+                        Includes ₹{Math.round(totalOvertimeCost).toLocaleString()} in
+                        overtime pay today
+                      </p>
+                    </div>
+                  )}
                   <div className="space-y-1.5 max-h-[145px] overflow-y-auto">
                     {Object.values(deptMap).map((d: any) => {
                       const deptPresent = allStaff.filter(
                         (s: any) =>
                           s.department === d.dept && presentIds.has(s.id),
                       );
-                      const deptCost = Math.round(
-                        deptPresent.reduce(
-                          (sum: number, s: any) => sum + Number(s.salary || 0),
-                          0,
-                        ) / 30,
-                      );
+                      const deptCost = deptPresent.reduce((sum: number, s: any) => {
+                        const att = attendance.find(
+                          (a: any) => a.userId === s.id,
+                        );
+                        return sum + dailyPay(s, att, selectedBranch);
+                      }, 0);
                       return (
                         <div
                           key={d.dept}
@@ -594,7 +629,6 @@ export default function Attendance() {
                         "Role",
                         "Clock In",
                         "Clock Out",
-                        "Breaks",
                         "Hours",
                         "Salary/Day",
                         "Status",
@@ -618,12 +652,6 @@ export default function Attendance() {
                       const isLate =
                         isPresent &&
                         isLateArrival(att.loginTime, selectedBranch?.openingTime);
-                      const breaks = att?.breaks || [];
-                      const breakMins = breaks.reduce(
-                        (sum: number, b: any) =>
-                          sum + Number(b.totalMinutes || 0),
-                        0,
-                      );
                       return (
                         <tr
                           key={s.id}
@@ -669,9 +697,6 @@ export default function Attendance() {
                           <td className="px-4 py-2.5 text-gray-600">
                             {fmt(att?.logoutTime)}
                           </td>
-                          <td className="px-4 py-2.5 text-gray-500">
-                            {breakMins > 0 ? `${breakMins}m` : "—"}
-                          </td>
                           <td className="px-4 py-2.5">
                             <p className="font-semibold text-gray-900">
                               {fmtHrs(effectiveHours(att))}
@@ -688,10 +713,18 @@ export default function Attendance() {
                             )}
                           </td>
                           <td className="px-4 py-2.5 text-gray-700">
-                            ₹
-                            {Math.round(
-                              Number(s.salary || 0) / 30,
-                            ).toLocaleString()}
+                            <p className="font-semibold">
+                              ₹{dailyPay(s, att, selectedBranch).toLocaleString()}
+                            </p>
+                            {Number(att?.overtimeHours || 0) > 0 && (
+                              <p className="text-[9px] font-semibold text-amber-600">
+                                +₹
+                                {Math.round(
+                                  overtimePay(s, att, selectedBranch),
+                                ).toLocaleString()}{" "}
+                                OT
+                              </p>
+                            )}
                           </td>
                           <td className="px-4 py-2.5">
                             <span
@@ -725,7 +758,7 @@ export default function Attendance() {
                     {allStaff.length === 0 && (
                       <tr>
                         <td
-                          colSpan={10}
+                          colSpan={9}
                           className="py-14 text-center text-[12px] text-gray-400"
                         >
                           No staff found for this branch. Add staff in Shops →
@@ -984,6 +1017,12 @@ export default function Attendance() {
                           </td>
                           <td className="px-4 py-2.5 font-bold text-red-600">
                             ₹{s.monthlySalary.toLocaleString()}
+                            {Number(s.overtimeCost || 0) > 0 && (
+                              <p className="text-[9px] font-semibold text-amber-600">
+                                +₹{s.overtimeCost.toLocaleString()} OT (
+                                {s.overtimeHours}h)
+                              </p>
+                            )}
                           </td>
                           <td className="px-4 py-2.5 text-gray-600">
                             {s.costPerHour > 0 ? `₹${s.costPerHour}/hr` : "—"}

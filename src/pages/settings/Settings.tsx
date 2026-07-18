@@ -267,7 +267,7 @@ export default function Settings() {
     }
   };
 
-  const updateBranch = (id: number, field: string, value: string) =>
+  const updateBranch = (id: number, field: string, value: string | number) =>
     setData((prev: any) => ({
       ...prev,
       branches: prev.branches.map((b: any) =>
@@ -1103,6 +1103,63 @@ export default function Settings() {
                             />
                           </div>
                         ))}
+                      </div>
+                    )}
+
+                    {branchEditMode && (
+                      <div className="border-t border-gray-100 px-5 py-4">
+                        <p className="mb-1 text-[10px] font-bold uppercase tracking-wide text-gray-400">
+                          Payroll Policy
+                        </p>
+                        <p className="mb-3 text-[11px] text-gray-400">
+                          Standard hours used to convert monthly salary into an
+                          hourly rate, per shift type, plus the overtime pay
+                          multiplier applied to extra hours logged in
+                          Attendance.
+                        </p>
+                        <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+                          {[
+                            {
+                              field: "morningShiftHours",
+                              label: "Morning Shift (hrs/day)",
+                            },
+                            {
+                              field: "eveningShiftHours",
+                              label: "Evening Shift (hrs/day)",
+                            },
+                            {
+                              field: "fullDayShiftHours",
+                              label: "Full Day Shift (hrs/day)",
+                            },
+                            {
+                              field: "overtimeRateMultiplier",
+                              label: "Overtime Multiplier (x)",
+                            },
+                          ].map((f) => (
+                            <div key={f.field}>
+                              <p className="mb-1 text-[10px] font-bold uppercase tracking-wide text-gray-400">
+                                {f.label}
+                              </p>
+                              <input
+                                type="number"
+                                min={0}
+                                step={0.1}
+                                value={(branch as any)[f.field] ?? ""}
+                                onChange={(e) =>
+                                  updateBranch(
+                                    branch.id,
+                                    f.field,
+                                    e.target.value === ""
+                                      ? ""
+                                      : Number(e.target.value),
+                                  )
+                                }
+                                className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-[12px] outline-none focus:border-red-400"
+                                placeholder={f.label}
+                              />
+                            </div>
+                          ))}
+                        </div>
                       </div>
                     )}
 
