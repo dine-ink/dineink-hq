@@ -1,5 +1,7 @@
 import { Fragment, useState } from "react";
-import { useAppSelector } from "../../store";
+import { useAppDispatch, useAppSelector } from "../../store";
+import { setAuth } from "../../store/slices/authSlice";
+import { setBranches } from "../../store/slices/branchSlice";
 import {
   Dialog,
   DialogPanel,
@@ -216,6 +218,7 @@ const BRANCH_INPUT_CLS =
 
 export default function RestaurantSetupModal({ open, setOpen }: Props) {
   const API_URL = import.meta.env.VITE_API_URL;
+  const dispatch = useAppDispatch();
   const [selectedTab, setSelectedTab] = useState(0);
   const { user, token: authToken } = useAppSelector((s) => s.auth);
 
@@ -394,9 +397,19 @@ export default function RestaurantSetupModal({ open, setOpen }: Props) {
       });
       const data = await res.json();
       if (data.success) {
-        localStorage.setItem("user", JSON.stringify(data.user));
-        localStorage.setItem("restaurant", JSON.stringify(data.restaurant));
-        localStorage.setItem("branches", JSON.stringify(data.branches));
+        // The signup token predates the restaurant/branches created here, so
+        // the backend issues a fresh one — swap it in the same way Login
+        // does, otherwise the dashboard is stuck with a stale, restaurant-
+        // less session until the owner logs out and back in.
+        dispatch(
+          setAuth({
+            user: data.user,
+            token: data.token,
+            restaurant: data.restaurant,
+            branches: data.branches,
+          }),
+        );
+        dispatch(setBranches(data.branches || []));
         setOpen(false);
         window.location.reload();
       } else {
