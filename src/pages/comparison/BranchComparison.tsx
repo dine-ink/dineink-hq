@@ -55,8 +55,16 @@ const METRICS: ComparisonRow[] = [
     format: fmtINR,
     higherIsBetter: false,
   },
+  // GST is a pass-through tax collection, not a performance signal — no
+  // higherIsBetter direction, so it never gets a misleading "winner" badge.
   { label: "GST Collected", key: "gst", format: fmtINR },
   { label: "Expenses", key: "expenses", format: fmtINR, higherIsBetter: false },
+  {
+    label: "Labour Cost",
+    key: "labourCost",
+    format: fmtINR,
+    higherIsBetter: false,
+  },
   {
     label: "Net Profit",
     key: "netProfit",
@@ -64,6 +72,13 @@ const METRICS: ComparisonRow[] = [
     higherIsBetter: true,
   },
   { label: "Staff", key: "staffCount", higherIsBetter: true },
+  { label: "Customers", key: "totalCustomers", higherIsBetter: true },
+  {
+    label: "Repeat Customer Rate",
+    key: "repeatCustomerRate",
+    format: (v: number) => `${v}%`,
+    higherIsBetter: true,
+  },
 ];
 
 function WinnerBadge({
@@ -140,9 +155,11 @@ export default function BranchComparison() {
     color: COLORS[i % COLORS.length],
   }));
 
-  // Winner for each metric
+  // Winner for each metric — metrics with no higherIsBetter direction (e.g.
+  // GST, a tax pass-through rather than a performance signal) never get a
+  // winner highlighted.
   const getWinner = (metric: ComparisonRow) => {
-    if (!data.length) return null;
+    if (!data.length || metric.higherIsBetter === undefined) return null;
     return data.reduce((best, d) =>
       (
         metric.higherIsBetter !== false
