@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useAppSelector } from "@/store";
+import { formatQty } from "@/utils/units";
 
 export default function DailyStockAudit() {
   const API_URL = import.meta.env.VITE_API_URL;
@@ -75,8 +76,9 @@ export default function DailyStockAudit() {
     setSaving(false);
   };
 
-  const fmt = (n: number, unit: string) =>
-    `${n % 1 === 0 ? n : n.toFixed(3).replace(/\.?0+$/, "")} ${unit}`;
+  // Quantities arrive from the API in the canonical unit (Kg/Litre/Piece);
+  // this auto-scales small amounts to grams/ml so they're readable.
+  const fmt = (n: number, unit: string) => formatQty(n, unit);
 
   const filtered = ingredients.filter((ing) =>
     ing.name.toLowerCase().includes(search.toLowerCase()),
@@ -86,17 +88,19 @@ export default function DailyStockAudit() {
   const filledCount = ingredients.filter(
     (ing) => closingInputs[ing.ingredientId] !== undefined && closingInputs[ing.ingredientId] !== "",
   ).length;
+  // Positive = wastage, negative = under-used. Summed as-is so the total
+  // reflects net stock variance, not just one-directional loss.
   const totalWastage = ingredients.reduce((sum, ing) => {
     const cv = closingInputs[ing.ingredientId];
     if (cv === undefined || cv === "") return sum;
-    const wastage = Math.max(0, ing.expectedClosing - Number(cv));
+    const wastage = ing.expectedClosing - Number(cv);
     return sum + wastage;
   }, 0);
   const totalWastageCost = ingredients.reduce((sum, ing) => {
     const cv = closingInputs[ing.ingredientId];
     if (cv === undefined || cv === "" || !ing.pricePerUnit) return sum;
-    const wastage = Math.max(0, ing.expectedClosing - Number(cv));
-    return sum + wastage * ing.pricePerUnit;
+    const wastage = ing.expectedClosing - Number(cv);
+    return sum + Math.max(0, wastage) * ing.pricePerUnit;
   }, 0);
 
   return (
@@ -171,15 +175,17 @@ export default function DailyStockAudit() {
               const cv = closingInputs[ing.ingredientId];
               const hasValue = cv !== undefined && cv !== "";
               const closingNum = hasValue ? Number(cv) : null;
-              const wastage = closingNum !== null ? Math.max(0, ing.expectedClosing - closingNum) : null;
+              // Positive = wastage (used more than expected), negative = under-used.
+              const wastage = closingNum !== null ? ing.expectedClosing - closingNum : null;
               const wastagePct = wastage !== null && ing.openingQty > 0
                 ? ((wastage / ing.openingQty) * 100).toFixed(1)
                 : null;
-              const wastageCost = wastage !== null && ing.pricePerUnit > 0
+              const wastageCost = wastage !== null && wastage > 0 && ing.pricePerUnit > 0
                 ? wastage * ing.pricePerUnit
                 : null;
               const wastageColor =
                 wastage === null ? "" :
+                wastage < 0 ? "text-blue-600" :
                 wastagePct !== null && Number(wastagePct) > 15 ? "text-red-600" :
                 wastagePct !== null && Number(wastagePct) > 8 ? "text-amber-600" :
                 "text-emerald-600";
@@ -194,11 +200,11 @@ export default function DailyStockAudit() {
                       {ing.auditSaved && <span className="text-[9px] font-semibold text-emerald-600">✓ Saved</span>}
                     </div>
                     {/* Opening */}
-                    <p className="text-right text-[12px] text-gray-600">{fmt(ing.openingQty, "")}</p>
+                    <p className="text-right text-[12px] text-gray-600">{fmt(ing.openingQty, ing.unit)}</p>
                     {/* SOP consumed */}
-                    <p className="text-right text-[12px] text-emerald-700">{fmt(ing.sopConsumed, "")}</p>
+                    <p className="text-right text-[12px] text-emerald-700">{fmt(ing.sopConsumed, ing.unit)}</p>
                     {/* Expected closing */}
-                    <p className="text-right text-[12px] font-semibold text-blue-700">{fmt(ing.expectedClosing, "")}</p>
+                    <p className="text-right text-[12px] font-semibold text-blue-700">{fmt(ing.expectedClosing, ing.unit)}</p>
                     {/* Actual closing input */}
                     <div className="flex justify-center">
                       <input
@@ -214,7 +220,9 @@ export default function DailyStockAudit() {
                           hasValue
                             ? wastage !== null && wastage > 0
                               ? "border-red-200 bg-red-50"
-                              : "border-emerald-200 bg-emerald-50"
+                              : wastage !== null && wastage < 0
+                                ? "border-blue-200 bg-blue-50"
+                                : "border-emerald-200 bg-emerald-50"
                             : "border-gray-200"
                         }`}
                       />
@@ -224,10 +232,10 @@ export default function DailyStockAudit() {
                       {wastage !== null ? (
                         <>
                           <p className={`text-[12px] font-bold ${wastageColor}`}>
-                            {wastage > 0 ? fmt(wastage, "") : "0"}
+                            {wastage === 0 ? "0" : wastage > 0 ? fmt(wastage, ing.unit) : `${fmt(Math.abs(wastage), ing.unit)} under`}
                           </p>
                           {wastagePct !== null && (
-                            <p className={`text-[10px] ${wastageColor}`}>{wastagePct}%</p>
+                            <p className={`text-[10px] ${wastageColor}`}>{wastage < 0 ? Math.abs(Number(wastagePct)) : wastagePct}%</p>
                           )}
                           {wastageCost !== null && wastageCost > 0 && (
                             <p className="text-[10px] text-gray-500">₹{wastageCost.toFixed(0)}</p>

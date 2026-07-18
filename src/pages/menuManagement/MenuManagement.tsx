@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAppSelector } from "../../store";
+import { formatQty } from "../../utils/units";
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
 import ExcelJS from "exceljs";
@@ -4576,7 +4577,7 @@ export default function MenuManagement() {
                                   (Number(i.consumed || 0) / totalUsage) * 100,
                                 )
                               : 0,
-                          consumed: `${Number(i.consumed || 0).toFixed(2)} ${i.unit || ""}`,
+                          consumed: formatQty(Number(i.consumed || 0), i.unit),
                           cost: Math.round(Number(i.totalCost || 0)),
                           category: i.category || "Other",
                         }),
@@ -4837,7 +4838,7 @@ export default function MenuManagement() {
                             label: "Highest Usage",
                             value: sorted[0]?.ingredient || "—",
                             sub: sorted[0]
-                              ? `${Number(sorted[0].consumed || 0).toFixed(1)} ${sorted[0].unit || ""}`
+                              ? formatQty(Number(sorted[0].consumed || 0), sorted[0].unit)
                               : "No data",
                             color: "text-red-600",
                           },

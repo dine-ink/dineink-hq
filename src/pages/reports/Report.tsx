@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useAppSelector } from "../../store";
+import { formatQty } from "../../utils/units";
 import {
   AreaChart,
   Area,
@@ -2447,8 +2448,12 @@ export default function Report() {
             const damageItems = inventoryAdjustments.filter(
               (a: any) => a.adjustmentType === "DAMAGE",
             );
-            const wastageByIngredient = inventoryAdjustments.reduce(
-              (acc: any, a: any) => {
+            // SALE_DEDUCTION rows are routine stock decrements auto-logged on
+            // every paid bill — not wastage — so they're excluded here even
+            // though they still count toward "Total Adjustments" above.
+            const wastageByIngredient = inventoryAdjustments
+              .filter((a: any) => a.adjustmentType !== "SALE_DEDUCTION")
+              .reduce((acc: any, a: any) => {
                 const name = a.ingredient?.name || "Unknown";
                 if (!acc[name])
                   acc[name] = { name, qty: 0, cost: 0, adjustments: 0 };
@@ -2457,9 +2462,7 @@ export default function Report() {
                 acc[name].cost += qty * Number(a.ingredient?.pricePerUnit || 0);
                 acc[name].adjustments++;
                 return acc;
-              },
-              {},
-            );
+              }, {});
             const topWaste = Object.values(wastageByIngredient)
               .sort((a: any, b: any) => b.qty - a.qty)
               .slice(0, 10);
@@ -2720,7 +2723,9 @@ export default function Report() {
               return next;
             });
           };
-          const fmt = (n: number, unit: string) => `${n % 1 === 0 ? n : n.toFixed(3).replace(/\.?0+$/, "")} ${unit}`;
+          // Quantities arrive from the API in the canonical unit (Kg/Litre/Piece);
+          // this auto-scales small amounts to grams/ml so they're readable.
+          const fmt = (n: number, unit: string) => formatQty(n, unit);
           const adjBadge: Record<string, string> = {
             WASTAGE: "bg-amber-100 text-amber-800",
             DAMAGE: "bg-red-100 text-red-700",
@@ -2834,7 +2839,7 @@ export default function Report() {
                     const expanded = expandedIngredients.has(ing.ingredientId);
                     const avail = ing.available || 1;
                     const dishPct = Math.min(100, (ing.expectedConsumption / avail) * 100);
-                    const wastePct = Math.min(100, (ing.wastageQty / avail) * 100);
+                    const wastePct = Math.max(0, Math.min(100, (ing.wastageQty / avail) * 100));
                     const closePct = Math.min(100, (ing.closingQty / avail) * 100);
                     return (
                       <div key={ing.ingredientId} className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
@@ -2850,12 +2855,21 @@ export default function Report() {
                                   {ing.wastagePercentage}% waste
                                 </span>
                               )}
+                              {ing.wastagePercentage < 0 && (
+                                <span className="rounded bg-blue-100 px-1.5 py-0.5 text-[9px] font-bold text-blue-700">
+                                  {Math.abs(ing.wastagePercentage)}% under-used
+                                </span>
+                              )}
                             </div>
                             <div className="mt-1 flex flex-wrap gap-3 text-[11px]">
                               <span className="text-gray-500">Received: <span className="font-semibold text-gray-700">{fmt(ing.available, ing.unit)}</span></span>
                               <span className="text-emerald-600">Dishes: <span className="font-semibold">{fmt(ing.expectedConsumption, ing.unit)}</span></span>
-                              <span className="text-red-600">Wastage: <span className="font-semibold">{fmt(ing.wastageQty, ing.unit)}</span></span>
-                              {ing.pricePerUnit > 0 && <span className="text-gray-500">Cost: <span className="font-semibold text-red-700">₹{ing.wastageCost.toLocaleString("en-IN", { maximumFractionDigits: 0 })}</span></span>}
+                              {ing.wastageQty < 0 ? (
+                                <span className="text-blue-600">Under-used: <span className="font-semibold">{fmt(Math.abs(ing.wastageQty), ing.unit)}</span></span>
+                              ) : (
+                                <span className="text-red-600">Wastage: <span className="font-semibold">{fmt(ing.wastageQty, ing.unit)}</span></span>
+                              )}
+                              {ing.pricePerUnit > 0 && ing.wastageQty > 0 && <span className="text-gray-500">Cost: <span className="font-semibold text-red-700">₹{ing.wastageCost.toLocaleString("en-IN", { maximumFractionDigits: 0 })}</span></span>}
                             </div>
                             {/* Progress bar: dishes (green) | wastage (red) | closing (blue) */}
                             {ing.available > 0 && (
