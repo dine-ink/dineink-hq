@@ -13,6 +13,12 @@ import {
   Line,
   ReferenceLine,
 } from "recharts";
+import { PencilSquareIcon, XMarkIcon } from "@heroicons/react/24/outline";
+
+// Effective hours for payroll/display purposes: an owner-entered override
+// takes precedence over whatever the POS clock-in/out computed.
+const effectiveHours = (att: any) =>
+  att?.manualTotalHours != null ? Number(att.manualTotalHours) : Number(att?.totalHours || 0);
 
 const DEPT_COLOR: Record<string, string> = {
   KITCHEN: "bg-orange-100 text-orange-700",
@@ -44,6 +50,64 @@ export default function Attendance() {
   const [attendance, setAttendance] = useState<any[]>([]);
   const [monthlyAttendance, setMonthlyAttendance] = useState<any[]>([]);
   const [allStaff, setAllStaff] = useState<any[]>([]);
+  const [hoursModal, setHoursModal] = useState<{
+    open: boolean;
+    staff: any;
+    att: any;
+  }>({ open: false, staff: null, att: null });
+  const [hoursInput, setHoursInput] = useState("");
+  const [overtimeInput, setOvertimeInput] = useState("");
+  const [savingHours, setSavingHours] = useState(false);
+
+  const fetchAttendanceForDate = async () => {
+    if (!selectedBranch?.id) return;
+    const h = { Authorization: `Bearer ${token}` };
+    const res = await fetch(
+      `${API_URL}/api/attendance/branch/${selectedBranch.id}?date=${date}`,
+      { headers: h },
+    );
+    const data = await res.json();
+    if (data.success) setAttendance(data.data || []);
+  };
+
+  const openHoursModal = (staff: any, att: any) => {
+    setHoursModal({ open: true, staff, att });
+    setHoursInput(att ? String(effectiveHours(att)) : "");
+    setOvertimeInput(att?.overtimeHours ? String(att.overtimeHours) : "");
+  };
+
+  const saveHours = async () => {
+    if (!hoursModal.staff || !selectedBranch?.id) return;
+    setSavingHours(true);
+    try {
+      const res = await fetch(`${API_URL}/api/attendance/manual`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          userId: hoursModal.staff.id,
+          restaurantId: user?.restaurantId,
+          branchId: selectedBranch.id,
+          date,
+          manualTotalHours: hoursInput === "" ? null : Number(hoursInput),
+          overtimeHours: overtimeInput === "" ? 0 : Number(overtimeInput),
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setHoursModal({ open: false, staff: null, att: null });
+        await fetchAttendanceForDate();
+      } else {
+        alert(data.message || "Failed to save hours");
+      }
+    } catch {
+      alert("Failed to save hours");
+    } finally {
+      setSavingHours(false);
+    }
+  };
 
   // Fetch productivity data when tab switches
   useEffect(() => {
@@ -119,7 +183,7 @@ export default function Attendance() {
     );
   }).length;
   const totalHours = attendance.reduce(
-    (s: number, a: any) => s + Number(a.totalHours || 0),
+    (s: number, a: any) => s + effectiveHours(a) + Number(a.overtimeHours || 0),
     0,
   );
   const totalMonthlySalary = allStaff.reduce(
@@ -515,6 +579,7 @@ export default function Attendance() {
                         "Hours",
                         "Salary/Day",
                         "Status",
+                        "",
                       ].map((h) => (
                         <th
                           key={h}
@@ -590,8 +655,20 @@ export default function Attendance() {
                           <td className="px-4 py-2.5 text-gray-500">
                             {breakMins > 0 ? `${breakMins}m` : "—"}
                           </td>
-                          <td className="px-4 py-2.5 font-semibold text-gray-900">
-                            {fmtHrs(Number(att?.totalHours || 0))}
+                          <td className="px-4 py-2.5">
+                            <p className="font-semibold text-gray-900">
+                              {fmtHrs(effectiveHours(att))}
+                              {att?.manualTotalHours != null && (
+                                <span className="ml-1 text-[9px] font-semibold text-blue-500">
+                                  (edited)
+                                </span>
+                              )}
+                            </p>
+                            {Number(att?.overtimeHours || 0) > 0 && (
+                              <p className="text-[9px] font-semibold text-amber-600">
+                                +{fmtHrs(Number(att.overtimeHours))} OT
+                              </p>
+                            )}
                           </td>
                           <td className="px-4 py-2.5 text-gray-700">
                             ₹
@@ -616,13 +693,22 @@ export default function Attendance() {
                                 : "Absent"}
                             </span>
                           </td>
+                          <td className="px-4 py-2.5">
+                            <button
+                              onClick={() => openHoursModal(s, att)}
+                              title="Edit hours worked"
+                              className="flex h-7 w-7 items-center justify-center rounded-lg border border-gray-200 text-gray-400 transition hover:border-red-200 hover:bg-red-50 hover:text-[#b10000]"
+                            >
+                              <PencilSquareIcon className="h-3.5 w-3.5" />
+                            </button>
+                          </td>
                         </tr>
                       );
                     })}
                     {allStaff.length === 0 && (
                       <tr>
                         <td
-                          colSpan={9}
+                          colSpan={10}
                           className="py-14 text-center text-[12px] text-gray-400"
                         >
                           No staff found for this branch. Add staff in Shops →
@@ -903,6 +989,90 @@ export default function Attendance() {
               </div>
             </div>
           ))}
+
+        {/* EDIT HOURS MODAL */}
+        {hoursModal.open && (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+            onClick={() => setHoursModal({ open: false, staff: null, att: null })}
+          >
+            <div
+              className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="mb-4 flex items-center justify-between">
+                <div>
+                  <h3 className="text-[16px] font-bold text-gray-900">
+                    Edit Hours Worked
+                  </h3>
+                  <p className="mt-0.5 text-[11px] text-gray-500">
+                    {hoursModal.staff?.name} · {dayjs(date).format("DD MMM YYYY")}
+                  </p>
+                </div>
+                <button
+                  onClick={() => setHoursModal({ open: false, staff: null, att: null })}
+                  className="flex h-7 w-7 items-center justify-center rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50"
+                >
+                  <XMarkIcon className="h-4 w-4" />
+                </button>
+              </div>
+
+              <div className="space-y-3">
+                <div>
+                  <label className="mb-1.5 block text-[11px] font-bold uppercase tracking-wide text-gray-500">
+                    Total Hours Worked
+                  </label>
+                  <input
+                    type="number"
+                    step="0.25"
+                    min="0"
+                    placeholder="e.g. 8.5"
+                    value={hoursInput}
+                    onChange={(e) => setHoursInput(e.target.value)}
+                    className="h-10 w-full rounded-xl border border-gray-200 bg-white px-3 text-sm outline-none transition focus:border-red-300 focus:ring-2 focus:ring-red-100"
+                  />
+                  <p className="mt-1 text-[10px] text-gray-400">
+                    Overrides whatever the clock-in/out computed for this day.
+                  </p>
+                </div>
+
+                <div>
+                  <label className="mb-1.5 block text-[11px] font-bold uppercase tracking-wide text-gray-500">
+                    Overtime Hours
+                  </label>
+                  <input
+                    type="number"
+                    step="0.25"
+                    min="0"
+                    placeholder="e.g. 1.5"
+                    value={overtimeInput}
+                    onChange={(e) => setOvertimeInput(e.target.value)}
+                    className="h-10 w-full rounded-xl border border-gray-200 bg-white px-3 text-sm outline-none transition focus:border-red-300 focus:ring-2 focus:ring-red-100"
+                  />
+                  <p className="mt-1 text-[10px] text-gray-400">
+                    Extra hours worked beyond the normal shift, tracked separately for payroll.
+                  </p>
+                </div>
+
+                <div className="flex justify-end gap-2 pt-2">
+                  <button
+                    onClick={() => setHoursModal({ open: false, staff: null, att: null })}
+                    className="rounded-xl border border-gray-200 px-4 py-2 text-[13px] font-semibold text-gray-600 hover:bg-gray-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={saveHours}
+                    disabled={savingHours}
+                    className="rounded-xl bg-[#b10000] px-4 py-2 text-[13px] font-semibold text-white hover:bg-[#950000] disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {savingHours ? "Saving…" : "Save"}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </main>
   );
