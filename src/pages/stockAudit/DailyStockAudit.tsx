@@ -1,6 +1,12 @@
 import { useState, useEffect, useCallback } from "react";
 import { useAppSelector } from "@/store";
 import { formatQty } from "@/utils/units";
+import {
+  ClipboardDocumentCheckIcon,
+  MagnifyingGlassIcon,
+  CheckCircleIcon,
+  InformationCircleIcon,
+} from "@heroicons/react/24/outline";
 
 export default function DailyStockAudit() {
   const API_URL = import.meta.env.VITE_API_URL;
@@ -104,60 +110,117 @@ export default function DailyStockAudit() {
   }, 0);
 
   return (
-    <main className="min-h-screen bg-gray-50 px-4 pb-10 pt-6">
-      <div className="mx-auto max-w-4xl space-y-4">
+    <main className="min-h-screen bg-gray-50 pb-10 pt-6">
+      <div className="flex w-full flex-col gap-3">
 
         {/* Header */}
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h1 className="text-[18px] font-bold text-gray-800">Daily Stock Audit</h1>
-            <p className="text-[12px] text-gray-500">
-              Enter end-of-day actual stock. Wastage = (Opening − SOP Used) − Actual Closing
-            </p>
-          </div>
-          <input
-            type="date"
-            value={auditDate}
-            onChange={(e) => setAuditDate(e.target.value)}
-            className="rounded-lg border border-gray-200 px-3 py-2 text-[12px] focus:outline-none focus:ring-1 focus:ring-[#b10000]"
-          />
-        </div>
-
-        {/* Formula banner */}
-        <div className="rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-[11px] text-blue-700 space-y-0.5">
-          <p><strong>Wastage</strong> = (Opening Stock − SOP Consumption) − Actual Closing Stock</p>
-          <p><strong>Wastage %</strong> = (Wastage ÷ Opening Stock) × 100 &nbsp;|&nbsp; <strong>Wastage Cost</strong> = Wastage × Unit Price</p>
-        </div>
-
-        {/* Summary bar */}
-        {filledCount > 0 && (
-          <div className="grid grid-cols-3 gap-3">
-            {[
-              { label: "Entries filled", value: `${filledCount} / ${ingredients.length}`, color: "blue" },
-              { label: "Total wastage today", value: `${totalWastage.toFixed(2)} units`, color: "red" },
-              { label: "Wastage cost", value: `₹${totalWastageCost.toLocaleString("en-IN", { maximumFractionDigits: 0 })}`, color: "amber" },
-            ].map((k) => (
-              <div key={k.label} className={`rounded-xl border p-3 ${k.color === "red" ? "border-red-100 bg-red-50" : k.color === "amber" ? "border-amber-100 bg-amber-50" : "border-blue-100 bg-blue-50"}`}>
-                <p className="text-[10px] font-bold uppercase tracking-wide text-gray-500">{k.label}</p>
-                <p className={`mt-1 text-[16px] font-bold ${k.color === "red" ? "text-red-700" : k.color === "amber" ? "text-amber-700" : "text-blue-700"}`}>{k.value}</p>
+        <div className="relative overflow-hidden rounded-xl border border-gray-200 bg-white px-5 py-4 shadow-sm">
+          <div className="absolute -right-10 -top-10 h-24 w-24 rounded-full bg-red-100/50 blur-3xl" />
+          <div className="relative z-10 flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#b10000] shadow-sm">
+                <ClipboardDocumentCheckIcon className="h-4 w-4 text-white" />
               </div>
-            ))}
-          </div>
-        )}
+              <div>
+                <h1 className="text-xl font-black tracking-tight text-gray-900">
+                  Daily Stock Audit
+                </h1>
+                <p className="mt-0.5 text-[12px] text-gray-500">
+                  Enter end-of-day actual stock to calculate wastage
+                </p>
+              </div>
+            </div>
 
-        {/* Search */}
-        <input
-          type="text"
-          placeholder="Search ingredient..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="w-full rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-[12px] focus:outline-none focus:ring-1 focus:ring-[#b10000]"
-        />
+            <div className="flex flex-wrap items-center gap-1.5">
+              {filledCount > 0 && (
+                <>
+                  <div className="flex items-center gap-2 rounded-xl border border-blue-100 bg-blue-50 px-2.5 py-1.5 shadow-sm">
+                    <div>
+                      <p className="text-[8px] font-bold uppercase tracking-[0.12em] text-blue-700 opacity-70">
+                        Filled
+                      </p>
+                      <p className="text-[13px] font-black leading-none text-blue-700">
+                        {filledCount} / {ingredients.length}
+                      </p>
+                    </div>
+                  </div>
+                  <div
+                    className={`flex items-center gap-2 rounded-xl border px-2.5 py-1.5 shadow-sm ${
+                      totalWastage < 0
+                        ? "border-sky-100 bg-sky-50"
+                        : "border-red-100 bg-red-50"
+                    }`}
+                  >
+                    <div>
+                      <p
+                        className={`text-[8px] font-bold uppercase tracking-[0.12em] opacity-70 ${
+                          totalWastage < 0 ? "text-sky-700" : "text-red-700"
+                        }`}
+                      >
+                        {totalWastage < 0 ? "Net Under-used" : "Net Wastage"}
+                      </p>
+                      <p
+                        className={`text-[13px] font-black leading-none ${
+                          totalWastage < 0 ? "text-sky-700" : "text-red-700"
+                        }`}
+                      >
+                        {Math.abs(totalWastage).toFixed(2)} units
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 rounded-xl border border-amber-100 bg-amber-50 px-2.5 py-1.5 shadow-sm">
+                    <div>
+                      <p className="text-[8px] font-bold uppercase tracking-[0.12em] text-amber-700 opacity-70">
+                        Wastage Cost
+                      </p>
+                      <p className="text-[13px] font-black leading-none text-amber-700">
+                        ₹{totalWastageCost.toLocaleString("en-IN", { maximumFractionDigits: 0 })}
+                      </p>
+                    </div>
+                  </div>
+                </>
+              )}
+              <input
+                type="date"
+                value={auditDate}
+                onChange={(e) => setAuditDate(e.target.value)}
+                className="h-9 rounded-xl border border-gray-200 bg-white px-3 text-[12px] font-medium text-gray-700 outline-none focus:border-red-400 focus:ring-2 focus:ring-red-100"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Formula hint */}
+        <div className="flex items-start gap-2 rounded-xl border border-blue-100 bg-blue-50 px-4 py-2.5 text-[11px] text-blue-700">
+          <InformationCircleIcon className="mt-0.5 h-4 w-4 shrink-0" />
+          <p>
+            <strong>Wastage</strong> = (Opening Stock − SOP Consumption) − Actual Closing Stock.
+            A positive number means more was used than expected; a negative number means less was used (under-used).
+          </p>
+        </div>
 
         {/* Table */}
         <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+          <div className="flex items-center justify-between border-b border-gray-100 px-5 py-3">
+            <div>
+              <h2 className="text-[17px] font-bold text-gray-900">Ingredients</h2>
+              <p className="text-[11px] text-gray-500">
+                {filtered.length} of {ingredients.length} ingredients
+              </p>
+            </div>
+            <div className="relative">
+              <MagnifyingGlassIcon className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-gray-400" />
+              <input
+                placeholder="Search ingredient..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="h-9 w-64 rounded-xl border border-gray-200 bg-white pl-8 pr-3 text-[12px] outline-none focus:border-red-400 focus:ring-2 focus:ring-red-100"
+              />
+            </div>
+          </div>
+
           {/* Column headers */}
-          <div className="grid grid-cols-[2fr_1fr_1fr_1fr_1.4fr_1fr] gap-2 border-b border-gray-100 bg-gray-50 px-4 py-2.5 text-[10px] font-bold uppercase tracking-wide text-gray-500">
+          <div className="grid grid-cols-[2fr_1fr_1fr_1fr_1.4fr_1fr] gap-2 border-b border-gray-100 bg-gray-50 px-5 py-2.5 text-[10px] font-bold uppercase tracking-wide text-gray-500">
             <span>Ingredient</span>
             <span className="text-right">Opening</span>
             <span className="text-right">SOP Used</span>
@@ -167,9 +230,18 @@ export default function DailyStockAudit() {
           </div>
 
           {loading ? (
-            <div className="py-12 text-center text-[12px] text-gray-400">Loading ingredients…</div>
+            <div className="flex h-40 items-center justify-center">
+              <div className="h-6 w-6 animate-spin rounded-full border-2 border-gray-200 border-t-red-500" />
+            </div>
           ) : filtered.length === 0 ? (
-            <div className="py-12 text-center text-[12px] text-gray-400">No ingredients found.</div>
+            <div className="flex flex-col items-center justify-center gap-2 py-16 text-center">
+              <ClipboardDocumentCheckIcon className="h-8 w-8 text-gray-300" />
+              <p className="text-[12px] text-gray-400">
+                {search
+                  ? "No ingredients match your search"
+                  : "No ingredients found for this branch"}
+              </p>
+            </div>
           ) : (
             filtered.map((ing) => {
               const cv = closingInputs[ing.ingredientId];
@@ -191,13 +263,20 @@ export default function DailyStockAudit() {
                 "text-emerald-600";
 
               return (
-                <div key={ing.ingredientId} className={`border-b border-gray-50 px-4 py-3 last:border-0 ${ing.auditSaved ? "bg-emerald-50/30" : ""}`}>
+                <div
+                  key={ing.ingredientId}
+                  className={`border-b border-gray-50 px-5 py-3 transition last:border-0 hover:bg-gray-50/50 ${ing.auditSaved ? "bg-emerald-50/30" : ""}`}
+                >
                   <div className="grid grid-cols-[2fr_1fr_1fr_1fr_1.4fr_1fr] items-center gap-2">
                     {/* Ingredient name */}
                     <div>
                       <p className="text-[12px] font-semibold text-gray-800">{ing.name}</p>
                       <p className="text-[10px] text-gray-400">{ing.unit}{ing.pricePerUnit ? ` · ₹${ing.pricePerUnit}/unit` : ""}</p>
-                      {ing.auditSaved && <span className="text-[9px] font-semibold text-emerald-600">✓ Saved</span>}
+                      {ing.auditSaved && (
+                        <span className="inline-flex items-center gap-0.5 text-[9px] font-semibold text-emerald-600">
+                          <CheckCircleIcon className="h-2.5 w-2.5" /> Saved
+                        </span>
+                      )}
                     </div>
                     {/* Opening */}
                     <p className="text-right text-[12px] text-gray-600">{fmt(ing.openingQty, ing.unit)}</p>
@@ -211,12 +290,17 @@ export default function DailyStockAudit() {
                         type="number"
                         step="0.001"
                         min="0"
-                        placeholder="Enter qty"
+                        placeholder="Qty"
                         value={closingInputs[ing.ingredientId] ?? ""}
-                        onChange={(e) =>
-                          setClosingInputs((prev) => ({ ...prev, [ing.ingredientId]: e.target.value }))
-                        }
-                        className={`w-full rounded-lg border px-2 py-1.5 text-center text-[12px] focus:outline-none focus:ring-1 focus:ring-[#b10000] ${
+                        onKeyDown={(e) => {
+                          if (e.key === "-" || e.key === "Minus") e.preventDefault();
+                        }}
+                        onChange={(e) => {
+                          const v = e.target.value;
+                          if (v !== "" && Number(v) < 0) return;
+                          setClosingInputs((prev) => ({ ...prev, [ing.ingredientId]: v }));
+                        }}
+                        className={`w-20 rounded-lg border px-2 py-1 text-center text-[12px] outline-none transition focus:border-red-400 focus:ring-2 focus:ring-red-100 ${
                           hasValue
                             ? wastage !== null && wastage > 0
                               ? "border-red-200 bg-red-50"
@@ -248,7 +332,7 @@ export default function DailyStockAudit() {
                   </div>
                   {/* Notes row */}
                   {hasValue && (
-                    <div className="mt-1.5 pl-0">
+                    <div className="mt-1.5">
                       <input
                         type="text"
                         placeholder="Notes (optional)"
@@ -256,7 +340,7 @@ export default function DailyStockAudit() {
                         onChange={(e) =>
                           setNotesInputs((prev) => ({ ...prev, [ing.ingredientId]: e.target.value }))
                         }
-                        className="w-full rounded border border-gray-100 bg-gray-50 px-2 py-1 text-[11px] text-gray-600 placeholder-gray-300 focus:outline-none"
+                        className="w-full rounded-lg border border-gray-100 bg-gray-50 px-2.5 py-1.5 text-[11px] text-gray-600 placeholder-gray-300 outline-none focus:border-red-200 focus:ring-2 focus:ring-red-100"
                       />
                     </div>
                   )}
@@ -268,16 +352,18 @@ export default function DailyStockAudit() {
 
         {/* Save button */}
         {!loading && filtered.length > 0 && (
-          <div className="flex items-center justify-between">
-            {savedOk && (
-              <p className="text-[12px] font-semibold text-emerald-600">
-                ✓ Audit saved successfully
+          <div className="flex items-center justify-between rounded-xl border border-gray-200 bg-white px-5 py-3 shadow-sm">
+            {savedOk ? (
+              <p className="flex items-center gap-1.5 text-[12px] font-semibold text-emerald-600">
+                <CheckCircleIcon className="h-4 w-4" /> Audit saved successfully
               </p>
+            ) : (
+              <span />
             )}
             <button
               onClick={handleSave}
               disabled={saving || filledCount === 0}
-              className="ml-auto rounded-xl bg-[#b10000] px-6 py-2.5 text-[13px] font-semibold text-white hover:bg-[#900000] disabled:opacity-50"
+              className="rounded-xl bg-[#b10000] px-6 py-2.5 text-[13px] font-semibold text-white shadow-sm transition hover:bg-[#900000] disabled:cursor-not-allowed disabled:opacity-50"
             >
               {saving ? "Saving…" : `Save Audit (${filledCount} entries)`}
             </button>
@@ -285,14 +371,17 @@ export default function DailyStockAudit() {
         )}
 
         {/* Legend */}
-        <div className="rounded-xl border border-gray-100 bg-white px-4 py-3 text-[11px] text-gray-500">
-          <p className="font-semibold text-gray-600 mb-1">Column Guide</p>
-          <div className="grid grid-cols-2 gap-1 sm:grid-cols-3">
-            <span><span className="font-medium text-gray-700">Opening</span> — stock at start of day</span>
-            <span><span className="font-medium text-emerald-700">SOP Used</span> — Σ(orders × recipe qty)</span>
-            <span><span className="font-medium text-blue-700">Expected</span> — Opening − SOP Used</span>
-            <span><span className="font-medium text-gray-700">Actual Closing</span> — you enter this</span>
-            <span><span className="font-medium text-red-700">Wastage</span> — Expected − Actual</span>
+        <div className="rounded-xl border border-gray-200 bg-white px-5 py-4 shadow-sm">
+          <p className="mb-2 text-[11px] font-bold uppercase tracking-wide text-gray-400">
+            Column Guide
+          </p>
+          <div className="grid grid-cols-2 gap-2 text-[11px] text-gray-500 sm:grid-cols-3">
+            <span><span className="font-semibold text-gray-700">Opening</span> — stock at start of day</span>
+            <span><span className="font-semibold text-emerald-700">SOP Used</span> — Σ(orders × recipe qty)</span>
+            <span><span className="font-semibold text-blue-700">Expected</span> — Opening − SOP Used</span>
+            <span><span className="font-semibold text-gray-700">Actual Closing</span> — you enter this</span>
+            <span><span className="font-semibold text-red-700">Wastage</span> — Expected − Actual</span>
+            <span><span className="font-semibold text-blue-600">Under-used</span> — Actual &gt; Expected</span>
           </div>
         </div>
 
