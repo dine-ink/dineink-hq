@@ -20,6 +20,7 @@ import {
   FireIcon,
   XMarkIcon,
   PencilSquareIcon,
+  PuzzlePieceIcon,
 } from "@heroicons/react/24/outline";
 import React from "react";
 import {
@@ -201,6 +202,13 @@ const tabs = [
   },
 
   {
+    id: "addons",
+    name: "Add-Ons",
+    icon: PuzzlePieceIcon,
+    description: "Extra toppings and options — extra cheese, paneer, etc.",
+  },
+
+  {
     id: "ingredients",
     name: "Ingredients",
     icon: CubeIcon,
@@ -257,6 +265,14 @@ export default function MenuManagement() {
   const [restockHistory, setRestockHistory] = useState<any[]>([]);
   const [menuEngineering, setMenuEngineering] = useState<any>(null);
   const [engineeringLoading, setEngineeringLoading] = useState(false);
+  const [addOnGroups, setAddOnGroups] = useState<any[]>([]);
+  const [newGroupName, setNewGroupName] = useState("");
+  const [newOptionForm, setNewOptionForm] = useState<Record<number, { name: string; price: string }>>({});
+  const [attachModal, setAttachModal] = useState<{ open: boolean; item: any | null; attachedIds: Set<number> }>({
+    open: false,
+    item: null,
+    attachedIds: new Set(),
+  });
   const [selectedMenuItem, setSelectedMenuItem] = useState<any>(null);
   const [mappingLoading, setMappingLoading] = useState(false);
   const [ingredientMappings, setIngredientMappings] = useState<any[]>([]);
@@ -1987,6 +2003,150 @@ export default function MenuManagement() {
     if (activeTab === "engineering") fetchMenuEngineering();
   }, [activeTab, selectedBranch?.id]);
 
+  // ─── Add-Ons (e.g. "Extra Cheese ₹40") ────────────────────────────────────
+
+  const fetchAddOnGroups = async () => {
+    if (!user?.restaurantId) return;
+    try {
+      const res = await fetch(
+        `${API_URL}/api/addons/groups/${user.restaurantId}`,
+        { headers: { Authorization: `Bearer ${token}` } },
+      );
+      const data = await res.json();
+      if (data.success) setAddOnGroups(data.data || []);
+    } catch {
+      /* silent */
+    }
+  };
+
+  // Needed on both the Add-Ons tab (management) and the Menu tab (the
+  // per-item attach modal needs the full group list too).
+  useEffect(() => {
+    if (activeTab === "addons" || activeTab === "menu") fetchAddOnGroups();
+  }, [activeTab, user?.restaurantId]);
+
+  const handleCreateAddOnGroup = async () => {
+    if (!newGroupName.trim() || !user?.restaurantId) return;
+    try {
+      const res = await fetch(`${API_URL}/api/addons/groups`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ restaurantId: user.restaurantId, name: newGroupName.trim() }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setNewGroupName("");
+        fetchAddOnGroups();
+      }
+    } catch {
+      /* silent */
+    }
+  };
+
+  const handleDeleteAddOnGroup = async (id: number) => {
+    if (!window.confirm("Delete this add-on group and all its options?")) return;
+    try {
+      await fetch(`${API_URL}/api/addons/groups/${id}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      fetchAddOnGroups();
+    } catch {
+      /* silent */
+    }
+  };
+
+  const handleAddOption = async (groupId: number) => {
+    const form = newOptionForm[groupId];
+    if (!form?.name?.trim() || !form?.price) return;
+    try {
+      const res = await fetch(`${API_URL}/api/addons/options`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          addOnGroupId: groupId,
+          name: form.name.trim(),
+          price: Number(form.price),
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setNewOptionForm((prev) => ({ ...prev, [groupId]: { name: "", price: "" } }));
+        fetchAddOnGroups();
+      }
+    } catch {
+      /* silent */
+    }
+  };
+
+  const handleDeleteOption = async (id: number) => {
+    try {
+      await fetch(`${API_URL}/api/addons/options/${id}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      fetchAddOnGroups();
+    } catch {
+      /* silent */
+    }
+  };
+
+  const openAttachModal = async (item: any) => {
+    setAttachModal({ open: true, item, attachedIds: new Set() });
+    try {
+      const res = await fetch(`${API_URL}/api/addons/menu-items/${item.id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (data.success) {
+        setAttachModal({
+          open: true,
+          item,
+          attachedIds: new Set((data.data || []).map((g: any) => g.id)),
+        });
+      }
+    } catch {
+      /* silent */
+    }
+  };
+
+  const handleToggleAttach = async (groupId: number) => {
+    if (!attachModal.item) return;
+    const isAttached = attachModal.attachedIds.has(groupId);
+    // Optimistic update
+    setAttachModal((prev) => {
+      const next = new Set(prev.attachedIds);
+      if (isAttached) next.delete(groupId);
+      else next.add(groupId);
+      return { ...prev, attachedIds: next };
+    });
+    try {
+      if (isAttached) {
+        await fetch(
+          `${API_URL}/api/addons/menu-items/${attachModal.item.id}/groups/${groupId}`,
+          { method: "DELETE", headers: { Authorization: `Bearer ${token}` } },
+        );
+      } else {
+        await fetch(`${API_URL}/api/addons/menu-items/${attachModal.item.id}/groups`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ addOnGroupId: groupId }),
+        });
+      }
+    } catch {
+      /* silent — optimistic state may drift; modal re-fetches next time it opens */
+    }
+  };
+
   const resetSopForm = () =>
     setSopForm({
       id: null,
@@ -2574,6 +2734,13 @@ export default function MenuManagement() {
                                   className={`rounded-xl border px-3 py-2 text-[12px] font-semibold transition ${item.isAvailable ? "border-orange-200 bg-orange-50 text-orange-700 hover:bg-orange-100" : "border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100"}`}
                                 >
                                   {item.isAvailable ? "Mark Off" : "Mark On"}
+                                </button>
+                                <button
+                                  onClick={() => openAttachModal(item)}
+                                  title="Manage add-ons for this item"
+                                  className="rounded-xl border border-violet-200 bg-violet-50 px-3 py-2 text-[12px] font-semibold text-violet-700 transition hover:bg-violet-100"
+                                >
+                                  Add-Ons
                                 </button>
                                 <button
                                   onClick={() => {
@@ -5263,6 +5430,147 @@ export default function MenuManagement() {
             </div>
           )}
 
+          {/* ================= ADD-ONS ================= */}
+          {activeTab === "addons" && (
+            <div className="space-y-4">
+              <div className="rounded-2xl border border-gray-200 bg-white px-5 py-4 shadow-sm">
+                <div className="flex items-center gap-4">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-500 to-purple-500 shadow-sm">
+                    <PuzzlePieceIcon className="h-5 w-5 text-white" />
+                  </div>
+                  <div>
+                    <h2 className="text-[24px] font-black tracking-tight text-gray-900">
+                      Add-On Groups
+                    </h2>
+                    <p className="mt-1 text-[13px] text-gray-500">
+                      Define reusable extras (e.g. "Extra Toppings") once,
+                      then attach them to whichever dishes need them from the
+                      Menu tab.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* New group */}
+              <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+                <div className="flex gap-2">
+                  <input
+                    value={newGroupName}
+                    onChange={(e) => setNewGroupName(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && handleCreateAddOnGroup()}
+                    placeholder="New group name (e.g. Extra Toppings)"
+                    className="flex-1 rounded-xl border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm outline-none transition focus:border-violet-300 focus:bg-white"
+                  />
+                  <button
+                    onClick={handleCreateAddOnGroup}
+                    disabled={!newGroupName.trim()}
+                    className="flex items-center gap-1.5 rounded-xl bg-violet-600 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-violet-700 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <PlusIcon className="h-4 w-4" />
+                    Add Group
+                  </button>
+                </div>
+              </div>
+
+              {/* Groups list */}
+              {addOnGroups.length === 0 ? (
+                <div className="flex h-40 items-center justify-center rounded-2xl border border-dashed border-gray-200 bg-white">
+                  <p className="text-[13px] text-gray-400">
+                    No add-on groups yet — create one above.
+                  </p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
+                  {addOnGroups.map((group: any) => (
+                    <div
+                      key={group.id}
+                      className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm"
+                    >
+                      <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3">
+                        <div>
+                          <h3 className="text-[15px] font-bold text-gray-900">
+                            {group.name}
+                          </h3>
+                          <p className="text-[11px] text-gray-400">
+                            {group.options?.length || 0} option
+                            {group.options?.length === 1 ? "" : "s"} ·{" "}
+                            {group.menuItems?.length || 0} item
+                            {group.menuItems?.length === 1 ? "" : "s"} attached
+                          </p>
+                        </div>
+                        <button
+                          onClick={() => handleDeleteAddOnGroup(group.id)}
+                          className="rounded-lg border border-red-200 bg-red-50 px-2.5 py-1.5 text-[11px] font-semibold text-red-700 transition hover:bg-red-100"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                      <div className="divide-y divide-gray-50">
+                        {(group.options || []).map((opt: any) => (
+                          <div
+                            key={opt.id}
+                            className="flex items-center justify-between px-4 py-2.5"
+                          >
+                            <span className="text-[13px] font-semibold text-gray-800">
+                              {opt.name}
+                            </span>
+                            <div className="flex items-center gap-2">
+                              <span className="text-[13px] font-bold text-gray-900">
+                                ₹{opt.price}
+                              </span>
+                              <button
+                                onClick={() => handleDeleteOption(opt.id)}
+                                className="text-[11px] font-semibold text-red-500 hover:text-red-700"
+                              >
+                                Remove
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                        {(!group.options || group.options.length === 0) && (
+                          <p className="px-4 py-3 text-[12px] text-gray-400">
+                            No options yet.
+                          </p>
+                        )}
+                      </div>
+                      <div className="flex gap-2 border-t border-gray-100 bg-gray-50 p-3">
+                        <input
+                          value={newOptionForm[group.id]?.name || ""}
+                          onChange={(e) =>
+                            setNewOptionForm((prev) => ({
+                              ...prev,
+                              [group.id]: { ...prev[group.id], name: e.target.value, price: prev[group.id]?.price || "" },
+                            }))
+                          }
+                          placeholder="Option (e.g. Extra Cheese)"
+                          className="min-w-0 flex-1 rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-[12px] outline-none focus:border-violet-300"
+                        />
+                        <input
+                          type="number"
+                          value={newOptionForm[group.id]?.price || ""}
+                          onChange={(e) =>
+                            setNewOptionForm((prev) => ({
+                              ...prev,
+                              [group.id]: { ...prev[group.id], price: e.target.value, name: prev[group.id]?.name || "" },
+                            }))
+                          }
+                          placeholder="₹"
+                          className="w-16 rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-[12px] outline-none focus:border-violet-300"
+                        />
+                        <button
+                          onClick={() => handleAddOption(group.id)}
+                          className="shrink-0 rounded-lg bg-violet-600 px-3 py-1.5 text-[11px] font-bold text-white transition hover:bg-violet-700"
+                        >
+                          Add
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
           {/* ================= OPERATIONS (SOP CHECKLISTS) ================= */}
           {activeTab === "operations" && (
             <div className="space-y-4">
@@ -5507,6 +5815,72 @@ export default function MenuManagement() {
                   </div>
                 </div>
               )}
+            </div>
+          )}
+
+          {/* ================= ATTACH ADD-ON GROUPS TO ITEM ================= */}
+          {attachModal.open && attachModal.item && (
+            <div
+              className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+              onClick={() => setAttachModal({ open: false, item: null, attachedIds: new Set() })}
+            >
+              <div
+                className="w-full max-w-sm rounded-2xl bg-white p-5 shadow-xl"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="mb-4 flex items-center justify-between">
+                  <div>
+                    <h3 className="text-[16px] font-bold text-gray-900">
+                      Add-Ons for {attachModal.item.name}
+                    </h3>
+                    <p className="mt-0.5 text-[11px] text-gray-500">
+                      Choose which groups apply to this dish
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => setAttachModal({ open: false, item: null, attachedIds: new Set() })}
+                    className="flex h-7 w-7 items-center justify-center rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50"
+                  >
+                    <XMarkIcon className="h-4 w-4" />
+                  </button>
+                </div>
+
+                {addOnGroups.length === 0 ? (
+                  <p className="text-[12px] text-gray-400">
+                    No add-on groups yet — create one in the Add-Ons tab first.
+                  </p>
+                ) : (
+                  <div className="max-h-80 space-y-1.5 overflow-y-auto">
+                    {addOnGroups.map((group: any) => {
+                      const checked = attachModal.attachedIds.has(group.id);
+                      return (
+                        <label
+                          key={group.id}
+                          className={`flex cursor-pointer items-center justify-between rounded-xl border px-3 py-2.5 transition ${
+                            checked ? "border-violet-300 bg-violet-50" : "border-gray-200 bg-white hover:bg-gray-50"
+                          }`}
+                        >
+                          <div>
+                            <p className="text-[13px] font-semibold text-gray-900">
+                              {group.name}
+                            </p>
+                            <p className="text-[10px] text-gray-400">
+                              {group.options?.length || 0} option
+                              {group.options?.length === 1 ? "" : "s"}
+                            </p>
+                          </div>
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            onChange={() => handleToggleAttach(group.id)}
+                            className="h-4 w-4 rounded border-gray-300 text-violet-600 focus:ring-violet-500"
+                          />
+                        </label>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
             </div>
           )}
         </div>
