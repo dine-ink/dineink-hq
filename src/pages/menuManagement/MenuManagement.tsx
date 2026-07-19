@@ -5425,6 +5425,40 @@ export default function MenuManagement() {
                       </div>
                     </div>
                   )}
+
+                  {menuEngineering.categoryCostBreakdown?.length > 0 && (
+                    <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+                      <h3 className="mb-1 text-[13px] font-bold text-gray-900">
+                        Category Cost %
+                      </h3>
+                      <p className="mb-3 text-[11px] text-gray-500">
+                        Recipe cost ÷ revenue, per category — generalizes
+                        "Beverage Cost %" to every category on the menu
+                      </p>
+                      <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+                        {menuEngineering.categoryCostBreakdown.map((c: any) => (
+                          <div
+                            key={c.category}
+                            className="rounded-xl border border-gray-200 bg-gray-50 p-3"
+                          >
+                            <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-gray-400">
+                              {c.category}
+                            </p>
+                            <p
+                              className={`mt-2 text-[18px] font-bold ${
+                                c.costPercentage > 35 ? "text-red-600" : "text-emerald-600"
+                              }`}
+                            >
+                              {c.costPercentage}%
+                            </p>
+                            <p className="mt-1 text-[11px] text-gray-500">
+                              ₹{c.cost.toLocaleString()} cost / ₹{c.revenue.toLocaleString()} revenue
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </>
               )}
             </div>

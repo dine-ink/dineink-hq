@@ -75,6 +75,9 @@ export default function Insights() {
   const [restockHistory, setRestockHistory] = useState<any[]>([]);
   const [inventoryStockValue, setInventoryStockValue] = useState(0);
   const [mtdAnalytics, setMtdAnalytics] = useState<any>(null);
+  const [tableOps, setTableOps] = useState<any>(null);
+  const [accountsPayable, setAccountsPayable] = useState(0);
+  const [hasVendorInvoices, setHasVendorInvoices] = useState(true);
   const [insightsData, setInsightsData] = useState<any>({
     monthlyRent: 0,
     loanEmi: 0,
@@ -91,6 +94,7 @@ export default function Insights() {
     gas: 0,
     maintenance: 0,
     fuel: 0,
+    marketingSpend: 0,
     targetEbitda: 0,
     targetFoodCost: 0,
     targetGrossMargin: 0,
@@ -111,6 +115,7 @@ export default function Insights() {
     plannedExpansion: "",
     revenue: 0,
     manualFoodCost: 0,
+    initialInvestment: 0,
   });
   const n = (v: any) => Number(v) || 0;
   const totalFixedExpenses =
@@ -129,7 +134,8 @@ export default function Insights() {
     n(insightsData.electricity) +
     n(insightsData.gas) +
     n(insightsData.maintenance) +
-    n(insightsData.fuel);
+    n(insightsData.fuel) +
+    n(insightsData.marketingSpend);
   const totalLabourCost =
     staffData?.reduce((sum: number, s: any) => sum + (s.salary || 0), 0) || 0;
   const totalFinanceCost =
@@ -177,10 +183,6 @@ export default function Insights() {
   const actualFoodCostPercentage = revenue
     ? ((effectiveFoodCost / revenue) * 100).toFixed(1)
     : "0";
-  /* INVENTORY TURNOVER */
-  const inventoryTurnover = inventoryValue
-    ? (actualFoodCost / inventoryValue).toFixed(2)
-    : "0";
   /* INFLATED INGREDIENTS */
   const inflatedIngredients = restockData.filter((item: any) => {
     const week1 = Number(item.Week1Price || 0);
@@ -196,14 +198,23 @@ export default function Insights() {
     .slice(0, 5);
   /* EBITDA % */
   const ebitdaPercentage = revenue ? ((ebitda / revenue) * 100).toFixed(1) : 0;
-  /* FOOD COST % */
-  const foodCostPercentage = revenue
-    ? ((totalVariableExpenses / revenue) * 100).toFixed(1)
-    : 0;
-  /* PRIME COST % */
+  /* PRIME COST % — Food Cost + Labour Cost, NOT variable overhead + labour.
+     (Previously this used totalVariableExpenses instead of effectiveFoodCost,
+     which excluded raw-material cost entirely from a metric that's supposed
+     to be dominated by it — the single most-watched restaurant KPI.) */
+  const primeCost = effectiveFoodCost + totalLabourCost;
   const primeCostPercentage = revenue
-    ? (((totalVariableExpenses + totalLabourCost) / revenue) * 100).toFixed(1)
+    ? ((primeCost / revenue) * 100).toFixed(1)
     : 0;
+  /* GROSS PROFIT — Net Sales − COGS (COGS ≈ food/raw-material cost) */
+  const grossProfit = revenue - effectiveFoodCost;
+  const grossProfitMarginPercentage = revenue
+    ? ((grossProfit / revenue) * 100).toFixed(1)
+    : "0";
+  /* LABOUR COST % */
+  const labourCostPercentage = revenue
+    ? ((totalLabourCost / revenue) * 100).toFixed(1)
+    : "0";
 
   /* ================= BREAK-EVEN & MONTHLY PROGRESS ================= */
   const today = new Date();
@@ -214,7 +225,22 @@ export default function Insights() {
   ).getDate();
   const daysElapsed = today.getDate();
   const mtdRevenue = n(mtdAnalytics?.totalRevenue);
-  const breakEvenRevenue = totalExpenses; // revenue needed to hit 0% EBITDA
+  const mtdOrders = n(mtdAnalytics?.totalOrders);
+  // Break-even Sales = Fixed Costs ÷ Contribution Margin %. Labour and
+  // finance costs are treated as fixed here (staff are scheduled and paid
+  // regardless of exact covers on a given day, unlike food cost or
+  // per-order variable expenses, which scale directly with volume).
+  const breakEvenFixedCosts = totalFixedExpenses + totalLabourCost + totalFinanceCost;
+  const breakEvenVariableCosts = totalVariableExpenses + effectiveFoodCost;
+  const contributionMargin = revenue - breakEvenVariableCosts;
+  const contributionMarginPercentage = revenue > 0 ? contributionMargin / revenue : 0;
+  const breakEvenRevenue =
+    contributionMarginPercentage > 0
+      ? breakEvenFixedCosts / contributionMarginPercentage
+      : totalExpenses; // fallback if contribution margin is 0/negative
+  const contributionPerOrder = mtdOrders > 0 ? contributionMargin / mtdOrders : 0;
+  const breakEvenOrders =
+    contributionPerOrder > 0 ? Math.ceil(breakEvenFixedCosts / contributionPerOrder) : null;
   const dailyRunRate = daysElapsed > 0 ? mtdRevenue / daysElapsed : 0;
   const projectedMonthEndRevenue = dailyRunRate * daysInMonth;
   const monthlyTarget =
@@ -230,6 +256,48 @@ export default function Insights() {
   const hasBrokenEven = mtdRevenue >= breakEvenRevenue && breakEvenRevenue > 0;
   const onTrackForTarget = projectedMonthEndRevenue >= monthlyTarget;
 
+  /* ================= INVENTORY TURNOVER, DIO, CASH CONVERSION CYCLE ======== */
+  // Average Inventory = (opening + closing stock value) ÷ 2, from the same
+  // restock-history figures that already power effectiveFoodCost above.
+  // Falls back to the live ingredient stock value when no restock history
+  // exists yet, since that's the only inventory figure available then.
+  const averageInventoryValue =
+    startingInventory > 0 || inventoryValue > 0
+      ? (startingInventory + inventoryValue) / 2
+      : inventoryStockValue;
+  const inventoryTurnover =
+    averageInventoryValue > 0 ? effectiveFoodCost / averageInventoryValue : null;
+  const daysInventoryOutstanding =
+    inventoryTurnover && inventoryTurnover > 0
+      ? daysInMonth / inventoryTurnover
+      : null;
+  // Days Sales Outstanding is 0 — a POS restaurant is paid in full at the
+  // time of sale, so there's no customer receivable to track.
+  const daysSalesOutstanding = 0;
+  const daysPayableOutstanding =
+    effectiveFoodCost > 0 ? (accountsPayable / effectiveFoodCost) * daysInMonth : null;
+  const cashConversionCycle =
+    daysInventoryOutstanding !== null && daysPayableOutstanding !== null
+      ? daysInventoryOutstanding + daysSalesOutstanding - daysPayableOutstanding
+      : null;
+
+  /* ================= SALES PER SQUARE FOOT ================= */
+  // Annualizes this month's revenue (×12) since areaSqFt is a fixed,
+  // point-in-time figure — there's no trailing-12-month revenue query here.
+  const branchAreaSqFt = n(selectedBranch?.areaSqFt);
+  const salesPerSqFt = branchAreaSqFt > 0 ? (revenue * 12) / branchAreaSqFt : null;
+
+  /* ================= REFUND % (approximated via cancelled bills) ========= */
+  // No dedicated refund record exists — CANCELLED bills are the closest
+  // proxy for "money given back to a guest this month".
+  const cancelledTotal = n(mtdAnalytics?.cancelledTotal);
+  const cancelledCount = n(mtdAnalytics?.cancelledCount);
+  const grossSalesIncludingCancelled = mtdRevenue + cancelledTotal;
+  const refundPercentage =
+    grossSalesIncludingCancelled > 0
+      ? (cancelledTotal / grossSalesIncludingCancelled) * 100
+      : 0;
+
   /* ================= DELIVERY / AGGREGATOR PROFITABILITY ================= */
   const revenueByOrderType = mtdAnalytics?.revenueByOrderType || {};
   const deliveryRevenue = n(revenueByOrderType.ONLINE) + n(revenueByOrderType.DELIVERY);
@@ -241,7 +309,32 @@ export default function Insights() {
   const deliveryCostPercentage = deliveryRevenue
     ? (deliveryRelatedCost / deliveryRevenue) * 100
     : 0;
+  // Pure aggregator commission % — distinct from the combined delivery+
+  // packaging cost ratio above, matching the standard "Commission Paid ÷
+  // Delivery Sales" definition.
+  const aggregatorCommissionPercentage = deliveryRevenue
+    ? (n(insightsData.aggregatorCommission) / deliveryRevenue) * 100
+    : 0;
   const hasDeliveryOrders = deliveryRevenue > 0;
+
+  /* ================= CAC, ROI ================= */
+  const newCustomersThisMonth = n(mtdAnalytics?.newCustomersCount);
+  const customerAcquisitionCost =
+    newCustomersThisMonth > 0
+      ? n(insightsData.marketingSpend) / newCustomersThisMonth
+      : 0;
+  // True cumulative ROI would need a running P&L history since the
+  // investment was made — Insights only stores this month's snapshot (each
+  // save overwrites the last), so there's no historical ledger to sum. This
+  // shows the return AT THIS MONTH'S RATE instead, plus an implied payback
+  // period, which is honest about what the data actually supports.
+  const initialInvestment = n(insightsData.initialInvestment);
+  const monthlyRoiPercentage =
+    initialInvestment > 0 ? (ebitda / initialInvestment) * 100 : null;
+  const paybackMonths =
+    initialInvestment > 0 && ebitda > 0
+      ? Math.ceil(initialInvestment / ebitda)
+      : null;
 
   useEffect(() => {
     const fetchInsights = async () => {
@@ -391,10 +484,68 @@ export default function Insights() {
       }
     };
 
+    const fetchTableOps = async () => {
+      try {
+        if (!user?.restaurantId || !selectedBranch?.id) return;
+        const now = new Date();
+        const from = new Date(now.getFullYear(), now.getMonth(), 1)
+          .toISOString()
+          .slice(0, 10);
+        const to = now.toISOString().slice(0, 10);
+        const res = await fetch(
+          `${API_URL}/api/analytics/${user.restaurantId}/${selectedBranch.id}/table-operations?from=${from}&to=${to}`,
+          { headers: { Authorization: `Bearer ${token}` } },
+        );
+        const json = await res.json();
+        if (json.success) setTableOps(json.data);
+      } catch {
+        // silently ignored
+      }
+    };
+
+    // Total outstanding vendor balances (Accounts Payable), for Days Payable
+    // Outstanding in the Cash Conversion Cycle below.
+    const fetchAccountsPayable = async () => {
+      try {
+        if (!user?.restaurantId || !selectedBranch?.id) return;
+        const res = await fetch(
+          `${API_URL}/api/vendors/outstanding/${user.restaurantId}/${selectedBranch.id}`,
+          { headers: { Authorization: `Bearer ${token}` } },
+        );
+        const json = await res.json();
+        const vendors = json?.data || json || [];
+        const total = Array.isArray(vendors)
+          ? vendors.reduce((s: number, v: any) => s + Number(v.outstanding || 0), 0)
+          : 0;
+        setAccountsPayable(total);
+      } catch {
+        // silently ignored
+      }
+    };
+
+    // Distinguishes "no vendor invoices logged" from "invoices exist and are
+    // all fully paid" — both otherwise look identical (accountsPayable = 0).
+    const fetchVendorInvoiceActivity = async () => {
+      try {
+        if (!user?.restaurantId || !selectedBranch?.id) return;
+        const res = await fetch(
+          `${API_URL}/api/vendors/invoice-activity/${user.restaurantId}/${selectedBranch.id}`,
+          { headers: { Authorization: `Bearer ${token}` } },
+        );
+        const json = await res.json();
+        if (json.success) setHasVendorInvoices(!!json.data.hasAnyInvoices);
+      } catch {
+        // silently ignored
+      }
+    };
+
     fetchInsights();
     fetchRestockHistory();
     fetchInventoryStock();
     fetchMtdAnalytics();
+    fetchTableOps();
+    fetchAccountsPayable();
+    fetchVendorInvoiceActivity();
   }, [selectedBranch]);
   const handleGenerate = async () => {
     try {
@@ -990,6 +1141,68 @@ export default function Insights() {
                 })}
               </div>
 
+              {/* ================= PROFITABILITY & EFFICIENCY ================= */}
+
+              <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+                {[
+                  {
+                    label: "Gross Profit",
+                    value: `₹${Math.round(grossProfit).toLocaleString()}`,
+                    sub: "Revenue − food cost",
+                    icon: IndianRupee,
+                    color: "emerald",
+                  },
+                  {
+                    label: "Gross Margin",
+                    value: `${grossProfitMarginPercentage}%`,
+                    sub: "Gross profit ÷ revenue",
+                    icon: TrendingUp,
+                    color: "blue",
+                  },
+                  {
+                    label: "Labour Cost",
+                    value: `${labourCostPercentage}%`,
+                    sub: "Of revenue",
+                    icon: Users,
+                    color: "violet",
+                  },
+                  {
+                    label: "Contribution Margin",
+                    value: `${(contributionMarginPercentage * 100).toFixed(1)}%`,
+                    sub: "Revenue after variable costs",
+                    icon: PieChart,
+                    color: "orange",
+                  },
+                ].map((item) => {
+                  const Icon = item.icon;
+                  const colorMap: Record<string, { text: string; bg: string; icon: string }> = {
+                    emerald: { text: "text-emerald-500", bg: "bg-emerald-50", icon: "text-emerald-600" },
+                    blue: { text: "text-blue-500", bg: "bg-blue-50", icon: "text-blue-600" },
+                    violet: { text: "text-violet-500", bg: "bg-violet-50", icon: "text-violet-600" },
+                    orange: { text: "text-orange-500", bg: "bg-orange-50", icon: "text-orange-600" },
+                  };
+                  const c = colorMap[item.color];
+                  return (
+                    <div key={item.label} className="rounded-2xl border border-gray-200 bg-white p-3 shadow-sm">
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <p className={`text-[10px] font-bold uppercase tracking-[0.14em] ${c.text}`}>
+                            {item.label}
+                          </p>
+                          <p className="mt-2 text-[22px] font-bold tracking-tight text-gray-900">
+                            {item.value}
+                          </p>
+                          <p className="mt-1 text-[11px] text-gray-500">{item.sub}</p>
+                        </div>
+                        <div className={`flex h-8 w-8 items-center justify-center rounded-lg ${c.bg}`}>
+                          <Icon className={`h-4 w-4 ${c.icon}`} />
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
               {/* ================= EBITDA HEALTH ================= */}
 
               <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
@@ -1373,6 +1586,16 @@ export default function Insights() {
                         color: "violet",
                       },
                       {
+                        label: "Break-Even Orders",
+                        value: breakEvenOrders ? breakEvenOrders.toLocaleString() : "—",
+                        color: "blue",
+                      },
+                      {
+                        label: "Refund Rate",
+                        value: `${refundPercentage.toFixed(1)}%`,
+                        color: refundPercentage > 5 ? "red" : "emerald",
+                      },
+                      {
                         label: "Status",
                         value: hasBrokenEven
                           ? "Costs Covered"
@@ -1531,10 +1754,16 @@ export default function Insights() {
                           {item.value}
                         </p>
                         {item.label === "Delivery + Aggregator Cost" && (
-                          <p className="mt-1 text-[11px] text-gray-500">
-                            {deliveryCostPercentage.toFixed(1)}% of delivery
-                            revenue
-                          </p>
+                          <>
+                            <p className="mt-1 text-[11px] text-gray-500">
+                              {deliveryCostPercentage.toFixed(1)}% of delivery
+                              revenue
+                            </p>
+                            <p className="text-[11px] text-gray-400">
+                              Aggregator commission:{" "}
+                              {aggregatorCommissionPercentage.toFixed(1)}%
+                            </p>
+                          </>
                         )}
                       </div>
                     ))}
@@ -1545,6 +1774,288 @@ export default function Insights() {
                       No online/delivery orders recorded this month yet.
                     </p>
                   </div>
+                )}
+              </div>
+
+              {/* ================= CUSTOMER ACQUISITION & ROI ================= */}
+
+              <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+                <div className="mb-4 flex items-start gap-3">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-violet-50">
+                    <Target className="h-4 w-4 text-violet-600" />
+                  </div>
+                  <div>
+                    <h3 className="text-[18px] font-bold tracking-tight text-gray-900">
+                      Customer Acquisition & ROI
+                    </h3>
+                    <p className="mt-1 text-[12px] text-gray-500">
+                      Marketing efficiency and return on your branch
+                      investment, this month
+                    </p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+                  {[
+                    {
+                      label: "New Customers",
+                      value: newCustomersThisMonth.toLocaleString(),
+                      sub: "First purchase this month",
+                      color: "blue",
+                    },
+                    {
+                      label: "CAC",
+                      value:
+                        newCustomersThisMonth > 0
+                          ? `₹${Math.round(customerAcquisitionCost).toLocaleString()}`
+                          : "—",
+                      sub: "Marketing spend ÷ new customers",
+                      color: "orange",
+                    },
+                    {
+                      label: "Monthly ROI",
+                      value:
+                        monthlyRoiPercentage !== null
+                          ? `${monthlyRoiPercentage.toFixed(1)}%`
+                          : "—",
+                      sub: "EBITDA ÷ initial investment (this month's rate)",
+                      color: monthlyRoiPercentage !== null && monthlyRoiPercentage >= 0 ? "emerald" : "red",
+                    },
+                    {
+                      label: "Payback Period",
+                      value: paybackMonths ? `${paybackMonths} mo` : "—",
+                      sub: "Investment ÷ EBITDA, at this rate",
+                      color: "violet",
+                    },
+                  ].map((item) => (
+                    <div
+                      key={item.label}
+                      className="rounded-xl border border-gray-200 bg-gray-50 p-3"
+                    >
+                      <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-gray-400">
+                        {item.label}
+                      </p>
+                      <p
+                        className={`mt-2 text-[18px] font-bold ${
+                          item.color === "emerald"
+                            ? "text-emerald-600"
+                            : item.color === "red"
+                              ? "text-red-600"
+                              : item.color === "violet"
+                                ? "text-violet-600"
+                                : item.color === "orange"
+                                  ? "text-orange-600"
+                                  : "text-blue-600"
+                        }`}
+                      >
+                        {item.value}
+                      </p>
+                      <p className="mt-1 text-[11px] text-gray-500">{item.sub}</p>
+                    </div>
+                  ))}
+                </div>
+                {!initialInvestment && (
+                  <p className="mt-3 text-[11px] text-gray-400">
+                    Add an Initial Investment amount in Insights Setup →
+                    Financial Targets to see ROI and payback period.
+                  </p>
+                )}
+              </div>
+
+              {/* ================= TABLE OPERATIONS ================= */}
+
+              <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+                <div className="mb-4 flex items-start gap-3">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-teal-50">
+                    <UtensilsCrossed className="h-4 w-4 text-teal-600" />
+                  </div>
+                  <div>
+                    <h3 className="text-[18px] font-bold tracking-tight text-gray-900">
+                      Table Operations & Space Efficiency
+                    </h3>
+                    <p className="mt-1 text-[12px] text-gray-500">
+                      Table turnover, seat utilization and sales per sq. ft.,
+                      this month
+                    </p>
+                  </div>
+                </div>
+
+                {tableOps && tableOps.totalTables > 0 ? (
+                  <>
+                    <div className="grid grid-cols-2 gap-3 xl:grid-cols-5">
+                      {[
+                        {
+                          label: "Table Turnover",
+                          value: tableOps.tableTurnoverRate.toFixed(1),
+                          sub: "closed sessions ÷ total tables, this month",
+                          color: "blue",
+                        },
+                        {
+                          label: "Turns / Table / Day",
+                          value: tableOps.turnsPerTablePerDay.toFixed(2),
+                          sub: "average daily turnover pace",
+                          color: "violet",
+                        },
+                        {
+                          label: "Seat Utilization",
+                          value: `${tableOps.seatUtilizationPercentage.toFixed(1)}%`,
+                          sub: "occupied vs. available seat-hours",
+                          color:
+                            tableOps.seatUtilizationPercentage >= 50 ? "emerald" : "orange",
+                        },
+                        {
+                          label: "Total Seats",
+                          value: tableOps.totalCapacity.toLocaleString(),
+                          sub: `${tableOps.totalTables} tables`,
+                          color: "gray",
+                        },
+                        {
+                          label: "Sales / Sq. Ft.",
+                          value: salesPerSqFt !== null ? `₹${Math.round(salesPerSqFt).toLocaleString()}` : "—",
+                          sub: salesPerSqFt !== null ? "annualized revenue ÷ area" : "add Area (Sq. Ft.) in Settings",
+                          color: "emerald",
+                        },
+                      ].map((item) => (
+                        <div
+                          key={item.label}
+                          className="rounded-xl border border-gray-200 bg-gray-50 p-3"
+                        >
+                          <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-gray-400">
+                            {item.label}
+                          </p>
+                          <p
+                            className={`mt-2 text-[18px] font-bold ${
+                              item.color === "emerald"
+                                ? "text-emerald-600"
+                                : item.color === "orange"
+                                  ? "text-orange-600"
+                                  : item.color === "violet"
+                                    ? "text-violet-600"
+                                    : item.color === "gray"
+                                      ? "text-gray-700"
+                                      : "text-blue-600"
+                            }`}
+                          >
+                            {item.value}
+                          </p>
+                          <p className="mt-1 text-[11px] text-gray-500">{item.sub}</p>
+                        </div>
+                      ))}
+                    </div>
+                    <p className="mt-3 text-[11px] text-gray-400">
+                      Seat Utilization assumes each occupied table is filled to
+                      capacity for its duration — party-size isn't tracked, so
+                      this is a time-occupancy estimate, not a true covers-based
+                      figure.
+                    </p>
+                    {!tableOps.hasOperatingHours && (
+                      <p className="mt-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] text-amber-700">
+                        ⚠ This branch's opening/closing time isn't set — Seat
+                        Utilization is using a default 12-hour day estimate.
+                        Set exact hours in Settings for a more accurate number.
+                      </p>
+                    )}
+                    {tableOps.tablesWithMissingCapacity > 0 && (
+                      <p className="mt-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] text-amber-700">
+                        ⚠ {tableOps.tablesWithMissingCapacity} table(s) have no
+                        seat capacity set — Total Seats and Seat Utilization
+                        are undercounting them. Set capacity in Shops → Tables.
+                      </p>
+                    )}
+                  </>
+                ) : (
+                  <div className="rounded-xl border border-dashed border-gray-200 bg-gray-50 py-8 text-center">
+                    <p className="text-[12px] text-gray-400">
+                      No tables configured for this branch yet.
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* ================= INVENTORY & CASH CONVERSION CYCLE ================= */}
+
+              <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+                <div className="mb-4 flex items-start gap-3">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-50">
+                    <Warehouse className="h-4 w-4 text-amber-600" />
+                  </div>
+                  <div>
+                    <h3 className="text-[18px] font-bold tracking-tight text-gray-900">
+                      Inventory & Cash Conversion Cycle
+                    </h3>
+                    <p className="mt-1 text-[12px] text-gray-500">
+                      How fast stock turns over and cash comes back, this
+                      month
+                    </p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+                  {[
+                    {
+                      label: "Inventory Turnover",
+                      value: inventoryTurnover !== null ? `${inventoryTurnover.toFixed(1)}x` : "—",
+                      sub: "food cost ÷ avg. inventory value",
+                      color: "blue",
+                    },
+                    {
+                      label: "Days Inventory Outstanding",
+                      value: daysInventoryOutstanding !== null ? `${Math.round(daysInventoryOutstanding)}d` : "—",
+                      sub: "days stock takes to turn over",
+                      color: "violet",
+                    },
+                    {
+                      label: "Days Payable Outstanding",
+                      value: daysPayableOutstanding !== null ? `${Math.round(daysPayableOutstanding)}d` : "—",
+                      sub: "vendor dues outstanding vs. food cost",
+                      color: "orange",
+                    },
+                    {
+                      label: "Cash Conversion Cycle",
+                      value: cashConversionCycle !== null ? `${Math.round(cashConversionCycle)}d` : "—",
+                      sub: "DIO + DSO (0) − DPO",
+                      color: cashConversionCycle !== null && cashConversionCycle <= 0 ? "emerald" : "red",
+                    },
+                  ].map((item) => (
+                    <div
+                      key={item.label}
+                      className="rounded-xl border border-gray-200 bg-gray-50 p-3"
+                    >
+                      <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-gray-400">
+                        {item.label}
+                      </p>
+                      <p
+                        className={`mt-2 text-[18px] font-bold ${
+                          item.color === "emerald"
+                            ? "text-emerald-600"
+                            : item.color === "red"
+                              ? "text-red-600"
+                              : item.color === "violet"
+                                ? "text-violet-600"
+                                : item.color === "orange"
+                                  ? "text-orange-600"
+                                  : "text-blue-600"
+                        }`}
+                      >
+                        {item.value}
+                      </p>
+                      <p className="mt-1 text-[11px] text-gray-500">{item.sub}</p>
+                    </div>
+                  ))}
+                </div>
+                <p className="mt-3 text-[11px] text-gray-400">
+                  Average Inventory uses this month's opening/closing restock
+                  values (or live stock value if restock history isn't set
+                  up yet). Days Sales Outstanding is 0 since guests pay in
+                  full at the time of sale — there's no customer credit to
+                  collect.
+                </p>
+                {!hasVendorInvoices && (
+                  <p className="mt-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] text-amber-700">
+                    ⚠ No vendor invoices logged for this branch — Days Payable
+                    Outstanding is showing as 0, which may understate your
+                    real payment cycle. Log invoices in Vendors to fix this.
+                  </p>
                 )}
               </div>
             </div>
@@ -2010,6 +2521,10 @@ export default function Insights() {
                             {
                               label: "Fuel",
                               key: "fuel",
+                            },
+                            {
+                              label: "Marketing Spend",
+                              key: "marketingSpend",
                             },
                           ].map((field) => (
                             <div
@@ -2631,6 +3146,13 @@ export default function Insights() {
                               label: "Monthly Profit Goal",
                               key: "monthlyProfitGoal",
                               helper: "Expected monthly net profit",
+                              prefix: "₹",
+                            },
+
+                            {
+                              label: "Initial Investment",
+                              key: "initialInvestment",
+                              helper: "One-time capital invested, for ROI",
                               prefix: "₹",
                             },
                           ].map((field) => (

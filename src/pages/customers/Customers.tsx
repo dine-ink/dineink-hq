@@ -5,7 +5,12 @@ import {
   UsersIcon,
   MagnifyingGlassIcon,
 } from "@heroicons/react/24/outline";
-import { BarChart3Icon, IndianRupeeIcon, RepeatIcon } from "lucide-react";
+import {
+  BarChart3Icon,
+  IndianRupeeIcon,
+  RepeatIcon,
+  CalendarClockIcon,
+} from "lucide-react";
 
 export default function Customers() {
   const { selectedBranch } = useAppSelector((s) => s.branch);
@@ -32,6 +37,8 @@ export default function Customers() {
   );
   const [rfmData, setRfmData] = useState<any>(null);
   const [rfmLoading, setRfmLoading] = useState(false);
+  const [mtdAnalytics, setMtdAnalytics] = useState<any>(null);
+  const [marketingSpend, setMarketingSpend] = useState(0);
   const total = filtered.length;
   const repeat = filtered.filter((c) => c.visits > 1).length;
   const revenue = filtered.reduce((s, c) => s + c.spend, 0);
@@ -66,17 +73,107 @@ export default function Customers() {
   const topCustomers = [...customers]
     .sort((a, b) => b.spend - a.spend)
     .slice(0, 10);
-  const clvAvg =
-    total > 0
-      ? Math.round(
-          customers.reduce((s, c) => s + Number(c.spend || 0), 0) / total,
-        )
+  const DAY_MS = 1000 * 60 * 60 * 24;
+  const prevWindowStart = new Date(now.getTime() - 60 * DAY_MS);
+  const prevWindowEnd = new Date(now.getTime() - 30 * DAY_MS);
+  // Cohort-based Churn Rate = customers who purchased in the prior 30-day
+  // window but did NOT return in the current 30-day window, ÷ that prior
+  // cohort — the standard "lost ÷ start of period" formula, distinct from
+  // the recency-bucket "Churned" count above (which is an operational
+  // outreach list, not the KPI).
+  const cohortCustomers = customers.filter((c) =>
+    (c.bills || []).some((b: any) => {
+      const t = new Date(b.createdAt).getTime();
+      return t >= prevWindowStart.getTime() && t < prevWindowEnd.getTime();
+    }),
+  );
+  const retainedFromCohort = cohortCustomers.filter((c) =>
+    (c.bills || []).some(
+      (b: any) => new Date(b.createdAt).getTime() >= prevWindowEnd.getTime(),
+    ),
+  );
+  const monthlyChurnRate =
+    cohortCustomers.length > 0
+      ? (cohortCustomers.length - retainedFromCohort.length) /
+        cohortCustomers.length
       : 0;
+  const churnRatePercentage = monthlyChurnRate * 100;
+  const repeatCustomerRatePercentage = total ? (repeat / total) * 100 : 0;
+
+  // LTV = Avg Annual Revenue per Customer × Avg Customer Lifespan, with
+  // lifespan implied by the churn rate (1 ÷ annualized churn) — the standard
+  // substitute when true multi-year retention history isn't tracked. This is
+  // revenue-based (not profit-based), since per-customer gross margin isn't
+  // available here.
+  const twelveMoAgo = new Date(now.getTime() - 365 * DAY_MS);
+  const billsLast12Mo = customers.flatMap((c) =>
+    (c.bills || []).filter(
+      (b: any) => new Date(b.createdAt).getTime() >= twelveMoAgo.getTime(),
+    ),
+  );
+  const revenueLast12Mo = billsLast12Mo.reduce(
+    (s, b: any) => s + Number(b.total || 0),
+    0,
+  );
+  const customersLast12Mo = customers.filter((c) =>
+    (c.bills || []).some(
+      (b: any) => new Date(b.createdAt).getTime() >= twelveMoAgo.getTime(),
+    ),
+  ).length;
+  const avgAnnualRevenuePerCustomer =
+    customersLast12Mo > 0 ? revenueLast12Mo / customersLast12Mo : 0;
+  // Average Visit Frequency = total visits ÷ total customers, over a
+  // trailing 12-month window (visits/year, not lifetime average).
+  const avgVisitFrequency =
+    customersLast12Mo > 0 ? billsLast12Mo.length / customersLast12Mo : 0;
+  const annualChurnRate = 1 - Math.pow(1 - monthlyChurnRate, 12);
+  const avgLifespanYears = annualChurnRate > 0 ? 1 / annualChurnRate : null;
+  const ltv = avgLifespanYears
+    ? avgAnnualRevenuePerCustomer * avgLifespanYears
+    : avgAnnualRevenuePerCustomer;
+
+  const newCustomersThisMonth = Number(mtdAnalytics?.newCustomersCount || 0);
+  const cac =
+    newCustomersThisMonth > 0 ? marketingSpend / newCustomersThisMonth : 0;
+  const ltvCacRatio = cac > 0 ? ltv / cac : null;
 
   useEffect(() => {
     const controller = new AbortController();
     fetchCustomers(controller.signal);
     return () => controller.abort();
+  }, [selectedBranch]);
+
+  // Month-to-date new-customer count (for CAC) and marketing spend (from
+  // Insights Setup) — needed to derive LTV:CAC alongside the cohort churn
+  // and LTV numbers below.
+  useEffect(() => {
+    const fetchCacInputs = async () => {
+      try {
+        if (!selectedBranch?.id || !user?.restaurantId) return;
+        const now = new Date();
+        const from = new Date(now.getFullYear(), now.getMonth(), 1)
+          .toISOString()
+          .slice(0, 10);
+        const to = now.toISOString().slice(0, 10);
+        const [overviewRes, insightsRes] = await Promise.all([
+          fetch(
+            `${API_URL}/api/analytics/${user.restaurantId}/restaurantDashboardOverview?branchId=${selectedBranch.id}&range=month&from=${from}&to=${to}`,
+            { headers: { Authorization: `Bearer ${token}` } },
+          ),
+          fetch(
+            `${API_URL}/api/analytics/insights/${user.restaurantId}/${selectedBranch.id}`,
+            { headers: { Authorization: `Bearer ${token}` } },
+          ),
+        ]);
+        const overviewJson = await overviewRes.json();
+        if (overviewJson.success) setMtdAnalytics(overviewJson.data);
+        const insightsJson = await insightsRes.json();
+        setMarketingSpend(Number(insightsJson?.data?.marketingSpend || 0));
+      } catch {
+        // silently ignored
+      }
+    };
+    fetchCacInputs();
   }, [selectedBranch]);
 
   const fetchCustomers = async (signal?: AbortSignal) => {
@@ -205,6 +302,16 @@ export default function Customers() {
                   ico: "text-red-600",
                   val: "text-red-700",
                   lbl: "text-red-400",
+                },
+                {
+                  label: "Visit Frequency",
+                  value: `${avgVisitFrequency.toFixed(1)}/yr`,
+                  Icon: CalendarClockIcon,
+                  cls: "border-violet-100 bg-violet-50",
+                  ibg: "bg-violet-100",
+                  ico: "text-violet-600",
+                  val: "text-violet-700",
+                  lbl: "text-violet-400",
                 },
               ].map((k) => (
                 <div
@@ -493,11 +600,57 @@ export default function Customers() {
                   val: "text-red-700",
                 },
                 {
-                  label: "Avg CLV",
-                  value: `₹${clvAvg.toLocaleString()}`,
-                  sub: "customer lifetime value",
+                  label: "Lifetime Value",
+                  value: `₹${Math.round(ltv).toLocaleString()}`,
+                  sub: avgLifespanYears
+                    ? `${avgAnnualRevenuePerCustomer.toLocaleString(undefined, { maximumFractionDigits: 0 })}/yr × ${avgLifespanYears.toFixed(1)}yr lifespan`
+                    : "annual revenue per customer",
                   cls: "border-violet-100 bg-violet-50/60",
                   val: "text-violet-700",
+                },
+              ].map((k) => (
+                <div key={k.label} className={`rounded-xl border p-4 ${k.cls}`}>
+                  <p className="text-[10px] font-bold uppercase tracking-wide text-gray-500">
+                    {k.label}
+                  </p>
+                  <p className={`mt-2 text-[22px] font-bold ${k.val}`}>
+                    {k.value}
+                  </p>
+                  <p className="mt-1 text-[11px] text-gray-500">{k.sub}</p>
+                </div>
+              ))}
+            </div>
+
+            {/* COHORT CHURN, REPEAT RATE, CAC, LTV:CAC */}
+            <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+              {[
+                {
+                  label: "Churn Rate",
+                  value: `${churnRatePercentage.toFixed(1)}%`,
+                  sub: "lost ÷ prior 30-day cohort",
+                  cls: "border-red-100 bg-red-50/60",
+                  val: "text-red-700",
+                },
+                {
+                  label: "Repeat Rate",
+                  value: `${repeatCustomerRatePercentage.toFixed(1)}%`,
+                  sub: "customers with 2+ visits",
+                  cls: "border-emerald-100 bg-emerald-50/60",
+                  val: "text-emerald-700",
+                },
+                {
+                  label: "CAC",
+                  value: newCustomersThisMonth > 0 ? `₹${Math.round(cac).toLocaleString()}` : "—",
+                  sub: "marketing spend ÷ new customers (MTD)",
+                  cls: "border-orange-100 bg-orange-50/60",
+                  val: "text-orange-700",
+                },
+                {
+                  label: "LTV : CAC",
+                  value: ltvCacRatio !== null ? `${ltvCacRatio.toFixed(1)}x` : "—",
+                  sub: ltvCacRatio !== null && ltvCacRatio < 3 ? "below healthy 3x benchmark" : "lifetime value vs. acquisition cost",
+                  cls: "border-blue-100 bg-blue-50/60",
+                  val: "text-blue-700",
                 },
               ].map((k) => (
                 <div key={k.label} className={`rounded-xl border p-4 ${k.cls}`}>

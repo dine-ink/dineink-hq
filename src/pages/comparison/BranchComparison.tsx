@@ -66,12 +66,24 @@ const METRICS: ComparisonRow[] = [
     higherIsBetter: false,
   },
   {
+    label: "Labour Cost %",
+    key: "labourCostPercentage",
+    format: (v: number) => `${v}%`,
+    higherIsBetter: false,
+  },
+  {
     label: "Net Profit",
     key: "netProfit",
     format: fmtINR,
     higherIsBetter: true,
   },
   { label: "Staff", key: "staffCount", higherIsBetter: true },
+  {
+    label: "Revenue per Employee",
+    key: "revenuePerEmployee",
+    format: fmtINR,
+    higherIsBetter: true,
+  },
   { label: "Customers", key: "totalCustomers", higherIsBetter: true },
   {
     label: "Repeat Customer Rate",

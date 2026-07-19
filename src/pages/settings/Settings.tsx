@@ -1135,6 +1135,10 @@ export default function Settings() {
                               field: "overtimeRateMultiplier",
                               label: "Overtime Multiplier (x)",
                             },
+                            {
+                              field: "areaSqFt",
+                              label: "Floor Area (sq ft)",
+                            },
                           ].map((f) => (
                             <div key={f.field}>
                               <p className="mb-1 text-[10px] font-bold uppercase tracking-wide text-gray-400">
