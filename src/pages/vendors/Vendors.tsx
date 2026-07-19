@@ -23,6 +23,7 @@ export default function Vendors() {
 
   const [vendors, setVendors] = useState<any[]>([]);
   const [outstanding, setOutstanding] = useState<any[]>([]);
+  const [performance, setPerformance] = useState<any[]>([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -104,9 +105,24 @@ export default function Vendors() {
     }
   };
 
+  const fetchPerformance = async () => {
+    if (!user?.restaurantId || !selectedBranch?.id) return;
+    try {
+      const res = await fetch(
+        `${API_URL}/api/vendors/performance/${user.restaurantId}/${selectedBranch.id}`,
+        { headers },
+      );
+      const data = await res.json();
+      setPerformance(data.data || []);
+    } catch {
+      /* silent */
+    }
+  };
+
   useEffect(() => {
     fetchVendors();
     fetchOutstanding();
+    fetchPerformance();
   }, [selectedBranch?.id]);
 
   // Deep-link from a low-stock alert (Menu Management → Analytics) — open the
@@ -538,6 +554,101 @@ export default function Vendors() {
             </div>
           )}
         </div>
+
+        {/* Vendor Performance */}
+        {performance.length > 0 && (
+          <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+            <div className="border-b border-gray-100 px-5 py-3">
+              <h2 className="text-[17px] font-bold text-gray-900">
+                Vendor Performance
+              </h2>
+              <p className="text-[11px] text-gray-500">
+                Purchase volume, overdue balances and ingredient price trend
+                per vendor
+              </p>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="min-w-full text-[12px]">
+                <thead className="bg-gray-50 border-b border-gray-100">
+                  <tr>
+                    {[
+                      "Vendor",
+                      "Total Purchases",
+                      "Invoices",
+                      "Overdue",
+                      "Price Trend",
+                      "Last Invoice",
+                    ].map((h) => (
+                      <th
+                        key={h}
+                        className="px-4 py-2.5 text-left text-[10px] font-bold uppercase tracking-[0.14em] text-gray-400"
+                      >
+                        {h}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {[...performance]
+                    .sort((a, b) => b.totalPurchaseValue - a.totalPurchaseValue)
+                    .map((p) => (
+                      <tr
+                        key={p.id}
+                        className="border-b border-gray-50 hover:bg-gray-50/60 transition"
+                      >
+                        <td className="px-4 py-3 font-semibold text-gray-900">
+                          {p.name}
+                        </td>
+                        <td className="px-4 py-3 text-gray-700">
+                          ₹{Number(p.totalPurchaseValue).toLocaleString()}
+                        </td>
+                        <td className="px-4 py-3 text-gray-600">
+                          {p.invoiceCount}
+                        </td>
+                        <td className="px-4 py-3">
+                          {p.overdueAmount > 0 ? (
+                            <span className="inline-flex rounded-full bg-red-50 px-2 py-0.5 text-[10px] font-bold text-red-700">
+                              ₹{Number(p.overdueAmount).toLocaleString()} (
+                              {p.overdueInvoiceCount})
+                            </span>
+                          ) : (
+                            <span className="inline-flex rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-600">
+                              None
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3">
+                          {p.priceTrend === "RISING" ? (
+                            <span className="inline-flex rounded-full bg-orange-50 px-2 py-0.5 text-[10px] font-bold text-orange-700">
+                              ↑ Rising {p.avgPriceChangePct}%
+                            </span>
+                          ) : p.priceTrend === "FALLING" ? (
+                            <span className="inline-flex rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700">
+                              ↓ Falling {p.avgPriceChangePct}%
+                            </span>
+                          ) : p.priceTrend === "STABLE" ? (
+                            <span className="inline-flex rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-bold text-gray-600">
+                              Stable
+                            </span>
+                          ) : (
+                            <span className="text-gray-400">No data</span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 text-gray-500">
+                          {p.lastInvoiceDate
+                            ? new Date(p.lastInvoiceDate).toLocaleDateString(
+                                "en-IN",
+                                { day: "numeric", month: "short", year: "numeric" },
+                              )
+                            : "—"}
+                        </td>
+                      </tr>
+                    ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Vendor Add/Edit Modal */}

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import dayjs from "dayjs";
 import RestaurantSetupModal from "../../components/dashboard/RestaurantSetupModal";
 import StatsStrip from "@/components/StatsStrip";
@@ -26,6 +27,7 @@ const CHART_CARD =
 
 export default function Dashboard() {
   const API_URL = import.meta.env.VITE_API_URL;
+  const navigate = useNavigate();
 
   // Global state from Redux
   const { from, to, preset } = useAppSelector((s) => s.dateRange);
@@ -39,6 +41,7 @@ export default function Dashboard() {
   const [staffData, setStaffData] = useState<any[]>([]);
   const [restockHistory, setRestockHistory] = useState<any[]>([]);
   const [inventoryStockValue, setInventoryStockValue] = useState(0);
+  const [reorderAlerts, setReorderAlerts] = useState<any>(null);
 
   const isSingleDay = from === to;
 
@@ -230,12 +233,27 @@ export default function Dashboard() {
       }
     };
 
+    const fetchReorderAlerts = async () => {
+      try {
+        if (!user?.restaurantId) return;
+        const res = await fetch(
+          `${API_URL}/api/ingredients/${user.restaurantId}/reorder-alerts`,
+          { signal, headers: { Authorization: `Bearer ${token}` } },
+        );
+        const data = await res.json();
+        if (data.success) setReorderAlerts(data.data);
+      } catch (e) {
+        if (e instanceof DOMException) return;
+      }
+    };
+
     fetchDashboard();
     fetchAnalytics();
     fetchInsights();
     fetchStaff();
     fetchRestockHistory();
     fetchInventoryStock();
+    fetchReorderAlerts();
     return () => ctrl.abort();
   }, [preset, from, to, selectedBranch?.id, token, user?.restaurantId]);
 
@@ -392,6 +410,50 @@ export default function Dashboard() {
             </div>
           </div>
         </div>
+
+        {reorderAlerts?.alertCount > 0 && (
+          <div className="flex flex-col gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-3">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-amber-100">
+                <svg
+                  className="h-4 w-4 text-amber-600"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"
+                  />
+                </svg>
+              </div>
+              <div>
+                <p className="text-[13px] font-bold text-amber-900">
+                  {reorderAlerts.alertCount} ingredient
+                  {reorderAlerts.alertCount > 1 ? "s" : ""} at or below reorder
+                  level
+                </p>
+                <p className="mt-0.5 text-[11px] text-amber-700">
+                  {reorderAlerts.alerts
+                    .slice(0, 3)
+                    .map((a: any) => a.name)
+                    .join(", ")}
+                  {reorderAlerts.alertCount > 3
+                    ? ` +${reorderAlerts.alertCount - 3} more`
+                    : ""}
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => navigate("/dashboard/menu-management")}
+              className="shrink-0 rounded-xl bg-amber-500 px-3.5 py-2 text-[11px] font-bold text-white transition hover:bg-amber-600"
+            >
+              Review Stock →
+            </button>
+          </div>
+        )}
 
         <StatsStrip
           analytics={analytics}

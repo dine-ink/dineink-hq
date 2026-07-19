@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { useAppSelector } from "../../store";
 import { formatQty } from "../../utils/units";
+import ExcelJS from "exceljs";
+import { saveAs } from "file-saver";
 import {
   AreaChart,
   Area,
@@ -222,6 +224,84 @@ export default function Report() {
   );
   const totalExpenses = expenses.reduce((s, e) => s + Number(e.amount || 0), 0);
   const netProfit = totalRevenue - totalGST - totalExpenses;
+
+  const [downloadingGst, setDownloadingGst] = useState(false);
+  const downloadGstFiling = async () => {
+    if (!user?.restaurantId || !selectedBranch?.id) return;
+    try {
+      setDownloadingGst(true);
+      const res = await fetch(
+        `${API_URL}/api/reports/gst-filing/${user.restaurantId}/${selectedBranch.id}?from=${from}&to=${to}`,
+        { headers: { Authorization: `Bearer ${token}` } },
+      );
+      const json = await res.json();
+      if (!json.success) {
+        alert(json.message || "Failed to generate GST report");
+        return;
+      }
+      const { restaurant, branch, gstPercentage, monthly, grandTotal } = json.data;
+
+      const wb = new ExcelJS.Workbook();
+      const ws = wb.addWorksheet("GST Summary");
+      ws.columns = [
+        { width: 12 },
+        { width: 10 },
+        { width: 16 },
+        { width: 14 },
+        { width: 14 },
+        { width: 14 },
+        { width: 16 },
+      ];
+      ws.addRow([restaurant?.name || ""]);
+      ws.getRow(ws.rowCount).font = { bold: true, size: 14 };
+      ws.addRow([`GSTIN: ${restaurant?.gstNumber || "Not set"}`]);
+      ws.addRow([
+        `Branch: ${branch?.name || ""}${gstPercentage != null ? ` · GST Rate: ${gstPercentage}%` : ""}`,
+      ]);
+      ws.addRow([]);
+      ws.addRow([
+        "Month",
+        "Invoices",
+        "Taxable Value (₹)",
+        "CGST (₹)",
+        "SGST (₹)",
+        "Total Tax (₹)",
+        "Invoice Value (₹)",
+      ]);
+      ws.getRow(ws.rowCount).font = { bold: true };
+      (monthly || []).forEach((m: any) => {
+        ws.addRow([
+          m.month,
+          m.invoiceCount,
+          m.taxableValue,
+          m.cgst,
+          m.sgst,
+          m.totalTax,
+          m.invoiceValue,
+        ]);
+      });
+      ws.addRow([
+        "TOTAL",
+        grandTotal.invoiceCount,
+        grandTotal.taxableValue,
+        grandTotal.cgst,
+        grandTotal.sgst,
+        grandTotal.totalTax,
+        grandTotal.invoiceValue,
+      ]);
+      ws.getRow(ws.rowCount).font = { bold: true };
+
+      const buffer = await wb.xlsx.writeBuffer();
+      const blob = new Blob([buffer], {
+        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      });
+      saveAs(blob, `GST-Filing-Summary-${from}-to-${to}.xlsx`);
+    } catch {
+      alert("Failed to generate GST report");
+    } finally {
+      setDownloadingGst(false);
+    }
+  };
   const profitMargin =
     totalRevenue > 0 ? ((netProfit / totalRevenue) * 100).toFixed(1) : "0";
   const paidBills = bills.filter((b) => b.status === "PAID");
@@ -662,13 +742,22 @@ export default function Report() {
             </div>
 
             <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
-              <div className="border-b border-gray-100 px-4 py-3">
-                <h3 className="text-[15px] font-bold text-gray-900">
-                  GST Breakdown by Bill
-                </h3>
-                <p className="mt-0.5 text-[11px] text-gray-500">
-                  Individual bill-wise tax detail for GST filing
-                </p>
+              <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3">
+                <div>
+                  <h3 className="text-[15px] font-bold text-gray-900">
+                    GST Breakdown by Bill
+                  </h3>
+                  <p className="mt-0.5 text-[11px] text-gray-500">
+                    Individual bill-wise tax detail for GST filing
+                  </p>
+                </div>
+                <button
+                  onClick={downloadGstFiling}
+                  disabled={downloadingGst}
+                  className="flex shrink-0 items-center gap-1.5 rounded-xl bg-[#b10000] px-3.5 py-2 text-[11px] font-bold text-white transition hover:bg-[#950000] disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {downloadingGst ? "Preparing…" : "Download GST Summary"}
+                </button>
               </div>
               <div className="overflow-x-auto">
                 <table className="min-w-full text-[12px]">
