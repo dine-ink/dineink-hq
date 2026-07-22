@@ -1,27 +1,27 @@
 import {
   ChartPieIcon,
-  ReceiptPercentIcon,
-  UserGroupIcon,
+  WifiIcon,
+  ComputerDesktopIcon,
 } from "@heroicons/react/24/solid";
 
 export default function DashboardPreviewSection() {
   const primaryFeatures = [
     {
-      name: "Quick Billing",
+      name: "Works Even Offline",
       description:
-        "Generate dine-in, takeaway and delivery bills in seconds with fast checkout flow.",
-      icon: ReceiptPercentIcon,
+        "Take orders and generate bills with zero internet — everything queues locally and syncs automatically the moment you're back online, with real GST invoice numbers assigned at sync.",
+      icon: WifiIcon,
     },
     {
-      name: "Kitchen & Staff Management",
+      name: "Live Kitchen Display",
       description:
-        "Assign kitchen staff, reception users and managers with role-based access.",
-      icon: UserGroupIcon,
+        "A shared prep checklist across every kitchen screen, item-level cancel approvals, and a club view that groups the same dish across orders for faster batch cooking.",
+      icon: ComputerDesktopIcon,
     },
     {
-      name: "Reports & Analytics",
+      name: "Deep Restaurant Analytics",
       description:
-        "Track daily sales, best-selling items, taxes, payment modes and customer trends.",
+        "Branch and city comparisons, customer RFM segmentation, revenue forecasting, menu engineering and table-turnover analytics — not just a sales total.",
       icon: ChartPieIcon,
     },
   ];
@@ -40,8 +40,9 @@ export default function DashboardPreviewSection() {
             </h2>
 
             <p className="mt-6 text-lg leading-8 text-red-100">
-              Manage orders, billing, menu, staff, reports and customer flow
-              from one single dashboard designed for restaurants.
+              A connection drop shouldn't stop a sale — DineInk keeps billing,
+              your kitchen screens and your analytics running from one
+              dashboard built for how restaurants actually operate.
             </p>
 
             <div className="mt-10">

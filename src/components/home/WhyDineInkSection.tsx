@@ -1,30 +1,30 @@
 import {
-  Squares2X2Icon,
-  ClipboardDocumentListIcon,
-  ChartBarIcon,
+  CubeIcon,
+  TagIcon,
+  BanknotesIcon,
 } from "@heroicons/react/24/outline";
 
 const secondaryFeatures = [
   {
-    name: "Table Management",
+    name: "Ingredient-Level Inventory",
     description:
-      "Manage dine-in tables, occupancy, table merging and split billing with ease.",
+      "Every sale auto-deducts ingredients from stock using your recipes — unit-aware across kg, g, ml, tsp, tbsp and more — with low-stock alerts and vendor purchase tracking.",
     href: "#",
-    icon: Squares2X2Icon,
+    icon: CubeIcon,
   },
   {
-    name: "Menu & Categories",
+    name: "Flexible Billing & Discounts",
     description:
-      "Create categories, upload menu items, prices, images and availability instantly.",
+      "Split bills by person, accept tips, apply percentage, fixed or coupon-code discounts with manager approval, and recognize returning customers the moment they give their phone number.",
     href: "#",
-    icon: ClipboardDocumentListIcon,
+    icon: TagIcon,
   },
   {
-    name: "Billing & Reports",
+    name: "Per-Cashier Cash Drawers",
     description:
-      "Track daily sales, taxes, bills, payment methods and business performance.",
+      "Each cashier opens their own drawer session with shift X/Z report printing and expected-vs-actual cash reconciliation — no shared, unaccountable cash boxes.",
     href: "#",
-    icon: ChartBarIcon,
+    icon: BanknotesIcon,
   },
 ];
 
@@ -37,9 +37,9 @@ export default function WhyDineInkSection() {
           Everything you need to run your restaurant
         </p>
         <p className="mt-6 text-lg/8 text-gray-600">
-          DineInk helps restaurants manage billing, tables, menu items, kitchen
-          flow, staff access, reports, taxes and customer orders from one
-          easy-to-use platform.
+          Beyond billing and tables, DineInk tracks your stock down to the
+          ingredient, manages cash drawers per cashier, and recognizes your
+          regulars the moment they walk in.
         </p>
       </div>
       <div className="mx-auto mt-16 max-w-2xl sm:mt-20 lg:mt-24 lg:max-w-none">

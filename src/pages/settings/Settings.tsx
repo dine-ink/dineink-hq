@@ -15,11 +15,14 @@ import {
   PlusIcon,
   CameraIcon,
   MapPinIcon,
+  TagIcon,
 } from "@heroicons/react/24/outline";
+import DiscountCodesTab from "./DiscountCodesTab";
 
 const TABS = [
   { id: "General", label: "Restaurant", icon: BuildingStorefrontIcon },
   { id: "Branches", label: "Branches", icon: MapPinIcon },
+  { id: "Discounts", label: "Discounts", icon: TagIcon },
   { id: "Password", label: "Password", icon: LockClosedIcon },
   { id: "Notifications", label: "Notifications", icon: BellIcon },
   { id: "Plan", label: "Plan", icon: CreditCardIcon },
@@ -962,9 +965,6 @@ export default function Settings() {
                               "Cash",
                               "Card",
                               "UPI",
-                              "Net Banking",
-                              "Wallet",
-                              "Cheque",
                             ].map((m) => {
                               const active =
                                 newBranch.billing.paymentMethods.includes(m);
@@ -1208,6 +1208,13 @@ export default function Settings() {
                   </div>
                 )}
               </div>
+            </div>
+          )}
+
+          {/* DISCOUNTS ─────────────────────────────────── */}
+          {activeTab === "Discounts" && (
+            <div className="p-6">
+              <DiscountCodesTab />
             </div>
           )}
 

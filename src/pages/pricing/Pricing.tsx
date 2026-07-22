@@ -8,28 +8,32 @@ const pricing = {
     {
       id: "starter",
       name: "Starter",
-      description: "Perfect for small restaurants and cafes.",
+      description: "Perfect for a single restaurant getting started.",
       price: { monthly: "Free", annually: "Free" },
       highlights: [
         "1 Branch",
         "Up to 5 Staff Accounts",
-        "Basic Billing",
-        "Menu Management",
-        "Table Management",
+        "Dine-in, Takeaway & Quick Bill",
+        "Table Floor Plan & Transfers",
+        "Menu, Categories & Add-ons",
+        "GST-Compliant Invoicing",
+        "Offline-Ready Billing",
       ],
       featured: false,
     },
     {
       id: "growth",
       name: "Growth",
-      description: "Best for growing restaurants with more staff and orders.",
+      description: "Best for growing restaurants with more staff and stock.",
       price: { monthly: "₹499", annually: "₹4,999" },
       highlights: [
         "3 Branches",
         "Unlimited Staff Accounts",
-        "Advanced Reports",
-        "Kitchen Dashboard",
-        "Tax & GST Support",
+        "Live Kitchen Display",
+        "Ingredient-Level Inventory & Vendor Tracking",
+        "Per-Cashier Cash Drawers & Shift Reports",
+        "Flexible Discounts, Coupons & Customer Recognition",
+        "Advanced Analytics — RFM, Forecasting, Menu Engineering",
         "Priority Support",
       ],
       featured: true,
@@ -41,9 +45,9 @@ const pricing = {
       price: { monthly: "Custom", annually: "Custom" },
       highlights: [
         "Unlimited Branches",
-        "Franchise Dashboard",
-        "Advanced Analytics",
-        "Dedicated Support",
+        "Branch & City Comparison Dashboards",
+        "SOP Checklists Across Locations",
+        "Dedicated Onboarding & Support",
         "Custom Integrations",
       ],
       featured: false,
@@ -51,7 +55,7 @@ const pricing = {
   ],
   sections: [
     {
-      name: "Restaurant Features",
+      name: "Restaurant Operations",
       features: [
         {
           name: "Branch Management",
@@ -62,32 +66,139 @@ const pricing = {
           tiers: { Starter: "5", Growth: "Unlimited", Enterprise: "Unlimited" },
         },
         {
-          name: "Menu Management",
+          name: "Table & Order Management",
           tiers: { Starter: true, Growth: true, Enterprise: true },
         },
         {
-          name: "Kitchen Dashboard",
+          name: "Table Merge & Transfer",
+          tiers: { Starter: true, Growth: true, Enterprise: true },
+        },
+        {
+          name: "Menu Item Add-ons",
+          tiers: { Starter: true, Growth: true, Enterprise: true },
+        },
+        {
+          name: "Offline-Ready Billing",
+          tiers: { Starter: true, Growth: true, Enterprise: true },
+        },
+        {
+          name: "Live Kitchen Display",
+          tiers: { Starter: false, Growth: true, Enterprise: true },
+        },
+        {
+          name: "Kitchen Club View (Batch Cooking)",
+          tiers: { Starter: false, Growth: true, Enterprise: true },
+        },
+        {
+          name: "Item Cancel-Request Approval",
           tiers: { Starter: false, Growth: true, Enterprise: true },
         },
       ],
     },
     {
-      name: "Reports & Billing",
+      name: "Billing & Payments",
       features: [
         {
-          name: "Basic Billing",
+          name: "GST-Compliant Invoicing",
           tiers: { Starter: true, Growth: true, Enterprise: true },
         },
         {
-          name: "Advanced Reports",
+          name: "Multiple Payment Methods",
+          tiers: { Starter: true, Growth: true, Enterprise: true },
+        },
+        {
+          name: "Split Bill by Person",
+          tiers: { Starter: true, Growth: true, Enterprise: true },
+        },
+        {
+          name: "Tipping",
+          tiers: { Starter: true, Growth: true, Enterprise: true },
+        },
+        {
+          name: "Refunds & Voids (Manager-Gated)",
+          tiers: { Starter: true, Growth: true, Enterprise: true },
+        },
+        {
+          name: "Flexible Discounts & Coupons",
           tiers: { Starter: false, Growth: true, Enterprise: true },
         },
         {
-          name: "GST & Tax Support",
+          name: "Customer Recognition at Checkout",
+          tiers: { Starter: false, Growth: true, Enterprise: true },
+        },
+      ],
+    },
+    {
+      name: "Inventory & Cash",
+      features: [
+        {
+          name: "Ingredient-Level Inventory",
           tiers: { Starter: false, Growth: true, Enterprise: true },
         },
         {
-          name: "Analytics Dashboard",
+          name: "AI-Assisted Recipe Mapping",
+          tiers: { Starter: false, Growth: true, Enterprise: true },
+        },
+        {
+          name: "Daily Stock Audit & Wastage Tracking",
+          tiers: { Starter: false, Growth: true, Enterprise: true },
+        },
+        {
+          name: "Vendor & Purchase Tracking",
+          tiers: { Starter: false, Growth: true, Enterprise: true },
+        },
+        {
+          name: "Per-Cashier Cash Drawers & Shift Reports",
+          tiers: { Starter: false, Growth: true, Enterprise: true },
+        },
+      ],
+    },
+    {
+      name: "Staff & Operations",
+      features: [
+        {
+          name: "Staff Attendance Tracking",
+          tiers: { Starter: true, Growth: true, Enterprise: true },
+        },
+        {
+          name: "Expense Tracking",
+          tiers: { Starter: true, Growth: true, Enterprise: true },
+        },
+        {
+          name: "Staff Productivity Analytics",
+          tiers: { Starter: false, Growth: true, Enterprise: true },
+        },
+        {
+          name: "SOP Checklists Across Locations",
+          tiers: { Starter: false, Growth: false, Enterprise: true },
+        },
+      ],
+    },
+    {
+      name: "Reports & Analytics",
+      features: [
+        {
+          name: "Basic Sales Reports",
+          tiers: { Starter: true, Growth: true, Enterprise: true },
+        },
+        {
+          name: "Expense Reports",
+          tiers: { Starter: true, Growth: true, Enterprise: true },
+        },
+        {
+          name: "GST Filing Reports",
+          tiers: { Starter: false, Growth: true, Enterprise: true },
+        },
+        {
+          name: "Hourly Sales Heatmap",
+          tiers: { Starter: false, Growth: true, Enterprise: true },
+        },
+        {
+          name: "Advanced Analytics — RFM, Forecasting, Menu Engineering",
+          tiers: { Starter: false, Growth: true, Enterprise: true },
+        },
+        {
+          name: "Branch & City Comparison",
           tiers: { Starter: false, Growth: false, Enterprise: true },
         },
       ],
@@ -100,22 +211,28 @@ const faqs = [
     id: 1,
     question: "Can I use DineInk for multiple restaurant branches?",
     answer:
-      "Yes. Growth and Enterprise plans support multiple branches and centralized management.",
+      "Yes. Growth supports up to 3 branches, and Enterprise supports unlimited branches with cross-branch and cross-city comparison dashboards.",
   },
   {
     id: 2,
-    question: "Does DineInk support GST and taxes?",
+    question: "Does DineInk work without internet?",
     answer:
-      "Yes. DineInk supports GST calculation, tax configuration and tax reports.",
+      "Yes — billing keeps working with zero connectivity. Orders and bills queue locally on the device and sync automatically once you're back online, with real GST invoice numbers assigned at that point.",
   },
   {
     id: 3,
-    question: "Can I manage both dine-in and takeaway orders?",
+    question: "Does DineInk support GST and taxes?",
     answer:
-      "Yes. You can manage dine-in, takeaway and delivery orders from one dashboard.",
+      "Yes. Every bill gets a sequential, financial-year-based GST invoice number, with configurable tax rates and GST filing reports.",
   },
   {
     id: 4,
+    question: "Can I manage both dine-in and takeaway orders?",
+    answer:
+      "Yes. Dine-in tables, takeaway and quick-bill orders are all handled from one checkout, with the order type picked right before the bill is generated.",
+  },
+  {
+    id: 5,
     question: "Is there a free trial available?",
     answer:
       "Yes. You can start with our Starter plan completely free — no credit card required.",
@@ -287,7 +404,13 @@ export default function Pricing() {
                     {section.name}
                   </h3>
                   <div className="overflow-hidden rounded-3xl border border-red-100 bg-white shadow-sm">
-                    <table className="w-full border-collapse">
+                    <table className="w-full table-fixed border-collapse">
+                      <colgroup>
+                        <col className="w-[40%]" />
+                        {pricing.tiers.map((tier) => (
+                          <col key={tier.id} className="w-[20%]" />
+                        ))}
+                      </colgroup>
                       <thead>
                         <tr className="border-b border-red-100 bg-red-50">
                           <th className="px-6 py-4 text-left text-sm font-semibold text-[#b10000]">

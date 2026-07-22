@@ -37,7 +37,7 @@ export default function HeroSection() {
               <span className="font-semibold text-[#b10000]">Now launching</span>
               <span aria-hidden="true" className="h-4 w-px bg-gray-900/10" />
               <a
-                href="/signup"
+                href="/login"
                 className="rounded-xl bg-[#b10000] px-5 py-3 text-sm font-semibold text-white shadow-md hover:bg-[#8f0000]"
               >
                 Get Started
@@ -45,11 +45,14 @@ export default function HeroSection() {
             </div>
           </div>
           <h1 className="mt-10 text-5xl font-bold tracking-tight text-slate-900 sm:text-7xl">
-            Smart restaurant billing and management for modern businesses
+            Billing, kitchen, inventory and analytics — one platform that keeps
+            running even offline
           </h1>
           <p className="mt-8 text-lg leading-8 text-slate-600 sm:text-xl">
-            Manage dine-in tables, takeaway orders, billing, menu items, kitchen
-            staff, reports, taxes and customer data from one simple platform.
+            DineInk runs your dine-in tables, takeaway and quick-bill counters,
+            live kitchen display and ingredient-level inventory across every
+            branch — with GST-compliant invoicing and deep analytics, and
+            billing that never stops for a dropped connection.
           </p>
           <div className="mt-10 flex items-center gap-x-6">
             <a href="/login" className="text-sm font-semibold text-slate-900">

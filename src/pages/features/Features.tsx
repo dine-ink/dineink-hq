@@ -1,50 +1,71 @@
 import Navbar from "../../components/common/Navbar";
 import Footer from "../../components/common/Footer";
 import {
-  QueueListIcon,
+  WifiIcon,
   Squares2X2Icon,
+  ComputerDesktopIcon,
+  CubeIcon,
+  TagIcon,
+  BanknotesIcon,
   CreditCardIcon,
-  UserGroupIcon,
   ChartBarIcon,
-  CloudIcon,
+  UserGroupIcon,
 } from "@heroicons/react/24/outline";
 
 const features = [
   {
-    name: "Menu Management",
+    name: "Offline-Ready Billing",
     description:
-      "Create categories, add dishes, update prices and manage item availability easily.",
-    icon: QueueListIcon,
+      "Keep billing running with no internet — orders and bills queue locally and sync automatically, with real sequential GST invoice numbers assigned once you're back online.",
+    icon: WifiIcon,
   },
   {
-    name: "Table & Order Management",
+    name: "Dine-in, Takeaway & Quick Bill",
     description:
-      "Handle dine-in tables, takeaway orders and delivery requests from one place.",
+      "Manage table floor plans, merge or transfer tables, and take takeaway/quick-bill orders from one unified checkout — pick the order type right before the bill is generated.",
     icon: Squares2X2Icon,
   },
   {
-    name: "Fast Billing",
+    name: "Live Kitchen Display",
     description:
-      "Generate bills quickly with GST, discounts, taxes and multiple payment options.",
+      "A shared prep checklist across every kitchen screen, item-level cancel-request approvals, and a club view to batch-cook the same dish across multiple orders.",
+    icon: ComputerDesktopIcon,
+  },
+  {
+    name: "Ingredient-Level Inventory",
+    description:
+      "Every sale auto-deducts ingredients using your recipes, unit-aware across kg, g, ml, tsp, tbsp and more, with low-stock alerts and full vendor purchase tracking.",
+    icon: CubeIcon,
+  },
+  {
+    name: "Flexible Discounts & Recognition",
+    description:
+      "Percentage, fixed-amount or coupon-code discounts with a manager-approval gate, plus instant customer recognition — see a guest's visit history as soon as they give their phone number.",
+    icon: TagIcon,
+  },
+  {
+    name: "Per-Cashier Cash Management",
+    description:
+      "Every cashier opens their own drawer session, with shift X/Z report printing and expected-vs-actual cash reconciliation at close.",
+    icon: BanknotesIcon,
+  },
+  {
+    name: "GST-Compliant Invoicing",
+    description:
+      "Sequential, financial-year-based GST invoice numbers on every bill, with split-by-person billing, tipping and multiple payment methods.",
     icon: CreditCardIcon,
   },
   {
-    name: "Role-Based Access",
+    name: "Deep Analytics & Reporting",
     description:
-      "Give different access to owners, cashiers, kitchen staff and managers securely.",
-    icon: UserGroupIcon,
-  },
-  {
-    name: "Reports & Analytics",
-    description:
-      "Track daily sales, best-selling items, taxes, staff performance and customer trends.",
+      "Branch and city comparisons, customer RFM segmentation, revenue forecasting, menu engineering, table-turnover analytics, and GST/expense reports — all from one dashboard.",
     icon: ChartBarIcon,
   },
   {
-    name: "Cloud Backup",
+    name: "Role-Based Multi-Branch Access",
     description:
-      "Your restaurant data stays safe with secure backups and cloud synchronization.",
-    icon: CloudIcon,
+      "Owner, manager, cashier and kitchen roles with secure, restaurant-level data isolation across every branch you run.",
+    icon: UserGroupIcon,
   },
 ];
 
@@ -82,8 +103,10 @@ export default function Features() {
                 Everything you need to manage your restaurant
               </h1>
               <p className="mt-6 text-lg leading-8 text-slate-600">
-                DineInk helps restaurant owners manage menu, billing, tables,
-                staff, reports and customer orders from one dashboard.
+                From offline-ready billing and a live kitchen display to
+                ingredient-level inventory, GST-compliant invoicing and deep
+                analytics — DineInk runs every part of your restaurant, on
+                every branch.
               </p>
               <div className="mt-10 flex flex-wrap justify-center gap-4">
                 <a
