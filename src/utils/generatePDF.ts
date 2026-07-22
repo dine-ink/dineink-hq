@@ -361,14 +361,16 @@ function colBars(
 // ─── MAIN ENTRY ───────────────────────────────────────────────────────────────
 export async function generatePDFReport(
   data: FullReportData,
-  meta: { restaurantName: string; branchName: string; from: string; to: string },
+  meta: { restaurantName: string; branchName: string; from: string; to: string; areaSqFt?: number; branchId?: number },
 ): Promise<Uint8Array> {
   const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
 
   const {
     analytics, bills, expenses, customers, menuItems,
     kitchenData, attendance, allStaff, cashSessions,
-    branchComparison, forecast, rfm, insightsData, inventoryAdjustments,
+    branchComparison, cityComparison, heatmap, forecast, rfm, insightsData, inventoryAdjustments,
+    tableOps, menuEngineering, vendorOutstanding, restockHistory,
+    staffProductivity, vendorPerformance,
   } = data;
 
   // ── Pre-compute shared numbers ─────────────────────────────────────────────
@@ -440,6 +442,117 @@ export async function generatePDFReport(
   const kitchenOrders  = kitchenData?.totalOrders || activeBills.length;
 
   // ══════════════════════════════════════════════════════════════════════════
+  //  ADVANCED KPIs — Profitability, Customer Economics, Operations, Working Capital
+  //  (same formulas as Insights.tsx / Customers.tsx — kept in sync with those pages)
+  // ══════════════════════════════════════════════════════════════════════════
+
+  // Prime Cost, Gross Profit, Labour Cost %
+  const primeCost = foodExp + labourExp;
+  const primeCostPct = insRev > 0 ? ((primeCost / insRev) * 100).toFixed(1) : "0";
+  const grossProfit = insRev - foodExp;
+  const grossProfitPct = insRev > 0 ? ((grossProfit / insRev) * 100).toFixed(1) : "0";
+  const labourCostPct = insRev > 0 ? ((labourExp / insRev) * 100).toFixed(1) : "0";
+
+  // Break-Even Sales — Fixed Costs / Contribution Margin % (labour + finance treated as fixed)
+  const beFixedCosts = fixedExp + labourExp + finExp;
+  const beVariableCosts = varExp + foodExp;
+  const contributionMargin = insRev - beVariableCosts;
+  const contributionMarginPct = insRev > 0 ? contributionMargin / insRev : 0;
+  const breakEvenSales = contributionMarginPct > 0 ? beFixedCosts / contributionMarginPct : totalCosts;
+  const avgOrderValue = activeBills.length ? totalRev / activeBills.length : 0;
+  const contributionPerOrder = avgOrderValue * contributionMarginPct;
+  const breakEvenOrders = contributionPerOrder > 0 ? Math.ceil(beFixedCosts / contributionPerOrder) : null;
+
+  // Delivery / Aggregator Commission %
+  const revByOrderType = analytics?.revenueByOrderType || {};
+  const deliveryRevenue = n(revByOrderType.ONLINE) + n(revByOrderType.DELIVERY);
+  const aggregatorCommissionPct = deliveryRevenue > 0 ? (n(ins.aggregatorCommission) / deliveryRevenue) * 100 : 0;
+
+  // CAC, ROI, Payback Period
+  const newCustomers = n(analytics?.newCustomersCount);
+  const cac = newCustomers > 0 ? n(ins.marketingSpend) / newCustomers : 0;
+  const initialInvestment = n(ins.initialInvestment);
+  const monthlyRoiPct = initialInvestment > 0 ? (ebitdaAmt / initialInvestment) * 100 : null;
+  const paybackMonths = initialInvestment > 0 && ebitdaAmt > 0 ? Math.ceil(initialInvestment / ebitdaAmt) : null;
+
+  // Refund % (approximated via cancelled bills)
+  const cancelledTotal = n(analytics?.cancelledTotal);
+  const cancelledCount = n(analytics?.cancelledCount);
+  const refundedTotal = n(analytics?.refundedTotal);
+  const refundedCount = n(analytics?.refundedCount);
+  const grossInclCancelled = totalRev + cancelledTotal + refundedTotal;
+  const refundPct = grossInclCancelled > 0 ? ((cancelledTotal + refundedTotal) / grossInclCancelled) * 100 : 0;
+
+  // Churn Rate & LTV — cohort-based, using each customer's full bill history
+  // (same 30/60-day rolling-window cohort as Customers.tsx)
+  const DAY_MS = 86_400_000;
+  const nowMs = Date.now();
+  const prevWinStart = nowMs - 60 * DAY_MS;
+  const prevWinEnd = nowMs - 30 * DAY_MS;
+  const cohort = customers.filter((c: any) =>
+    (c.bills || []).some((b: any) => {
+      const t = new Date(b.createdAt).getTime();
+      return t >= prevWinStart && t < prevWinEnd;
+    }),
+  );
+  const retained = cohort.filter((c: any) =>
+    (c.bills || []).some((b: any) => new Date(b.createdAt).getTime() >= prevWinEnd),
+  );
+  const monthlyChurnRate = cohort.length > 0 ? (cohort.length - retained.length) / cohort.length : 0;
+  const churnRatePct = monthlyChurnRate * 100;
+  const repeatRatePct = customers.length ? (repeatC / customers.length) * 100 : 0;
+  const twelveMoAgo = nowMs - 365 * DAY_MS;
+  const billsLast12Mo = customers.flatMap((c: any) =>
+    (c.bills || []).filter((b: any) => new Date(b.createdAt).getTime() >= twelveMoAgo),
+  );
+  const revenueLast12Mo = billsLast12Mo.reduce((s: number, b: any) => s + n(b.total), 0);
+  const customersLast12Mo = customers.filter((c: any) =>
+    (c.bills || []).some((b: any) => new Date(b.createdAt).getTime() >= twelveMoAgo),
+  ).length;
+  const avgAnnualRevPerCustomer = customersLast12Mo > 0 ? revenueLast12Mo / customersLast12Mo : 0;
+  const annualChurnRate = 1 - Math.pow(1 - monthlyChurnRate, 12);
+  const avgLifespanYears = annualChurnRate > 0 ? 1 / annualChurnRate : null;
+  const ltv = avgLifespanYears ? avgAnnualRevPerCustomer * avgLifespanYears : avgAnnualRevPerCustomer;
+  const ltvCacRatio = cac > 0 ? ltv / cac : null;
+
+  // Table Turnover Rate, Seat Utilization, Sales per Sq. Ft.
+  const to_ = tableOps || {};
+  const tableTurnoverRate = n(to_.tableTurnoverRate);
+  const seatUtilizationPct = n(to_.seatUtilizationPercentage);
+  const branchAreaSqFt = n(meta.areaSqFt);
+  const salesPerSqFt = branchAreaSqFt > 0 ? (insRev * 12) / branchAreaSqFt : null;
+
+  // Revenue per Employee (from this branch's row in branch-comparison data)
+  const thisBranchCmp = (branchComparison || []).find((b: any) => b.branch?.id === meta.branchId) || {};
+  const revenuePerEmployee = n(thisBranchCmp.revenuePerEmployee);
+
+  // Category Cost % (from Menu Engineering endpoint's categoryCostBreakdown)
+  const categoryCostBreakdown = menuEngineering?.categoryCostBreakdown || [];
+
+  // Inventory Turnover, Days Inventory Outstanding, Cash Conversion Cycle
+  const restockCurrent = (restockHistory || []).reduce(
+    (acc: any, item: any) => ({
+      opening: acc.opening + n(item.OpeningStockValue),
+      closing: acc.closing + n(item.MonthClosingValue),
+    }),
+    { opening: 0, closing: 0 },
+  );
+  const avgInventoryValue =
+    restockCurrent.opening > 0 || restockCurrent.closing > 0
+      ? (restockCurrent.opening + restockCurrent.closing) / 2
+      : inventoryStockValue;
+  const inventoryTurnover = avgInventoryValue > 0 ? foodExp / avgInventoryValue : null;
+  const daysInMonth = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate();
+  const daysInventoryOutstanding =
+    inventoryTurnover && inventoryTurnover > 0 ? daysInMonth / inventoryTurnover : null;
+  const accountsPayable = (vendorOutstanding || []).reduce((s: number, v: any) => s + n(v.outstanding), 0);
+  const daysPayableOutstanding = foodExp > 0 ? (accountsPayable / foodExp) * daysInMonth : null;
+  const cashConversionCycle =
+    daysInventoryOutstanding !== null && daysPayableOutstanding !== null
+      ? daysInventoryOutstanding - daysPayableOutstanding // + Days Sales Outstanding (0 — paid at time of sale)
+      : null;
+
+  // ══════════════════════════════════════════════════════════════════════════
   //  COVER PAGE
   // ══════════════════════════════════════════════════════════════════════════
   // Brand header band
@@ -497,10 +610,15 @@ export async function generatePDFReport(
     ["04", "Financial Overview — P&L, Expenses & EBITDA"],
     ["05", "Customer Intelligence"],
     ["06", "Operations & Staff"],
+    ["07", "Advanced Profitability & Efficiency KPIs"],
+    ["08", "Branch & City Comparison"],
+    ["09", "Customer Segmentation (RFM)"],
+    ["10", "Demand Patterns — Peak Hours & Days"],
+    ["11", "Staff Productivity & Vendor Performance"],
   ];
   toc.forEach(([num, title], i) => {
-    const col = i < 3 ? 0 : 1;
-    const row = i < 3 ? i : i - 3;
+    const col = i < 6 ? 0 : 1;
+    const row = i < 6 ? i : i - 6;
     const tx = ML + col * (CW / 2 + 3);
     const ty = y + row * 8;
     fr(doc, tx, ty - 3.5, 7, 6, C.brand);
@@ -863,6 +981,233 @@ export async function generatePDFReport(
         { columnStyles: { 2: { halign: "right" }, 3: { halign: "right" } } },
       );
     }
+  }
+
+  // ══════════════════════════════════════════════════════════════════════════
+  //  SECTION 07 — ADVANCED PROFITABILITY & EFFICIENCY KPIs
+  // ══════════════════════════════════════════════════════════════════════════
+  doc.addPage();
+  y = ML;
+  y = sectionHead(doc, "07  Advanced Profitability & Efficiency KPIs", "Prime cost, break-even, unit economics & working capital", y);
+
+  y = divider(doc, "Profitability", y);
+  y = kpiGrid(doc, [
+    { label: "Prime Cost %",     value: `${primeCostPct}%`,     sub: "food + labour / revenue", accent: C.brand },
+    { label: "Gross Profit",     value: RS(grossProfit),        sub: `${grossProfitPct}% margin`, accent: Number(grossProfitPct) >= 0 ? C.green : C.brand },
+    { label: "Labour Cost %",    value: `${labourCostPct}%`,     sub: "of revenue",             accent: C.purple },
+    { label: "Break-Even Sales", value: RS(breakEvenSales),      sub: breakEvenOrders ? `${breakEvenOrders} orders` : "fixed costs / CM%", accent: C.blue },
+  ], y, 4);
+
+  y = divider(doc, "Customer Economics", y, C.teal);
+  y = kpiGrid(doc, [
+    { label: "CAC",           value: newCustomers > 0 ? RS(cac) : "—",           sub: "marketing spend / new customers", accent: C.amber },
+    { label: "LTV",           value: RS(ltv),                                    sub: avgLifespanYears ? `${avgLifespanYears.toFixed(1)}yr est. lifespan` : "annual revenue basis", accent: C.purple },
+    { label: "LTV : CAC",     value: ltvCacRatio !== null ? `${ltvCacRatio.toFixed(1)}x` : "—", sub: "healthy benchmark: 3x+", accent: C.green },
+    { label: "Churn Rate",    value: `${churnRatePct.toFixed(1)}%`,              sub: "lost / prior 30-day cohort", accent: churnRatePct > 10 ? C.brand : C.teal },
+    { label: "Repeat Rate",   value: `${repeatRatePct.toFixed(1)}%`,             sub: "customers with 2+ visits", accent: C.green },
+    { label: "Refund %",      value: `${refundPct.toFixed(1)}%`,                 sub: `${refundedCount} refund(s), ${cancelledCount} cancelled bill(s)`, accent: refundPct > 5 ? C.brand : C.teal },
+    { label: "ROI (monthly rate)", value: monthlyRoiPct !== null ? `${monthlyRoiPct.toFixed(1)}%` : "—", sub: "EBITDA / initial investment", accent: C.blue },
+    { label: "Payback Period", value: paybackMonths ? `${paybackMonths} mo` : "—", sub: "at this month's EBITDA rate", accent: C.slate },
+  ], y, 4);
+  txt(doc, "Note: ROI/Payback reflect this month's rate, not a cumulative return — no historical monthly ledger is stored.", ML, y, { size: 6, color: C.muted, italic: true });
+  y += 6;
+
+  y = divider(doc, "Delivery & Space Efficiency", y, C.amber);
+  y = kpiGrid(doc, [
+    { label: "Aggregator Commission %", value: deliveryRevenue > 0 ? `${aggregatorCommissionPct.toFixed(1)}%` : "—", sub: "commission / delivery revenue", accent: C.amber },
+    { label: "Table Turnover",   value: to_.totalTables ? tableTurnoverRate.toFixed(1) : "—", sub: "closed sessions / tables", accent: C.blue },
+    { label: "Seat Utilization", value: to_.totalTables ? `${seatUtilizationPct.toFixed(1)}%` : "—", sub: "occupied / available seat-hours", accent: seatUtilizationPct >= 50 ? C.green : C.amber },
+    { label: "Revenue / Employee", value: revenuePerEmployee > 0 ? RS(revenuePerEmployee) : "—", sub: "this branch, this period", accent: C.purple },
+  ], y, 4);
+  if (salesPerSqFt !== null) {
+    y = kpiGrid(doc, [
+      { label: "Sales / Sq. Ft.", value: RS(salesPerSqFt), sub: "annualized revenue / area", accent: C.green },
+    ], y, 4);
+  } else {
+    txt(doc, "Sales per Sq. Ft. not shown — set branch Area (Sq. Ft.) in Settings.", ML, y, { size: 6.5, color: C.muted, italic: true });
+    y += 8;
+  }
+
+  if (categoryCostBreakdown.length > 0) {
+    y = divider(doc, "Category Cost % (generalizes Beverage Cost %)", y, C.brand);
+    y = table(doc,
+      [["Category", "Cost", "Revenue", "Cost %"]],
+      categoryCostBreakdown.map((c: any) => [c.category, RS(c.cost), RS(c.revenue), `${c.costPercentage}%`]),
+      y, C.brand,
+      { columnStyles: { 1: { halign: "right" }, 2: { halign: "right" }, 3: { halign: "center" } } },
+    );
+  }
+
+  y = divider(doc, "Working Capital — Inventory & Cash Conversion Cycle", y, C.purple);
+  y = kpiGrid(doc, [
+    { label: "Inventory Turnover",  value: inventoryTurnover !== null ? `${inventoryTurnover.toFixed(1)}x` : "—", sub: "food cost / avg. inventory", accent: C.blue },
+    { label: "Days Inventory Outst.", value: daysInventoryOutstanding !== null ? `${Math.round(daysInventoryOutstanding)}d` : "—", sub: "days stock takes to turn over", accent: C.purple },
+    { label: "Days Payable Outst.", value: daysPayableOutstanding !== null ? `${Math.round(daysPayableOutstanding)}d` : "—", sub: "vendor dues vs. food cost", accent: C.amber },
+    { label: "Cash Conversion Cycle", value: cashConversionCycle !== null ? `${Math.round(cashConversionCycle)}d` : "—", sub: "DIO + DSO(0) - DPO", accent: cashConversionCycle !== null && cashConversionCycle <= 0 ? C.green : C.brand },
+  ], y, 4);
+  txt(doc, "Note: Days Sales Outstanding is 0 (guests pay at time of sale). Accounts Payable and inventory figures are current-month snapshots, not date-range-scoped.", ML, y, { size: 6, color: C.muted, italic: true });
+  y += 8;
+
+  // ══════════════════════════════════════════════════════════════════════════
+  //  SECTION 08 — BRANCH & CITY COMPARISON
+  // ══════════════════════════════════════════════════════════════════════════
+  doc.addPage();
+  y = ML;
+  y = sectionHead(doc, "08  Branch & City Comparison", "How this branch stacks up across the restaurant group", y);
+
+  if ((branchComparison || []).length > 1) {
+    y = divider(doc, "Branch Comparison", y);
+    y = table(doc,
+      [["Branch", "Revenue", "Orders", "Avg Bill", "Net Profit", "Labour %", "Staff", "Rev/Employee", "Repeat %"]],
+      branchComparison.map((b: any) => [
+        b.branch?.name || "—",
+        RS(b.revenue),
+        String(b.orders || 0),
+        RS(b.avgBill),
+        RS(b.netProfit),
+        `${b.labourCostPercentage ?? 0}%`,
+        String(b.staffCount || 0),
+        RS(b.revenuePerEmployee),
+        `${b.repeatCustomerRate ?? 0}%`,
+      ]),
+      y, C.brand,
+      { columnStyles: { 1: { halign: "right" }, 2: { halign: "center" }, 3: { halign: "right" }, 4: { halign: "right" }, 5: { halign: "center" }, 6: { halign: "center" }, 7: { halign: "right" }, 8: { halign: "center" } } },
+    );
+  } else {
+    txt(doc, "Only one branch on this account — branch comparison isn't applicable yet.", ML, y + 2, { size: 7.5, color: C.muted, italic: true });
+    y += 12;
+  }
+
+  if ((cityComparison || []).length > 1) {
+    y = divider(doc, "City Comparison", y, C.teal);
+    y = table(doc,
+      [["City", "Branches", "Revenue", "Orders", "Net Profit", "Staff", "Repeat %"]],
+      cityComparison.map((c: any) => [
+        c.city || "—",
+        String((c.branches || []).length),
+        RS(c.revenue),
+        String(c.orders || 0),
+        RS(c.netProfit),
+        String(c.staffCount || 0),
+        `${c.repeatCustomerRate ?? 0}%`,
+      ]),
+      y, C.teal,
+      { columnStyles: { 2: { halign: "right" }, 3: { halign: "center" }, 4: { halign: "right" }, 5: { halign: "center" }, 6: { halign: "center" } } },
+    );
+  }
+
+  // ══════════════════════════════════════════════════════════════════════════
+  //  SECTION 09 — CUSTOMER SEGMENTATION (RFM)
+  // ══════════════════════════════════════════════════════════════════════════
+  doc.addPage();
+  y = ML;
+  y = sectionHead(doc, "09  Customer Segmentation (RFM)", "Recency, Frequency & Monetary scoring", y);
+
+  const rfmSegments = ["Champion", "Loyal", "Potential", "At Risk", "Lost"];
+  const segCounts = rfm?.segmentCounts || {};
+  const segRevenue = rfm?.segmentRevenue || {};
+  const segAccent: Record<string, RGB> = {
+    Champion: C.green, Loyal: C.blue, Potential: C.teal, "At Risk": C.amber, Lost: C.brand,
+  };
+  y = kpiGrid(doc, rfmSegments.map((seg) => ({
+    label: seg,
+    value: String(segCounts[seg] || 0),
+    sub: RS(segRevenue[seg] || 0),
+    accent: segAccent[seg],
+  })), y, 5);
+
+  const rfmCustomers = rfm?.customers || [];
+  if (rfmCustomers.length > 0) {
+    y = divider(doc, "Top 20 Customers by RFM Score", y);
+    y = table(doc,
+      [["Customer", "Phone", "Segment", "R", "F", "M", "Score", "Visits", "Total Spend"]],
+      rfmCustomers.slice(0, 20).map((c: any) => [
+        c.name || "Walk-in", c.phone || "—", c.segment,
+        String(c.R), String(c.F), String(c.M), String(c.rfm),
+        String(c.frequency), RS(c.monetary),
+      ]),
+      y, C.brand,
+      { columnStyles: { 3: { halign: "center" }, 4: { halign: "center" }, 5: { halign: "center" }, 6: { halign: "center" }, 7: { halign: "center" }, 8: { halign: "right" } } },
+    );
+  }
+
+  // ══════════════════════════════════════════════════════════════════════════
+  //  SECTION 10 — DEMAND PATTERNS (PEAK HOURS & DAYS)
+  // ══════════════════════════════════════════════════════════════════════════
+  doc.addPage();
+  y = ML;
+  y = sectionHead(doc, "10  Demand Patterns", "Peak hours & days by revenue", y);
+
+  const peakHourLbl = heatmap?.peakHour?.label || "—";
+  const peakDayName = heatmap?.peakDay?.name || "—";
+  y = kpiGrid(doc, [
+    { label: "Peak Hour",   value: peakHourLbl,                          sub: RS(heatmap?.peakHour?.revenue || 0), accent: C.brand },
+    { label: "Peak Day",    value: peakDayName,                          sub: RS(heatmap?.peakDay?.revenue || 0),  accent: C.blue },
+  ], y, 4);
+
+  const hourlyData = heatmap?.hourlyData || [];
+  if (hourlyData.length > 0) {
+    y = divider(doc, "Revenue by Hour of Day", y);
+    y = colBars(doc, hourlyData.map((h: any) => ({ label: h.label.replace(/ /g, ""), value: h.revenue })), ML, y, CW, 40, undefined, C.brand);
+  }
+
+  const dailyData = heatmap?.dailyData || [];
+  if (dailyData.length > 0) {
+    y = divider(doc, "Revenue by Day of Week", y, C.teal);
+    y = table(doc,
+      [["Day", "Revenue", "Orders", "Avg Bill"]],
+      dailyData.map((d: any) => [d.name, RS(d.revenue), String(d.orders), RS(d.avgBill)]),
+      y, C.teal,
+      { columnStyles: { 1: { halign: "right" }, 2: { halign: "center" }, 3: { halign: "right" } } },
+    );
+  }
+
+  // ══════════════════════════════════════════════════════════════════════════
+  //  SECTION 11 — STAFF PRODUCTIVITY & VENDOR PERFORMANCE
+  // ══════════════════════════════════════════════════════════════════════════
+  doc.addPage();
+  y = ML;
+  y = sectionHead(doc, "11  Staff Productivity & Vendor Performance", "Labour efficiency and supplier reliability", y);
+
+  const spTotals = staffProductivity?.totals || {};
+  y = divider(doc, "Staff Productivity", y);
+  y = kpiGrid(doc, [
+    { label: "Total Labour Cost",   value: RS(spTotals.totalLabourCost),   sub: "salary + overtime", accent: C.brand },
+    { label: "Overtime Cost",       value: RS(spTotals.totalOvertimeCost), sub: "this period",       accent: C.amber },
+    { label: "Hours Worked",        value: String(Math.round(spTotals.totalHoursWorked || 0)), sub: "across all staff", accent: C.blue },
+    { label: "Staff Count",         value: String(spTotals.totalStaff || 0), sub: "on payroll",     accent: C.purple },
+  ], y, 4);
+
+  const spStaff = staffProductivity?.staff || [];
+  if (spStaff.length > 0) {
+    y = divider(doc, "Staff Productivity Detail", y);
+    y = table(doc,
+      [["Name", "Role", "Shift", "Hours", "Overtime", "OT Cost", "Attendance %"]],
+      [...spStaff].sort((a: any, b: any) => (b.totalHours || 0) - (a.totalHours || 0)).slice(0, 20).map((s: any) => [
+        s.name || "—", s.role || "—", s.shift || "—",
+        String(s.totalHours || 0), String(s.overtimeHours || 0), RS(s.overtimeCost), `${s.attendanceRate || 0}%`,
+      ]),
+      y, C.brand,
+      { columnStyles: { 3: { halign: "center" }, 4: { halign: "center" }, 5: { halign: "right" }, 6: { halign: "center" } } },
+    );
+  }
+
+  const vp = vendorPerformance || [];
+  if (vp.length > 0) {
+    y = divider(doc, "Vendor Performance", y, C.purple);
+    y = table(doc,
+      [["Vendor", "Purchases", "Invoices", "Outstanding", "Overdue", "Price Trend"]],
+      [...vp].sort((a: any, b: any) => (b.totalPurchaseValue || 0) - (a.totalPurchaseValue || 0)).map((v: any) => [
+        v.name || "—",
+        RS(v.totalPurchaseValue),
+        String(v.invoiceCount || 0),
+        RS(v.totalOutstanding),
+        RS(v.overdueAmount),
+        v.priceTrend === "NO_DATA" ? "—" : v.priceTrend === "RISING" ? `Rising +${v.avgPriceChangePct}%` : v.priceTrend === "FALLING" ? `Falling ${v.avgPriceChangePct}%` : "Stable",
+      ]),
+      y, C.purple,
+      { columnStyles: { 1: { halign: "right" }, 2: { halign: "center" }, 3: { halign: "right" }, 4: { halign: "right" }, 5: { halign: "center" } } },
+    );
   }
 
   // ══════════════════════════════════════════════════════════════════════════

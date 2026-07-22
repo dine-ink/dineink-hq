@@ -14,6 +14,7 @@ interface ReportParams {
   branchId: number;
   token: string;
   apiUrl: string;
+  areaSqFt?: number;
 }
 
 export async function generateAndDownloadFullReport(params: ReportParams): Promise<void> {
@@ -22,6 +23,8 @@ export async function generateAndDownloadFullReport(params: ReportParams): Promi
     branchName: params.branchName,
     from: params.from,
     to: params.to,
+    areaSqFt: params.areaSqFt || 0,
+    branchId: params.branchId,
   };
 
   // Step 1: Fetch all data

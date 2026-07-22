@@ -287,15 +287,21 @@ export default function Insights() {
   const branchAreaSqFt = n(selectedBranch?.areaSqFt);
   const salesPerSqFt = branchAreaSqFt > 0 ? (revenue * 12) / branchAreaSqFt : null;
 
-  /* ================= REFUND % (approximated via cancelled bills) ========= */
-  // No dedicated refund record exists — CANCELLED bills are the closest
-  // proxy for "money given back to a guest this month".
+  /* ================= REFUND % ============================================ */
+  // Real BillRefund records (partial/full refunds) plus cancelled bills —
+  // both are "money given back to a guest this month".
   const cancelledTotal = n(mtdAnalytics?.cancelledTotal);
   const cancelledCount = n(mtdAnalytics?.cancelledCount);
-  const grossSalesIncludingCancelled = mtdRevenue + cancelledTotal;
+  const refundedTotal = n(mtdAnalytics?.refundedTotal);
+  const refundedCount = n(mtdAnalytics?.refundedCount);
+  const totalGivenBack = cancelledTotal + refundedTotal;
+  // mtdRevenue already reflects refunds (bill.total is reduced at refund
+  // time), so add back what was refunded to get the gross sold-before-refund
+  // figure for the denominator, alongside cancelled bills.
+  const grossSalesIncludingCancelled = mtdRevenue + cancelledTotal + refundedTotal;
   const refundPercentage =
     grossSalesIncludingCancelled > 0
-      ? (cancelledTotal / grossSalesIncludingCancelled) * 100
+      ? (totalGivenBack / grossSalesIncludingCancelled) * 100
       : 0;
 
   /* ================= DELIVERY / AGGREGATOR PROFITABILITY ================= */

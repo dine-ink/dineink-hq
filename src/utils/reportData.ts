@@ -17,6 +17,11 @@ export interface FullReportData {
   insightsData: any;
   inventoryAdjustments: any[];
   staffProductivity: any;
+  tableOps: any;
+  menuEngineering: any;
+  vendorOutstanding: any[];
+  restockHistory: any[];
+  vendorPerformance: any[];
 }
 
 const safeJson = async (res: Response) => {
@@ -54,6 +59,11 @@ export async function fetchAllReportData(params: {
     fetch(`${apiUrl}/api/analytics/insights/${restaurantId}/${branchId}`, { headers: h }),
     fetch(`${apiUrl}/api/inventory/adjustments?${bp}&${dr}`, { headers: h }),
     fetch(`${apiUrl}/api/analytics/${restaurantId}/staff-productivity?${bp}&${dr}`, { headers: h }),
+    fetch(`${apiUrl}/api/analytics/${restaurantId}/${branchId}/table-operations?${dr}`, { headers: h }),
+    fetch(`${apiUrl}/api/analytics/${restaurantId}/menu-engineering?${bp}&${dr}`, { headers: h }),
+    fetch(`${apiUrl}/api/vendors/outstanding/${restaurantId}/${branchId}`, { headers: h }),
+    fetch(`${apiUrl}/api/inventory/${restaurantId}/get-restock-history?${bp}`, { headers: h }),
+    fetch(`${apiUrl}/api/vendors/performance/${restaurantId}/${branchId}?${dr}`, { headers: h }),
   ]);
 
   const results = await Promise.all(responses.map(safeJson));
@@ -63,6 +73,8 @@ export async function fetchAllReportData(params: {
     kitchenJson, attendanceJson, staffJson, cashJson,
     branchCmpJson, cityCmpJson, heatmapJson, forecastJson, rfmJson, insightsJson,
     adjustmentsJson, productivityJson,
+    tableOpsJson, menuEngineeringJson, vendorOutstandingJson, restockHistoryJson,
+    vendorPerformanceJson,
   ] = results;
 
   return {
@@ -84,5 +96,10 @@ export async function fetchAllReportData(params: {
     insightsData:         insightsJson.success        ? insightsJson.data        : {},
     inventoryAdjustments: adjustmentsJson.success     ? adjustmentsJson.data || [] : [],
     staffProductivity:    productivityJson.success    ? productivityJson.data    : {},
+    tableOps:             tableOpsJson.success        ? tableOpsJson.data        : {},
+    menuEngineering:      menuEngineeringJson.success ? menuEngineeringJson.data : {},
+    vendorOutstanding:    vendorOutstandingJson.success ? vendorOutstandingJson.data || [] : [],
+    restockHistory:       restockHistoryJson.success  ? restockHistoryJson.data || [] : [],
+    vendorPerformance:    vendorPerformanceJson.success ? vendorPerformanceJson.data || [] : [],
   };
 }

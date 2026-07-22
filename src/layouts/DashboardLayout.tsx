@@ -123,6 +123,7 @@ export default function DashboardLayout() {
         branchId: selectedBranch.id,
         token,
         apiUrl: import.meta.env.VITE_API_URL,
+        areaSqFt: selectedBranch?.areaSqFt,
       });
     } catch (e) {
       console.error("Report download failed", e);

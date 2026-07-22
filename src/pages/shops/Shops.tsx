@@ -54,9 +54,6 @@ const ALL_PAYMENT_METHODS = [
   "Cash",
   "Card",
   "UPI",
-  "Net Banking",
-  "Wallet",
-  "Cheque",
 ];
 
 export default function Shops() {

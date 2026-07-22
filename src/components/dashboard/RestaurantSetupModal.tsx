@@ -1619,9 +1619,6 @@ export default function RestaurantSetupModal({ open, setOpen }: Props) {
                                     "Cash",
                                     "Card",
                                     "UPI",
-                                    "Net Banking",
-                                    "Wallet",
-                                    "Cheque",
                                   ].map((method) => {
                                     const active =
                                       branch.billing.paymentMethods.includes(
