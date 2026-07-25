@@ -50,11 +50,7 @@ const BILLING_MODULES = [
   "QR Ordering",
   "KOT Billing",
 ];
-const ALL_PAYMENT_METHODS = [
-  "Cash",
-  "Card",
-  "UPI",
-];
+const ALL_PAYMENT_METHODS = ["Cash", "Card", "UPI"];
 
 export default function Shops() {
   const API_URL = import.meta.env.VITE_API_URL;
@@ -279,7 +275,7 @@ export default function Shops() {
 
   return (
     <main className="min-h-screen bg-gray-50">
-      <div className="mx-auto flex max-w-[1600px] flex-col gap-3">
+      <div className="mx-auto flex  flex-col gap-3">
         {/* ── HERO ─────────────────────────────────────────────────────── */}
         <div className="overflow-hidden rounded-xl border border-gray-200 shadow-sm">
           <div className="relative overflow-hidden bg-white px-6 py-5">

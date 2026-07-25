@@ -5,6 +5,7 @@ import Pricing from "../pages/pricing/Pricing";
 import Features from "../pages/features/Features";
 import About from "../pages/about/About";
 import Contact from "../pages/contact/Contact";
+import PrivacyPolicy from "../pages/legal/PrivacyPolicy";
 
 import Login from "../pages/auth/Login";
 import Signup from "../pages/auth/Signup";
@@ -26,6 +27,7 @@ import AuthRoute from './AuthRoute'
 import Insights from "@/pages/insights/Insights";
 import MenuManagement from "@/pages/menuManagement/MenuManagement";
 import Vendors from "@/pages/vendors/Vendors";
+import ProcurementIntelligence from "@/pages/procurement/ProcurementIntelligence";
 import DailyStockAudit from "@/pages/stockAudit/DailyStockAudit";
 import ForgotPassword from "../pages/auth/ForgotPassword";
 import NotFound from "../pages/NotFound";
@@ -41,6 +43,7 @@ export default function AppRoutes() {
         <Route path="/features" element={<Features />} />
         <Route path="/about" element={<About />} />
         <Route path="/contact" element={<Contact />} />
+        <Route path="/privacy-policy" element={<PrivacyPolicy />} />
 
         {/* Auth */}
         <Route
@@ -85,6 +88,7 @@ export default function AppRoutes() {
           <Route path="comparison" element={<BranchComparison />}/>
           <Route path="kitchen" element={<Kitchen />}/>
           <Route path="vendors" element={<Vendors />}/>
+          <Route path="procurement-intelligence" element={<ProcurementIntelligence />}/>
           <Route path="daily-stock-audit" element={<DailyStockAudit />}/>
         </Route>
 

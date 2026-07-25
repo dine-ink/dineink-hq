@@ -228,7 +228,7 @@ export default function Customers() {
 
   return (
     <main className="h-full flex-1 overflow-auto rounded-xl border border-gray-200 bg-[#f8fafc]">
-      <div className="mx-auto flex w-full max-w-[1600px] flex-col gap-2.5">
+      <div className="mx-auto flex w-full  flex-col gap-2.5">
         <div className="relative overflow-hidden rounded-2xl border border-gray-100 bg-white px-5 py-4 shadow-sm transition-all duration-200 hover:shadow-md">
           <div className="absolute -right-10 -top-10 h-24 w-24 rounded-full bg-red-100/50 blur-3xl" />
           <div className="relative z-10 flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
@@ -640,15 +640,22 @@ export default function Customers() {
                 },
                 {
                   label: "CAC",
-                  value: newCustomersThisMonth > 0 ? `₹${Math.round(cac).toLocaleString()}` : "—",
+                  value:
+                    newCustomersThisMonth > 0
+                      ? `₹${Math.round(cac).toLocaleString()}`
+                      : "—",
                   sub: "marketing spend ÷ new customers (MTD)",
                   cls: "border-orange-100 bg-orange-50/60",
                   val: "text-orange-700",
                 },
                 {
                   label: "LTV : CAC",
-                  value: ltvCacRatio !== null ? `${ltvCacRatio.toFixed(1)}x` : "—",
-                  sub: ltvCacRatio !== null && ltvCacRatio < 3 ? "below healthy 3x benchmark" : "lifetime value vs. acquisition cost",
+                  value:
+                    ltvCacRatio !== null ? `${ltvCacRatio.toFixed(1)}x` : "—",
+                  sub:
+                    ltvCacRatio !== null && ltvCacRatio < 3
+                      ? "below healthy 3x benchmark"
+                      : "lifetime value vs. acquisition cost",
                   cls: "border-blue-100 bg-blue-50/60",
                   val: "text-blue-700",
                 },

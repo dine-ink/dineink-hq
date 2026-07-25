@@ -188,7 +188,8 @@ export default function Dashboard() {
           const currentMonth = now.getMonth() + 1;
           const currentYear = now.getFullYear();
           const monthData = (data.data || []).find(
-            (item: any) => item.month === currentMonth && item.year === currentYear,
+            (item: any) =>
+              item.month === currentMonth && item.year === currentYear,
           );
           if (monthData) {
             setRestockHistory(
@@ -198,9 +199,12 @@ export default function Dashboard() {
                     Number(item["Opening Stock Value"] || 0) +
                       Number(item["Total Purchase Amount"] || 0) -
                       Number(
-                        item["Week5 Closing Value"] || item["Week4 Closing Value"] ||
-                        item["Week3 Closing Value"] || item["Week2 Closing Value"] ||
-                        item["Week1 Closing Value"] || 0,
+                        item["Week5 Closing Value"] ||
+                          item["Week4 Closing Value"] ||
+                          item["Week3 Closing Value"] ||
+                          item["Week2 Closing Value"] ||
+                          item["Week1 Closing Value"] ||
+                          0,
                       ),
                 ),
               })),
@@ -260,14 +264,43 @@ export default function Dashboard() {
   const dashboardEbitda = (() => {
     if (!insightsData) return null;
     const n = (v: any) => Number(v) || 0;
-    const fixed = n(insightsData.monthlyRent) + n(insightsData.loanEmi) + n(insightsData.internet) + n(insightsData.phoneBills) + n(insightsData.accounting) + n(insightsData.insurance) + n(insightsData.licenses);
-    const variable = n(insightsData.deliveryCharges) + n(insightsData.packaging) + n(insightsData.paymentGateway) + n(insightsData.aggregatorCommission) + n(insightsData.electricity) + n(insightsData.gas) + n(insightsData.maintenance) + n(insightsData.fuel);
-    const labour = staffData.reduce((sum: number, s: any) => sum + (s.salary || 0), 0);
-    const finance = n(insightsData.monthlyLoanEmi) + n(insightsData.monthlyInterestPayments) + n(insightsData.caFees) + n(insightsData.insuranceCost) + n(insightsData.otherTaxes);
-    const actualFoodCost = restockHistory.reduce((sum: number, r: any) => sum + Number(r.MonthlyRMExpense || 0), 0);
-    const foodCost = n(insightsData.manualFoodCost) > 0
-      ? n(insightsData.manualFoodCost)
-      : inventoryStockValue > 0 ? inventoryStockValue : actualFoodCost;
+    const fixed =
+      n(insightsData.monthlyRent) +
+      n(insightsData.loanEmi) +
+      n(insightsData.internet) +
+      n(insightsData.phoneBills) +
+      n(insightsData.accounting) +
+      n(insightsData.insurance) +
+      n(insightsData.licenses);
+    const variable =
+      n(insightsData.deliveryCharges) +
+      n(insightsData.packaging) +
+      n(insightsData.paymentGateway) +
+      n(insightsData.aggregatorCommission) +
+      n(insightsData.electricity) +
+      n(insightsData.gas) +
+      n(insightsData.maintenance) +
+      n(insightsData.fuel);
+    const labour = staffData.reduce(
+      (sum: number, s: any) => sum + (s.salary || 0),
+      0,
+    );
+    const finance =
+      n(insightsData.monthlyLoanEmi) +
+      n(insightsData.monthlyInterestPayments) +
+      n(insightsData.caFees) +
+      n(insightsData.insuranceCost) +
+      n(insightsData.otherTaxes);
+    const actualFoodCost = restockHistory.reduce(
+      (sum: number, r: any) => sum + Number(r.MonthlyRMExpense || 0),
+      0,
+    );
+    const foodCost =
+      n(insightsData.manualFoodCost) > 0
+        ? n(insightsData.manualFoodCost)
+        : inventoryStockValue > 0
+          ? inventoryStockValue
+          : actualFoodCost;
     const totalMonthlyExp = fixed + variable + labour + finance + foodCost;
 
     // insightsData's cost fields are monthly figures, but analytics.totalRevenue
@@ -672,7 +705,7 @@ export default function Dashboard() {
         </div>
 
         <div className="grid grid-cols-1 gap-3 xl:grid-cols-12">
-          <div className={`xl:col-span-3 ${CHART_CARD} p-3`}>
+          <div className={`xl:col-span-4 ${CHART_CARD} p-3`}>
             <div className="mb-3 flex items-start justify-between">
               <div>
                 <div className="inline-flex rounded-full bg-gray-100 px-2 py-1 text-[9px] font-bold uppercase tracking-wide text-gray-600">
@@ -735,6 +768,124 @@ export default function Dashboard() {
           <div className={`xl:col-span-3 ${CHART_CARD} p-3`}>
             <div className="mb-3">
               <div className="inline-flex rounded-full bg-gray-100 px-2 py-1 text-[9px] font-bold uppercase tracking-wide text-gray-600">
+                Trending
+              </div>
+              <h3 className="mt-1.5 text-[15px] font-bold text-gray-900">
+                Top Selling Items
+              </h3>
+              <p className="mt-0.5 text-[11px] text-gray-500">
+                Best performing menu items
+              </p>
+            </div>
+            <div className="space-y-2">
+              {(() => {
+                const items = analytics?.topItems || [];
+                const max = Math.max(...items.map((i: any) => i.quantity), 1);
+                return items.length > 0 ? (
+                  items.slice(0, 5).map((item: any) => (
+                    <div
+                      key={item.name}
+                      className="rounded-xl border border-gray-100 bg-gray-50/60 p-2.5 transition hover:bg-gray-50"
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="truncate text-[12px] font-semibold text-gray-900">
+                          {item.name}
+                        </p>
+                        <div className="flex h-7 min-w-[32px] items-center justify-center rounded-lg bg-[#b10000] px-2 text-[11px] font-bold text-white">
+                          {item.quantity}
+                        </div>
+                      </div>
+                      <div className="mt-2 flex items-center gap-2">
+                        <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-gray-200">
+                          <div
+                            className="h-full rounded-full bg-[#b10000] transition-all"
+                            style={{
+                              width: `${Math.round((item.quantity / max) * 100)}%`,
+                            }}
+                          />
+                        </div>
+                        <p className="min-w-[28px] text-right text-[9px] font-semibold text-gray-400">
+                          {Math.round((item.quantity / max) * 100)}%
+                        </p>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="flex h-[120px] items-center justify-center text-[12px] text-gray-400">
+                    No item data yet
+                  </div>
+                );
+              })()}
+            </div>
+          </div>
+
+          <div className={`xl:col-span-3 ${CHART_CARD} p-3`}>
+            <div className="mb-3">
+              <div className="inline-flex rounded-full bg-[#b10000]/10 px-2 py-1 text-[9px] font-bold uppercase tracking-wide text-[#b10000]">
+                Categories
+              </div>
+              <h3 className="mt-1.5 text-[15px] font-bold text-gray-900">
+                Top Selling Categories
+              </h3>
+              <p className="mt-0.5 text-[11px] text-gray-500">
+                Best performing menu categories
+              </p>
+            </div>
+            <div className="space-y-2">
+              {(() => {
+                const cats = analytics?.topCategories || [];
+                const max = Math.max(...cats.map((c: any) => c.quantity), 1);
+                return cats.length > 0 ? (
+                  cats.slice(0, 5).map((cat: any, i: number) => {
+                    const colors = [
+                      "bg-[#b10000]",
+                      "bg-orange-500",
+                      "bg-amber-500",
+                      "bg-emerald-500",
+                      "bg-blue-500",
+                    ];
+                    return (
+                      <div
+                        key={cat.name}
+                        className="rounded-xl border border-gray-100 bg-gray-50/60 p-2.5 transition hover:bg-gray-50"
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <p className="truncate text-[12px] font-semibold text-gray-900">
+                            {cat.name}
+                          </p>
+                          <div
+                            className={`flex h-7 min-w-[32px] items-center justify-center rounded-lg px-2 text-[11px] font-bold text-white ${colors[i] || "bg-gray-400"}`}
+                          >
+                            {cat.quantity}
+                          </div>
+                        </div>
+                        <div className="mt-2 flex items-center gap-2">
+                          <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-gray-200">
+                            <div
+                              className={`h-full rounded-full transition-all ${colors[i] || "bg-gray-400"}`}
+                              style={{
+                                width: `${Math.round((cat.quantity / max) * 100)}%`,
+                              }}
+                            />
+                          </div>
+                          <p className="min-w-[28px] text-right text-[9px] font-semibold text-gray-400">
+                            {Math.round((cat.quantity / max) * 100)}%
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  })
+                ) : (
+                  <div className="flex h-[120px] items-center justify-center text-[12px] text-gray-400">
+                    No category data yet
+                  </div>
+                );
+              })()}
+            </div>
+          </div>
+          <div className={`xl:col-span-2 ${CHART_CARD} p-3`}>
+            <div className="mb-3">
+              <div className="inline-flex rounded-full bg-gray-100 px-2 py-1 text-[9px] font-bold uppercase tracking-wide text-gray-600">
                 Analytics
               </div>
               <h3 className="mt-1.5 text-[15px] font-bold text-gray-900">
@@ -782,109 +933,6 @@ export default function Dashboard() {
                   No payment data
                 </div>
               )}
-            </div>
-          </div>
-
-          <div className={`xl:col-span-3 ${CHART_CARD} p-3`}>
-            <div className="mb-3">
-              <div className="inline-flex rounded-full bg-gray-100 px-2 py-1 text-[9px] font-bold uppercase tracking-wide text-gray-600">
-                Trending
-              </div>
-              <h3 className="mt-1.5 text-[15px] font-bold text-gray-900">
-                Top Selling Items
-              </h3>
-              <p className="mt-0.5 text-[11px] text-gray-500">
-                Best performing menu items
-              </p>
-            </div>
-            <div className="space-y-2">
-              {(() => {
-                const items = analytics?.topItems || [];
-                const max = Math.max(...items.map((i: any) => i.quantity), 1);
-                return items.length > 0 ? items.slice(0, 5).map((item: any) => (
-                  <div
-                    key={item.name}
-                    className="rounded-xl border border-gray-100 bg-gray-50/60 p-2.5 transition hover:bg-gray-50"
-                  >
-                    <div className="flex items-center justify-between gap-2">
-                      <p className="truncate text-[12px] font-semibold text-gray-900">
-                        {item.name}
-                      </p>
-                      <div className="flex h-7 min-w-[32px] items-center justify-center rounded-lg bg-[#b10000] px-2 text-[11px] font-bold text-white">
-                        {item.quantity}
-                      </div>
-                    </div>
-                    <div className="mt-2 flex items-center gap-2">
-                      <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-gray-200">
-                        <div
-                          className="h-full rounded-full bg-[#b10000] transition-all"
-                          style={{ width: `${Math.round((item.quantity / max) * 100)}%` }}
-                        />
-                      </div>
-                      <p className="min-w-[28px] text-right text-[9px] font-semibold text-gray-400">
-                        {Math.round((item.quantity / max) * 100)}%
-                      </p>
-                    </div>
-                  </div>
-                )) : (
-                  <div className="flex h-[120px] items-center justify-center text-[12px] text-gray-400">
-                    No item data yet
-                  </div>
-                );
-              })()}
-            </div>
-          </div>
-
-          <div className={`xl:col-span-3 ${CHART_CARD} p-3`}>
-            <div className="mb-3">
-              <div className="inline-flex rounded-full bg-[#b10000]/10 px-2 py-1 text-[9px] font-bold uppercase tracking-wide text-[#b10000]">
-                Categories
-              </div>
-              <h3 className="mt-1.5 text-[15px] font-bold text-gray-900">
-                Top Selling Categories
-              </h3>
-              <p className="mt-0.5 text-[11px] text-gray-500">
-                Best performing menu categories
-              </p>
-            </div>
-            <div className="space-y-2">
-              {(() => {
-                const cats = analytics?.topCategories || [];
-                const max = Math.max(...cats.map((c: any) => c.quantity), 1);
-                return cats.length > 0 ? cats.slice(0, 5).map((cat: any, i: number) => {
-                  const colors = ["bg-[#b10000]", "bg-orange-500", "bg-amber-500", "bg-emerald-500", "bg-blue-500"];
-                  return (
-                    <div
-                      key={cat.name}
-                      className="rounded-xl border border-gray-100 bg-gray-50/60 p-2.5 transition hover:bg-gray-50"
-                    >
-                      <div className="flex items-center justify-between gap-2">
-                        <p className="truncate text-[12px] font-semibold text-gray-900">
-                          {cat.name}
-                        </p>
-                        <div className={`flex h-7 min-w-[32px] items-center justify-center rounded-lg px-2 text-[11px] font-bold text-white ${colors[i] || "bg-gray-400"}`}>
-                          {cat.quantity}
-                        </div>
-                      </div>
-                      <div className="mt-2 flex items-center gap-2">
-                        <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-gray-200">
-                          <div
-                            className={`h-full rounded-full transition-all ${colors[i] || "bg-gray-400"}`}
-                            style={{ width: `${Math.round((cat.quantity / max) * 100)}%` }}
-                          />
-                        </div>
-                        <p className="min-w-[28px] text-right text-[9px] font-semibold text-gray-400">
-                          {Math.round((cat.quantity / max) * 100)}%
-                        </p>
-                      </div>
-                    </div>
-                  );
-                }) : (
-                  <div className="flex h-[120px] items-center justify-center text-[12px] text-gray-400">
-                    No category data yet
-                  </div>
-                );
-              })()}
             </div>
           </div>
         </div>

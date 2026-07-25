@@ -62,11 +62,12 @@ export default function Bills() {
       (b.orderType || "").toLowerCase().includes(s) ||
       String(b.total).includes(search) ||
       String(b.id).includes(search);
-    const matchesStatus =
-      statusFilter === "ALL" || billStatus === statusFilter;
+    const matchesStatus = statusFilter === "ALL" || billStatus === statusFilter;
     const billDate = b.createdAt ? new Date(b.createdAt) : null;
-    const matchesFrom = !dateFrom || (billDate && billDate >= new Date(dateFrom));
-    const matchesTo = !dateTo || (billDate && billDate <= new Date(dateTo + "T23:59:59"));
+    const matchesFrom =
+      !dateFrom || (billDate && billDate >= new Date(dateFrom));
+    const matchesTo =
+      !dateTo || (billDate && billDate <= new Date(dateTo + "T23:59:59"));
     return matchesSearch && matchesStatus && matchesFrom && matchesTo;
   });
 
@@ -109,7 +110,7 @@ export default function Bills() {
 
   return (
     <main className="min-h-screen bg-gray-50">
-      <div className="mx-auto flex w-full max-w-[1600px] flex-col gap-3">
+      <div className="mx-auto flex w-full flex-col gap-3">
         {/* ── HEADER ─────────────────────────────────────── */}
         <div className="relative overflow-hidden rounded-xl border border-gray-200 bg-white px-5 py-4 shadow-sm">
           <div className="absolute -right-10 -top-10 h-24 w-24 rounded-full bg-red-100/50 blur-3xl" />
@@ -211,7 +212,8 @@ export default function Bills() {
                   Recent Bills
                 </h2>
                 <p className="mt-0.5 text-[11px] text-gray-500">
-                  Billing history · {filtered.length} records · click a row to view details
+                  Billing history · {filtered.length} records · click a row to
+                  view details
                 </p>
               </div>
               <div className="flex flex-wrap items-center gap-2">
@@ -220,19 +222,29 @@ export default function Bills() {
                   <input
                     type="date"
                     value={dateFrom}
-                    onChange={(e) => { setDateFrom(e.target.value); setPage(1); }}
+                    onChange={(e) => {
+                      setDateFrom(e.target.value);
+                      setPage(1);
+                    }}
                     className="text-[12px] text-gray-700 outline-none bg-transparent"
                   />
                   <span className="text-[11px] text-gray-300">—</span>
                   <input
                     type="date"
                     value={dateTo}
-                    onChange={(e) => { setDateTo(e.target.value); setPage(1); }}
+                    onChange={(e) => {
+                      setDateTo(e.target.value);
+                      setPage(1);
+                    }}
                     className="text-[12px] text-gray-700 outline-none bg-transparent"
                   />
                   {(dateFrom || dateTo) && (
                     <button
-                      onClick={() => { setDateFrom(""); setDateTo(""); setPage(1); }}
+                      onClick={() => {
+                        setDateFrom("");
+                        setDateTo("");
+                        setPage(1);
+                      }}
                       className="ml-1 text-[10px] font-bold text-gray-400 hover:text-red-500 transition"
                     >
                       ✕
@@ -241,7 +253,10 @@ export default function Bills() {
                 </div>
                 <select
                   value={statusFilter}
-                  onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
+                  onChange={(e) => {
+                    setStatusFilter(e.target.value);
+                    setPage(1);
+                  }}
                   className="h-9 rounded-xl border border-gray-200 bg-white px-3 text-[12px] text-gray-700 outline-none transition focus:border-red-400 focus:ring-2 focus:ring-red-100"
                 >
                   <option value="ALL">All Status</option>
@@ -460,7 +475,9 @@ export default function Bills() {
                   Bill Details
                 </p>
                 <h2 className="mt-0.5 text-[17px] font-black text-gray-900">
-                  {selectedBill.billNo || selectedBill.orderNo || `#${selectedBill.id}`}
+                  {selectedBill.billNo ||
+                    selectedBill.orderNo ||
+                    `#${selectedBill.id}`}
                 </h2>
               </div>
               <button
@@ -499,14 +516,21 @@ export default function Bills() {
                   },
                   {
                     label: "Status",
-                    value: selectedBill.paymentStatus || selectedBill.status || "—",
+                    value:
+                      selectedBill.paymentStatus || selectedBill.status || "—",
                   },
                   {
                     label: "Date",
                     value: selectedBill.createdAt
                       ? new Date(selectedBill.createdAt).toLocaleString(
                           "en-IN",
-                          { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" },
+                          {
+                            day: "2-digit",
+                            month: "short",
+                            year: "numeric",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          },
                         )
                       : "—",
                   },
@@ -534,30 +558,35 @@ export default function Bills() {
                     {/* Header row */}
                     <div className="grid grid-cols-[1fr_48px_72px_72px] gap-2 pb-1.5 border-b border-gray-100">
                       {["Item", "Qty", "Price", "Total"].map((h) => (
-                        <p key={h} className="text-[10px] font-bold uppercase tracking-[0.12em] text-gray-400 last:text-right">
+                        <p
+                          key={h}
+                          className="text-[10px] font-bold uppercase tracking-[0.12em] text-gray-400 last:text-right"
+                        >
                           {h}
                         </p>
                       ))}
                     </div>
-                    {(selectedBill.items || []).map((item: any, idx: number) => (
-                      <div
-                        key={item.id ?? idx}
-                        className="grid grid-cols-[1fr_48px_72px_72px] gap-2 rounded-lg px-0 py-1.5 items-center"
-                      >
-                        <p className="text-[12px] font-semibold text-gray-800 leading-tight">
-                          {item.itemName || item.name || "—"}
-                        </p>
-                        <p className="text-[12px] text-gray-500 text-center">
-                          ×{item.quantity}
-                        </p>
-                        <p className="text-[12px] text-gray-500 text-right">
-                          ₹{Number(item.price || 0).toLocaleString()}
-                        </p>
-                        <p className="text-[12px] font-semibold text-gray-800 text-right">
-                          ₹{Number(item.total || 0).toLocaleString()}
-                        </p>
-                      </div>
-                    ))}
+                    {(selectedBill.items || []).map(
+                      (item: any, idx: number) => (
+                        <div
+                          key={item.id ?? idx}
+                          className="grid grid-cols-[1fr_48px_72px_72px] gap-2 rounded-lg px-0 py-1.5 items-center"
+                        >
+                          <p className="text-[12px] font-semibold text-gray-800 leading-tight">
+                            {item.itemName || item.name || "—"}
+                          </p>
+                          <p className="text-[12px] text-gray-500 text-center">
+                            ×{item.quantity}
+                          </p>
+                          <p className="text-[12px] text-gray-500 text-right">
+                            ₹{Number(item.price || 0).toLocaleString()}
+                          </p>
+                          <p className="text-[12px] font-semibold text-gray-800 text-right">
+                            ₹{Number(item.total || 0).toLocaleString()}
+                          </p>
+                        </div>
+                      ),
+                    )}
                   </div>
                 )}
               </div>
@@ -575,10 +604,14 @@ export default function Bills() {
                       value: -selectedBill.discount,
                       cls: "text-emerald-600",
                     },
-                    selectedBill.gst > 0 && { label: "GST", value: selectedBill.gst },
+                    selectedBill.gst > 0 && {
+                      label: "GST",
+                      value: selectedBill.gst,
+                    },
                     (selectedBill.cgst > 0 || selectedBill.sgst > 0) && {
                       label: `CGST / SGST`,
-                      value: (selectedBill.cgst || 0) + (selectedBill.sgst || 0),
+                      value:
+                        (selectedBill.cgst || 0) + (selectedBill.sgst || 0),
                     },
                     selectedBill.serviceCharge > 0 && {
                       label: "Service Charge",
@@ -591,16 +624,24 @@ export default function Bills() {
                   ]
                     .filter(Boolean)
                     .map((row: any) => (
-                      <div key={row.label} className="flex items-center justify-between">
+                      <div
+                        key={row.label}
+                        className="flex items-center justify-between"
+                      >
                         <p className="text-[12px] text-gray-500">{row.label}</p>
-                        <p className={`text-[12px] font-semibold ${row.cls || "text-gray-800"}`}>
-                          {row.value < 0 ? "−" : ""}₹{Math.abs(Number(row.value || 0)).toLocaleString()}
+                        <p
+                          className={`text-[12px] font-semibold ${row.cls || "text-gray-800"}`}
+                        >
+                          {row.value < 0 ? "−" : ""}₹
+                          {Math.abs(Number(row.value || 0)).toLocaleString()}
                         </p>
                       </div>
                     ))}
 
                   <div className="mt-1 flex items-center justify-between rounded-xl bg-gray-50 px-3 py-2.5">
-                    <p className="text-[13px] font-black text-gray-900">Total</p>
+                    <p className="text-[13px] font-black text-gray-900">
+                      Total
+                    </p>
                     <p className="text-[15px] font-black text-[#b10000]">
                       ₹{Number(selectedBill.total || 0).toLocaleString()}
                     </p>

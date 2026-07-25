@@ -423,7 +423,7 @@ export default function Settings() {
                     onClick={() =>
                       editMode ? handleSaveGeneral() : setEditMode(true)
                     }
-                    className={`flex items-center gap-1.5 rounded-xl px-4 py-2 text-[12px] font-semibold text-white transition ${editMode ? "bg-emerald-600 hover:bg-emerald-700" : "bg-gradient-to-r from-red-500 to-rose-500 hover:opacity-90"}`}
+                    className="flex items-center gap-1.5 rounded-xl bg-[#b10000] px-4 py-2 text-[12px] font-semibold text-white shadow-sm transition hover:bg-[#950000]"
                   >
                     {editMode ? (
                       <>

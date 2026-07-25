@@ -1,3 +1,5 @@
+import { Link } from "react-router-dom";
+
 export default function Footer() {
   return (
     <footer className="mx-auto mt-32 max-w-7xl px-6 lg:px-8">
@@ -98,9 +100,9 @@ export default function Footer() {
                 <h3 className="text-sm font-semibold text-gray-900">Legal</h3>
                 <ul className="mt-6 space-y-4">
                   <li>
-                    <a href="#" className="text-sm text-gray-600 hover:text-red-700">
+                    <Link to="/privacy-policy" className="text-sm text-gray-600 hover:text-red-700">
                       Privacy Policy
-                    </a>
+                    </Link>
                   </li>
                   <li>
                     <a href="#" className="text-sm text-gray-600 hover:text-red-700">

@@ -46,7 +46,13 @@ export default function Vendors() {
     payments: any[];
     invoices: any[];
     ingredients: any[];
-  }>({ open: false, vendor: null, payments: [], invoices: [], ingredients: [] });
+  }>({
+    open: false,
+    vendor: null,
+    payments: [],
+    invoices: [],
+    ingredients: [],
+  });
 
   // Forms
   const [vendorForm, setVendorForm] = useState({
@@ -129,7 +135,8 @@ export default function Vendors() {
   // purchase invoice modal for the vendor tied to the ingredient running low.
   useEffect(() => {
     const restockVendorId = (location.state as any)?.restockVendorId;
-    const restockIngredientName = (location.state as any)?.restockIngredientName;
+    const restockIngredientName = (location.state as any)
+      ?.restockIngredientName;
     if (!restockVendorId || !vendors.length) return;
     const vendor = vendors.find((v: any) => v.id === restockVendorId);
     if (!vendor) return;
@@ -305,7 +312,7 @@ export default function Vendors() {
 
   return (
     <main className="min-h-screen bg-gray-50">
-      <div className="mx-auto flex w-full max-w-[1600px] flex-col gap-3">
+      <div className="mx-auto flex w-full  flex-col gap-3">
         {/* Header */}
         <div className="relative overflow-hidden rounded-xl border border-gray-200 bg-white px-5 py-4 shadow-sm">
           <div className="absolute -right-10 -top-10 h-24 w-24 rounded-full bg-red-100/50 blur-3xl" />
@@ -563,8 +570,8 @@ export default function Vendors() {
                 Vendor Performance
               </h2>
               <p className="text-[11px] text-gray-500">
-                Purchase volume, overdue balances and ingredient price trend
-                per vendor
+                Purchase volume, overdue balances and ingredient price trend per
+                vendor
               </p>
             </div>
             <div className="overflow-x-auto">
@@ -638,7 +645,11 @@ export default function Vendors() {
                           {p.lastInvoiceDate
                             ? new Date(p.lastInvoiceDate).toLocaleDateString(
                                 "en-IN",
-                                { day: "numeric", month: "short", year: "numeric" },
+                                {
+                                  day: "numeric",
+                                  month: "short",
+                                  year: "numeric",
+                                },
                               )
                             : "—"}
                         </td>
@@ -1024,24 +1035,28 @@ export default function Vendors() {
               </p>
               {detailModal.ingredients.length === 0 ? (
                 <p className="text-[11px] text-gray-400">
-                  No ingredients linked to this vendor yet — assign this
-                  vendor to ingredients from Menu Management → Ingredients
+                  No ingredients linked to this vendor yet — assign this vendor
+                  to ingredients from Menu Management → Ingredients
                 </p>
               ) : (
                 <div className="overflow-x-auto rounded-lg border border-gray-100">
                   <table className="min-w-full text-[11px]">
                     <thead className="bg-gray-50">
                       <tr>
-                        {["Ingredient", "Category", "Unit", "Purchase Price", "Price/Unit"].map(
-                          (h) => (
-                            <th
-                              key={h}
-                              className="px-3 py-2 text-left text-[10px] font-bold uppercase tracking-wide text-gray-400"
-                            >
-                              {h}
-                            </th>
-                          ),
-                        )}
+                        {[
+                          "Ingredient",
+                          "Category",
+                          "Unit",
+                          "Purchase Price",
+                          "Price/Unit",
+                        ].map((h) => (
+                          <th
+                            key={h}
+                            className="px-3 py-2 text-left text-[10px] font-bold uppercase tracking-wide text-gray-400"
+                          >
+                            {h}
+                          </th>
+                        ))}
                       </tr>
                     </thead>
                     <tbody>
