@@ -56,7 +56,7 @@ export default function AnalyticsOverview({ analytics, revenue, ebitda, ebitdaPc
       icon: IndianRupee,
       accent: "bg-red-500",
       iconBg: "bg-red-50",
-      iconColor: "text-[#b10000]",
+      iconColor: "text-primary-600",
       sub: "Total earnings",
       ratio: revenueRatio,
       higherIsBetter: true,

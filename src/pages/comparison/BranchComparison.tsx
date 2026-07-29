@@ -17,16 +17,13 @@ import {
   BuildingStorefrontIcon,
   MapPinIcon,
 } from "@heroicons/react/24/outline";
+import { chartPalette } from "../../design";
 
-const COLORS = [
-  "#ef4444",
-  "#3b82f6",
-  "#10b981",
-  "#f59e0b",
-  "#8b5cf6",
-  "#ec4899",
-  "#14b8a6",
-];
+// The app's one shared qualitative chart palette (src/design/tokens/colors
+// .ts) — previously its own slightly-different copy of this same red/blue/
+// emerald/amber/violet/pink array, duplicated across this file, Report.tsx,
+// and MenuManagement.tsx.
+const COLORS = chartPalette;
 const TICK = { fontSize: 10, fill: "#6b7280" };
 
 const fmtINR = (v: number) => `₹${Number(v || 0).toLocaleString("en-IN")}`;

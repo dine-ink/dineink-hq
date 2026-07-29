@@ -21,14 +21,11 @@ import {
   Legend,
 } from "recharts";
 import dayjs from "dayjs";
-const COLORS = [
-  "#ef4444",
-  "#10b981",
-  "#3b82f6",
-  "#f59e0b",
-  "#8b5cf6",
-  "#ec4899",
-];
+import { chartPalette } from "../../design";
+
+// The app's one shared qualitative chart palette — see BranchComparison.tsx
+// for the full duplication history this replaces.
+const COLORS = chartPalette;
 
 const reportTabs = [
   "P&L Statement",

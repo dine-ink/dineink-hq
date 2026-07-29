@@ -13,39 +13,20 @@ import {
   ReferenceLine,
 } from "recharts";
 import { FireIcon } from "@heroicons/react/24/outline";
+import { PageContainer, PageHeader, MetricCard, LoadingOverlay, type MetricStatus } from "../../design";
 
 const TICK = { fontSize: 10, fill: "#6b7280" };
 
-function KpiCard({
-  label,
-  value,
-  sub,
-  color,
-}: {
-  label: string;
-  value: string | number;
-  sub: string;
-  color: string;
-}) {
-  const cls: Record<string, string> = {
-    red: "border-red-100 bg-red-50 text-red-700",
-    emerald: "border-emerald-100 bg-emerald-50/60 text-emerald-700",
-    blue: "border-blue-100 bg-blue-50/60 text-blue-700",
-    orange: "border-orange-100 bg-orange-50/60 text-orange-700",
-    violet: "border-violet-100 bg-violet-50/60 text-violet-700",
-  };
-  return (
-    <div className={`rounded-xl border p-4 ${cls[color] || cls.red}`}>
-      <p className="text-[10px] font-bold uppercase tracking-wide text-gray-500">
-        {label}
-      </p>
-      <p className={`mt-2 text-[22px] font-bold ${cls[color]?.split(" ")[2]}`}>
-        {value}
-      </p>
-      <p className="mt-1 text-[11px] text-gray-500">{sub}</p>
-    </div>
-  );
-}
+// KpiCard's old "red/emerald/blue/orange/violet" color prop mapped onto the
+// design system's semantic status names, so every call site below keeps
+// its exact previous appearance without needing to be re-authored.
+const legacyColorToStatus: Record<string, MetricStatus> = {
+  red: "danger",
+  emerald: "success",
+  blue: "info",
+  orange: "warning",
+  violet: "secondary",
+};
 
 export default function Kitchen() {
   const API_URL = import.meta.env.VITE_API_URL;
@@ -80,16 +61,7 @@ export default function Kitchen() {
   }, [from, to, selectedBranch?.id]);
 
   if (loading) {
-    return (
-      <div className="flex min-h-[400px] items-center justify-center">
-        <div className="flex flex-col items-center gap-3">
-          <div className="h-8 w-8 animate-spin rounded-full border-2 border-gray-200 border-t-red-500" />
-          <p className="text-[12px] text-gray-500">
-            Loading kitchen analytics...
-          </p>
-        </div>
-      </div>
-    );
+    return <LoadingOverlay label="Loading kitchen analytics..." />;
   }
 
   const summary = data?.summary || {};
@@ -106,67 +78,29 @@ export default function Kitchen() {
   );
 
   return (
-    <main className="min-h-screen bg-gray-50">
-      <div className="mx-auto flex flex-col gap-3">
-        {/* HEADER */}
-        <div className="relative overflow-hidden rounded-xl border border-gray-200 bg-white px-4 py-3 shadow-sm">
-          <div className="absolute -right-8 -top-8 h-24 w-24 rounded-full bg-red-100/40 blur-3xl" />
-          <div className="relative z-10 flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#b10000] shadow-sm">
-                <FireIcon className="h-5 w-5 text-white" />
-              </div>
-              <div>
-                <h1 className="text-xl font-black tracking-tight text-gray-900">
-                  Kitchen Analytics
-                </h1>
-                <p className="mt-0.5 text-[12px] text-gray-500">
-                  Order speed, SLA compliance, kitchen throughput and table turn
-                  rate
-                </p>
-              </div>
-            </div>
-            <p className="text-[11px] text-gray-400">
-              {from} → {to}
-            </p>
-          </div>
-        </div>
+    <PageContainer>
+      <PageHeader
+        icon={<FireIcon className="h-5 w-5 text-white" />}
+        title="Kitchen Analytics"
+        subtitle="Order speed, SLA compliance, kitchen throughput and table turn rate"
+        actions={<p className="text-[11px] text-gray-400">{from} → {to}</p>}
+      />
 
-        {/* KPIs */}
-        <div className="grid grid-cols-2 gap-3 xl:grid-cols-5">
-          <KpiCard
-            label="Total Orders"
-            value={summary.totalOrders || 0}
-            sub="completed orders"
-            color="blue"
-          />
-          <KpiCard
-            label="Avg Completion Time"
-            value={`${summary.avgTime || 0}m`}
-            sub="from order to serve"
-            color="orange"
-          />
-          <KpiCard
-            label="SLA Compliance"
-            value={`${summary.slaPercent || 0}%`}
-            sub="orders under 30 min"
-            color={summary.slaPercent >= 80 ? "emerald" : "red"}
-          />
-          <KpiCard
-            label="Fastest Order"
-            value={`${summary.fastestOrder || 0}m`}
-            sub="best completion time"
-            color="emerald"
-          />
-          <KpiCard
-            label="Peak Hour"
-            value={summary.peakHourLabel || "—"}
-            sub="highest kitchen load"
-            color="violet"
-          />
-        </div>
+      {/* KPIs */}
+      <div className="grid grid-cols-2 gap-3 xl:grid-cols-5">
+        <MetricCard label="Total Orders" value={summary.totalOrders || 0} sub="completed orders" status={legacyColorToStatus.blue} />
+        <MetricCard label="Avg Completion Time" value={`${summary.avgTime || 0}m`} sub="from order to serve" status={legacyColorToStatus.orange} />
+        <MetricCard
+          label="SLA Compliance"
+          value={`${summary.slaPercent || 0}%`}
+          sub="orders under 30 min"
+          status={legacyColorToStatus[summary.slaPercent >= 80 ? "emerald" : "red"]}
+        />
+        <MetricCard label="Fastest Order" value={`${summary.fastestOrder || 0}m`} sub="best completion time" status={legacyColorToStatus.emerald} />
+        <MetricCard label="Peak Hour" value={summary.peakHourLabel || "—"} sub="highest kitchen load" status={legacyColorToStatus.violet} />
+      </div>
 
-        {/* CHARTS ROW 1 */}
+      {/* CHARTS ROW 1 */}
         <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
           {/* Hourly Throughput */}
           <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
@@ -591,7 +525,7 @@ export default function Kitchen() {
             </table>
           </div>
         </div>
-      </div>
-    </main>
+    </PageContainer>
   );
 }
+

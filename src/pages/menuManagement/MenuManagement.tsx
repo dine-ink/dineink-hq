@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAppSelector } from "../../store";
 import { formatQty } from "../../utils/units";
+import { chartPalette } from "../../design";
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
 import ExcelJS from "exceljs";
@@ -4799,17 +4800,10 @@ export default function MenuManagement() {
                                       paddingAngle={3}
                                     >
                                       {filteredData.map((_, index) => {
-                                        const COLORS = [
-                                          "#ef4444",
-                                          "#3b82f6",
-                                          "#10b981",
-                                          "#f97316",
-                                          "#ec4899",
-                                        ];
                                         return (
                                           <Cell
                                             key={`cell-${index}`}
-                                            fill={COLORS[index % COLORS.length]}
+                                            fill={chartPalette[index % chartPalette.length]}
                                           />
                                         );
                                       })}

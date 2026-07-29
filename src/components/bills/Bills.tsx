@@ -2,12 +2,12 @@ import { useState, useEffect } from "react";
 import { useAppSelector } from "../../store";
 import {
   ReceiptPercentIcon,
-  MagnifyingGlassIcon,
   ChartBarIcon,
   CalendarDaysIcon,
   XMarkIcon,
 } from "@heroicons/react/24/outline";
 import { IndianRupeeIcon, ShoppingBagIcon } from "lucide-react";
+import { SearchBar, Pagination } from "../../design";
 
 export default function Bills() {
   const API_URL = import.meta.env.VITE_API_URL;
@@ -284,18 +284,14 @@ export default function Bills() {
                   <option value="UNPAID">Unpaid</option>
                   <option value="CANCELLED">Cancelled</option>
                 </select>
-                <div className="relative">
-                  <MagnifyingGlassIcon className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-gray-400" />
-                  <input
-                    placeholder="Search by customer, amount, type..."
-                    value={search}
-                    onChange={(e) => {
-                      setSearch(e.target.value);
-                      setPage(1);
-                    }}
-                    className="h-9 w-full rounded-xl border border-gray-200 bg-white pl-8 pr-3 text-[12px] outline-none transition focus:border-red-400 focus:ring-2 focus:ring-red-100 lg:w-64"
-                  />
-                </div>
+                <SearchBar
+                  placeholder="Search by customer, amount, type..."
+                  value={search}
+                  onChange={(e) => {
+                    setSearch(e.target.value);
+                    setPage(1);
+                  }}
+                />
               </div>
             </div>
           </div>
@@ -442,39 +438,17 @@ export default function Bills() {
             </table>
           </div>
 
-          {/* Footer */}
-          <div className="flex items-center justify-between border-t border-gray-100 px-5 py-3">
-            <p className="text-[11px] text-gray-500">
-              Showing{" "}
-              <span className="font-semibold text-gray-700">
-                {paginated.length}
-              </span>{" "}
-              of{" "}
-              <span className="font-semibold text-gray-700">
-                {filtered.length}
-              </span>{" "}
-              bills
-            </p>
-            <div className="flex items-center gap-1.5">
-              <button
-                disabled={page === 1}
-                onClick={() => setPage((p) => p - 1)}
-                className="rounded-xl border border-gray-200 bg-white px-3 py-1.5 text-[11px] font-semibold text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
-              >
-                Previous
-              </button>
-              <div className="rounded-xl border border-gray-200 bg-gray-100 px-3 py-1.5 text-[11px] font-bold text-gray-700">
-                {page} / {totalPages}
-              </div>
-              <button
-                disabled={page === totalPages}
-                onClick={() => setPage((p) => p + 1)}
-                className="rounded-xl border border-gray-200 bg-white px-3 py-1.5 text-[11px] font-semibold text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
-              >
-                Next
-              </button>
-            </div>
-          </div>
+          <Pagination
+            page={page}
+            totalPages={totalPages}
+            onPageChange={setPage}
+            summary={
+              <>
+                Showing <span className="font-semibold text-gray-700">{paginated.length}</span> of{" "}
+                <span className="font-semibold text-gray-700">{filtered.length}</span> bills
+              </>
+            }
+          />
         </div>
       </div>
 

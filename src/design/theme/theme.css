@@ -1,0 +1,120 @@
+/*
+ * Tailwind v4 theme wiring for the design system. This is the CSS-side
+ * mirror of src/design/tokens/*.ts — Tailwind's `@theme` directive turns
+ * each variable below into real utility classes (e.g. `--color-primary-600`
+ * below generates `bg-primary-600`, `text-primary-600`, `border-primary-600`,
+ * ring-primary-600`, etc. automatically).
+ *
+ * These are ADDITIVE namespaces — nothing here replaces Tailwind's built-in
+ * palette/scales, so every existing `bg-red-500`, `rounded-xl`, `shadow-sm`
+ * class already in the app keeps working exactly as before. New code should
+ * prefer the semantic names below (`bg-primary-600`, `rounded-card`,
+ * `shadow-card`) over the raw Tailwind defaults.
+ *
+ * IMPORTANT: if you change a value in src/design/tokens/colors.ts (etc.),
+ * update the matching variable here too — this file has no build-time link
+ * to the TS tokens, so the two must be kept in sync by hand. Consolidating
+ * them into a single generated source is tracked as follow-up work (see
+ * FINAL_UI_UX_POLISH_REPORT.md).
+ */
+
+@theme {
+  /* ---- Colors — mirrors src/design/tokens/colors.ts ---- */
+  --color-primary-50: #fef2f2;
+  --color-primary-100: #fde3e3;
+  --color-primary-200: #fbc7c7;
+  --color-primary-300: #f59999;
+  --color-primary-400: #ea6060;
+  --color-primary-500: #d92b2b;
+  --color-primary-600: #b10000;
+  --color-primary-700: #950000;
+  --color-primary-800: #8f0000;
+  --color-primary-900: #7a0000;
+
+  --color-secondary-50: #f5f3ff;
+  --color-secondary-100: #ede9fe;
+  --color-secondary-200: #ddd6fe;
+  --color-secondary-300: #c4b5fd;
+  --color-secondary-400: #a78bfa;
+  --color-secondary-500: #8b5cf6;
+  --color-secondary-600: #7c3aed;
+  --color-secondary-700: #6d28d9;
+  --color-secondary-800: #5b21b6;
+  --color-secondary-900: #4c1d95;
+
+  --color-success-50: #ecfdf5;
+  --color-success-100: #d1fae5;
+  --color-success-200: #a7f3d0;
+  --color-success-300: #6ee7b7;
+  --color-success-400: #34d399;
+  --color-success-500: #10b981;
+  --color-success-600: #059669;
+  --color-success-700: #047857;
+  --color-success-800: #065f46;
+  --color-success-900: #064e3b;
+
+  --color-warning-50: #fffbeb;
+  --color-warning-100: #fef3c7;
+  --color-warning-200: #fde68a;
+  --color-warning-300: #fcd34d;
+  --color-warning-400: #fbbf24;
+  --color-warning-500: #f59e0b;
+  --color-warning-600: #d97706;
+  --color-warning-700: #b45309;
+  --color-warning-800: #92400e;
+  --color-warning-900: #78350f;
+
+  --color-danger-50: #fef2f2;
+  --color-danger-100: #fee2e2;
+  --color-danger-200: #fecaca;
+  --color-danger-300: #fca5a5;
+  --color-danger-400: #f87171;
+  --color-danger-500: #ef4444;
+  --color-danger-600: #dc2626;
+  --color-danger-700: #b91c1c;
+  --color-danger-800: #991b1b;
+  --color-danger-900: #7f1d1d;
+
+  --color-info-50: #eff6ff;
+  --color-info-100: #dbeafe;
+  --color-info-200: #bfdbfe;
+  --color-info-300: #93c5fd;
+  --color-info-400: #60a5fa;
+  --color-info-500: #3b82f6;
+  --color-info-600: #2563eb;
+  --color-info-700: #1d4ed8;
+  --color-info-800: #1e40af;
+  --color-info-900: #1e3a8a;
+
+  --color-surface-page: #f5f6fa;
+  --color-surface-card: #ffffff;
+  --color-surface-border: #f1f5f9;
+  --color-surface-border-strong: #e2e8f0;
+
+  /* ---- Radius — mirrors src/design/tokens/radius.ts ---- */
+  --radius-button: 12px;
+  --radius-input: 16px;
+  --radius-card: 16px;
+  --radius-dialog: 20px;
+  --radius-table: 16px;
+  --radius-tag: 9999px;
+
+  /* ---- Shadows — mirrors src/design/tokens/shadows.ts ---- */
+  --shadow-card: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-card-hover: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  --shadow-dropdown: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+  --shadow-dialog: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+  --shadow-drawer: 0 25px 50px -12px rgb(0 0 0 / 0.25);
+
+  /* ---- Typography — mirrors src/design/tokens/typography.ts ---- */
+  --font-size-overline: 10px;
+  --font-size-card-label: 10px;
+  --font-size-metric: 22px;
+  --tracking-label: 0.12em;
+  --tracking-label-wide: 0.14em;
+  --tracking-label-widest: 0.18em;
+
+  /* ---- Transitions — mirrors src/design/tokens/transitions.ts ---- */
+  --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+  --default-transition-duration: 200ms;
+}

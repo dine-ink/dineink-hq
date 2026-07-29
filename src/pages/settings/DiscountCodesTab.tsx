@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useAppSelector } from "../../store";
 import { PlusIcon, TrashIcon, TagIcon } from "@heroicons/react/24/outline";
+import { ConfirmationDialog, useConfirmDialog } from "../../design";
 
 type DiscountCode = {
   id: number;
@@ -29,6 +30,7 @@ export default function DiscountCodesTab() {
   const [form, setForm] = useState(blankForm);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const { dialogProps, confirm } = useConfirmDialog();
 
   const authHeaders = { Authorization: `Bearer ${token}`, "Content-Type": "application/json" };
 
@@ -99,18 +101,24 @@ export default function DiscountCodesTab() {
     }
   };
 
-  const handleDelete = async (id: number) => {
-    if (!window.confirm("Delete this discount code?")) return;
-    try {
-      const res = await fetch(`${API_URL}/api/discounts/${id}`, {
-        method: "DELETE",
-        headers: authHeaders,
-      });
-      const json = await res.json();
-      if (json.success) setCodes((prev) => prev.filter((c) => c.id !== id));
-    } catch {
-      /* silent */
-    }
+  const handleDelete = (id: number) => {
+    confirm({
+      title: "Delete confirmation",
+      message: "Are you sure you want to delete this discount code? This action cannot be undone.",
+      tone: "danger",
+      onConfirm: async () => {
+        try {
+          const res = await fetch(`${API_URL}/api/discounts/${id}`, {
+            method: "DELETE",
+            headers: authHeaders,
+          });
+          const json = await res.json();
+          if (json.success) setCodes((prev) => prev.filter((c) => c.id !== id));
+        } catch {
+          /* silent */
+        }
+      },
+    });
   };
 
   return (
@@ -246,6 +254,8 @@ export default function DiscountCodesTab() {
           </table>
         )}
       </div>
+
+      <ConfirmationDialog {...dialogProps}>{dialogProps.children}</ConfirmationDialog>
     </div>
   );
 }
