@@ -42,6 +42,8 @@ export default function Dashboard() {
   const [restockHistory, setRestockHistory] = useState<any[]>([]);
   const [inventoryStockValue, setInventoryStockValue] = useState(0);
   const [reorderAlerts, setReorderAlerts] = useState<any>(null);
+  const [financeSummary, setFinanceSummary] = useState<any>(null);
+  const [ratioReport, setRatioReport] = useState<any>(null);
 
   const isSingleDay = from === to;
 
@@ -86,14 +88,13 @@ export default function Dashboard() {
     ? hourlyChartData.some((h) => h.orders > 0)
     : chartData.some((d) => d.orders > 0);
 
-  const onlineRevenue =
-    analytics?.recentOrders
-      ?.filter((o: any) => o.orderType === "ONLINE")
-      .reduce((s: number, o: any) => s + o.total, 0) || 0;
-  const dineInRevenue =
-    analytics?.recentOrders
-      ?.filter((o: any) => o.orderType === "DINE_IN")
-      .reduce((s: number, o: any) => s + o.total, 0) || 0;
+  // Sourced from the backend's already-computed, full-period revenueByOrderType
+  // map (not analytics.recentOrders, which the backend caps to the 10 most
+  // recent bills — a chart derived from that truncated list would silently
+  // stop matching the Revenue KPI card above it once a period has more than
+  // 10 orders).
+  const onlineRevenue = analytics?.revenueByOrderType?.ONLINE || 0;
+  const dineInRevenue = analytics?.revenueByOrderType?.DINE_IN || 0;
   const totalRevenue = onlineRevenue + dineInRevenue;
   const onlinePercent = totalRevenue
     ? Math.round((onlineRevenue / totalRevenue) * 100)
@@ -251,6 +252,43 @@ export default function Dashboard() {
       }
     };
 
+    // The canonical EBITDA for whatever date range is currently selected —
+    // same finance.formulas.ts engine used by Insights, Branch Comparison,
+    // and the PDF/Excel exports. `period=custom` + explicit from/to always
+    // wins over the period key (see resolveDateRange), so this tracks
+    // whatever range the dashboard's date picker has selected.
+    const fetchFinanceSummary = async () => {
+      try {
+        if (!selectedBranch?.id || !user?.restaurantId || !from || !to) return;
+        const res = await fetch(
+          `${API_URL}/api/finance/${user.restaurantId}/${selectedBranch.id}/summary?period=custom&from=${from}&to=${to}`,
+          { signal, headers: { Authorization: `Bearer ${token}` } },
+        );
+        const data = await res.json();
+        if (data.success) setFinanceSummary(data.data);
+      } catch (e) {
+        if (e instanceof DOMException) return;
+      }
+    };
+
+    // The Ratio/Period Engine — Revenue and EBITDA cards use this for
+    // previous-month comparison, target, achievement %, and trend. Always
+    // month-scoped (not tied to the dashboard's own date-range picker) since
+    // "vs last month" is a fixed, calendar-anchored comparison.
+    const fetchRatioReport = async () => {
+      try {
+        if (!selectedBranch?.id || !user?.restaurantId) return;
+        const res = await fetch(
+          `${API_URL}/api/finance/${user.restaurantId}/${selectedBranch.id}/ratios`,
+          { signal, headers: { Authorization: `Bearer ${token}` } },
+        );
+        const data = await res.json();
+        if (data.success) setRatioReport(data.data);
+      } catch (e) {
+        if (e instanceof DOMException) return;
+      }
+    };
+
     fetchDashboard();
     fetchAnalytics();
     fetchInsights();
@@ -258,67 +296,18 @@ export default function Dashboard() {
     fetchRestockHistory();
     fetchInventoryStock();
     fetchReorderAlerts();
+    fetchFinanceSummary();
+    fetchRatioReport();
     return () => ctrl.abort();
   }, [preset, from, to, selectedBranch?.id, token, user?.restaurantId]);
 
-  const dashboardEbitda = (() => {
-    if (!insightsData) return null;
-    const n = (v: any) => Number(v) || 0;
-    const fixed =
-      n(insightsData.monthlyRent) +
-      n(insightsData.loanEmi) +
-      n(insightsData.internet) +
-      n(insightsData.phoneBills) +
-      n(insightsData.accounting) +
-      n(insightsData.insurance) +
-      n(insightsData.licenses);
-    const variable =
-      n(insightsData.deliveryCharges) +
-      n(insightsData.packaging) +
-      n(insightsData.paymentGateway) +
-      n(insightsData.aggregatorCommission) +
-      n(insightsData.electricity) +
-      n(insightsData.gas) +
-      n(insightsData.maintenance) +
-      n(insightsData.fuel);
-    const labour = staffData.reduce(
-      (sum: number, s: any) => sum + (s.salary || 0),
-      0,
-    );
-    const finance =
-      n(insightsData.monthlyLoanEmi) +
-      n(insightsData.monthlyInterestPayments) +
-      n(insightsData.caFees) +
-      n(insightsData.insuranceCost) +
-      n(insightsData.otherTaxes);
-    const actualFoodCost = restockHistory.reduce(
-      (sum: number, r: any) => sum + Number(r.MonthlyRMExpense || 0),
-      0,
-    );
-    const foodCost =
-      n(insightsData.manualFoodCost) > 0
-        ? n(insightsData.manualFoodCost)
-        : inventoryStockValue > 0
-          ? inventoryStockValue
-          : actualFoodCost;
-    const totalMonthlyExp = fixed + variable + labour + finance + foodCost;
-
-    // insightsData's cost fields are monthly figures, but analytics.totalRevenue
-    // is scoped to whatever date range is selected (Today/Week/custom range) —
-    // prorate costs to that range so picking "Today" doesn't compare one day's
-    // revenue against a full month of rent, EMIs and salaries.
-    const daysInSelectedRange =
-      from && to
-        ? Math.max(
-            1,
-            Math.round(
-              (new Date(to).getTime() - new Date(from).getTime()) / 86_400_000,
-            ) + 1,
-          )
-        : 30;
-    const totalExp = totalMonthlyExp * (daysInSelectedRange / 30);
-    return n(analytics?.totalRevenue) - totalExp;
-  })();
+  const dashboardEbitda: number | null = financeSummary?.current?.ebitda ?? null;
+  // Same Finance Engine call as dashboardEbitda above — StatsStrip's Revenue
+  // tile used to read analytics.totalRevenue (a separate, independent
+  // Prisma aggregate in analytics.service.ts) even though the adjacent
+  // EBITDA tile was already Finance-Engine-sourced. Routed through here so
+  // both tiles trace to the same computation.
+  const dashboardRevenue: number | null = financeSummary?.current?.revenue ?? null;
 
   if (hasRestaurant === null) {
     return (
@@ -490,12 +479,11 @@ export default function Dashboard() {
 
         <StatsStrip
           analytics={analytics}
+          revenue={dashboardRevenue}
           ebitda={dashboardEbitda}
-          ebitdaPct={
-            dashboardEbitda != null && (analytics?.totalRevenue || 0) > 0
-              ? (dashboardEbitda / analytics.totalRevenue) * 100
-              : null
-          }
+          ebitdaPct={financeSummary?.current?.ebitdaPercentage ?? null}
+          ratios={ratioReport?.kpis}
+          onDrillDown={() => navigate("/dashboard/financial-statements")}
         />
 
         <div className="grid grid-cols-1 gap-3 xl:grid-cols-12">
@@ -727,8 +715,9 @@ export default function Dashboard() {
             </div>
             <div className="space-y-2">
               {analytics?.recentOrders
-                ?.slice(0, 4)
-                .map((order: any, i: number) => (
+                ?.filter((o: any) => o.orderType === "ONLINE")
+                .slice(0, 4)
+                .map((order: any) => (
                   <div
                     key={order.id}
                     className="rounded-xl border border-gray-100 bg-gray-50/60 p-2.5"
@@ -742,10 +731,8 @@ export default function Dashboard() {
                           {order.customer?.name || "Guest"}
                         </p>
                       </div>
-                      <span
-                        className={`rounded-full px-2 py-0.5 text-[9px] font-semibold ${i % 2 === 0 ? "bg-orange-100 text-orange-700" : "bg-red-100 text-red-700"}`}
-                      >
-                        {i % 2 === 0 ? "Swiggy" : "Zomato"}
+                      <span className="rounded-full bg-violet-50 px-2 py-0.5 text-[9px] font-semibold text-violet-600">
+                        Online
                       </span>
                     </div>
                     <div className="mt-2 flex items-center justify-between">

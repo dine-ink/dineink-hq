@@ -506,8 +506,20 @@ export default function MenuManagement() {
         return;
       }
 
+      // Bounded to the current month — matches Insights.tsx's own Inventory
+      // Turnover scope (also hardcoded to the current month, not the global
+      // date-range picker). Previously this fetch had no from/to at all, so
+      // it pulled every non-cancelled bill ever placed at the branch, making
+      // this page's Inventory Turnover figure grow unboundedly with
+      // restaurant age instead of being a comparable, period-scoped number
+      // like Insights.tsx's.
+      const now = new Date();
+      const monthStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
+      const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+      const monthEnd = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
+
       const res = await fetch(
-        `${API_URL}/api/bills/${user.restaurantId}/restaurantwise?branchId=${selectedBranch.id}`,
+        `${API_URL}/api/bills/${user.restaurantId}/restaurantwise?branchId=${selectedBranch.id}&from=${monthStart}&to=${monthEnd}`,
         {
           headers: {
             Authorization: `Bearer ${token}`,

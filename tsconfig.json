@@ -19,9 +19,7 @@
       "@/*": ["./src/*"],
       "utils/*": ["./src/utils/*"],
       "components/*": ["./src/components/*"],
-      "hooks/*": ["./src/hooks/*"],
-      "menu-items": ["./src/menu-items"],
-      "menu-items/*": ["./src/menu-items/*"]
+      "hooks/*": ["./src/hooks/*"]
     }
   },
   "include": ["src"]

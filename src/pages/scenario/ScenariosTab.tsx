@@ -1,0 +1,460 @@
+import { useEffect, useState } from "react";
+import { Plus, Copy, Save, ArrowLeft, Trash2, RotateCcw, Archive, CheckCircle2 } from "lucide-react";
+import { useAppSelector } from "../../store";
+import { OVERRIDE_FIELD_GROUPS, OVERRIDE_FIELDS, SCENARIO_TYPE_STYLES } from "./scenarioCategories";
+
+export default function ScenariosTab() {
+  const { branches } = useAppSelector((s) => s.branch);
+  const { user, token } = useAppSelector((s) => s.auth);
+  const API_URL = import.meta.env.VITE_API_URL;
+
+  const [scenarios, setScenarios] = useState<any[]>([]);
+  const [scopeBranchId, setScopeBranchId] = useState<string>("restaurant");
+  const [loading, setLoading] = useState(false);
+  const [view, setView] = useState<"list" | "create" | "edit">("list");
+  const [selectedScenario, setSelectedScenario] = useState<any>(null);
+  const [overrideValues, setOverrideValues] = useState<Record<string, string>>({});
+  const [saving, setSaving] = useState(false);
+
+  // Create-form state
+  const [formName, setFormName] = useState("");
+  const [formDescription, setFormDescription] = useState("");
+  const [formBranchId, setFormBranchId] = useState<string>("restaurant");
+
+  const fetchScenarios = async () => {
+    if (!user?.restaurantId) return;
+    setLoading(true);
+    try {
+      const branchParam = scopeBranchId === "restaurant" ? "null" : scopeBranchId;
+      const res = await fetch(`${API_URL}/api/scenarios/${user.restaurantId}?branchId=${branchParam}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const json = await res.json();
+      if (json.success) setScenarios(json.data);
+    } catch {
+      // fetch error — silently ignored
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchScenarios();
+  }, [user?.restaurantId, scopeBranchId]);
+
+  const openCreate = () => {
+    setFormName("");
+    setFormDescription("");
+    setFormBranchId(scopeBranchId);
+    setOverrideValues({});
+    setView("create");
+  };
+
+  const buildOverridesPayload = (): Record<string, number | null> => {
+    const overrides: Record<string, number | null> = {};
+    OVERRIDE_FIELDS.forEach((f) => {
+      const raw = overrideValues[f.key];
+      overrides[f.key] = raw === undefined || raw === "" ? null : Number(raw);
+    });
+    return overrides;
+  };
+
+  const handleCreate = async () => {
+    if (!formName.trim()) {
+      alert("Please enter a scenario name");
+      return;
+    }
+    setSaving(true);
+    try {
+      const res = await fetch(`${API_URL}/api/scenarios/${user.restaurantId}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          name: formName.trim(),
+          description: formDescription.trim() || null,
+          branchId: formBranchId === "restaurant" ? null : Number(formBranchId),
+          type: "CUSTOM",
+          overrides: buildOverridesPayload(),
+        }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        await fetchScenarios();
+        openDetail(json.data);
+      } else {
+        alert(json.message || "Failed to create scenario");
+      }
+    } catch {
+      alert("Failed to create scenario");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const openDetail = (scenario: any) => {
+    setSelectedScenario(scenario);
+    const values: Record<string, string> = {};
+    OVERRIDE_FIELDS.forEach((f) => {
+      values[f.key] = scenario[f.key] === null || scenario[f.key] === undefined ? "" : String(scenario[f.key]);
+    });
+    setOverrideValues(values);
+    setView("edit");
+  };
+
+  const handleSave = async () => {
+    if (!selectedScenario) return;
+    setSaving(true);
+    try {
+      const res = await fetch(`${API_URL}/api/scenarios/${user.restaurantId}/${selectedScenario.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ overrides: buildOverridesPayload() }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        setSelectedScenario(json.data);
+        await fetchScenarios();
+      } else {
+        alert(json.message || "Failed to save");
+      }
+    } catch {
+      alert("Failed to save scenario");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleResetField = (fieldKey: string) => {
+    // Local-only until Save — clearing to "" and saving sends an explicit
+    // null for this field, which the backend treats as "inherit the default".
+    setOverrideValues((prev) => ({ ...prev, [fieldKey]: "" }));
+  };
+
+  const handleResetAll = async () => {
+    if (!selectedScenario) return;
+    if (!confirm("Reset every override on this scenario back to its inherited default?")) return;
+    try {
+      const res = await fetch(`${API_URL}/api/scenarios/${user.restaurantId}/${selectedScenario.id}/reset-fields`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ fields: OVERRIDE_FIELDS.map((f) => f.key) }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        openDetail(json.data);
+        await fetchScenarios();
+      }
+    } catch {
+      // reset error — silently ignored
+    }
+  };
+
+  const handleToggleActive = async () => {
+    if (!selectedScenario) return;
+    try {
+      const res = await fetch(`${API_URL}/api/scenarios/${user.restaurantId}/${selectedScenario.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ isActive: !selectedScenario.isActive }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        setSelectedScenario(json.data);
+        await fetchScenarios();
+      }
+    } catch {
+      // toggle error — silently ignored
+    }
+  };
+
+  const handleClone = async (scenarioId: number) => {
+    try {
+      const res = await fetch(`${API_URL}/api/scenarios/${user.restaurantId}/${scenarioId}/clone`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({}),
+      });
+      const json = await res.json();
+      if (json.success) {
+        await fetchScenarios();
+        openDetail(json.data);
+      }
+    } catch {
+      // clone error — silently ignored
+    }
+  };
+
+  const handleDelete = async (scenario: any) => {
+    if (scenario.type !== "CUSTOM") {
+      alert("Built-in scenarios can't be deleted — archive it instead.");
+      return;
+    }
+    if (!confirm(`Delete scenario "${scenario.name}"? This can't be undone.`)) return;
+    try {
+      const res = await fetch(`${API_URL}/api/scenarios/${user.restaurantId}/${scenario.id}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const json = await res.json();
+      if (json.success) await fetchScenarios();
+      else alert(json.message || "Failed to delete scenario");
+    } catch {
+      alert("Failed to delete scenario");
+    }
+  };
+
+  const typeBadge = (type: string) => {
+    const style = SCENARIO_TYPE_STYLES[type] || SCENARIO_TYPE_STYLES.CUSTOM;
+    return <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${style.bg} ${style.text}`}>{type}</span>;
+  };
+
+  // ── LIST VIEW ──────────────────────────────────────────────────────────
+  if (view === "list") {
+    return (
+      <div className="space-y-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <h3 className="text-[16px] font-bold text-gray-900">Scenarios</h3>
+          <div className="flex flex-wrap items-center gap-2">
+            <select
+              value={scopeBranchId}
+              onChange={(e) => setScopeBranchId(e.target.value)}
+              className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-[12px] font-semibold text-gray-700 outline-none"
+            >
+              <option value="restaurant">Restaurant-wide (all branches)</option>
+              {(branches || []).map((b: any) => (
+                <option key={b.id} value={b.id}>{b.name}</option>
+              ))}
+            </select>
+            <button
+              type="button"
+              onClick={openCreate}
+              className="flex items-center gap-1.5 rounded-xl bg-[#b10000] px-4 py-2 text-[12px] font-semibold text-white shadow-sm transition hover:bg-[#950000]"
+            >
+              <Plus className="h-3.5 w-3.5" /> Create Scenario
+            </button>
+          </div>
+        </div>
+
+        {loading ? (
+          <div className="flex h-40 items-center justify-center text-[12px] text-gray-400">Loading…</div>
+        ) : (
+          <div className="overflow-hidden rounded-xl border border-gray-200">
+            <table className="w-full text-[12px]">
+              <thead className="bg-gray-50 text-[10px] font-bold uppercase tracking-wide text-gray-500">
+                <tr>
+                  <th className="px-4 py-2 text-left">Name</th>
+                  <th className="px-4 py-2 text-left">Type</th>
+                  <th className="px-4 py-2 text-left">Status</th>
+                  <th className="px-4 py-2 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {scenarios.map((s) => (
+                  <tr key={s.id} className="border-t border-gray-100 hover:bg-gray-50/60">
+                    <td className="px-4 py-2.5">
+                      <button type="button" onClick={() => openDetail(s)} className="font-semibold text-gray-900 hover:text-[#b10000]">
+                        {s.name}
+                      </button>
+                      {s.description && <p className="text-[10px] text-gray-400">{s.description}</p>}
+                    </td>
+                    <td className="px-4 py-2.5">{typeBadge(s.type)}</td>
+                    <td className="px-4 py-2.5">
+                      <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${s.isActive ? "bg-emerald-100 text-emerald-700" : "bg-gray-100 text-gray-500"}`}>
+                        {s.isActive ? "Active" : "Archived"}
+                      </span>
+                    </td>
+                    <td className="px-4 py-2.5 text-right">
+                      <div className="flex justify-end gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => handleClone(s.id)}
+                          className="inline-flex items-center gap-1 rounded-lg border border-gray-200 px-2 py-1 text-[10px] font-semibold text-gray-600 hover:bg-gray-50"
+                        >
+                          <Copy className="h-3 w-3" /> Clone
+                        </button>
+                        {s.type === "CUSTOM" && (
+                          <button
+                            type="button"
+                            onClick={() => handleDelete(s)}
+                            className="inline-flex items-center gap-1 rounded-lg border border-red-200 px-2 py-1 text-[10px] font-semibold text-red-600 hover:bg-red-50"
+                          >
+                            <Trash2 className="h-3 w-3" /> Delete
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // ── CREATE VIEW ────────────────────────────────────────────────────────
+  if (view === "create") {
+    return (
+      <div className="space-y-4">
+        <button type="button" onClick={() => setView("list")} className="flex items-center gap-1 text-[12px] font-semibold text-gray-500 hover:text-gray-700">
+          <ArrowLeft className="h-3.5 w-3.5" /> Back to Scenarios
+        </button>
+
+        <div className="rounded-xl border border-gray-200 bg-white p-4">
+          <h3 className="mb-4 text-[15px] font-bold text-gray-900">Create Scenario</h3>
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+            <div>
+              <label className="mb-1 block text-[11px] font-medium text-gray-600">Scenario Name</label>
+              <input
+                type="text"
+                value={formName}
+                onChange={(e) => setFormName(e.target.value)}
+                placeholder="e.g. Aggressive Delivery Push"
+                className="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-sm outline-none focus:border-red-300 focus:bg-white"
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-[11px] font-medium text-gray-600">Description</label>
+              <input
+                type="text"
+                value={formDescription}
+                onChange={(e) => setFormDescription(e.target.value)}
+                placeholder="Optional"
+                className="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-sm outline-none focus:border-red-300 focus:bg-white"
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-[11px] font-medium text-gray-600">Scope</label>
+              <select
+                value={formBranchId}
+                onChange={(e) => setFormBranchId(e.target.value)}
+                className="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-sm outline-none focus:border-red-300 focus:bg-white"
+              >
+                <option value="restaurant">Restaurant-wide (all branches)</option>
+                {(branches || []).map((b: any) => (
+                  <option key={b.id} value={b.id}>{b.name}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <p className="mb-3 mt-5 text-[11px] text-gray-500">
+            Every field is optional — leave blank to inherit from Financial Assumptions / real actuals. Set only what this scenario should change.
+          </p>
+          {OVERRIDE_FIELD_GROUPS.map((group) => (
+            <div key={group} className="mb-4">
+              <p className="mb-2 text-[11px] font-bold uppercase tracking-wide text-gray-500">{group}</p>
+              <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
+                {OVERRIDE_FIELDS.filter((f) => f.group === group).map((f) => (
+                  <div key={f.key}>
+                    <label className="mb-1 block text-[11px] font-medium text-gray-600">{f.label}</label>
+                    <div className="relative">
+                      {f.unit === "currency" && <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-400">₹</span>}
+                      <input
+                        type="number"
+                        value={overrideValues[f.key] ?? ""}
+                        onChange={(e) => setOverrideValues((prev) => ({ ...prev, [f.key]: e.target.value }))}
+                        placeholder="Inherit"
+                        className={`w-full rounded-xl border border-gray-200 bg-gray-50 py-2 text-sm outline-none focus:border-red-300 focus:bg-white ${f.unit === "currency" ? "pl-7 pr-3" : "px-3"}`}
+                      />
+                      {f.unit === "percentage" && <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[11px] text-gray-400">%</span>}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+
+          <div className="mt-5 flex justify-end">
+            <button
+              type="button"
+              onClick={handleCreate}
+              disabled={saving}
+              className="flex items-center gap-1.5 rounded-xl bg-[#b10000] px-4 py-2 text-[12px] font-semibold text-white shadow-sm transition hover:bg-[#950000] disabled:opacity-50"
+            >
+              {saving ? "Creating…" : "Create Scenario"}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ── EDIT VIEW ─────────────────────────────────────────────────────────
+  return (
+    <div className="space-y-4">
+      <button type="button" onClick={() => setView("list")} className="flex items-center gap-1 text-[12px] font-semibold text-gray-500 hover:text-gray-700">
+        <ArrowLeft className="h-3.5 w-3.5" /> Back to Scenarios
+      </button>
+
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-2">
+          <h3 className="text-[16px] font-bold text-gray-900">{selectedScenario?.name}</h3>
+          {typeBadge(selectedScenario?.type)}
+          <span className="text-[11px] text-gray-400">
+            {branches?.find((b: any) => b.id === selectedScenario?.branchId)?.name || "Restaurant-wide"}
+          </span>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={handleResetAll}
+            className="flex items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3 py-2 text-[12px] font-semibold text-gray-700 shadow-sm transition hover:bg-gray-50"
+          >
+            <RotateCcw className="h-3.5 w-3.5" /> Reset All
+          </button>
+          <button
+            type="button"
+            onClick={handleToggleActive}
+            className={`flex items-center gap-1.5 rounded-xl border px-3 py-2 text-[12px] font-semibold shadow-sm transition ${
+              selectedScenario?.isActive ? "border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100" : "border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
+            }`}
+          >
+            {selectedScenario?.isActive ? <Archive className="h-3.5 w-3.5" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
+            {selectedScenario?.isActive ? "Archive" : "Reactivate"}
+          </button>
+          <button
+            type="button"
+            onClick={handleSave}
+            disabled={saving}
+            className="flex items-center gap-1.5 rounded-xl bg-[#b10000] px-3 py-2 text-[12px] font-semibold text-white shadow-sm transition hover:bg-[#950000] disabled:opacity-50"
+          >
+            <Save className="h-3.5 w-3.5" /> {saving ? "Saving…" : "Save Changes"}
+          </button>
+        </div>
+      </div>
+
+      {OVERRIDE_FIELD_GROUPS.map((group) => (
+        <div key={group} className="overflow-hidden rounded-xl border border-gray-200">
+          <div className="bg-gray-50 px-4 py-2 text-[12px] font-bold text-gray-900">{group}</div>
+          <div className="grid grid-cols-1 gap-3 p-3 md:grid-cols-2 xl:grid-cols-3">
+            {OVERRIDE_FIELDS.filter((f) => f.group === group).map((f) => (
+              <div key={f.key}>
+                <div className="mb-1 flex items-center justify-between">
+                  <label className="block text-[11px] font-medium text-gray-600">{f.label}</label>
+                  {overrideValues[f.key] !== "" && overrideValues[f.key] !== undefined && (
+                    <button type="button" onClick={() => handleResetField(f.key)} className="text-[10px] font-semibold text-gray-400 hover:text-[#b10000]">
+                      Reset
+                    </button>
+                  )}
+                </div>
+                <div className="relative">
+                  {f.unit === "currency" && <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-400">₹</span>}
+                  <input
+                    type="number"
+                    value={overrideValues[f.key] ?? ""}
+                    onChange={(e) => setOverrideValues((prev) => ({ ...prev, [f.key]: e.target.value }))}
+                    placeholder="Inherit"
+                    className={`w-full rounded-xl border border-gray-200 bg-gray-50 py-2 text-sm outline-none focus:border-red-300 focus:bg-white ${f.unit === "currency" ? "pl-7 pr-3" : "px-3"}`}
+                  />
+                  {f.unit === "percentage" && <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[11px] text-gray-400">%</span>}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}

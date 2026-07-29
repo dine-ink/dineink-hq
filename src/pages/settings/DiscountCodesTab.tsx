@@ -13,7 +13,12 @@ type DiscountCode = {
   expiresAt: string | null;
 };
 
-const blankForm = { code: "", type: "PERCENTAGE" as const, value: "", maxUses: "" };
+const blankForm: { code: string; type: "PERCENTAGE" | "FIXED"; value: string; maxUses: string } = {
+  code: "",
+  type: "PERCENTAGE",
+  value: "",
+  maxUses: "",
+};
 
 export default function DiscountCodesTab() {
   const API_URL = import.meta.env.VITE_API_URL;

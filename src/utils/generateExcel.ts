@@ -175,14 +175,18 @@ export async function generateExcelReport(
   const { analytics, bills, expenses, customers, menuItems, ingredients,
     kitchenData, attendance, allStaff, cashSessions,
     branchComparison, cityComparison, heatmap, forecast, rfm,
-    insightsData, inventoryAdjustments, staffProductivity } = data;
+    insightsData, inventoryAdjustments, staffProductivity, financeSummary } = data;
 
   // ─── Pre-compute shared metrics ─────────────────────────────────────────
   const totalRev    = bills.reduce((s, b) => s + n(b.total), 0);
   const totalGST    = bills.reduce((s, b) => s + n(b.cgst) + n(b.sgst), 0);
   const totalDisc   = bills.reduce((s, b) => s + n(b.discount), 0);
   const totalExp    = expenses.reduce((s, e) => s + n(e.amount), 0);
-  const netProfit   = totalRev - totalGST - totalExp;
+  // Canonical figures from the shared finance engine (finance.formulas.ts) —
+  // same numbers as Dashboard/Insights/Branch Comparison. Falls back to the
+  // old local estimate only if the finance-summary fetch failed.
+  const fin = financeSummary?.current;
+  const netProfit   = fin ? fin.netProfit : totalRev - totalGST - totalExp;
   const paidBills   = bills.filter(b => b.status === "PAID");
   const gross       = totalRev + totalDisc;
 
@@ -250,23 +254,37 @@ export async function generateExcelReport(
     return { name, qty: d.qty, rev: d.rev, cat: d.cat, cost: cost.toFixed(2), price: sp, margin };
   });
 
-  // Insights
+  // Insights — every cost figure below prefers the Finance Engine (fin) when
+  // available, falling back to the local re-derivation only if the
+  // finance-summary fetch failed. Previously only ebitda/primeCostPct/
+  // foodCostPct/grossMarginPct (below) were finance-engine-sourced while the
+  // Expense Distribution table and Revenue Targets section always used the
+  // local totalCosts/foodExp even on a successful fetch.
   const ins = insightsData || {};
-  const fixedExp  = n(ins.monthlyRent) + n(ins.loanEmi) + n(ins.internet) + n(ins.phoneBills) + n(ins.accounting) + n(ins.insurance) + n(ins.licenses);
-  const varExp    = n(ins.deliveryCharges) + n(ins.packaging) + n(ins.paymentGateway) + n(ins.aggregatorCommission) + n(ins.electricity) + n(ins.gas) + n(ins.maintenance) + n(ins.fuel);
-  const labourExp = allStaff.reduce((s, st) => s + n(st.salary), 0);
-  const finExp    = n(ins.monthlyLoanEmi) + n(ins.monthlyInterestPayments) + n(ins.caFees) + n(ins.insuranceCost) + n(ins.otherTaxes);
-  const insRev    = n(ins.revenue) || totalRev;
-
-  // EBITDA fix — fallback to inventory stock value for food cost
   const inventoryStockValue = (data.ingredients || []).reduce(
     (sum: number, ing: any) => sum + n(ing.quantity) * n(ing.pricePerUnit), 0
   );
-  const foodExp = n(ins.manualFoodCost) > 0
+  const localFoodExp = n(ins.manualFoodCost) > 0
     ? n(ins.manualFoodCost)
     : inventoryStockValue > 0 ? inventoryStockValue : 0;
+  const fixedExp  = fin ? fin.fixedExpenses : (n(ins.monthlyRent) + n(ins.loanEmi) + n(ins.internet) + n(ins.phoneBills) + n(ins.accounting) + n(ins.insurance) + n(ins.licenses));
+  const varExp    = fin ? fin.variableExpenses : (n(ins.deliveryCharges) + n(ins.packaging) + n(ins.paymentGateway) + n(ins.aggregatorCommission) + n(ins.electricity) + n(ins.gas) + n(ins.maintenance) + n(ins.fuel));
+  const labourExp = fin ? fin.labourCost : allStaff.reduce((s, st) => s + n(st.salary), 0);
+  const finExp    = fin ? fin.financeCost : (n(ins.monthlyLoanEmi) + n(ins.monthlyInterestPayments) + n(ins.caFees) + n(ins.insuranceCost) + n(ins.otherTaxes));
+  const insRev    = fin ? fin.revenue : (n(ins.revenue) || totalRev);
+  const foodExp   = fin ? fin.foodCost : localFoodExp;
 
-  const ebitda    = insRev > 0 ? ((insRev - (fixedExp + varExp + labourExp + finExp + foodExp)) / insRev * 100).toFixed(1) : "0";
+  const ebitda    = fin ? fin.ebitdaPercentage.toFixed(1) : (insRev > 0 ? ((insRev - (fixedExp + varExp + labourExp + finExp + foodExp)) / insRev * 100).toFixed(1) : "0");
+  const primeCostPct = fin ? fin.primeCostPercentage.toFixed(1) : (insRev > 0 ? ((foodExp + labourExp) / insRev * 100).toFixed(1) : "0");
+  // Targets — from FinancialAssumptions (via financeSummary.targets) once available.
+  const targets = financeSummary?.targets;
+  const targetEbitda = targets?.targetEbitda ?? n(ins.targetEbitda);
+  const targetFoodCostVal = targets?.targetFoodCost ?? n(ins.targetFoodCost);
+  const targetPrimeCostVal = targets?.targetPrimeCost ?? n(ins.targetPrimeCost);
+  const targetGrossMarginVal = targets?.targetGrossMargin ?? n(ins.targetGrossMargin);
+  const foodCostPct = fin ? fin.foodCostPercentage.toFixed(1) : (insRev > 0 ? ((foodExp / insRev) * 100).toFixed(1) : "0");
+  const grossMarginPct = fin ? fin.grossProfitMarginPercentage.toFixed(1) : (insRev > 0 ? (((insRev - foodExp) / insRev) * 100).toFixed(1) : "0");
+  const ebitdaAmount = fin ? fin.ebitda : insRev - fixedExp - varExp - labourExp - foodExp;
 
   // Expense by type
   const expByType: Record<string, number> = {};
@@ -651,22 +669,22 @@ export async function generateExcelReport(
     const ws = newSheet(wb, "Insights Dashboard", [28, 20, 18, 16, 16]);
     title(ws, "Insights Dashboard", "EBITDA  ·  Profitability  ·  Revenue targets  ·  Expense distribution", 5);
     section(ws, "INSIGHTS KPIs", 5);
-    [["Revenue (Monthly)", inr(insRev), T.brand], ["Net Profit (Est.)", inr(insRev - fixedExp - varExp - labourExp - finExp), T.green],
-     ["EBITDA %", `${ebitda}%`, T.purple], ["Prime Cost %", insRev > 0 ? pct(varExp + labourExp, insRev) : "0%", T.amber]].forEach(([l, v, c]) => kpi(ws, l as string, v as string, c as string));
+    [["Revenue (Monthly)", inr(insRev), T.brand], ["EBITDA", inr(ebitdaAmount), T.green],
+     ["EBITDA %", `${ebitda}%`, T.purple], ["Prime Cost %", `${primeCostPct}%`, T.amber]].forEach(([l, v, c]) => kpi(ws, l as string, v as string, c as string));
     section(ws, "PROFITABILITY HEALTH", 5);
     const h = thead(ws, ["Metric", "Current", "Target", "Gap", "Status"], T.brand, T.white, true);
     freezeAt(ws, h.number);
     [
-      ["EBITDA %", `${ebitda}%`, `${ins.targetEbitda || 0}%`, `${(parseFloat(ebitda) - (ins.targetEbitda || 0)).toFixed(1)}%`, parseFloat(ebitda) >= (ins.targetEbitda || 0) ? "Healthy" : "Critical"],
-      ["Food Cost %", pct(varExp, insRev), `${ins.targetFoodCost || 0}%`, "—", "—"],
-      ["Gross Margin %", insRev > 0 ? pct(insRev - varExp, insRev) : "0%", `${ins.targetGrossMargin || 0}%`, "—", "—"],
-      ["Prime Cost %", insRev > 0 ? pct(varExp + labourExp, insRev) : "0%", `${ins.targetPrimeCost || 0}%`, "—", "—"],
+      ["EBITDA %", `${ebitda}%`, `${targetEbitda || 0}%`, `${(parseFloat(ebitda) - (targetEbitda || 0)).toFixed(1)}%`, parseFloat(ebitda) >= (targetEbitda || 0) ? "Healthy" : "Critical"],
+      ["Food Cost %", `${foodCostPct}%`, `${targetFoodCostVal || 0}%`, "—", "—"],
+      ["Gross Margin %", `${grossMarginPct}%`, `${targetGrossMarginVal || 0}%`, "—", "—"],
+      ["Prime Cost %", `${primeCostPct}%`, `${targetPrimeCostVal || 0}%`, "—", "—"],
     ].forEach((row, i) => drow(ws, row, i % 2 === 0));
     section(ws, "REVENUE TARGETS (EBITDA SCENARIOS)", 5);
     const h2 = thead(ws, ["EBITDA Target %", "Revenue Required (INR)", "Current Revenue (INR)", "Gap (INR)", "Status"], T.brand, T.white, true);
     freezeAt(ws, h2.number);
     [0, 5, 10, 15, 20, 25].forEach((target, i) => {
-      const req  = (fixedExp + varExp + labourExp + finExp) / (1 - target / 100);
+      const req  = (fixedExp + varExp + labourExp + foodExp) / (1 - target / 100);
       const gap  = req - insRev;
       const done = gap <= 0;
       const r = drow(ws, [`${target}% EBITDA`, inr(req), inr(insRev), done ? "—" : `+${inr(gap)}`, done ? "Achieved" : "Gap"], i % 2 === 0, [2, 3, 4]);
@@ -961,7 +979,7 @@ export async function generateExcelReport(
     const h1 = thead(ws, ["Shift", "Revenue (INR)", "% of Total", "", ""], T.amber, T.white, true);
     freezeAt(ws, h1.number);
     const srev = sp.shiftRevenue || {};
-    const totalShiftRev = Object.values(srev).reduce((s: number, v: any) => s + n(v), 0);
+    const totalShiftRev = Object.values(srev).reduce<number>((s, v: any) => s + n(v), 0);
     [["Morning (6-12 AM)", srev.morning], ["Afternoon (12-5 PM)", srev.afternoon], ["Evening (5-10 PM)", srev.evening], ["Night (10 PM-6 AM)", srev.night]].forEach(([shift, rev], i) => {
       drow(ws, [shift, inr(rev), pct(n(rev), totalShiftRev), "", ""], i % 2 === 0, [2]);
     });

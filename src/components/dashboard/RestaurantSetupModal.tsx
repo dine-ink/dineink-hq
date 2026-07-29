@@ -1,7 +1,7 @@
-import { Fragment, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { useAppDispatch, useAppSelector } from "../../store";
 import { setAuth } from "../../store/slices/authSlice";
-import { setBranches } from "../../store/slices/branchSlice";
+import { setBranches as setBranchesInStore } from "../../store/slices/branchSlice";
 import {
   Dialog,
   DialogPanel,
@@ -69,7 +69,7 @@ import {
   FaFish,
 } from "react-icons/fa";
 import { SparklesIcon } from "lucide-react";
-import { State, City } from "country-state-city";
+import { getIndianCitiesForState, getIndianStates } from "../../utils/indiaLocations";
 
 const tabs = [
   {
@@ -255,6 +255,23 @@ export default function RestaurantSetupModal({ open, setOpen }: Props) {
     logoFile: null as File | null,
   });
   const [loading, setLoading] = useState(false);
+  const [states, setStates] = useState<{ isoCode: string; name: string }[]>([]);
+  const [citiesByIsoCode, setCitiesByIsoCode] = useState<Record<string, { name: string }[]>>({});
+
+  // Loaded on demand — country-state-city bundles a full world cities/states
+  // database, only fetched once this modal actually mounts.
+  useEffect(() => {
+    getIndianStates().then(setStates);
+  }, []);
+  useEffect(() => {
+    const neededIsoCodes = branches
+      .map((b) => states.find((s) => s.name === b.state)?.isoCode)
+      .filter((code): code is string => !!code && !citiesByIsoCode[code]);
+    if (neededIsoCodes.length === 0) return;
+    Promise.all(neededIsoCodes.map((code) => getIndianCitiesForState(code).then((cities) => [code, cities] as const))).then(
+      (pairs) => setCitiesByIsoCode((prev) => ({ ...prev, ...Object.fromEntries(pairs) })),
+    );
+  }, [branches, states, citiesByIsoCode]);
 
   const updateBranch = (i: number, updates: Partial<BranchType>) =>
     setBranches((prev) =>
@@ -409,7 +426,7 @@ export default function RestaurantSetupModal({ open, setOpen }: Props) {
             branches: data.branches,
           }),
         );
-        dispatch(setBranches(data.branches || []));
+        dispatch(setBranchesInStore(data.branches || []));
         setOpen(false);
         window.location.reload();
       } else {
@@ -843,7 +860,7 @@ export default function RestaurantSetupModal({ open, setOpen }: Props) {
                                     className={INPUT_CLS}
                                   >
                                     <option value="">Select state</option>
-                                    {State.getStatesOfCountry("IN").map((s) => (
+                                    {states.map((s) => (
                                       <option key={s.isoCode} value={s.name}>
                                         {s.name}
                                       </option>
@@ -869,15 +886,11 @@ export default function RestaurantSetupModal({ open, setOpen }: Props) {
                                     </option>
                                     {branch.state &&
                                       (() => {
-                                        const stateObj =
-                                          State.getStatesOfCountry("IN").find(
-                                            (s) => s.name === branch.state,
-                                          );
+                                        const stateObj = states.find(
+                                          (s) => s.name === branch.state,
+                                        );
                                         return stateObj
-                                          ? City.getCitiesOfState(
-                                              "IN",
-                                              stateObj.isoCode,
-                                            ).map((c) => (
+                                          ? (citiesByIsoCode[stateObj.isoCode] || []).map((c) => (
                                               <option
                                                 key={c.name}
                                                 value={c.name}

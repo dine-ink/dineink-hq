@@ -72,6 +72,12 @@ const METRICS: ComparisonRow[] = [
     higherIsBetter: false,
   },
   {
+    label: "EBITDA",
+    key: "ebitda",
+    format: fmtINR,
+    higherIsBetter: true,
+  },
+  {
     label: "Net Profit",
     key: "netProfit",
     format: fmtINR,

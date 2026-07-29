@@ -1,0 +1,324 @@
+import { useEffect, useMemo, useState } from "react";
+import { Save, RefreshCw } from "lucide-react";
+import { useAppSelector } from "../../store";
+import { fmtCategoryValue, OVERRIDE_FIELD_GROUPS, OVERRIDE_FIELDS, SCENARIO_KPIS, WIDGET_KPIS } from "./scenarioCategories";
+import { TrendIcon, trendStyle } from "../../utils/kpiDisplay";
+import ScenarioCharts from "./ScenarioCharts";
+
+const PERIODS = [
+  { key: "currentMonth", label: "Current Month" },
+  { key: "currentQuarter", label: "Current Quarter" },
+  { key: "currentYear", label: "Current Year" },
+  { key: "custom", label: "Custom Range" },
+];
+
+export default function OverviewTab() {
+  const { selectedBranch } = useAppSelector((s) => s.branch);
+  const { user, token } = useAppSelector((s) => s.auth);
+  const API_URL = import.meta.env.VITE_API_URL;
+
+  const [scenarios, setScenarios] = useState<any[]>([]);
+  const [selectedScenarioId, setSelectedScenarioId] = useState<number | null>(null);
+  const [period, setPeriod] = useState("currentMonth");
+  const [customFrom, setCustomFrom] = useState("");
+  const [customTo, setCustomTo] = useState("");
+  const [whatIf, setWhatIf] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
+  const [sliderValues, setSliderValues] = useState<Record<string, string>>({});
+  const [saving, setSaving] = useState(false);
+  const [dirty, setDirty] = useState(false);
+
+  useEffect(() => {
+    const fetchScenarios = async () => {
+      if (!user?.restaurantId) return;
+      try {
+        const branchParam = selectedBranch?.id ?? "null";
+        const res = await fetch(`${API_URL}/api/scenarios/${user.restaurantId}?branchId=${branchParam}&activeOnly=true`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const json = await res.json();
+        if (json.success) {
+          setScenarios(json.data);
+          const preferred = json.data.find((s: any) => s.type === "EXPECTED") || json.data[0];
+          setSelectedScenarioId(preferred?.id ?? null);
+        }
+      } catch {
+        // fetch error — silently ignored
+      }
+    };
+    fetchScenarios();
+  }, [user?.restaurantId, selectedBranch?.id]);
+
+  const selectedScenario = scenarios.find((s) => s.id === selectedScenarioId) || null;
+
+  // Sliders always reflect the CURRENT scenario's saved overrides when it changes.
+  useEffect(() => {
+    const values: Record<string, string> = {};
+    OVERRIDE_FIELDS.forEach((f) => {
+      values[f.key] = selectedScenario?.[f.key] === null || selectedScenario?.[f.key] === undefined ? "" : String(selectedScenario[f.key]);
+    });
+    setSliderValues(values);
+    setDirty(false);
+  }, [selectedScenarioId]);
+
+  const buildLiveOverrides = (): Record<string, number | null> => {
+    const overrides: Record<string, number | null> = {};
+    OVERRIDE_FIELDS.forEach((f) => {
+      const raw = sliderValues[f.key];
+      overrides[f.key] = raw === undefined || raw === "" ? null : Number(raw);
+    });
+    return overrides;
+  };
+
+  useEffect(() => {
+    const fetchWhatIf = async () => {
+      if (!selectedScenarioId || !user?.restaurantId) {
+        setWhatIf(null);
+        return;
+      }
+      if (period === "custom" && (!customFrom || !customTo)) return;
+      setLoading(true);
+      try {
+        const rangeParams = period === "custom" ? `&from=${customFrom}&to=${customTo}` : "";
+        const res = await fetch(
+          `${API_URL}/api/scenarios/${user.restaurantId}/${selectedScenarioId}/what-if?period=${period}${rangeParams}`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+            body: JSON.stringify(buildLiveOverrides()),
+          },
+        );
+        const json = await res.json();
+        if (json.success) setWhatIf(json.data);
+      } catch {
+        // fetch error — silently ignored
+      } finally {
+        setLoading(false);
+      }
+    };
+    // Debounced — sliders can fire many changes in a row; only the settled value triggers a request.
+    const t = setTimeout(fetchWhatIf, 350);
+    return () => clearTimeout(t);
+  }, [selectedScenarioId, period, customFrom, customTo, sliderValues]);
+
+  const kpisByKey = useMemo(() => {
+    const map = new Map<string, any>();
+    (whatIf?.kpis || []).forEach((k: any) => map.set(k.key, k));
+    return map;
+  }, [whatIf]);
+
+  const handleSliderChange = (key: string, value: string) => {
+    setSliderValues((prev) => ({ ...prev, [key]: value }));
+    setDirty(true);
+  };
+
+  const handleSaveToScenario = async () => {
+    if (!selectedScenario) return;
+    setSaving(true);
+    try {
+      const res = await fetch(`${API_URL}/api/scenarios/${user.restaurantId}/${selectedScenario.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ overrides: buildLiveOverrides() }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        setScenarios((prev) => prev.map((s) => (s.id === json.data.id ? json.data : s)));
+        setDirty(false);
+      }
+    } catch {
+      // save error — silently ignored
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleRevert = () => {
+    const values: Record<string, string> = {};
+    OVERRIDE_FIELDS.forEach((f) => {
+      values[f.key] = selectedScenario?.[f.key] === null || selectedScenario?.[f.key] === undefined ? "" : String(selectedScenario[f.key]);
+    });
+    setSliderValues(values);
+    setDirty(false);
+  };
+
+  if (scenarios.length === 0) {
+    return (
+      <div className="flex h-40 items-center justify-center rounded-xl border border-dashed border-gray-200 bg-gray-50 text-[12px] text-gray-400">
+        No scenarios yet for this scope — visit the Scenarios tab to see the auto-created Conservative/Expected/Optimistic scenarios.
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-wrap items-center gap-2">
+          <select
+            value={selectedScenarioId ?? ""}
+            onChange={(e) => setSelectedScenarioId(Number(e.target.value))}
+            className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-[12px] font-semibold text-gray-700 outline-none"
+          >
+            {scenarios.map((s) => (
+              <option key={s.id} value={s.id}>{s.name} ({s.type})</option>
+            ))}
+          </select>
+          <div className="flex items-center gap-1 rounded-xl bg-gray-100 p-1">
+            {PERIODS.map((p) => (
+              <button
+                key={p.key}
+                type="button"
+                onClick={() => setPeriod(p.key)}
+                className={`rounded-lg px-3 py-1.5 text-[11px] font-semibold transition ${
+                  period === p.key ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"
+                }`}
+              >
+                {p.label}
+              </button>
+            ))}
+          </div>
+          {period === "custom" && (
+            <div className="flex items-center gap-2">
+              <input type="date" value={customFrom} onChange={(e) => setCustomFrom(e.target.value)} className="rounded-xl border border-gray-200 bg-white px-2.5 py-1.5 text-[11px] outline-none" />
+              <span className="text-[11px] text-gray-400">to</span>
+              <input type="date" value={customTo} onChange={(e) => setCustomTo(e.target.value)} className="rounded-xl border border-gray-200 bg-white px-2.5 py-1.5 text-[11px] outline-none" />
+            </div>
+          )}
+        </div>
+        {dirty && (
+          <div className="flex items-center gap-2">
+            <span className="text-[11px] font-semibold text-amber-600">Unsaved slider changes — not yet applied to the scenario</span>
+            <button type="button" onClick={handleRevert} className="flex items-center gap-1 rounded-xl border border-gray-200 bg-white px-3 py-1.5 text-[11px] font-semibold text-gray-600 hover:bg-gray-50">
+              <RefreshCw className="h-3 w-3" /> Revert
+            </button>
+            <button type="button" onClick={handleSaveToScenario} disabled={saving} className="flex items-center gap-1 rounded-xl bg-[#b10000] px-3 py-1.5 text-[11px] font-semibold text-white hover:bg-[#950000] disabled:opacity-50">
+              <Save className="h-3 w-3" /> {saving ? "Saving…" : "Save to Scenario"}
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* WHAT-IF SLIDERS */}
+      <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+        <h4 className="mb-3 text-[13px] font-bold text-gray-900">What-If Controls</h4>
+        <p className="mb-3 text-[11px] text-gray-500">
+          Adjust any assumption below — projections update instantly. Nothing is written to actuals; use "Save to Scenario" to keep these values.
+        </p>
+        {OVERRIDE_FIELD_GROUPS.map((group) => (
+          <div key={group} className="mb-4 last:mb-0">
+            <p className="mb-2 text-[10px] font-bold uppercase tracking-wide text-gray-400">{group}</p>
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+              {OVERRIDE_FIELDS.filter((f) => f.group === group).map((f) => {
+                const raw = sliderValues[f.key] ?? "";
+                return (
+                  <div key={f.key}>
+                    <div className="mb-1 flex items-center justify-between">
+                      <label className="text-[11px] font-medium text-gray-600">{f.label}</label>
+                      <span className="text-[11px] font-semibold text-gray-900">
+                        {raw === "" ? "Inherit" : fmtCategoryValue(Number(raw), f.unit)}
+                      </span>
+                    </div>
+                    {f.slider ? (
+                      <input
+                        type="range"
+                        min={f.min}
+                        max={f.max}
+                        step={f.step}
+                        value={raw === "" ? (f.min < 0 && f.max > 0 ? 0 : f.min) : raw}
+                        onChange={(e) => handleSliderChange(f.key, e.target.value)}
+                        className="w-full accent-[#b10000]"
+                      />
+                    ) : (
+                      <input
+                        type="number"
+                        value={raw}
+                        onChange={(e) => handleSliderChange(f.key, e.target.value)}
+                        placeholder="Inherit"
+                        className="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-1.5 text-sm outline-none focus:border-red-300 focus:bg-white"
+                      />
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {loading && <div className="flex h-24 items-center justify-center text-[12px] text-gray-400">Recalculating…</div>}
+
+      {!loading && whatIf && (
+        <>
+          {/* KPI WIDGET CARDS */}
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
+            {WIDGET_KPIS.map((key) => {
+              const row = kpisByKey.get(key);
+              if (!row) return null;
+              return (
+                <div key={key} className="rounded-2xl border border-gray-200 bg-white p-3.5 shadow-sm">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-gray-500">{row.label}</p>
+                  <div className="mt-2 flex items-baseline gap-2">
+                    <p className="text-[20px] font-extrabold tracking-tight text-gray-900">{fmtCategoryValue(row.projected, row.unit)}</p>
+                    <p className="text-[11px] text-gray-400 line-through">{fmtCategoryValue(row.baseline, row.unit)}</p>
+                  </div>
+                  <div className="mt-2 flex items-center justify-between">
+                    <span className={`flex items-center gap-1 text-[11px] font-semibold ${trendStyle(row.trendDirection, row.higherIsBetter)}`}>
+                      <TrendIcon direction={row.trendDirection} />
+                      {row.variancePercentage != null ? `${row.variancePercentage > 0 ? "+" : ""}${row.variancePercentage.toFixed(1)}% vs actual` : "—"}
+                    </span>
+                    <span className="text-[10px] font-semibold text-gray-400">
+                      {row.achievementPercentage != null ? `${row.achievementPercentage.toFixed(0)}% of target` : "No target set"}
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* CHARTS */}
+          <ScenarioCharts kpis={whatIf.kpis} />
+
+          {/* FULL KPI TABLE */}
+          <div className="overflow-hidden rounded-xl border border-gray-200">
+            <table className="w-full text-[12px]">
+              <thead className="bg-gray-50 text-[10px] font-bold uppercase tracking-wide text-gray-500">
+                <tr>
+                  <th className="px-4 py-2 text-left">KPI</th>
+                  <th className="px-3 py-2 text-right">Actual (Baseline)</th>
+                  <th className="px-3 py-2 text-right">Projected</th>
+                  <th className="px-3 py-2 text-right">Variance</th>
+                  <th className="px-3 py-2 text-right">Variance %</th>
+                  <th className="px-3 py-2 text-right">Achievement %</th>
+                  <th className="px-3 py-2 text-center">Trend</th>
+                </tr>
+              </thead>
+              <tbody>
+                {SCENARIO_KPIS.map((def) => {
+                  const row = kpisByKey.get(def.key);
+                  if (!row) return null;
+                  return (
+                    <tr key={def.key} className="border-t border-gray-100">
+                      <td className="px-4 py-2 font-medium text-gray-700">{def.label}</td>
+                      <td className="px-3 py-2 text-right text-gray-600">{fmtCategoryValue(row.baseline, row.unit)}</td>
+                      <td className="px-3 py-2 text-right font-semibold text-gray-900">{fmtCategoryValue(row.projected, row.unit)}</td>
+                      <td className="px-3 py-2 text-right text-gray-600">{row.variance != null ? fmtCategoryValue(row.variance, row.unit) : "—"}</td>
+                      <td className={`px-3 py-2 text-right font-semibold ${trendStyle(row.trendDirection, row.higherIsBetter)}`}>
+                        {row.variancePercentage != null ? `${row.variancePercentage > 0 ? "+" : ""}${row.variancePercentage.toFixed(1)}%` : "—"}
+                      </td>
+                      <td className="px-3 py-2 text-right text-gray-600">{row.achievementPercentage != null ? `${row.achievementPercentage.toFixed(0)}%` : "—"}</td>
+                      <td className="px-3 py-2 text-center">
+                        <span className={`inline-flex ${trendStyle(row.trendDirection, row.higherIsBetter)}`}>
+                          <TrendIcon direction={row.trendDirection} />
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}

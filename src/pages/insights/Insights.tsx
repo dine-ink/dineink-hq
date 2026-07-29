@@ -59,7 +59,68 @@ import {
   ReferenceLine,
 } from "recharts";
 
-const tabs = ["Overview", "Insights Setup"];
+const tabs = ["Overview", "Insights Setup", "Financial Assumptions"];
+
+// Field groups for the Financial Assumptions tab — mirrors
+// financeAssumptions.types.ts's ASSUMPTION_FIELDS on the backend, grouped
+// for display. Percentage fields render with a "%" suffix, everything else
+// with its own unit.
+const ASSUMPTION_FIELD_GROUPS: {
+  title: string;
+  fields: { key: string; label: string; unit: string }[];
+}[] = [
+  {
+    title: "Property & Occupancy",
+    fields: [
+      { key: "rentPerSqFt", label: "Rent per Sq Ft", unit: "₹" },
+      { key: "camPerSqFt", label: "CAM per Sq Ft", unit: "₹" },
+      { key: "chargeableAreaSqFt", label: "Chargeable Area", unit: "sq ft" },
+    ],
+  },
+  {
+    title: "Targets",
+    fields: [
+      { key: "foodCostTargetPercentage", label: "Food Cost Target", unit: "%" },
+      { key: "labourTargetPercentage", label: "Labour Target", unit: "%" },
+      { key: "primeCostTargetPercentage", label: "Prime Cost Target", unit: "%" },
+      { key: "ebitdaTargetPercentage", label: "EBITDA Target", unit: "%" },
+      { key: "occupancyTargetPercentage", label: "Occupancy Target", unit: "%" },
+      { key: "utilityTargetPercentage", label: "Utility Target", unit: "%" },
+    ],
+  },
+  {
+    title: "Channel Mix & Commission",
+    fields: [
+      { key: "deliveryPercentage", label: "Delivery Mix", unit: "%" },
+      { key: "swiggyCommissionPercentage", label: "Swiggy Commission", unit: "%" },
+      { key: "zomatoCommissionPercentage", label: "Zomato Commission", unit: "%" },
+    ],
+  },
+  {
+    title: "Franchise & Royalty",
+    fields: [
+      { key: "franchiseFeePercentage", label: "Franchise Fee", unit: "%" },
+      { key: "royaltyPercentage", label: "Royalty", unit: "%" },
+      { key: "marketingFeePercentage", label: "Marketing Fee", unit: "%" },
+    ],
+  },
+  {
+    title: "Escalation",
+    fields: [
+      { key: "salaryIncrementPercentage", label: "Salary Increment", unit: "%" },
+      { key: "rentEscalationPercentage", label: "Rent Escalation", unit: "%" },
+      { key: "inflationPercentage", label: "Inflation", unit: "%" },
+    ],
+  },
+  {
+    title: "Tax & Operating Calendar",
+    fields: [
+      { key: "gstPercentage", label: "GST", unit: "%" },
+      { key: "workingDays", label: "Working Days / Month", unit: "days" },
+      { key: "businessHours", label: "Business Hours / Day", unit: "hrs" },
+    ],
+  },
+];
 
 export default function Insights() {
   const { selectedBranch } = useAppSelector((s) => s.branch);
@@ -69,12 +130,20 @@ export default function Insights() {
 
   const [activeTab, setActiveTab] = useState("Overview");
   const [staffData, setStaffData] = useState<any[]>([]);
+  const [assumptionsMode, setAssumptionsMode] = useState<"defaults" | "branch">("defaults");
+  const [assumptionDefaults, setAssumptionDefaults] = useState<any>({});
+  const [assumptionResolved, setAssumptionResolved] = useState<any>(null);
+  const [assumptionsLoading, setAssumptionsLoading] = useState(false);
+  const [assumptionsSaving, setAssumptionsSaving] = useState(false);
+  const [assumptionsSavedAt, setAssumptionsSavedAt] = useState<number | null>(null);
   const [insightsSection, setInsightsSection] = useState("Fixed Expenses");
   const [ingredients, setIngredients] = useState<any>({});
   const [loading, setLoading] = useState(false);
   const [restockHistory, setRestockHistory] = useState<any[]>([]);
   const [inventoryStockValue, setInventoryStockValue] = useState(0);
   const [mtdAnalytics, setMtdAnalytics] = useState<any>(null);
+  const [financeSummary, setFinanceSummary] = useState<any>(null);
+  const [financeSummaryError, setFinanceSummaryError] = useState(false);
   const [tableOps, setTableOps] = useState<any>(null);
   const [accountsPayable, setAccountsPayable] = useState(0);
   const [hasVendorInvoices, setHasVendorInvoices] = useState(true);
@@ -118,7 +187,23 @@ export default function Insights() {
     initialInvestment: 0,
   });
   const n = (v: any) => Number(v) || 0;
-  const totalFixedExpenses =
+  // The canonical current-month figures from the shared finance engine
+  // (finance.formulas.ts) — every KPI below prefers `fm` when it has loaded,
+  // falling back to the old client-side estimate only until the fetch
+  // completes (see fetchFinanceSummary below), so the numbers shown here
+  // always agree with Dashboard, Branch Comparison, and the PDF/Excel
+  // exports instead of being independently re-derived.
+  const fm = financeSummary?.current;
+  // Targets — from FinancialAssumptions (via financeSummary.targets) once
+  // loaded, the single source of truth going forward; falls back to the
+  // legacy RestaurantInsights target fields (still editable in Insights
+  // Setup below) only until that fetch resolves.
+  const targets = financeSummary?.targets;
+  const targetEbitda = targets ? (targets.targetEbitda ?? 0) : n(insightsData["targetEbitda"]);
+  const targetFoodCost = targets ? (targets.targetFoodCost ?? 0) : n(insightsData["targetFoodCost"]);
+  const targetPrimeCost = targets ? (targets.targetPrimeCost ?? 0) : n(insightsData["targetPrimeCost"]);
+  const targetGrossMargin = targets ? (targets.targetGrossMargin ?? 0) : n(insightsData["targetGrossMargin"]);
+  const localTotalFixedExpenses =
     n(insightsData.monthlyRent) +
     n(insightsData.loanEmi) +
     n(insightsData.internet) +
@@ -126,7 +211,7 @@ export default function Insights() {
     n(insightsData.accounting) +
     n(insightsData.insurance) +
     n(insightsData.licenses);
-  const totalVariableExpenses =
+  const localTotalVariableExpenses =
     n(insightsData.deliveryCharges) +
     n(insightsData.packaging) +
     n(insightsData.paymentGateway) +
@@ -136,18 +221,15 @@ export default function Insights() {
     n(insightsData.maintenance) +
     n(insightsData.fuel) +
     n(insightsData.marketingSpend);
-  const totalLabourCost =
+  const localTotalLabourCost =
     staffData?.reduce((sum: number, s: any) => sum + (s.salary || 0), 0) || 0;
-  const totalFinanceCost =
+  const localTotalFinanceCost =
     n(insightsData.monthlyLoanEmi) +
     n(insightsData.monthlyInterestPayments) +
     n(insightsData.caFees) +
     n(insightsData.insuranceCost) +
     n(insightsData.otherTaxes);
-  const revenue = insightsData.revenue || 0;
-  // effectiveFoodCost: use manual entry when set, otherwise fall back to
-  // inventory-restock-calculated value (computed below from restockHistory)
-  // We reference actualFoodCost after it's declared, so we compute it inline.
+  const localRevenue = insightsData.revenue || 0;
   const manualFoodCostSet = n(insightsData.manualFoodCost) > 0;
   const restockData = restockHistory || [];
   const totalPurchaseValue = restockData.reduce((sum: number, item: any) => {
@@ -167,22 +249,18 @@ export default function Insights() {
   }, 0);
   // Use manual entry when set, otherwise use inventory-calculated food cost
   // Priority: manual entry → live inventory stock value → restock-history RM expense
-  const effectiveFoodCost = manualFoodCostSet
+  const localEffectiveFoodCost = manualFoodCostSet
     ? n(insightsData.manualFoodCost)
     : inventoryStockValue > 0
       ? inventoryStockValue
       : actualFoodCost;
-  const totalExpenses =
-    totalFixedExpenses +
-    totalVariableExpenses +
-    totalLabourCost +
-    totalFinanceCost +
-    effectiveFoodCost;
-  const ebitda = revenue - totalExpenses;
-  /* FOOD COST % */
-  const actualFoodCostPercentage = revenue
-    ? ((effectiveFoodCost / revenue) * 100).toFixed(1)
-    : "0";
+  const localTotalExpenses =
+    localTotalFixedExpenses +
+    localTotalVariableExpenses +
+    localTotalLabourCost +
+    localTotalFinanceCost +
+    localEffectiveFoodCost;
+  const localEbitda = localRevenue - localTotalExpenses;
   /* INFLATED INGREDIENTS */
   const inflatedIngredients = restockData.filter((item: any) => {
     const week1 = Number(item.Week1Price || 0);
@@ -196,25 +274,54 @@ export default function Insights() {
         Number(b.TotalPurchaseAmount || 0) - Number(a.TotalPurchaseAmount || 0),
     )
     .slice(0, 5);
-  /* EBITDA % */
-  const ebitdaPercentage = revenue ? ((ebitda / revenue) * 100).toFixed(1) : 0;
-  /* PRIME COST % — Food Cost + Labour Cost, NOT variable overhead + labour.
-     (Previously this used totalVariableExpenses instead of effectiveFoodCost,
-     which excluded raw-material cost entirely from a metric that's supposed
-     to be dominated by it — the single most-watched restaurant KPI.) */
-  const primeCost = effectiveFoodCost + totalLabourCost;
-  const primeCostPercentage = revenue
-    ? ((primeCost / revenue) * 100).toFixed(1)
-    : 0;
+  const localPrimeCost = localEffectiveFoodCost + localTotalLabourCost;
+  const localGrossProfit = localRevenue - localEffectiveFoodCost;
+
+  // Public values consumed below — sourced from the finance engine
+  // (real period revenue, recipe-cost-based food cost, EBITDA/Prime
+  // Cost/Net Profit computed by finance.formulas.ts) once loaded.
+  const revenue = fm ? fm.revenue : localRevenue;
+  const totalFixedExpenses = fm ? fm.fixedExpenses : localTotalFixedExpenses;
+  const totalVariableExpenses = fm ? fm.variableExpenses : localTotalVariableExpenses;
+  const totalLabourCost = fm ? fm.labourCost : localTotalLabourCost;
+  const totalFinanceCost = fm ? fm.financeCost : localTotalFinanceCost;
+  const effectiveFoodCost = fm ? fm.foodCost : localEffectiveFoodCost;
+  const totalExpenses = fm ? fm.totalExpenses : localTotalExpenses;
+  const ebitda = fm ? fm.ebitda : localEbitda;
+  const ebitdaPercentage = fm
+    ? fm.ebitdaPercentage
+    : revenue
+      ? ((ebitda / revenue) * 100).toFixed(1)
+      : 0;
+  /* FOOD COST % */
+  const actualFoodCostPercentage = fm
+    ? fm.foodCostPercentage
+    : revenue
+      ? ((effectiveFoodCost / revenue) * 100).toFixed(1)
+      : "0";
+  /* PRIME COST % — Food Cost + Labour Cost, NOT variable overhead + labour. */
+  const primeCost = fm ? fm.primeCost : localPrimeCost;
+  const primeCostPercentage = fm
+    ? fm.primeCostPercentage
+    : revenue
+      ? ((primeCost / revenue) * 100).toFixed(1)
+      : 0;
   /* GROSS PROFIT — Net Sales − COGS (COGS ≈ food/raw-material cost) */
-  const grossProfit = revenue - effectiveFoodCost;
-  const grossProfitMarginPercentage = revenue
-    ? ((grossProfit / revenue) * 100).toFixed(1)
-    : "0";
+  const grossProfit = fm ? fm.grossProfit : localGrossProfit;
+  const grossProfitMarginPercentage = fm
+    ? fm.grossProfitMarginPercentage
+    : revenue
+      ? ((grossProfit / revenue) * 100).toFixed(1)
+      : "0";
   /* LABOUR COST % */
-  const labourCostPercentage = revenue
-    ? ((totalLabourCost / revenue) * 100).toFixed(1)
-    : "0";
+  const labourCostPercentage = fm
+    ? fm.labourCostPercentage
+    : revenue
+      ? ((totalLabourCost / revenue) * 100).toFixed(1)
+      : "0";
+  /* NET PROFIT — EBITDA − Finance Cost (matches finance.formulas.ts;
+     used by the Net Profit KPI card below). */
+  const netProfit = fm ? fm.netProfit : ebitda - totalFinanceCost;
 
   /* ================= BREAK-EVEN & MONTHLY PROGRESS ================= */
   const today = new Date();
@@ -230,17 +337,32 @@ export default function Insights() {
   // finance costs are treated as fixed here (staff are scheduled and paid
   // regardless of exact covers on a given day, unlike food cost or
   // per-order variable expenses, which scale directly with volume).
-  const breakEvenFixedCosts = totalFixedExpenses + totalLabourCost + totalFinanceCost;
-  const breakEvenVariableCosts = totalVariableExpenses + effectiveFoodCost;
-  const contributionMargin = revenue - breakEvenVariableCosts;
-  const contributionMarginPercentage = revenue > 0 ? contributionMargin / revenue : 0;
-  const breakEvenRevenue =
-    contributionMarginPercentage > 0
-      ? breakEvenFixedCosts / contributionMarginPercentage
-      : totalExpenses; // fallback if contribution margin is 0/negative
-  const contributionPerOrder = mtdOrders > 0 ? contributionMargin / mtdOrders : 0;
-  const breakEvenOrders =
-    contributionPerOrder > 0 ? Math.ceil(breakEvenFixedCosts / contributionPerOrder) : null;
+  const localBreakEvenFixedCosts = localTotalFixedExpenses + localTotalLabourCost + localTotalFinanceCost;
+  const localBreakEvenVariableCosts = localTotalVariableExpenses + localEffectiveFoodCost;
+  const localContributionMargin = localRevenue - localBreakEvenVariableCosts;
+  const localContributionMarginPercentage =
+    localRevenue > 0 ? localContributionMargin / localRevenue : 0;
+  const localBreakEvenRevenue =
+    localContributionMarginPercentage > 0
+      ? localBreakEvenFixedCosts / localContributionMarginPercentage
+      : localTotalExpenses; // fallback if contribution margin is 0/negative
+  const localContributionPerOrder = mtdOrders > 0 ? localContributionMargin / mtdOrders : 0;
+  const localBreakEvenOrders =
+    localContributionPerOrder > 0
+      ? Math.ceil(localBreakEvenFixedCosts / localContributionPerOrder)
+      : null;
+
+  // contributionMarginPercentage is kept as a fraction (0–1) here, matching
+  // the pre-engine convention — the engine returns percentage points, so it's
+  // divided back down rather than touching every display site below.
+  const contributionMargin = fm ? fm.contributionMargin : localContributionMargin;
+  const contributionMarginPercentage = fm
+    ? fm.contributionMarginPercentage / 100
+    : localContributionMarginPercentage;
+  const breakEvenRevenue = fm
+    ? (fm.breakEvenRevenue ?? totalExpenses)
+    : localBreakEvenRevenue;
+  const breakEvenOrders = fm ? fm.breakEvenOrders : localBreakEvenOrders;
   const dailyRunRate = daysElapsed > 0 ? mtdRevenue / daysElapsed : 0;
   const projectedMonthEndRevenue = dailyRunRate * daysInMonth;
   const monthlyTarget =
@@ -490,6 +612,28 @@ export default function Insights() {
       }
     };
 
+    // The canonical EBITDA/Prime Cost/Net Profit/Break-even figures — same
+    // finance.formulas.ts engine used by Dashboard, Branch Comparison, and
+    // the PDF/Excel exports, so this page's numbers always agree with theirs.
+    const fetchFinanceSummary = async () => {
+      try {
+        if (!user?.restaurantId || !selectedBranch?.id) return;
+        const res = await fetch(
+          `${API_URL}/api/finance/${user.restaurantId}/${selectedBranch.id}/summary?period=currentMonth`,
+          { headers: { Authorization: `Bearer ${token}` } },
+        );
+        const json = await res.json();
+        if (json.success) {
+          setFinanceSummary(json.data);
+          setFinanceSummaryError(false);
+        } else {
+          setFinanceSummaryError(true);
+        }
+      } catch {
+        setFinanceSummaryError(true);
+      }
+    };
+
     const fetchTableOps = async () => {
       try {
         if (!user?.restaurantId || !selectedBranch?.id) return;
@@ -549,6 +693,7 @@ export default function Insights() {
     fetchRestockHistory();
     fetchInventoryStock();
     fetchMtdAnalytics();
+    fetchFinanceSummary();
     fetchTableOps();
     fetchAccountsPayable();
     fetchVendorInvoiceActivity();
@@ -706,6 +851,103 @@ export default function Insights() {
       await res.json();
     } catch {
       // save error — silently ignore
+    }
+  };
+
+  // Financial Assumptions — restaurant-wide defaults, with optional
+  // per-branch overrides. Fetched whenever the tab is opened or the selected
+  // branch changes (branch fetch is only meaningful in "branch" mode, but
+  // fetching defaults on every branch change keeps them fresh too).
+  useEffect(() => {
+    if (activeTab !== "Financial Assumptions" || !user?.restaurantId) return;
+    const fetchAssumptions = async () => {
+      setAssumptionsLoading(true);
+      try {
+        const defaultsRes = await fetch(
+          `${API_URL}/api/finance-assumptions/${user.restaurantId}`,
+          { headers: { Authorization: `Bearer ${token}` } },
+        );
+        const defaultsJson = await defaultsRes.json();
+        if (defaultsJson.success) setAssumptionDefaults(defaultsJson.data);
+
+        if (selectedBranch?.id) {
+          const branchRes = await fetch(
+            `${API_URL}/api/finance-assumptions/${user.restaurantId}/${selectedBranch.id}`,
+            { headers: { Authorization: `Bearer ${token}` } },
+          );
+          const branchJson = await branchRes.json();
+          if (branchJson.success) setAssumptionResolved(branchJson.data);
+        }
+      } catch {
+        // fetch error — silently ignored, form just stays blank
+      } finally {
+        setAssumptionsLoading(false);
+      }
+    };
+    fetchAssumptions();
+  }, [activeTab, selectedBranch?.id, user?.restaurantId]);
+
+  const activeAssumptionValues = assumptionsMode === "defaults" ? assumptionDefaults : assumptionResolved || {};
+  const overriddenFields: string[] = assumptionResolved?.overriddenFields || [];
+
+  const handleAssumptionFieldChange = (key: string, value: string) => {
+    const parsed = value === "" ? null : Number(value);
+    if (assumptionsMode === "defaults") {
+      setAssumptionDefaults((prev: any) => ({ ...prev, [key]: parsed }));
+    } else {
+      setAssumptionResolved((prev: any) => ({ ...prev, [key]: parsed }));
+    }
+  };
+
+  const handleClearOverride = (key: string) => {
+    setAssumptionResolved((prev: any) => ({ ...prev, [key]: null }));
+  };
+
+  const handleSaveAssumptions = async () => {
+    if (!user?.restaurantId) return;
+    if (assumptionsMode === "branch" && !selectedBranch?.id) {
+      alert("Please select a branch");
+      return;
+    }
+    setAssumptionsSaving(true);
+    try {
+      const url =
+        assumptionsMode === "defaults"
+          ? `${API_URL}/api/finance-assumptions/${user.restaurantId}`
+          : `${API_URL}/api/finance-assumptions/${user.restaurantId}/${selectedBranch.id}`;
+      const payload: any = {};
+      ASSUMPTION_FIELD_GROUPS.flatMap((g) => g.fields).forEach(({ key }) => {
+        payload[key] = activeAssumptionValues[key] ?? null;
+      });
+      const res = await fetch(url, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify(payload),
+      });
+      const json = await res.json();
+      if (json.success) {
+        if (assumptionsMode === "defaults") {
+          setAssumptionDefaults(json.data);
+        } else {
+          // The PUT response is just the raw override row (no
+          // overriddenFields) — re-fetch the resolved view so "Reset to
+          // default" badges reflect the save immediately, not just after
+          // the next branch-change/tab-reopen refetch.
+          const branchRes = await fetch(
+            `${API_URL}/api/finance-assumptions/${user.restaurantId}/${selectedBranch.id}`,
+            { headers: { Authorization: `Bearer ${token}` } },
+          );
+          const branchJson = await branchRes.json();
+          if (branchJson.success) setAssumptionResolved(branchJson.data);
+        }
+        setAssumptionsSavedAt(Date.now());
+      } else {
+        alert(json.message || "Failed to save");
+      }
+    } catch {
+      alert("Failed to save financial assumptions");
+    } finally {
+      setAssumptionsSaving(false);
     }
   };
 
@@ -1048,6 +1290,11 @@ export default function Insights() {
           {/* OVERVIEW */}
           {activeTab === "Overview" && (
             <div className="space-y-4">
+              {financeSummaryError && !fm && (
+                <div className="rounded-xl border border-amber-200 bg-amber-50 px-3.5 py-2.5 text-[12px] text-amber-800">
+                  <span className="font-semibold">Showing estimated figures</span> — could not load the latest financial summary. EBITDA, Prime Cost, Net Profit, and Break-even below use a fallback calculation and may not match Dashboard, Branch Comparison, or the PDF/Excel exports until this reconnects.
+                </div>
+              )}
               {/* TOP KPIs */}
               {/* ================= KPI ================= */}
 
@@ -1063,12 +1310,8 @@ export default function Insights() {
 
                   {
                     label: "Net Profit",
-                    value: `₹${
-                      isNaN(revenue - totalExpenses)
-                        ? 0
-                        : Math.round(revenue - totalExpenses).toLocaleString()
-                    }`,
-                    sub: "Estimated profit",
+                    value: `₹${isNaN(netProfit) ? 0 : Math.round(netProfit).toLocaleString()}`,
+                    sub: "EBITDA − finance cost",
                     icon: TrendingUp,
                     color: "blue",
                   },
@@ -1238,11 +1481,11 @@ export default function Insights() {
                       {
                         label: "Status",
                         value:
-                          Number(ebitdaPercentage) >= insightsData.targetEbitda
+                          Number(ebitdaPercentage) >= targetEbitda
                             ? "Healthy"
                             : "Critical",
                         color:
-                          Number(ebitdaPercentage) >= insightsData.targetEbitda
+                          Number(ebitdaPercentage) >= targetEbitda
                             ? "emerald"
                             : "red",
                       },
@@ -1255,14 +1498,14 @@ export default function Insights() {
 
                       {
                         label: "Target",
-                        value: `${insightsData.targetEbitda}%`,
+                        value: `${targetEbitda}%`,
                         color: "emerald",
                       },
 
                       {
                         label: "Gap",
                         value: `${(
-                          Number(ebitdaPercentage) - insightsData.targetEbitda
+                          Number(ebitdaPercentage) - targetEbitda
                         ).toFixed(1)}%`,
                         color: "orange",
                       },
@@ -1299,11 +1542,11 @@ export default function Insights() {
                   <div className="mb-2 flex items-center justify-between">
                     <p className="text-[11px] text-gray-500">EBITDA Progress</p>
                     <p className="text-[11px] font-semibold text-violet-600">
-                      {insightsData.targetEbitda > 0
+                      {targetEbitda > 0
                         ? Math.min(
                             Math.round(
                               (Number(ebitdaPercentage) /
-                                insightsData.targetEbitda) *
+                                targetEbitda) *
                                 100,
                             ),
                             100,
@@ -1316,7 +1559,7 @@ export default function Insights() {
                     <div
                       className="h-full rounded-full bg-violet-500"
                       style={{
-                        width: `${insightsData.targetEbitda > 0 ? Math.min((Number(ebitdaPercentage) / insightsData.targetEbitda) * 100, 100) : 0}%`,
+                        width: `${targetEbitda > 0 ? Math.min((Number(ebitdaPercentage) / targetEbitda) * 100, 100) : 0}%`,
                       }}
                     />
                   </div>
@@ -2115,10 +2358,10 @@ export default function Insights() {
                       insightsData.maintenance,
                       insightsData.fuel,
 
-                      insightsData.targetEbitda,
-                      insightsData.targetFoodCost,
-                      insightsData.targetGrossMargin,
-                      insightsData.targetPrimeCost,
+                      targetEbitda,
+                      targetFoodCost,
+                      targetGrossMargin,
+                      targetPrimeCost,
                       insightsData.monthlyRevenueGoal,
                       insightsData.monthlyProfitGoal,
 
@@ -3005,7 +3248,7 @@ export default function Insights() {
                               </p>
 
                               <p className="mt-2 text-2xl font-bold tracking-tight text-gray-900">
-                                {insightsData.targetEbitda || 0}%
+                                {targetEbitda || 0}%
                               </p>
 
                               <p className="mt-1 text-[11px] text-gray-500">
@@ -3029,7 +3272,7 @@ export default function Insights() {
                               </p>
 
                               <p className="mt-2 text-2xl font-bold tracking-tight text-gray-900">
-                                {insightsData.targetFoodCost || 0}%
+                                {targetFoodCost || 0}%
                               </p>
 
                               <p className="mt-1 text-[11px] text-gray-500">
@@ -3053,7 +3296,7 @@ export default function Insights() {
                               </p>
 
                               <p className="mt-2 text-2xl font-bold tracking-tight text-gray-900">
-                                {insightsData.targetGrossMargin || 0}%
+                                {targetGrossMargin || 0}%
                               </p>
 
                               <p className="mt-1 text-[11px] text-gray-500">
@@ -3077,7 +3320,7 @@ export default function Insights() {
                               </p>
 
                               <p className="mt-2 text-2xl font-bold tracking-tight text-gray-900">
-                                {insightsData.targetPrimeCost || 0}%
+                                {targetPrimeCost || 0}%
                               </p>
 
                               <p className="mt-1 text-[11px] text-gray-500">
@@ -3113,32 +3356,26 @@ export default function Insights() {
                           </div>
                         </div>
 
+                        <p className="mb-4 rounded-lg bg-blue-50 px-3 py-2 text-[11px] text-blue-700">
+                          Target EBITDA, Food Cost %, and Prime Cost % are now configured under the{" "}
+                          <button
+                            type="button"
+                            onClick={() => setActiveTab("Financial Assumptions")}
+                            className="font-semibold underline"
+                          >
+                            Financial Assumptions
+                          </button>{" "}
+                          tab, with restaurant-wide defaults and per-branch overrides.
+                        </p>
+
                         {/* FORM GRID */}
 
                         <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
                           {[
                             {
-                              label: "Target EBITDA %",
-                              key: "targetEbitda",
-                              helper: "Expected profitability target",
-                            },
-
-                            {
-                              label: "Target Food Cost %",
-                              key: "targetFoodCost",
-                              helper: "Ideal inventory cost ratio",
-                            },
-
-                            {
                               label: "Target Gross Margin %",
                               key: "targetGrossMargin",
                               helper: "Revenue profitability expectation",
-                            },
-
-                            {
-                              label: "Target Prime Cost %",
-                              key: "targetPrimeCost",
-                              helper: "Combined labour & food cost",
                             },
 
                             {
@@ -3919,6 +4156,145 @@ export default function Insights() {
                   )}
                 </div>
               </div>
+            </div>
+          )}
+          {activeTab === "Financial Assumptions" && (
+            <div className="space-y-4">
+              <div className="flex flex-col gap-3 rounded-xl border border-gray-200 bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <h3 className="text-[16px] font-bold text-gray-900">
+                    Financial Assumptions
+                  </h3>
+                  <p className="mt-1 text-[12px] text-gray-500">
+                    The single source of truth for every target, rate, and
+                    commission percentage used across Dashboard, Insights,
+                    Branch Comparison, and reports.
+                  </p>
+                </div>
+                <div className="flex items-center gap-2 rounded-xl bg-gray-100 p-1">
+                  <button
+                    type="button"
+                    onClick={() => setAssumptionsMode("defaults")}
+                    className={`rounded-lg px-3 py-1.5 text-[12px] font-semibold transition ${
+                      assumptionsMode === "defaults"
+                        ? "bg-white text-gray-900 shadow-sm"
+                        : "text-gray-500 hover:text-gray-700"
+                    }`}
+                  >
+                    Restaurant Defaults
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setAssumptionsMode("branch")}
+                    className={`rounded-lg px-3 py-1.5 text-[12px] font-semibold transition ${
+                      assumptionsMode === "branch"
+                        ? "bg-white text-gray-900 shadow-sm"
+                        : "text-gray-500 hover:text-gray-700"
+                    }`}
+                  >
+                    {selectedBranch?.name || "This Branch"}'s Overrides
+                  </button>
+                </div>
+              </div>
+
+              {assumptionsMode === "branch" && (
+                <p className="rounded-lg bg-blue-50 px-3 py-2 text-[11px] text-blue-700">
+                  Fields left blank here inherit the restaurant default shown
+                  above. Only set a value if this branch is genuinely
+                  different (e.g. a different landlord's rent rate).
+                </p>
+              )}
+
+              {assumptionsLoading ? (
+                <div className="flex h-40 items-center justify-center text-[12px] text-gray-400">
+                  Loading assumptions…
+                </div>
+              ) : (
+                <>
+                  {ASSUMPTION_FIELD_GROUPS.map((group) => (
+                    <div
+                      key={group.title}
+                      className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm"
+                    >
+                      <h4 className="mb-3 text-[13px] font-bold text-gray-900">
+                        {group.title}
+                      </h4>
+                      <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
+                        {group.fields.map((field) => {
+                          const isOverridden = overriddenFields.includes(field.key);
+                          const value = activeAssumptionValues[field.key];
+                          return (
+                            <div
+                              key={field.key}
+                              className="rounded-xl border border-gray-200 bg-white p-3"
+                            >
+                              <div className="mb-2 flex items-center justify-between">
+                                <label className="block text-[12px] font-medium text-gray-700">
+                                  {field.label}
+                                </label>
+                                {assumptionsMode === "branch" && isOverridden && (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleClearOverride(field.key)}
+                                    className="text-[10px] font-semibold text-[#b10000] hover:underline"
+                                  >
+                                    Reset to default
+                                  </button>
+                                )}
+                              </div>
+                              <div className="relative">
+                                {field.unit === "₹" ? (
+                                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-400">
+                                    ₹
+                                  </span>
+                                ) : (
+                                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[11px] text-gray-400">
+                                    {field.unit}
+                                  </span>
+                                )}
+                                <input
+                                  type="number"
+                                  value={value ?? ""}
+                                  onChange={(e) => handleAssumptionFieldChange(field.key, e.target.value)}
+                                  placeholder={
+                                    assumptionsMode === "branch" ? "Inherit default" : "0"
+                                  }
+                                  className={`w-full rounded-xl border text-sm outline-none transition-all duration-200 focus:border-red-300 focus:bg-white ${
+                                    isOverridden
+                                      ? "border-[#b10000]/30 bg-red-50/40"
+                                      : "border-gray-200 bg-gray-50"
+                                  } py-2.5 ${field.unit === "₹" ? "pl-8 pr-3" : "pl-3 pr-14"}`}
+                                />
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ))}
+
+                  <div className="flex items-center justify-end gap-3">
+                    {assumptionsSavedAt && (
+                      <span className="text-[11px] text-emerald-600">
+                        Saved
+                      </span>
+                    )}
+                    <button
+                      type="button"
+                      onClick={handleSaveAssumptions}
+                      disabled={assumptionsSaving}
+                      className="flex items-center gap-1.5 rounded-xl bg-[#b10000] px-4 py-2 text-[12px] font-semibold text-white shadow-sm transition hover:bg-[#950000] disabled:opacity-50"
+                    >
+                      <Save className="h-3.5 w-3.5" />
+                      {assumptionsSaving
+                        ? "Saving…"
+                        : assumptionsMode === "defaults"
+                          ? "Save Restaurant Defaults"
+                          : "Save Branch Overrides"}
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
           )}
         </div>

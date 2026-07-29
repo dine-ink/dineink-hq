@@ -32,12 +32,18 @@ import {
   TruckIcon,
   ClipboardDocumentCheckIcon,
   ScaleIcon,
+  DocumentTextIcon,
+  ChartBarSquareIcon,
+  BeakerIcon,
+  PresentationChartLineIcon,
+  BuildingLibraryIcon,
+  Squares2X2Icon,
+  SparklesIcon,
 } from "@heroicons/react/24/outline";
 import { useAppDispatch, useAppSelector } from "../store";
 import { setSelectedBranch } from "../store/slices/branchSlice";
 import { setPreset, setCustomRange } from "../store/slices/dateRangeSlice";
 import type { Preset } from "../store/slices/dateRangeSlice";
-import { generateAndDownloadFullReport } from "../utils/generateFullReport";
 
 const NAV = [
   { name: "Dashboard", href: "/dashboard", icon: HomeIcon },
@@ -51,7 +57,46 @@ const NAV = [
   },
   { name: "Insights", href: "/dashboard/insights", icon: ChartBarIcon },
   { name: "Reports", href: "/dashboard/reports", icon: DocumentChartBarIcon },
-  { name: "Stock Audit", href: "/dashboard/daily-stock-audit", icon: ClipboardDocumentCheckIcon },
+  {
+    name: "Financial Statements",
+    href: "/dashboard/financial-statements",
+    icon: DocumentTextIcon,
+  },
+  {
+    name: "Budget vs Actual",
+    href: "/dashboard/budget",
+    icon: ChartBarSquareIcon,
+  },
+  {
+    name: "Scenario Analysis",
+    href: "/dashboard/scenario-analysis",
+    icon: BeakerIcon,
+  },
+  {
+    name: "Forecasting",
+    href: "/dashboard/forecasting",
+    icon: PresentationChartLineIcon,
+  },
+  {
+    name: "Investment Analysis",
+    href: "/dashboard/investment-analysis",
+    icon: BuildingLibraryIcon,
+  },
+  {
+    name: "Executive Dashboard",
+    href: "/dashboard/executive",
+    icon: Squares2X2Icon,
+  },
+  {
+    name: "AI Financial Advisor",
+    href: "/dashboard/ai-advisor",
+    icon: SparklesIcon,
+  },
+  {
+    name: "Stock Audit",
+    href: "/dashboard/daily-stock-audit",
+    icon: ClipboardDocumentCheckIcon,
+  },
   { name: "Attendance", href: "/dashboard/attendance", icon: CalendarDaysIcon },
   { name: "Cash", href: "/dashboard/cash", icon: BanknotesIcon },
   { name: "Vendors", href: "/dashboard/vendors", icon: TruckIcon },
@@ -120,6 +165,12 @@ export default function DashboardLayout() {
     if (!user?.restaurantId || !selectedBranch?.id || !token) return;
     try {
       setDownloading(true);
+      // Dynamically imported — jszip/jspdf/exceljs (pulled in transitively
+      // via generateFullReport.ts) are only fetched when a download is
+      // actually requested, instead of being forced into every dashboard
+      // page's bundle just because this layout wraps all of them.
+      const { generateAndDownloadFullReport } =
+        await import("../utils/generateFullReport");
       await generateAndDownloadFullReport({
         restaurantName: user?.name || "Restaurant",
         branchName: selectedBranch?.name || "Branch",
@@ -148,7 +199,7 @@ export default function DashboardLayout() {
       >
         <DialogBackdrop className="fixed inset-0 bg-black/50 backdrop-blur-sm" />
         <div className="fixed inset-0 flex">
-          <DialogPanel className="relative flex w-72 flex-col bg-gradient-to-b from-red-600 via-red-500 to-rose-600 pt-5 pb-4">
+          <DialogPanel className="relative flex w-72 flex-col bg-[#b10000] pt-5 pb-4">
             <div className="absolute top-3 right-3">
               <button
                 onClick={() => setSidebarOpen(false)}
@@ -182,7 +233,7 @@ export default function DashboardLayout() {
 
       {/* ── DESKTOP SIDEBAR ────────────────────────────────── */}
       <div
-        className={`hidden lg:fixed lg:inset-y-0 lg:z-30 lg:flex lg:flex-col transition-all duration-300 ${collapsed ? "lg:w-[60px]" : "lg:w-[152px]"}`}
+        className={`hidden lg:fixed lg:inset-y-0 lg:z-30 lg:flex lg:flex-col transition-all duration-300 ${collapsed ? "lg:w-[60px]" : "lg:w-[192px]"}`}
       >
         <div className="relative flex h-full flex-col overflow-hidden bg-[#b10000]">
           {/* <div className="pointer-events-none absolute -top-16 -left-8 h-48 w-48 rounded-full bg-white/10 blur-3xl" />
@@ -300,7 +351,7 @@ export default function DashboardLayout() {
 
       {/* ── MAIN AREA ──────────────────────────────────────── */}
       <div
-        className={`flex h-screen flex-col overflow-hidden transition-all duration-300 ${collapsed ? "lg:pl-[60px]" : "lg:pl-[152px]"}`}
+        className={`flex h-screen flex-col overflow-hidden transition-all duration-300 ${collapsed ? "lg:pl-[60px]" : "lg:pl-[192px]"}`}
       >
         {/* TOP BAR */}
         <header className="relative z-20 shrink-0 bg-[#b10000] shadow-sm">

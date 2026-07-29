@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useAppSelector, useAppDispatch } from "../../store";
 import { setBranches } from "../../store/slices/branchSlice";
 import { clearAuth } from "../../store/slices/authSlice";
-import { State, City } from "country-state-city";
+import { getIndianCitiesForState, getIndianStates } from "../../utils/indiaLocations";
 import {
   BuildingStorefrontIcon,
   LockClosedIcon,
@@ -113,6 +113,8 @@ export default function Settings() {
 
   const { user, token } = useAppSelector((s) => s.auth);
   const dispatch = useAppDispatch();
+  const [indiaStates, setIndiaStates] = useState<{ isoCode: string; name: string }[]>([]);
+  const [newBranchCities, setNewBranchCities] = useState<{ name: string }[]>([]);
 
   useEffect(() => {
     fetchSettings();
@@ -120,6 +122,17 @@ export default function Settings() {
   useEffect(() => {
     setLogoError(false);
   }, [data?.logo]);
+  // Loaded on demand — country-state-city bundles a full world cities/states
+  // database, only fetched once this page mounts, not by every page that
+  // happens to share a chunk with it.
+  useEffect(() => {
+    getIndianStates().then(setIndiaStates);
+  }, []);
+  useEffect(() => {
+    const st = indiaStates.find((s) => s.name === newBranch.state);
+    if (st) getIndianCitiesForState(st.isoCode).then(setNewBranchCities);
+    else setNewBranchCities([]);
+  }, [indiaStates, newBranch.state]);
 
   const fetchSettings = async () => {
     try {
@@ -688,7 +701,7 @@ export default function Settings() {
                             className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-[13px] outline-none focus:border-red-400"
                           >
                             <option value="">Select state</option>
-                            {State.getStatesOfCountry("IN").map((s) => (
+                            {indiaStates.map((s) => (
                               <option key={s.isoCode} value={s.name}>
                                 {s.name}
                               </option>
@@ -710,21 +723,11 @@ export default function Settings() {
                                 ? "Select city"
                                 : "Select state first"}
                             </option>
-                            {newBranch.state &&
-                              (() => {
-                                const st = State.getStatesOfCountry("IN").find(
-                                  (s) => s.name === newBranch.state,
-                                );
-                                return st
-                                  ? City.getCitiesOfState("IN", st.isoCode).map(
-                                      (c) => (
-                                        <option key={c.name} value={c.name}>
-                                          {c.name}
-                                        </option>
-                                      ),
-                                    )
-                                  : null;
-                              })()}
+                            {newBranchCities.map((c) => (
+                              <option key={c.name} value={c.name}>
+                                {c.name}
+                              </option>
+                            ))}
                           </select>
                         </div>
                         <div className="xl:col-span-3">

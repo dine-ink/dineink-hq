@@ -15,6 +15,11 @@ export interface FullReportData {
   forecast: any;
   rfm: any;
   insightsData: any;
+  /** Canonical EBITDA/Prime Cost/Net Profit/Break-even for the report's date
+   * range — from the shared finance.formulas.ts engine (finance.service.ts's
+   * FinancialSummary), the same numbers shown on Dashboard/Insights/Branch
+   * Comparison. Reports should read these instead of recomputing locally. */
+  financeSummary: any;
   inventoryAdjustments: any[];
   staffProductivity: any;
   tableOps: any;
@@ -57,6 +62,7 @@ export async function fetchAllReportData(params: {
     fetch(`${apiUrl}/api/analytics/${restaurantId}/revenue-forecast?${bp}`, { headers: h }),
     fetch(`${apiUrl}/api/analytics/${restaurantId}/customer-rfm?${bp}`, { headers: h }),
     fetch(`${apiUrl}/api/analytics/insights/${restaurantId}/${branchId}`, { headers: h }),
+    fetch(`${apiUrl}/api/finance/${restaurantId}/${branchId}/summary?period=custom&${dr}`, { headers: h }),
     fetch(`${apiUrl}/api/inventory/adjustments?${bp}&${dr}`, { headers: h }),
     fetch(`${apiUrl}/api/analytics/${restaurantId}/staff-productivity?${bp}&${dr}`, { headers: h }),
     fetch(`${apiUrl}/api/analytics/${restaurantId}/${branchId}/table-operations?${dr}`, { headers: h }),
@@ -72,6 +78,7 @@ export async function fetchAllReportData(params: {
     analyticsJson, billsJson, expensesJson, customersJson, menuJson,
     kitchenJson, attendanceJson, staffJson, cashJson,
     branchCmpJson, cityCmpJson, heatmapJson, forecastJson, rfmJson, insightsJson,
+    financeSummaryJson,
     adjustmentsJson, productivityJson,
     tableOpsJson, menuEngineeringJson, vendorOutstandingJson, restockHistoryJson,
     vendorPerformanceJson,
@@ -94,6 +101,7 @@ export async function fetchAllReportData(params: {
     forecast:             forecastJson.success        ? forecastJson.data        : {},
     rfm:                  rfmJson.success             ? rfmJson.data             : {},
     insightsData:         insightsJson.success        ? insightsJson.data        : {},
+    financeSummary:       financeSummaryJson.success  ? financeSummaryJson.data  : null,
     inventoryAdjustments: adjustmentsJson.success     ? adjustmentsJson.data || [] : [],
     staffProductivity:    productivityJson.success    ? productivityJson.data    : {},
     tableOps:             tableOpsJson.success        ? tableOpsJson.data        : {},

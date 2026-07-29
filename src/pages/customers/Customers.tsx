@@ -644,7 +644,11 @@ export default function Customers() {
                     newCustomersThisMonth > 0
                       ? `₹${Math.round(cac).toLocaleString()}`
                       : "—",
-                  sub: "marketing spend ÷ new customers (MTD)",
+                  // Customer records aren't tied to a single branch (a
+                  // customer can visit any branch), so "new customers" here
+                  // is always restaurant-wide, even while every other card
+                  // on this page is scoped to the selected branch.
+                  sub: "marketing spend ÷ new customers (restaurant-wide, MTD)",
                   cls: "border-orange-100 bg-orange-50/60",
                   val: "text-orange-700",
                 },
@@ -654,8 +658,8 @@ export default function Customers() {
                     ltvCacRatio !== null ? `${ltvCacRatio.toFixed(1)}x` : "—",
                   sub:
                     ltvCacRatio !== null && ltvCacRatio < 3
-                      ? "below healthy 3x benchmark"
-                      : "lifetime value vs. acquisition cost",
+                      ? "below healthy 3x benchmark · LTV is branch-scoped, CAC is restaurant-wide"
+                      : "branch-scoped LTV vs. restaurant-wide CAC",
                   cls: "border-blue-100 bg-blue-50/60",
                   val: "text-blue-700",
                 },

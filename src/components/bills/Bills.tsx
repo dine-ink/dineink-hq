@@ -27,7 +27,8 @@ export default function Bills() {
     const controller = new AbortController();
     fetchBills(controller.signal);
     return () => controller.abort();
-  }, [selectedBranch?.id]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedBranch?.id, dateFrom, dateTo]);
 
   const fetchBills = async (signal?: AbortSignal) => {
     if (!selectedBranch?.id || !user?.restaurantId) {
@@ -36,8 +37,18 @@ export default function Bills() {
     }
     try {
       setLoading(true);
+      // The date filter below used to be purely client-side, re-filtering
+      // whatever the backend happened to return — but the backend had no
+      // date bound of its own and was capped to the 200 most recent bills,
+      // so a selected range earlier than that cutoff would silently show
+      // nothing rather than the real (missing) data. Passing from/to
+      // through makes the backend apply a real date filter instead.
+      const params = new URLSearchParams();
+      if (dateFrom) params.set("from", dateFrom);
+      if (dateTo) params.set("to", dateTo);
+      const qs = params.toString();
       const res = await fetch(
-        `${API_URL}/api/bills/${user.restaurantId}/${selectedBranch.id}/branchwise`,
+        `${API_URL}/api/bills/${user.restaurantId}/${selectedBranch.id}/branchwise${qs ? `?${qs}` : ""}`,
         { signal, headers: { Authorization: `Bearer ${token}` } },
       );
       const data = await res.json();
@@ -79,9 +90,18 @@ export default function Bills() {
   const activeBills = filtered.filter(
     (b) => (b.paymentStatus || b.status) !== "CANCELLED",
   );
-  const totalSales = activeBills.reduce((s, b) => s + (b.total || 0), 0);
-  const avgBill = activeBills.length
-    ? Math.round(totalSales / activeBills.length)
+  // Revenue/Avg Bill must count only PAID bills — matching the definition
+  // used everywhere else in the app (Finance Engine, Dashboard, Insights).
+  // "Bills" (activeBills.length below) intentionally still includes
+  // unpaid/pending transactions and in-progress kitchen orders, since this
+  // page's own job is showing what needs to be collected/completed, not
+  // just what's already been paid.
+  const paidBills = filtered.filter(
+    (b) => (b.paymentStatus || b.status) === "PAID",
+  );
+  const totalSales = paidBills.reduce((s, b) => s + (b.total || 0), 0);
+  const avgBill = paidBills.length
+    ? Math.round(totalSales / paidBills.length)
     : 0;
 
   const AVATAR_GRADS = [

@@ -8,7 +8,7 @@ import {
   XMarkIcon,
   CameraIcon,
 } from "@heroicons/react/24/outline";
-import { State, City } from "country-state-city";
+import { getIndianCitiesForState, getIndianStates } from "../../utils/indiaLocations";
 
 const INPUT_BASE =
   "w-full rounded-xl border bg-white px-3 py-2 text-sm outline-none transition-all";
@@ -68,6 +68,8 @@ export default function Shops() {
   const logoInputRef = useRef<HTMLInputElement>(null);
   const rowsPerPage = 6;
   const [tablesPage, setTablesPage] = useState(1);
+  const [states, setStates] = useState<{ isoCode: string; name: string }[]>([]);
+  const [cities, setCities] = useState<{ name: string }[]>([]);
 
   useEffect(() => {
     if (selectedBranch?.id) {
@@ -78,6 +80,17 @@ export default function Shops() {
   useEffect(() => {
     setLogoError(false);
   }, [branchDetails?.restaurant?.logo]);
+  // Loaded on demand (not a static import) — country-state-city bundles a
+  // full world cities/states database, only fetched once the state/city
+  // dropdown is actually needed (edit mode).
+  useEffect(() => {
+    if (editMode && states.length === 0) getIndianStates().then(setStates);
+  }, [editMode, states.length]);
+  useEffect(() => {
+    const stateObj = states.find((s) => s.name === branchDetails?.state);
+    if (stateObj) getIndianCitiesForState(stateObj.isoCode).then(setCities);
+    else setCities([]);
+  }, [states, branchDetails?.state]);
 
   const fetchBranchDetails = async (branchId: number) => {
     try {
@@ -259,9 +272,7 @@ export default function Shops() {
   const billing = branchDetails?.billing || {};
 
   // Linked state dropdown helpers
-  const stateObj = State.getStatesOfCountry("IN").find(
-    (s) => s.name === branchDetails?.state,
-  );
+  const stateObj = states.find((s) => s.name === branchDetails?.state);
 
   if (loading)
     return (
@@ -427,7 +438,7 @@ export default function Shops() {
                   className={INPUT_EDIT}
                 >
                   <option value="">Select state</option>
-                  {State.getStatesOfCountry("IN").map((s) => (
+                  {states.map((s) => (
                     <option key={s.isoCode} value={s.name}>
                       {s.name}
                     </option>
@@ -461,12 +472,11 @@ export default function Shops() {
                       ? "Select city"
                       : "Select state first"}
                   </option>
-                  {stateObj &&
-                    City.getCitiesOfState("IN", stateObj.isoCode).map((c) => (
-                      <option key={c.name} value={c.name}>
-                        {c.name}
-                      </option>
-                    ))}
+                  {cities.map((c) => (
+                    <option key={c.name} value={c.name}>
+                      {c.name}
+                    </option>
+                  ))}
                 </select>
               ) : (
                 <input

@@ -370,7 +370,7 @@ export async function generatePDFReport(
     kitchenData, attendance, allStaff, cashSessions,
     branchComparison, cityComparison, heatmap, forecast, rfm, insightsData, inventoryAdjustments,
     tableOps, menuEngineering, vendorOutstanding, restockHistory,
-    staffProductivity, vendorPerformance,
+    staffProductivity, vendorPerformance, financeSummary,
   } = data;
 
   // ── Pre-compute shared numbers ─────────────────────────────────────────────
@@ -384,23 +384,34 @@ export async function generatePDFReport(
 
   const ins = insightsData || {};
   const n   = (v: any) => Number(v || 0);
-  const fixedExp  = n(ins.monthlyRent) + n(ins.loanEmi) + n(ins.internet) + n(ins.phoneBills) + n(ins.accounting) + n(ins.insurance) + n(ins.licenses);
-  const varExp    = n(ins.deliveryCharges) + n(ins.packaging) + n(ins.paymentGateway) + n(ins.aggregatorCommission) + n(ins.electricity) + n(ins.gas) + n(ins.maintenance) + n(ins.fuel);
-  const labourExp = allStaff.reduce((s: number, st: any) => s + n(st.salary), 0);
-  const finExp    = n(ins.monthlyLoanEmi) + n(ins.monthlyInterestPayments) + n(ins.caFees) + n(ins.insuranceCost) + n(ins.otherTaxes);
+  // Canonical figures from the shared finance engine (finance.formulas.ts) —
+  // same numbers as Dashboard/Insights/Branch Comparison. Every cost figure
+  // below (not just EBITDA%) now prefers it, so no table in this document
+  // mixes canonical and locally-re-derived numbers for the same document —
+  // previously EBITDA%/margin were finance-engine-sourced while the Expense
+  // Breakdown, Raw Material/Food Cost line, and EBITDA Scenario Planning
+  // table always used the local estimate even when the fetch had succeeded.
+  const fin = financeSummary?.current;
   // Same priority as Insights.tsx: manual entry → live inventory stock value
   const inventoryStockValue = (data.ingredients || []).reduce(
     (sum: number, ing: any) => sum + n(ing.quantity) * n(ing.pricePerUnit), 0,
   );
-  const foodExp = n(ins.manualFoodCost) > 0
+  const localFoodExp = n(ins.manualFoodCost) > 0
     ? n(ins.manualFoodCost)
     : inventoryStockValue > 0
       ? inventoryStockValue
       : 0;
-  const insRev    = n(ins.revenue) || totalRev;
+  const fixedExp  = fin ? fin.fixedExpenses : (n(ins.monthlyRent) + n(ins.loanEmi) + n(ins.internet) + n(ins.phoneBills) + n(ins.accounting) + n(ins.insurance) + n(ins.licenses));
+  const varExp    = fin ? fin.variableExpenses : (n(ins.deliveryCharges) + n(ins.packaging) + n(ins.paymentGateway) + n(ins.aggregatorCommission) + n(ins.electricity) + n(ins.gas) + n(ins.maintenance) + n(ins.fuel));
+  const labourExp = fin ? fin.labourCost : allStaff.reduce((s: number, st: any) => s + n(st.salary), 0);
+  const finExp    = fin ? fin.financeCost : (n(ins.monthlyLoanEmi) + n(ins.monthlyInterestPayments) + n(ins.caFees) + n(ins.insuranceCost) + n(ins.otherTaxes));
+  const foodExp   = fin ? fin.foodCost : localFoodExp;
   const totalCosts = fixedExp + varExp + labourExp + finExp + foodExp;
-  const ebitdaAmt  = insRev - totalCosts;
-  const ebitdaPct  = insRev > 0 ? ((ebitdaAmt / insRev) * 100).toFixed(1) : "0";
+  const insRev    = fin ? fin.revenue : (n(ins.revenue) || totalRev);
+  const ebitdaAmt  = fin ? fin.ebitda : insRev - totalCosts;
+  const ebitdaPct  = fin ? fin.ebitdaPercentage.toFixed(1) : (insRev > 0 ? ((ebitdaAmt / insRev) * 100).toFixed(1) : "0");
+  // Target EBITDA — from FinancialAssumptions (via financeSummary.targets) once available.
+  const targetEbitda = financeSummary?.targets?.targetEbitda ?? n(ins.targetEbitda);
 
   // customers
   const now = Date.now();
@@ -446,22 +457,22 @@ export async function generatePDFReport(
   //  (same formulas as Insights.tsx / Customers.tsx — kept in sync with those pages)
   // ══════════════════════════════════════════════════════════════════════════
 
-  // Prime Cost, Gross Profit, Labour Cost %
-  const primeCost = foodExp + labourExp;
-  const primeCostPct = insRev > 0 ? ((primeCost / insRev) * 100).toFixed(1) : "0";
-  const grossProfit = insRev - foodExp;
-  const grossProfitPct = insRev > 0 ? ((grossProfit / insRev) * 100).toFixed(1) : "0";
-  const labourCostPct = insRev > 0 ? ((labourExp / insRev) * 100).toFixed(1) : "0";
+  // Prime Cost, Gross Profit, Labour Cost % — from the shared finance engine
+  const primeCost = fin ? fin.primeCost : foodExp + labourExp;
+  const primeCostPct = fin ? fin.primeCostPercentage.toFixed(1) : (insRev > 0 ? ((primeCost / insRev) * 100).toFixed(1) : "0");
+  const grossProfit = fin ? fin.grossProfit : insRev - foodExp;
+  const grossProfitPct = fin ? fin.grossProfitMarginPercentage.toFixed(1) : (insRev > 0 ? ((grossProfit / insRev) * 100).toFixed(1) : "0");
+  const labourCostPct = fin ? fin.labourCostPercentage.toFixed(1) : (insRev > 0 ? ((labourExp / insRev) * 100).toFixed(1) : "0");
 
   // Break-Even Sales — Fixed Costs / Contribution Margin % (labour + finance treated as fixed)
   const beFixedCosts = fixedExp + labourExp + finExp;
   const beVariableCosts = varExp + foodExp;
-  const contributionMargin = insRev - beVariableCosts;
-  const contributionMarginPct = insRev > 0 ? contributionMargin / insRev : 0;
-  const breakEvenSales = contributionMarginPct > 0 ? beFixedCosts / contributionMarginPct : totalCosts;
+  const contributionMargin = fin ? fin.contributionMargin : insRev - beVariableCosts;
+  const contributionMarginPct = fin ? fin.contributionMarginPercentage / 100 : (insRev > 0 ? contributionMargin / insRev : 0);
+  const breakEvenSales = fin ? (fin.breakEvenRevenue ?? totalCosts) : (contributionMarginPct > 0 ? beFixedCosts / contributionMarginPct : totalCosts);
   const avgOrderValue = activeBills.length ? totalRev / activeBills.length : 0;
   const contributionPerOrder = avgOrderValue * contributionMarginPct;
-  const breakEvenOrders = contributionPerOrder > 0 ? Math.ceil(beFixedCosts / contributionPerOrder) : null;
+  const breakEvenOrders = fin ? fin.breakEvenOrders : (contributionPerOrder > 0 ? Math.ceil(beFixedCosts / contributionPerOrder) : null);
 
   // Delivery / Aggregator Commission %
   const revByOrderType = analytics?.revenueByOrderType || {};
@@ -588,8 +599,8 @@ export async function generatePDFReport(
   let y = 100;
   y = kpiGrid(doc, [
     { label: "Total Revenue",   value: RS(totalRev),       sub: `${activeBills.length} orders`, accent: C.brand },
-    { label: "Net Profit",      value: RS(totalRev - totalGST - totalExp), sub: `${margin}% margin`,   accent: Number(margin) >= 0 ? C.green : C.brand },
-    { label: "EBITDA",          value: `${ebitdaPct}%`,    sub: `target ${n(ins.targetEbitda) || 0}%`, accent: Number(ebitdaPct) >= n(ins.targetEbitda) ? C.green : C.brand },
+    { label: "Net Profit",      value: RS(fin ? fin.netProfit : totalRev - totalGST - totalExp), sub: `${margin}% margin`,   accent: Number(margin) >= 0 ? C.green : C.brand },
+    { label: "EBITDA",          value: `${ebitdaPct}%`,    sub: `target ${targetEbitda || 0}%`, accent: Number(ebitdaPct) >= targetEbitda ? C.green : C.brand },
     { label: "Avg Order Value", value: RS(activeBills.length ? totalRev / activeBills.length : 0), sub: "per transaction", accent: C.blue },
     { label: "Customers",       value: String(customers.length), sub: `${repeatC} returning`, accent: C.purple },
     { label: "Total GST",       value: RS(totalGST),        sub: "CGST + SGST",         accent: C.amber },
@@ -1219,5 +1230,5 @@ export async function generatePDFReport(
     pageFooter(doc, p, total, meta);
   }
 
-  return doc.output("arraybuffer") as Uint8Array;
+  return new Uint8Array(doc.output("arraybuffer") as ArrayBuffer);
 }

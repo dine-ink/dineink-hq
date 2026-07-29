@@ -5,26 +5,62 @@ import {
   Users,
   Clock3,
   TrendingUp,
+  TrendingDown,
+  Minus,
 } from "lucide-react";
+
+type RatioRow = {
+  key: string;
+  monthly: number | null;
+  previousMonth: number | null;
+  variancePercentage: number | null;
+  target: number | null;
+  achievementPercentage: number | null;
+  trendDirection: "up" | "down" | "flat" | null;
+  unit: "currency" | "percentage";
+};
 
 type Props = {
   analytics?: any;
+  /** Finance-Engine-sourced revenue for the currently selected date range (GET /api/finance/.../summary) — preferred over analytics.totalRevenue, which is an independent, separately-computed figure from analytics.service.ts. */
+  revenue?: number | null;
   ebitda?: number | null;
   ebitdaPct?: number | null;
+  /** Ratio/Period Engine rows (GET /api/finance/:restaurantId/:branchId/ratios) — enriches the Revenue/EBITDA cards with previous-period, target, achievement %, and trend when supplied. */
+  ratios?: RatioRow[];
+  /** Drill-down — navigates to the full Financial Statements view when a finance-engine-backed card is clicked. */
+  onDrillDown?: () => void;
 };
 
-export default function AnalyticsOverview({ analytics, ebitda, ebitdaPct }: Props) {
+const TrendIcon = ({ direction }: { direction: "up" | "down" | "flat" | null }) => {
+  if (direction === "up") return <TrendingUp className="h-3 w-3" />;
+  if (direction === "down") return <TrendingDown className="h-3 w-3" />;
+  return <Minus className="h-3 w-3" />;
+};
+
+export default function AnalyticsOverview({ analytics, revenue, ebitda, ebitdaPct, ratios, onDrillDown }: Props) {
   const ebitdaPositive = ebitda == null || ebitda >= 0;
+  const revenueRatio = ratios?.find((r) => r.key === "revenue");
+  const ebitdaRatio = ratios?.find((r) => r.key === "ebitdaPercentage");
+
+  const trendColor = (direction: "up" | "down" | "flat" | null, higherIsBetter: boolean) => {
+    if (direction === "flat" || direction === null) return "text-gray-400";
+    const isGood = higherIsBetter ? direction === "up" : direction === "down";
+    return isGood ? "text-emerald-600" : "text-red-500";
+  };
 
   const stats = [
     {
       name: "Revenue",
-      value: `₹${Math.round(analytics?.totalRevenue || 0).toLocaleString()}`,
+      value: `₹${Math.round(revenue ?? analytics?.totalRevenue ?? 0).toLocaleString()}`,
       icon: IndianRupee,
       accent: "bg-red-500",
       iconBg: "bg-red-50",
       iconColor: "text-[#b10000]",
       sub: "Total earnings",
+      ratio: revenueRatio,
+      higherIsBetter: true,
+      clickable: !!onDrillDown,
     },
     {
       name: "Orders",
@@ -74,6 +110,9 @@ export default function AnalyticsOverview({ analytics, ebitda, ebitdaPct }: Prop
         : ebitdaPct != null
           ? `${ebitdaPct > 0 ? "+" : ""}${ebitdaPct.toFixed(1)}% margin`
           : ebitdaPositive ? "Profitable period" : "Loss period",
+      ratio: ebitdaRatio,
+      higherIsBetter: true,
+      clickable: !!onDrillDown,
     },
   ];
 
@@ -99,10 +138,12 @@ export default function AnalyticsOverview({ analytics, ebitda, ebitdaPct }: Prop
       <div className="grid grid-cols-2 xl:grid-cols-6">
         {stats.map((stat, index) => {
           const Icon = stat.icon;
+          const ratio = (stat as any).ratio as RatioRow | undefined;
           return (
             <div
               key={stat.name}
-              className={`relative px-3 py-3 ${
+              onClick={stat.clickable ? onDrillDown : undefined}
+              className={`relative px-3 py-3 ${stat.clickable ? "cursor-pointer transition hover:bg-gray-50" : ""} ${
                 index !== stats.length - 1
                   ? "border-b border-gray-100 xl:border-b-0 xl:border-r"
                   : ""
@@ -135,6 +176,25 @@ export default function AnalyticsOverview({ analytics, ebitda, ebitdaPct }: Prop
               {/* FOOTER */}
               <div className="mt-2 pl-2">
                 <p className="text-[10px] text-gray-400">{stat.sub}</p>
+                {ratio && (
+                  <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                    {ratio.variancePercentage != null && (
+                      <span
+                        className={`flex items-center gap-0.5 text-[9px] font-semibold ${trendColor(ratio.trendDirection, (stat as any).higherIsBetter)}`}
+                      >
+                        <TrendIcon direction={ratio.trendDirection} />
+                        {ratio.variancePercentage > 0 ? "+" : ""}
+                        {ratio.variancePercentage.toFixed(1)}% vs last month
+                      </span>
+                    )}
+                    {ratio.target != null && (
+                      <span className="text-[9px] text-gray-400">
+                        Target {ratio.unit === "percentage" ? `${ratio.target}%` : `₹${Math.round(ratio.target).toLocaleString()}`}
+                        {ratio.achievementPercentage != null ? ` · ${ratio.achievementPercentage.toFixed(0)}%` : ""}
+                      </span>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           );

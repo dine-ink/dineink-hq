@@ -1,0 +1,461 @@
+import { useEffect, useState } from "react";
+import { Plus, Copy, Save, ArrowLeft, Archive, CheckCircle2 } from "lucide-react";
+import { useAppSelector } from "../../store";
+import { BUDGET_CATEGORIES, BUDGET_CATEGORY_GROUPS, MONTH_NAMES, fyMonths } from "./budgetCategories";
+
+const currentFyStartYear = () => {
+  const now = new Date();
+  return now.getMonth() >= 3 ? now.getFullYear() : now.getFullYear() - 1;
+};
+
+export default function BudgetsTab() {
+  const { branches } = useAppSelector((s) => s.branch);
+  const { user, token } = useAppSelector((s) => s.auth);
+  const API_URL = import.meta.env.VITE_API_URL;
+
+  const [budgets, setBudgets] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [view, setView] = useState<"list" | "create" | "edit">("list");
+  const [selectedBudget, setSelectedBudget] = useState<any>(null);
+  const [gridValues, setGridValues] = useState<Record<string, number | "">>({});
+  const [saving, setSaving] = useState(false);
+
+  // Create-form state
+  const [formName, setFormName] = useState("");
+  const [formFy, setFormFy] = useState(String(currentFyStartYear()));
+  const [formBranchId, setFormBranchId] = useState<string>("restaurant");
+  const [formDefaults, setFormDefaults] = useState<Record<string, string>>({});
+
+  const fetchBudgets = async () => {
+    if (!user?.restaurantId) return;
+    setLoading(true);
+    try {
+      const res = await fetch(`${API_URL}/api/budgets/${user.restaurantId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const json = await res.json();
+      if (json.success) setBudgets(json.data);
+    } catch {
+      // fetch error — silently ignored
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchBudgets();
+  }, [user?.restaurantId]);
+
+  const openCreate = () => {
+    setFormName("");
+    setFormFy(String(currentFyStartYear()));
+    setFormBranchId("restaurant");
+    setFormDefaults({});
+    setView("create");
+  };
+
+  const handleCreate = async () => {
+    if (!formName.trim()) {
+      alert("Please enter a budget name");
+      return;
+    }
+    setSaving(true);
+    try {
+      const monthlyDefaults: Record<string, number> = {};
+      Object.entries(formDefaults).forEach(([k, v]) => {
+        const n = Number(v);
+        if (v !== "" && Number.isFinite(n)) monthlyDefaults[k] = n;
+      });
+      const res = await fetch(`${API_URL}/api/budgets/${user.restaurantId}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          name: formName.trim(),
+          financialYear: formFy,
+          branchId: formBranchId === "restaurant" ? null : Number(formBranchId),
+          monthlyDefaults,
+        }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        await fetchBudgets();
+        openDetail(json.data);
+      } else {
+        alert(json.message || "Failed to create budget");
+      }
+    } catch {
+      alert("Failed to create budget");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const openDetail = (budget: any) => {
+    setSelectedBudget(budget);
+    const values: Record<string, number | ""> = {};
+    (budget.items || []).forEach((item: any) => {
+      values[`${item.category}:${item.year}:${item.month}`] = item.amount;
+    });
+    setGridValues(values);
+    setView("edit");
+  };
+
+  const handleOpenBudget = async (budgetId: number) => {
+    try {
+      const res = await fetch(`${API_URL}/api/budgets/${user.restaurantId}/${budgetId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const json = await res.json();
+      if (json.success) openDetail(json.data);
+    } catch {
+      // fetch error — silently ignored
+    }
+  };
+
+  const handleGridChange = (category: string, year: number, month: number, value: string) => {
+    setGridValues((prev) => ({ ...prev, [`${category}:${year}:${month}`]: value === "" ? "" : Number(value) }));
+  };
+
+  const handleSaveGrid = async () => {
+    if (!selectedBudget) return;
+    setSaving(true);
+    try {
+      const items = Object.entries(gridValues)
+        .filter(([, v]) => v !== "")
+        .map(([key, amount]) => {
+          const [category, year, month] = key.split(":");
+          return { category, year: Number(year), month: Number(month), amount: Number(amount) };
+        });
+      const res = await fetch(`${API_URL}/api/budgets/${user.restaurantId}/${selectedBudget.id}/items`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ items }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        setSelectedBudget(json.data);
+        await fetchBudgets();
+      } else {
+        alert(json.message || "Failed to save");
+      }
+    } catch {
+      alert("Failed to save budget items");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleSetStatus = async (status: "PUBLISHED" | "ARCHIVED" | "DRAFT") => {
+    if (!selectedBudget) return;
+    try {
+      const res = await fetch(`${API_URL}/api/budgets/${user.restaurantId}/${selectedBudget.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ status }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        setSelectedBudget(json.data);
+        await fetchBudgets();
+      }
+    } catch {
+      // save error — silently ignored
+    }
+  };
+
+  const handleDuplicate = async (budgetId: number) => {
+    try {
+      const res = await fetch(`${API_URL}/api/budgets/${user.restaurantId}/${budgetId}/duplicate`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({}),
+      });
+      const json = await res.json();
+      if (json.success) {
+        await fetchBudgets();
+        openDetail(json.data);
+      }
+    } catch {
+      // duplicate error — silently ignored
+    }
+  };
+
+  const handleCopyToNextYear = async (budget: any) => {
+    try {
+      const nextFy = String(Number(budget.financialYear) + 1);
+      const res = await fetch(`${API_URL}/api/budgets/${user.restaurantId}/${budget.id}/duplicate`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ financialYear: nextFy, name: `${budget.name} (FY${nextFy})` }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        await fetchBudgets();
+        openDetail(json.data);
+      }
+    } catch {
+      // copy error — silently ignored
+    }
+  };
+
+  const statusBadge = (status: string) => {
+    const styles: Record<string, string> = {
+      DRAFT: "bg-gray-100 text-gray-600",
+      PUBLISHED: "bg-emerald-100 text-emerald-700",
+      ARCHIVED: "bg-amber-100 text-amber-700",
+    };
+    return (
+      <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${styles[status] || styles.DRAFT}`}>
+        {status}
+      </span>
+    );
+  };
+
+  // ── LIST VIEW ──────────────────────────────────────────────────────────
+  if (view === "list") {
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h3 className="text-[16px] font-bold text-gray-900">Budgets</h3>
+          <button
+            type="button"
+            onClick={openCreate}
+            className="flex items-center gap-1.5 rounded-xl bg-[#b10000] px-4 py-2 text-[12px] font-semibold text-white shadow-sm transition hover:bg-[#950000]"
+          >
+            <Plus className="h-3.5 w-3.5" /> Create Budget
+          </button>
+        </div>
+
+        {loading ? (
+          <div className="flex h-40 items-center justify-center text-[12px] text-gray-400">Loading…</div>
+        ) : budgets.length === 0 ? (
+          <div className="flex h-40 items-center justify-center rounded-xl border border-dashed border-gray-200 bg-gray-50 text-[12px] text-gray-400">
+            No budgets yet — create one to get started.
+          </div>
+        ) : (
+          <div className="overflow-hidden rounded-xl border border-gray-200">
+            <table className="w-full text-[12px]">
+              <thead className="bg-gray-50 text-[10px] font-bold uppercase tracking-wide text-gray-500">
+                <tr>
+                  <th className="px-4 py-2 text-left">Name</th>
+                  <th className="px-4 py-2 text-left">Scope</th>
+                  <th className="px-4 py-2 text-left">FY</th>
+                  <th className="px-4 py-2 text-left">Status</th>
+                  <th className="px-4 py-2 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {budgets.map((b) => (
+                  <tr key={b.id} className="border-t border-gray-100 hover:bg-gray-50/60">
+                    <td className="px-4 py-2.5">
+                      <button type="button" onClick={() => handleOpenBudget(b.id)} className="font-semibold text-gray-900 hover:text-[#b10000]">
+                        {b.name}
+                      </button>
+                    </td>
+                    <td className="px-4 py-2.5 text-gray-600">{b.branch?.name || "Restaurant-wide"}</td>
+                    <td className="px-4 py-2.5 text-gray-600">FY{b.financialYear}-{String(Number(b.financialYear) + 1).slice(-2)}</td>
+                    <td className="px-4 py-2.5">{statusBadge(b.status)}</td>
+                    <td className="px-4 py-2.5 text-right">
+                      <button
+                        type="button"
+                        onClick={() => handleDuplicate(b.id)}
+                        className="inline-flex items-center gap-1 rounded-lg border border-gray-200 px-2 py-1 text-[10px] font-semibold text-gray-600 hover:bg-gray-50"
+                      >
+                        <Copy className="h-3 w-3" /> Duplicate
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // ── CREATE VIEW ────────────────────────────────────────────────────────
+  if (view === "create") {
+    return (
+      <div className="space-y-4">
+        <button type="button" onClick={() => setView("list")} className="flex items-center gap-1 text-[12px] font-semibold text-gray-500 hover:text-gray-700">
+          <ArrowLeft className="h-3.5 w-3.5" /> Back to Budgets
+        </button>
+
+        <div className="rounded-xl border border-gray-200 bg-white p-4">
+          <h3 className="mb-4 text-[15px] font-bold text-gray-900">Create Budget</h3>
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+            <div>
+              <label className="mb-1 block text-[11px] font-medium text-gray-600">Budget Name</label>
+              <input
+                type="text"
+                value={formName}
+                onChange={(e) => setFormName(e.target.value)}
+                placeholder="e.g. FY26-27 Operating Budget"
+                className="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-sm outline-none focus:border-red-300 focus:bg-white"
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-[11px] font-medium text-gray-600">Financial Year (starting year)</label>
+              <input
+                type="number"
+                value={formFy}
+                onChange={(e) => setFormFy(e.target.value)}
+                className="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-sm outline-none focus:border-red-300 focus:bg-white"
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-[11px] font-medium text-gray-600">Scope</label>
+              <select
+                value={formBranchId}
+                onChange={(e) => setFormBranchId(e.target.value)}
+                className="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-sm outline-none focus:border-red-300 focus:bg-white"
+              >
+                <option value="restaurant">Restaurant-wide (all branches)</option>
+                {(branches || []).map((b: any) => (
+                  <option key={b.id} value={b.id}>{b.name}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <p className="mb-3 mt-5 text-[11px] text-gray-500">
+            Set a monthly default for each category — this auto-generates all 12 months. You can edit individual months afterward.
+          </p>
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
+            {BUDGET_CATEGORIES.map((cat) => (
+              <div key={cat.key}>
+                <label className="mb-1 block text-[11px] font-medium text-gray-600">{cat.label}</label>
+                <div className="relative">
+                  {cat.unit === "currency" && (
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-400">₹</span>
+                  )}
+                  <input
+                    type="number"
+                    value={formDefaults[cat.key] ?? ""}
+                    onChange={(e) => setFormDefaults((prev) => ({ ...prev, [cat.key]: e.target.value }))}
+                    placeholder="0"
+                    className={`w-full rounded-xl border border-gray-200 bg-gray-50 py-2 text-sm outline-none focus:border-red-300 focus:bg-white ${cat.unit === "currency" ? "pl-7 pr-3" : "px-3"}`}
+                  />
+                  {cat.unit === "percentage" && (
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[11px] text-gray-400">%</span>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-5 flex justify-end">
+            <button
+              type="button"
+              onClick={handleCreate}
+              disabled={saving}
+              className="flex items-center gap-1.5 rounded-xl bg-[#b10000] px-4 py-2 text-[12px] font-semibold text-white shadow-sm transition hover:bg-[#950000] disabled:opacity-50"
+            >
+              {saving ? "Creating…" : "Create Budget"}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ── EDIT / DETAIL VIEW ─────────────────────────────────────────────────
+  const months = fyMonths(Number(selectedBudget?.financialYear || currentFyStartYear()));
+
+  return (
+    <div className="space-y-4">
+      <button type="button" onClick={() => setView("list")} className="flex items-center gap-1 text-[12px] font-semibold text-gray-500 hover:text-gray-700">
+        <ArrowLeft className="h-3.5 w-3.5" /> Back to Budgets
+      </button>
+
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-2">
+          <h3 className="text-[16px] font-bold text-gray-900">{selectedBudget?.name}</h3>
+          {statusBadge(selectedBudget?.status)}
+          <span className="text-[11px] text-gray-400">
+            {selectedBudget?.branch?.name || "Restaurant-wide"} · FY{selectedBudget?.financialYear}
+          </span>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => handleCopyToNextYear(selectedBudget)}
+            className="flex items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3 py-2 text-[12px] font-semibold text-gray-700 shadow-sm transition hover:bg-gray-50"
+          >
+            <Copy className="h-3.5 w-3.5" /> Copy to Next Year
+          </button>
+          {selectedBudget?.status !== "PUBLISHED" && (
+            <button
+              type="button"
+              onClick={() => handleSetStatus("PUBLISHED")}
+              className="flex items-center gap-1.5 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-[12px] font-semibold text-emerald-700 shadow-sm transition hover:bg-emerald-100"
+            >
+              <CheckCircle2 className="h-3.5 w-3.5" /> Publish
+            </button>
+          )}
+          {selectedBudget?.status !== "ARCHIVED" && (
+            <button
+              type="button"
+              onClick={() => handleSetStatus("ARCHIVED")}
+              className="flex items-center gap-1.5 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-[12px] font-semibold text-amber-700 shadow-sm transition hover:bg-amber-100"
+            >
+              <Archive className="h-3.5 w-3.5" /> Archive
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={handleSaveGrid}
+            disabled={saving}
+            className="flex items-center gap-1.5 rounded-xl bg-[#b10000] px-3 py-2 text-[12px] font-semibold text-white shadow-sm transition hover:bg-[#950000] disabled:opacity-50"
+          >
+            <Save className="h-3.5 w-3.5" /> {saving ? "Saving…" : "Save Changes"}
+          </button>
+        </div>
+      </div>
+
+      {BUDGET_CATEGORY_GROUPS.map((group) => (
+        <div key={group} className="overflow-hidden rounded-xl border border-gray-200">
+          <div className="bg-gray-50 px-4 py-2 text-[12px] font-bold text-gray-900">{group}</div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-[11px]">
+              <thead>
+                <tr className="border-t border-gray-100 text-[10px] font-bold uppercase tracking-wide text-gray-500">
+                  <th className="sticky left-0 bg-white px-3 py-2 text-left">Category</th>
+                  {months.map((m) => (
+                    <th key={`${m.year}-${m.month}`} className="min-w-[70px] px-2 py-2 text-center">
+                      {MONTH_NAMES[m.month - 1]}'{String(m.year).slice(-2)}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {BUDGET_CATEGORIES.filter((c) => c.group === group).map((cat) => (
+                  <tr key={cat.key} className="border-t border-gray-100">
+                    <td className="sticky left-0 whitespace-nowrap bg-white px-3 py-1.5 font-medium text-gray-700">
+                      {cat.label}
+                    </td>
+                    {months.map((m) => {
+                      const key = `${cat.key}:${m.year}:${m.month}`;
+                      return (
+                        <td key={key} className="px-1 py-1">
+                          <input
+                            type="number"
+                            value={gridValues[key] ?? ""}
+                            onChange={(e) => handleGridChange(cat.key, m.year, m.month, e.target.value)}
+                            placeholder="0"
+                            className="w-full rounded-lg border border-gray-200 bg-gray-50 px-1.5 py-1 text-center text-[11px] outline-none focus:border-red-300 focus:bg-white"
+                          />
+                        </td>
+                      );
+                    })}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}

@@ -73,6 +73,7 @@ export default function Report() {
   const [wastageSortBy, setWastageSortBy] = useState<
     "weight" | "price" | "product"
   >("weight");
+  const [financeSummary, setFinanceSummary] = useState<any>(null);
 
   useEffect(() => {
     const fetchReports = async () => {
@@ -90,6 +91,7 @@ export default function Report() {
           adjustRes,
           heatmapRes,
           forecastRes,
+          financeSummaryRes,
         ] = await Promise.all([
           fetch(
             `${API_URL}/api/analytics/${user.restaurantId}/restaurantDashboardOverview?${bParam}&range=${preset}&from=${from}&to=${to}`,
@@ -123,6 +125,16 @@ export default function Report() {
             `${API_URL}/api/analytics/${user.restaurantId}/revenue-forecast?${bParam}`,
             { headers },
           ),
+          // Canonical EBITDA/Net Profit/Food Cost/Labour Cost — same
+          // finance.formulas.ts engine used by Dashboard/Insights/Branch
+          // Comparison/PDF/Excel exports, so the P&L Statement tab below
+          // agrees with every other screen instead of re-deriving Net
+          // Profit from just revenue/GST/generic ShopExpense rows (which
+          // omitted food cost and labour cost entirely).
+          fetch(
+            `${API_URL}/api/finance/${user.restaurantId}/${selectedBranch.id}/summary?period=custom&from=${from}&to=${to}`,
+            { headers },
+          ),
         ]);
         const [
           analyticsData,
@@ -133,6 +145,7 @@ export default function Report() {
           adjustData,
           heatmapJson,
           forecastJson,
+          financeSummaryJson,
         ] = await Promise.all([
           analyticsRes.json(),
           expensesRes.json(),
@@ -142,6 +155,7 @@ export default function Report() {
           adjustRes.json(),
           heatmapRes.json(),
           forecastRes.json(),
+          financeSummaryRes.json(),
         ]);
         if (analyticsData.success) setReportData(analyticsData.data);
         if (expensesData.success) setExpenses(expensesData.data || []);
@@ -151,6 +165,7 @@ export default function Report() {
         if (adjustData.success) setInventoryAdjustments(adjustData.data || []);
         if (heatmapJson.success) setHeatmapData(heatmapJson.data);
         if (forecastJson.success) setForecastData(forecastJson.data);
+        if (financeSummaryJson.success) setFinanceSummary(financeSummaryJson.data);
       } catch {
         /* silent */
       } finally {
@@ -222,8 +237,16 @@ export default function Report() {
     (s, b) => s + Number(b.serviceCharge || 0),
     0,
   );
-  const totalExpenses = expenses.reduce((s, e) => s + Number(e.amount || 0), 0);
-  const netProfit = totalRevenue - totalGST - totalExpenses;
+  // Canonical figures from the shared finance engine (finance.formulas.ts) —
+  // same numbers Dashboard/Insights/Branch Comparison/PDF/Excel already show.
+  // Falls back to the old local estimate (raw ShopExpense sum, no food/labour
+  // cost) only until the fetch resolves, same pattern used in Insights.tsx.
+  const fin = financeSummary?.current;
+  const localTotalExpenses = expenses.reduce((s, e) => s + Number(e.amount || 0), 0);
+  const totalExpenses = fin
+    ? fin.foodCost + fin.labourCost + fin.fixedExpenses + fin.variableExpenses + fin.financeCost
+    : localTotalExpenses;
+  const netProfit = fin ? fin.netProfit : totalRevenue - totalGST - localTotalExpenses;
 
   const [downloadingGst, setDownloadingGst] = useState(false);
   const downloadGstFiling = async () => {
@@ -419,8 +442,8 @@ export default function Report() {
                 },
                 {
                   label: "Total Expenses",
-                  value: `₹${totalExpenses.toLocaleString()}`,
-                  sub: `${expenses.length} expense entries`,
+                  value: `₹${Math.round(totalExpenses).toLocaleString()}`,
+                  sub: fin ? "food + labour + fixed + variable + finance cost" : `${expenses.length} expense entries`,
                   color: "red",
                   badge: "outflow",
                 },
@@ -518,9 +541,14 @@ export default function Report() {
                     <tr className="border-b border-gray-100">
                       <td
                         colSpan={2}
-                        className="pb-2 pt-4 text-[11px] font-bold uppercase tracking-wide text-gray-400"
+                        className="pb-1 pt-4 text-[11px] font-bold uppercase tracking-wide text-gray-400"
                       >
                         TAX DEDUCTIONS
+                      </td>
+                    </tr>
+                    <tr>
+                      <td colSpan={2} className="pb-2 text-[10px] italic text-gray-400">
+                        Shown for reference — GST collected is held for the government, not the restaurant's own expense, so it isn't subtracted from Net Profit below (matching the Finance Engine used across the app).
                       </td>
                     </tr>
                     {[
@@ -547,24 +575,48 @@ export default function Report() {
                         OPERATING EXPENSES
                       </td>
                     </tr>
-                    {Object.entries(expenseByType).map(
-                      ([type, amount]: any) => (
-                        <tr key={type} className="border-b border-gray-50">
-                          <td className="py-2 pl-4 text-[13px] text-gray-600">
-                            {type}
-                          </td>
+                    {fin ? (
+                      // Canonical categories (Finance Engine) — matches
+                      // Dashboard/Insights/Branch Comparison exactly. The raw
+                      // ShopExpense-by-type ledger (previously shown here) is
+                      // real data too, but is a different opex source than
+                      // what everywhere else in the app uses to compute Net
+                      // Profit — it's shown in full on the Expense Tracker
+                      // tab instead of being duplicated (and mismatched) here.
+                      [
+                        { label: "Food Cost", value: fin.foodCost },
+                        { label: "Labour Cost", value: fin.labourCost },
+                        { label: "Fixed Expenses (rent, utilities, etc.)", value: fin.fixedExpenses },
+                        { label: "Variable Expenses (marketing, packaging, etc.)", value: fin.variableExpenses },
+                        { label: "Finance Cost (loan EMI, interest, etc.)", value: fin.financeCost },
+                      ].map((r) => (
+                        <tr key={r.label} className="border-b border-gray-50">
+                          <td className="py-2 pl-4 text-[13px] text-gray-600">{r.label}</td>
                           <td className="py-2 pr-4 text-right text-[13px] font-semibold text-red-600">
-                            -₹{Number(amount).toLocaleString()}
+                            -₹{Math.round(r.value).toLocaleString()}
                           </td>
                         </tr>
-                      ),
+                      ))
+                    ) : (
+                      Object.entries(expenseByType).map(
+                        ([type, amount]: any) => (
+                          <tr key={type} className="border-b border-gray-50">
+                            <td className="py-2 pl-4 text-[13px] text-gray-600">
+                              {type}
+                            </td>
+                            <td className="py-2 pr-4 text-right text-[13px] font-semibold text-red-600">
+                              -₹{Number(amount).toLocaleString()}
+                            </td>
+                          </tr>
+                        ),
+                      )
                     )}
                     <tr className="border-b border-gray-100">
                       <td className="py-2 pl-4 text-[13px] font-bold text-gray-900">
                         Total Expenses
                       </td>
                       <td className="py-2 pr-4 text-right text-[13px] font-bold text-red-600">
-                        -₹{totalExpenses.toLocaleString()}
+                        -₹{Math.round(totalExpenses).toLocaleString()}
                       </td>
                     </tr>
                     <tr
@@ -884,7 +936,7 @@ export default function Report() {
                   Total Expenses
                 </p>
                 <p className="mt-2 text-[22px] font-bold text-red-700">
-                  ₹{totalExpenses.toLocaleString()}
+                  ₹{localTotalExpenses.toLocaleString()}
                 </p>
                 <p className="mt-1 text-[11px] text-gray-500">
                   {expenses.length} entries
@@ -907,7 +959,7 @@ export default function Report() {
                   ₹
                   {expenses.length
                     ? Math.round(
-                        totalExpenses / expenses.length,
+                        localTotalExpenses / expenses.length,
                       ).toLocaleString()
                     : 0}
                 </p>
@@ -921,7 +973,7 @@ export default function Report() {
                 </p>
                 <p className="mt-2 text-[22px] font-bold text-gray-900">
                   {totalRevenue > 0
-                    ? ((totalExpenses / totalRevenue) * 100).toFixed(1)
+                    ? ((localTotalExpenses / totalRevenue) * 100).toFixed(1)
                     : 0}
                   %
                 </p>
@@ -2551,12 +2603,12 @@ export default function Report() {
                 acc[name].cost += qty * Number(a.ingredient?.pricePerUnit || 0);
                 acc[name].adjustments++;
                 return acc;
-              }, {});
+              }, {} as Record<string, any>);
             const topWaste = Object.values(wastageByIngredient)
               .sort((a: any, b: any) => b.qty - a.qty)
               .slice(0, 10);
-            const totalWastageCost = Object.values(wastageByIngredient).reduce(
-              (s: number, i: any) => s + i.cost,
+            const totalWastageCost = Object.values(wastageByIngredient).reduce<number>(
+              (s, i: any) => s + i.cost,
               0,
             );
 
