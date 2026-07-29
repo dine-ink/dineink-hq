@@ -1,8 +1,5 @@
 import { useState, useEffect } from "react";
 import { useAppSelector } from "../../store";
-import * as XLSX from "xlsx";
-import { saveAs } from "file-saver";
-import ExcelJS from "exceljs";
 import {
   TrendingUp,
   Target,
@@ -137,8 +134,7 @@ export default function Insights() {
   const [assumptionsSaving, setAssumptionsSaving] = useState(false);
   const [assumptionsSavedAt, setAssumptionsSavedAt] = useState<number | null>(null);
   const [insightsSection, setInsightsSection] = useState("Fixed Expenses");
-  const [ingredients, setIngredients] = useState<any>({});
-  const [loading, setLoading] = useState(false);
+  const [_ingredients, setIngredients] = useState<any>({});
   const [restockHistory, setRestockHistory] = useState<any[]>([]);
   const [inventoryStockValue, setInventoryStockValue] = useState(0);
   const [mtdAnalytics, setMtdAnalytics] = useState<any>(null);
@@ -232,9 +228,6 @@ export default function Insights() {
   const localRevenue = insightsData.revenue || 0;
   const manualFoodCostSet = n(insightsData.manualFoodCost) > 0;
   const restockData = restockHistory || [];
-  const totalPurchaseValue = restockData.reduce((sum: number, item: any) => {
-    return sum + Number(item.TotalPurchaseAmount || 0);
-  }, 0);
   /* INVENTORY VALUE */
   const inventoryValue = restockData.reduce((sum: number, item: any) => {
     return sum + Number(item.MonthClosingValue || 0);
@@ -261,19 +254,6 @@ export default function Insights() {
     localTotalFinanceCost +
     localEffectiveFoodCost;
   const localEbitda = localRevenue - localTotalExpenses;
-  /* INFLATED INGREDIENTS */
-  const inflatedIngredients = restockData.filter((item: any) => {
-    const week1 = Number(item.Week1Price || 0);
-    const week5 = Number(item.Week5Price || 0);
-    return week5 > week1;
-  });
-  /* TOP PURCHASED INGREDIENTS */
-  const topPurchasedIngredients = [...restockData]
-    .sort(
-      (a: any, b: any) =>
-        Number(b.TotalPurchaseAmount || 0) - Number(a.TotalPurchaseAmount || 0),
-    )
-    .slice(0, 5);
   const localPrimeCost = localEffectiveFoodCost + localTotalLabourCost;
   const localGrossProfit = localRevenue - localEffectiveFoodCost;
 
@@ -355,7 +335,6 @@ export default function Insights() {
   // contributionMarginPercentage is kept as a fraction (0–1) here, matching
   // the pre-engine convention — the engine returns percentage points, so it's
   // divided back down rather than touching every display site below.
-  const contributionMargin = fm ? fm.contributionMargin : localContributionMargin;
   const contributionMarginPercentage = fm
     ? fm.contributionMarginPercentage / 100
     : localContributionMarginPercentage;
@@ -413,9 +392,7 @@ export default function Insights() {
   // Real BillRefund records (partial/full refunds) plus cancelled bills —
   // both are "money given back to a guest this month".
   const cancelledTotal = n(mtdAnalytics?.cancelledTotal);
-  const cancelledCount = n(mtdAnalytics?.cancelledCount);
   const refundedTotal = n(mtdAnalytics?.refundedTotal);
-  const refundedCount = n(mtdAnalytics?.refundedCount);
   const totalGivenBack = cancelledTotal + refundedTotal;
   // mtdRevenue already reflects refunds (bill.total is reduced at refund
   // time), so add back what was refunded to get the gross sold-before-refund
@@ -698,65 +675,6 @@ export default function Insights() {
     fetchAccountsPayable();
     fetchVendorInvoiceActivity();
   }, [selectedBranch]);
-  const handleGenerate = async () => {
-    try {
-      setLoading(true);
-      // token and user from Redux (outer scope)
-      const res = await fetch(`${API_URL}/api/ingredients/generate`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: user.restaurantId,
-      });
-      const data = await res.json();
-      if (data.success) {
-        const formatted = Object.fromEntries(
-          Object.entries(data.data).map(([category, items]) => [
-            category,
-            (items as string[]).map((item) => ({
-              name: item,
-              quantity: "",
-              unit: "Kg",
-              purchasePrice: "",
-              pricePerUnit: "",
-            })),
-          ]),
-        );
-        setIngredients(formatted);
-      }
-    } catch {
-      // error silently ignored
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleSave = async () => {
-    try {
-      // token and user from Redux (outer scope)
-      const restaurantId = user.restaurantId;
-      const res = await fetch(`${API_URL}/api/ingredients/save`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          restaurantId,
-          ingredients,
-        }),
-      });
-      const data = await res.json();
-      if (data.success) {
-        alert("Ingredients saved successfully");
-      }
-    } catch {
-      // error silently ignored
-    }
-  };
-
   const fetchIngredients = async () => {
     try {
       // token and user from Redux (outer scope)
@@ -780,51 +698,6 @@ export default function Insights() {
   useEffect(() => {
     fetchIngredients();
   }, [selectedBranch]);
-
-  const handleRemoveIngredient = (category: string, index: number) => {
-    setIngredients((prev: any) => {
-      const updated = { ...prev };
-      updated[category] = updated[category].filter(
-        (_: any, i: number) => i !== index,
-      );
-      return updated;
-    });
-  };
-
-  const handleAddIngredient = (category: string) => {
-    setIngredients((prev: any) => ({
-      ...prev,
-      [category]: [
-        ...prev[category],
-        {
-          name: "",
-          quantity: "",
-          unit: "Kg",
-          purchasePrice: "",
-          pricePerUnit: "",
-        },
-      ],
-    }));
-  };
-
-  const handleFieldChange = (
-    category: string,
-    index: number,
-    field: string,
-    value: any,
-  ) => {
-    setIngredients((prev: any) => {
-      const updated = { ...prev };
-      updated[category][index][field] = value;
-      const item = updated[category][index];
-      const qty = Number(item.quantity);
-      const price = Number(item.purchasePrice);
-      if (qty > 0 && price > 0) {
-        item.pricePerUnit = (price / qty).toFixed(2);
-      }
-      return { ...updated };
-    });
-  };
 
   const handleSaveInsights = async () => {
     try {
@@ -948,263 +821,6 @@ export default function Insights() {
       alert("Failed to save financial assumptions");
     } finally {
       setAssumptionsSaving(false);
-    }
-  };
-
-  const downloadInventoryTemplate = async () => {
-    const workbook = new ExcelJS.Workbook();
-    const months = [
-      "January",
-      "February",
-      "March",
-      "April",
-      "May",
-      "June",
-      "July",
-      "August",
-      "September",
-      "October",
-      "November",
-      "December",
-    ];
-    months.forEach((monthName) => {
-      const worksheet = workbook.addWorksheet(monthName);
-      const headers = [
-        "Category",
-        "Ingredient",
-        "Unit",
-        "Opening Stock Qty",
-        "Opening Stock Price",
-        "Opening Stock Value",
-        // Week 1
-        "Week1 Purchase Qty",
-        "Week1 Price",
-        "Week1 Total",
-        "Week1 Total Inventory",
-        "Week1 Inventory Cost",
-        "Week1 Closing Stock",
-        "Week1 Closing Value",
-        "Week1 Expense",
-        // Week 2
-        "Week2 Purchase Qty",
-        "Week2 Price",
-        "Week2 Total",
-        "Week2 Total Inventory",
-        "Week2 Inventory Cost",
-        "Week2 Closing Stock",
-        "Week2 Closing Value",
-        "Week2 Expense",
-        // Week 3
-        "Week3 Purchase Qty",
-        "Week3 Price",
-        "Week3 Total",
-        "Week3 Total Inventory",
-        "Week3 Inventory Cost",
-        "Week3 Closing Stock",
-        "Week3 Closing Value",
-        "Week3 Expense",
-        // Week 4
-        "Week4 Purchase Qty",
-        "Week4 Price",
-        "Week4 Total",
-        "Week4 Total Inventory",
-        "Week4 Inventory Cost",
-        "Week4 Closing Stock",
-        "Week4 Closing Value",
-        "Week4 Expense",
-        // Week 5
-        "Week5 Purchase Qty",
-        "Week5 Price",
-        "Week5 Total",
-        "Week5 Total Inventory",
-        "Week5 Inventory Cost",
-        "Week5 Closing Stock",
-        "Week5 Closing Value",
-        "Week5 Expense",
-        // Monthly
-        "Total Purchase Amount",
-        "Total Weekly Expense",
-        "Month Closing Value",
-        "Monthly RM Expense",
-      ];
-      worksheet.addRow(headers);
-      worksheet.getRow(1).font = {
-        bold: true,
-      };
-      worksheet.columns.forEach((col) => {
-        col.width = 20;
-      });
-      let rowNumber = 2;
-
-      const sourceData = restockHistory?.length
-        ? restockHistory
-        : Object.entries(ingredients).flatMap(([category, items]: any) =>
-            items.map((item: any) => ({
-              Category: category,
-              Ingredient: item.name,
-              Unit: item.unit || "Kg",
-            })),
-          );
-      sourceData.forEach((rowData: any) => {
-        const row = worksheet.getRow(rowNumber);
-        /* ================= BASIC ================= */
-        row.getCell(1).value = rowData.Category || "";
-        row.getCell(2).value = rowData.Ingredient || "";
-        row.getCell(3).value = rowData.Unit || "Kg";
-        /* ================= OPENING STOCK ================= */
-        row.getCell(4).value = rowData.OpeningStockQty || 0;
-        row.getCell(5).value = rowData.OpeningStockPrice || 0;
-        row.getCell(6).value = rowData.OpeningStockValue || {
-          formula: `D${rowNumber}*E${rowNumber}`,
-        };
-        /* ================= WEEK 1 ================= */
-        row.getCell(7).value = rowData.Week1PurchaseQty || 0;
-        row.getCell(8).value = rowData.Week1Price || 0;
-        row.getCell(9).value = rowData.Week1Total || {
-          formula: `G${rowNumber}*H${rowNumber}`,
-        };
-        row.getCell(10).value = rowData.Week1TotalInventory || {
-          formula: `D${rowNumber}+G${rowNumber}`,
-        };
-        row.getCell(11).value = rowData.Week1InventoryCost || {
-          formula: `F${rowNumber}+I${rowNumber}`,
-        };
-        row.getCell(12).value = rowData.Week1ClosingStock || 0;
-        row.getCell(13).value = rowData.Week1ClosingValue || {
-          formula: `(L${rowNumber}/J${rowNumber})*K${rowNumber}`,
-        };
-        row.getCell(14).value = rowData.Week1Expense || {
-          formula: `K${rowNumber}-M${rowNumber}`,
-        };
-        /* ================= WEEK 2 ================= */
-        row.getCell(15).value = rowData.Week2PurchaseQty || 0;
-        row.getCell(16).value = rowData.Week2Price || 0;
-        row.getCell(17).value = rowData.Week2Total || {
-          formula: `O${rowNumber}*P${rowNumber}`,
-        };
-        row.getCell(18).value = rowData.Week2TotalInventory || {
-          formula: `L${rowNumber}+O${rowNumber}`,
-        };
-        row.getCell(19).value = rowData.Week2InventoryCost || {
-          formula: `M${rowNumber}+Q${rowNumber}`,
-        };
-        row.getCell(20).value = rowData.Week2ClosingStock || 0;
-        row.getCell(21).value = rowData.Week2ClosingValue || {
-          formula: `(T${rowNumber}/R${rowNumber})*S${rowNumber}`,
-        };
-        row.getCell(22).value = rowData.Week2Expense || {
-          formula: `S${rowNumber}-U${rowNumber}`,
-        };
-        /* ================= WEEK 3 ================= */
-        row.getCell(23).value = rowData.Week3PurchaseQty || 0;
-        row.getCell(24).value = rowData.Week3Price || 0;
-        row.getCell(25).value = rowData.Week3Total || {
-          formula: `W${rowNumber}*X${rowNumber}`,
-        };
-        row.getCell(26).value = rowData.Week3TotalInventory || {
-          formula: `T${rowNumber}+W${rowNumber}`,
-        };
-        row.getCell(27).value = rowData.Week3InventoryCost || {
-          formula: `U${rowNumber}+Y${rowNumber}`,
-        };
-        row.getCell(28).value = rowData.Week3ClosingStock || 0;
-        row.getCell(29).value = rowData.Week3ClosingValue || {
-          formula: `(AB${rowNumber}/Z${rowNumber})*AA${rowNumber}`,
-        };
-        row.getCell(30).value = rowData.Week3Expense || {
-          formula: `AA${rowNumber}-AC${rowNumber}`,
-        };
-        /* ================= WEEK 4 ================= */
-        row.getCell(31).value = rowData.Week4PurchaseQty || 0;
-        row.getCell(32).value = rowData.Week4Price || 0;
-        row.getCell(33).value = rowData.Week4Total || {
-          formula: `AE${rowNumber}*AF${rowNumber}`,
-        };
-        row.getCell(34).value = rowData.Week4TotalInventory || {
-          formula: `AB${rowNumber}+AE${rowNumber}`,
-        };
-        row.getCell(35).value = rowData.Week4InventoryCost || {
-          formula: `AC${rowNumber}+AG${rowNumber}`,
-        };
-        row.getCell(36).value = rowData.Week4ClosingStock || 0;
-        row.getCell(37).value = rowData.Week4ClosingValue || {
-          formula: `(AJ${rowNumber}/AH${rowNumber})*AI${rowNumber}`,
-        };
-        row.getCell(38).value = rowData.Week4Expense || {
-          formula: `AI${rowNumber}-AK${rowNumber}`,
-        };
-        /* ================= WEEK 5 ================= */
-        row.getCell(39).value = rowData.Week5PurchaseQty || 0;
-        row.getCell(40).value = rowData.Week5Price || 0;
-        row.getCell(41).value = rowData.Week5Total || {
-          formula: `AM${rowNumber}*AN${rowNumber}`,
-        };
-        row.getCell(42).value = rowData.Week5TotalInventory || {
-          formula: `AJ${rowNumber}+AM${rowNumber}`,
-        };
-        row.getCell(43).value = rowData.Week5InventoryCost || {
-          formula: `AK${rowNumber}+AO${rowNumber}`,
-        };
-        row.getCell(44).value = rowData.Week5ClosingStock || 0;
-        row.getCell(45).value = rowData.Week5ClosingValue || {
-          formula: `(AR${rowNumber}/AP${rowNumber})*AQ${rowNumber}`,
-        };
-        row.getCell(46).value = rowData.Week5Expense || {
-          formula: `AQ${rowNumber}-AS${rowNumber}`,
-        };
-        /* ================= MONTHLY ================= */
-        row.getCell(47).value = rowData.TotalPurchaseAmount || 0;
-        row.getCell(48).value = rowData.TotalWeeklyExpense || 0;
-        row.getCell(49).value = rowData.MonthClosingValue || 0;
-        row.getCell(50).value = rowData.MonthlyRMExpense || 0;
-        rowNumber++;
-      });
-    });
-
-    const buffer = await workbook.xlsx.writeBuffer();
-    const blob = new Blob([buffer], {
-      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-    });
-    saveAs(blob, "inventory-template.xlsx");
-  };
-
-  const handleUploadRestockSheet = (e: any) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (evt: any) => {
-      const data = new Uint8Array(evt.target.result);
-      const workbook = XLSX.read(data, { type: "array" });
-      const sheetName = workbook.SheetNames[0];
-      const worksheet = workbook.Sheets[sheetName];
-      const jsonData = XLSX.utils.sheet_to_json(worksheet);
-      setRestockHistory(jsonData);
-    };
-    reader.readAsArrayBuffer(file);
-  };
-
-  const saveRestockHistory = async () => {
-    try {
-      // token and user from Redux (outer scope)
-      const currentDate = new Date();
-      const month = currentDate.getMonth() + 1;
-      const year = currentDate.getFullYear();
-      const res = await fetch(`${API_URL}/api/restaurant/restock-history`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          restaurantId: user.restaurantId,
-          month,
-          year,
-          data: restockHistory,
-        }),
-      });
-      await res.json();
-    } catch {
-      // save error
     }
   };
 

@@ -53,7 +53,7 @@ export default function Report() {
 
   const [activeTab, setActiveTab] = useState("P&L Statement");
   const [loading, setLoading] = useState(false);
-  const [reportData, setReportData] = useState<any>(null);
+  const [_reportData, setReportData] = useState<any>(null);
   const [expenses, setExpenses] = useState<any[]>([]);
   const [bills, setBills] = useState<any[]>([]);
   const [menuItems, setMenuItems] = useState<any[]>([]);
@@ -2326,9 +2326,6 @@ export default function Report() {
               }))
               .sort((a, b) => b.revenue - a.revenue);
 
-            const totalTableOrders = runningOrders.filter(
-              (o: any) => o.tableId,
-            ).length;
             const quickServiceOrders = runningOrders.filter(
               (o: any) => !o.tableId,
             ).length;
@@ -2860,7 +2857,8 @@ export default function Report() {
           const toggleIngredient = (id: number) => {
             setExpandedIngredients((prev) => {
               const next = new Set(prev);
-              next.has(id) ? next.delete(id) : next.add(id);
+              if (next.has(id)) next.delete(id);
+              else next.add(id);
               return next;
             });
           };

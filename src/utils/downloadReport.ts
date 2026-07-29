@@ -137,7 +137,7 @@ export async function downloadReport(params: ReportParams): Promise<void> {
     ["Estimated Net Profit", INR(netProfit), totalRevenue > 0 ? `${((netProfit / totalRevenue) * 100).toFixed(1)}%` : "0%"],
   ];
   pnl.forEach((r, i) => {
-    const row = dataRow(s1, r, i % 2 === 0);
+    dataRow(s1, r, i % 2 === 0);
     if (i === pnl.length - 1) {
       const pRow = s1.lastRow!;
       pRow.font = { bold: true };

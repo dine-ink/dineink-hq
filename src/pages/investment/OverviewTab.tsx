@@ -38,7 +38,7 @@ export default function OverviewTab() {
     );
   }
 
-  const ProjectRow = ({ item, highlight }: { item: any; highlight: "good" | "bad" }) => {
+  const ProjectRow = ({ item, highlight: _highlight }: { item: any; highlight: "good" | "bad" }) => {
     const risk = riskLevelFor(item.metrics.npv, item.metrics.paybackPeriodYears, item.project.projectLifeYears);
     const style = RISK_STYLES[risk];
     return (

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Trophy } from "lucide-react";
 import { useAppSelector } from "../../store";
 import { fmtCategoryValue } from "./budgetCategories";

@@ -2,7 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import { Save, RefreshCw } from "lucide-react";
 import { useAppSelector } from "../../store";
 import { fmtCategoryValue, OVERRIDE_FIELD_GROUPS, OVERRIDE_FIELDS, SCENARIO_KPIS, WIDGET_KPIS } from "./scenarioCategories";
-import { TrendIcon, trendStyle } from "../../utils/kpiDisplay";
+import { TrendIcon } from "../../utils/kpiDisplay";
+import { trendStyle } from "../../utils/kpiStyles";
 import ScenarioCharts from "./ScenarioCharts";
 
 const PERIODS = [

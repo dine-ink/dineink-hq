@@ -1,13 +1,11 @@
 import { useEffect, useState } from "react";
-// @ts-ignore
 import jsPDF from "jspdf";
-// @ts-ignore
 import autoTable from "jspdf-autotable";
 import ExcelJS from "exceljs";
 import { saveAs } from "file-saver";
 import { ArrowDownTrayIcon, PrinterIcon } from "@heroicons/react/24/outline";
 import { useAppSelector } from "../../store";
-import { fmtCategoryValue, PERIOD_OPTIONS } from "./aiCategories";
+import { PERIOD_OPTIONS } from "./aiCategories";
 
 const REPORT_TYPES = [
   { key: "executive", label: "AI Executive Report" },

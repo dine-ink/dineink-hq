@@ -1,7 +1,5 @@
 import { useEffect, useState } from "react";
-// @ts-ignore
 import jsPDF from "jspdf";
-// @ts-ignore
 import autoTable from "jspdf-autotable";
 import ExcelJS from "exceljs";
 import { saveAs } from "file-saver";

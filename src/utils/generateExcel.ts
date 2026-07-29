@@ -37,9 +37,6 @@ function bdr(style: ExcelJS.BorderStyle = "thin", c = T.border): Partial<ExcelJS
   const s = { style, color: { argb: c } };
   return { top: s, left: s, bottom: s, right: s };
 }
-function bottomBdr(c = T.brand, style: ExcelJS.BorderStyle = "medium"): Partial<ExcelJS.Borders> {
-  return { bottom: { style, color: { argb: c } } };
-}
 function hairBdr(c = T.border): Partial<ExcelJS.Borders> {
   return { bottom: { style: "hair", color: { argb: c } } };
 }
@@ -172,7 +169,7 @@ export async function generateExcelReport(
   const wb = new ExcelJS.Workbook();
   wb.creator = "DineInk"; wb.created = new Date(); wb.modified = new Date();
 
-  const { analytics, bills, expenses, customers, menuItems, ingredients,
+  const { analytics, bills, expenses, customers, menuItems,
     kitchenData, attendance, allStaff, cashSessions,
     branchComparison, cityComparison, heatmap, forecast, rfm,
     insightsData, inventoryAdjustments, staffProductivity, financeSummary } = data;

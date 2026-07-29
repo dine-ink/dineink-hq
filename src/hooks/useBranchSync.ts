@@ -18,6 +18,8 @@ export function getSelectedBranch() {
   try {
     const saved = localStorage.getItem("selectedBranch");
     if (saved && saved !== "undefined") return JSON.parse(saved);
-  } catch {}
+  } catch {
+    // Malformed saved value — fall through to null below.
+  }
   return null;
 }

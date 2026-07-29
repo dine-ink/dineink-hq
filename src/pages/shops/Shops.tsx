@@ -271,9 +271,6 @@ export default function Shops() {
   );
   const billing = branchDetails?.billing || {};
 
-  // Linked state dropdown helpers
-  const stateObj = states.find((s) => s.name === branchDetails?.state);
-
   if (loading)
     return (
       <div className="flex min-h-[400px] items-center justify-center">

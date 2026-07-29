@@ -1,4 +1,3 @@
-// @ts-ignore
 import JSZip from "jszip";
 import { saveAs } from "file-saver";
 import { fetchAllReportData } from "./reportData";

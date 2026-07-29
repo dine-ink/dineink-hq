@@ -21,7 +21,6 @@ interface MainCardProps {
   sx?: object;
   title?: React.ReactNode;
   codeHighlight?: boolean;
-  codeString?: string;
   modal?: boolean;
 }
 
@@ -42,7 +41,6 @@ const MainCard = forwardRef<HTMLDivElement, MainCardProps>(
       sx = {},
       title,
       codeHighlight = false,
-      codeString,
       modal = false,
       ...others
     },

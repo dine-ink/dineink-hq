@@ -274,10 +274,8 @@ export default function MenuManagement() {
     attachedIds: new Set(),
   });
   const [selectedMenuItem, setSelectedMenuItem] = useState<any>(null);
-  const [mappingLoading, setMappingLoading] = useState(false);
+  const [_mappingLoading, setMappingLoading] = useState(false);
   const [ingredientMappings, setIngredientMappings] = useState<any[]>([]);
-  const [visibleAlerts, setVisibleAlerts] = useState(5);
-  const [visibleIngredients, setVisibleIngredients] = useState(5);
   const [uploadingVendor, setUploadingVendor] = useState(false);
   const [showAddCategory, setShowAddCategory] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState("");
@@ -305,7 +303,7 @@ export default function MenuManagement() {
     newPrice: "",
     loading: false,
   });
-  const { branches, selectedBranch } = useAppSelector((s) => s.branch);
+  const { selectedBranch } = useAppSelector((s) => s.branch);
   const { user, token } = useAppSelector((s) => s.auth);
   const [selectedWeek, setSelectedWeek] = useState("week1");
   const [todayAuditCount, setTodayAuditCount] = useState<number | null>(null);
@@ -373,26 +371,6 @@ export default function MenuManagement() {
         setMenuCatName("");
         setShowMenuCategory(false);
       }
-    } catch {
-      /* silent */
-    }
-  };
-
-  const handleDeleteMenuCategory = async (id: number) => {
-    if (
-      !window.confirm(
-        "Delete this category? Items in it will lose their category.",
-      )
-    )
-      return;
-    try {
-      const res = await fetch(`${API_URL}/api/restaurant/categories/${id}`, {
-        method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data = await res.json();
-      if (data.success)
-        setCategories((prev: any[]) => prev.filter((c: any) => c.id !== id));
     } catch {
       /* silent */
     }
@@ -1531,22 +1509,6 @@ export default function MenuManagement() {
       alert("Vendor upload failed");
     }
   };
-  const inventorySummary = restocks.reduce(
-    (acc: any, row: any) => {
-      acc.monthlyPurchase += Number(row.TotalPurchaseAmount || 0);
-      acc.inventoryExpense += Number(row.TotalWeeklyExpense || 0);
-      acc.closingStock += Number(row.MonthClosingValue || 0);
-      acc.rmExpense += Number(row.MonthlyRMExpense || 0);
-      return acc;
-    },
-    {
-      monthlyPurchase: 0,
-      inventoryExpense: 0,
-      closingStock: 0,
-      rmExpense: 0,
-    },
-  );
-
   const handleAddMappingIngredient = () => {
     setIngredientMappings([
       {
@@ -1631,7 +1593,6 @@ export default function MenuManagement() {
 
   const handleAISuggest = async () => {
     try {
-      const allIngredients = Object.values(ingredients).flat();
       const res = await fetch(
         `${API_URL}/api/ingredients/ai-suggestIngredients`,
         {

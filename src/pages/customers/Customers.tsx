@@ -17,7 +17,7 @@ export default function Customers() {
   const { user, token } = useAppSelector((s) => s.auth);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(false);
-  const [selectedCustomer, setSelectedCustomer] = useState<any>(null);
+  const [_selectedCustomer, setSelectedCustomer] = useState<any>(null);
   const [customers, setCustomers] = useState<any[]>([]);
   const [page, setPage] = useState(1);
   const rowsPerPage = 5;

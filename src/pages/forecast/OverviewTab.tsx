@@ -2,7 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import { CheckCircle2 } from "lucide-react";
 import { useAppSelector } from "../../store";
 import { CONFIDENCE_STYLES, fmtCategoryValue, FORECAST_KPIS, MODEL_OPTIONS, PERIOD_OPTIONS, WIDGET_KPIS } from "./forecastCategories";
-import { ALERT_STYLES, AlertIcon, TrendIcon, trendStyle } from "../../utils/kpiDisplay";
+import { AlertIcon, TrendIcon } from "../../utils/kpiDisplay";
+import { ALERT_STYLES, trendStyle } from "../../utils/kpiStyles";
 import ForecastCharts from "./ForecastCharts";
 
 export default function OverviewTab() {

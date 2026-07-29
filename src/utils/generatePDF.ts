@@ -1,6 +1,4 @@
-// @ts-ignore
 import jsPDF from "jspdf";
-// @ts-ignore
 import autoTable from "jspdf-autotable";
 import type { FullReportData } from "./reportData";
 
@@ -45,6 +43,9 @@ const safe = (s: string) =>
     .replace(/[→➜]/g, "->")
     .replace(/✅/g, "OK")
     .replace(/❌/g, "X")
+    // \x00-\xFF deliberately keeps only Latin-1 bytes; jsPDF's built-in
+    // fonts can't render anything outside that range.
+    // eslint-disable-next-line no-control-regex
     .replace(/[^\x00-\xFF]/g, "");
 
 // ─── Primitives ───────────────────────────────────────────────────────────────
@@ -60,11 +61,6 @@ const ln = (d: any, x1: number, y1: number, x2: number, y2: number, c: RGB, lw =
   d.setDrawColor(...c);
   d.setLineWidth(lw);
   d.line(x1, y1, x2, y2);
-};
-const box = (d: any, x: number, y: number, w: number, h: number, c: RGB, lw = 0.3) => {
-  d.setDrawColor(...c);
-  d.setLineWidth(lw);
-  d.rect(x, y, w, h);
 };
 const txt = (
   d: any, s: string, x: number, y: number,
@@ -204,85 +200,6 @@ function hBars(
   return y + data.slice(0, 8).length * (bh + gap) + 5;
 }
 
-// ─── Forecast bar chart (smart baseline, clear value + date labels) ───────────
-function forecastBars(
-  doc: any,
-  data: { label: string; value: number }[],
-  x: number, y: number, w: number,
-): number {
-  if (data.length === 0) return y;
-
-  const h      = 50;
-  const yAxisW = 22;
-  const chartX = x + yAxisW;
-  const chartW = w - yAxisW;
-  const n      = data.length;
-  const vals   = data.map((d) => d.value);
-  const maxV   = Math.max(...vals, 1);
-  const minV   = Math.min(...vals, 0);
-
-  // Use a smart baseline: start at 80% of min so differences are visible
-  const baseline = minV > 0 ? Math.floor(minV * 0.75) : 0;
-  const range    = Math.max(maxV - baseline, 1);
-
-  const barGap = Math.max(2, chartW / n * 0.3);
-  const barW   = Math.max(4, (chartW - barGap * (n + 1)) / n);
-
-  // Background
-  fr(doc, chartX, y, chartW, h, C.surface);
-
-  // Horizontal grid lines (4 levels)
-  const steps = 4;
-  for (let g = 0; g <= steps; g++) {
-    const gy  = y + h - (g / steps) * h;
-    const val = baseline + (g / steps) * range;
-    const lbl = val >= 1000 ? `Rs.${(val / 1000).toFixed(1)}k` : `Rs.${Math.round(val)}`;
-    doc.setDrawColor(...(C.border as number[]));
-    doc.setLineWidth(0.2);
-    doc.line(chartX, gy, chartX + chartW, gy);
-    txt(doc, lbl, chartX - 2, gy + 1.2, { size: 4.5, color: C.faint, align: "right" });
-  }
-
-  // Baseline axis
-  doc.setDrawColor(...(C.slate as number[]));
-  doc.setLineWidth(0.4);
-  doc.line(chartX, y + h, chartX + chartW, y + h);
-
-  // Bars
-  data.forEach((d, i) => {
-    const bh  = Math.max(((d.value - baseline) / range) * (h - 3), 3);
-    const bx  = chartX + barGap + i * (barW + barGap);
-    const by  = y + h - bh;
-
-    // soft shadow
-    doc.setFillColor(180, 140, 220);
-    doc.roundedRect(bx + 0.6, by + 0.6, barW, bh, 1.5, 1.5, "F");
-
-    // bar
-    rr(doc, bx, by, barW, bh, 1.5, C.purple);
-
-    // value label above bar
-    const valLbl = d.value >= 1000
-      ? `Rs.${(d.value / 1000).toFixed(1)}k`
-      : `Rs.${Math.round(d.value)}`;
-    doc.setFontSize(5);
-    doc.setFont("helvetica", "bold");
-    doc.setTextColor(...(C.ink as number[]));
-    doc.text(valLbl, bx + barW / 2, by - 1.5, { align: "center" });
-
-    // date label below bar
-    doc.setFontSize(5.5);
-    doc.setFont("helvetica", "normal");
-    doc.setTextColor(...(C.slate as number[]));
-    doc.text(d.label, bx + barW / 2, y + h + 5, { align: "center" });
-  });
-
-  // "Predicted Revenue" legend
-  txt(doc, "Predicted daily revenue (next 7 days)", x, y + h + 10, { size: 6, color: C.muted, italic: true });
-
-  return y + h + 16;
-}
-
 // ─── Column bar chart ─────────────────────────────────────────────────────────
 function colBars(
   doc: any, data: { label: string; value: number }[],
@@ -367,7 +284,7 @@ export async function generatePDFReport(
 
   const {
     analytics, bills, expenses, customers, menuItems,
-    kitchenData, attendance, allStaff, cashSessions,
+    kitchenData, allStaff, cashSessions,
     branchComparison, cityComparison, heatmap, forecast, rfm, insightsData, inventoryAdjustments,
     tableOps, menuEngineering, vendorOutstanding, restockHistory,
     staffProductivity, vendorPerformance, financeSummary,

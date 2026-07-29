@@ -2,7 +2,8 @@ import { useEffect, useState } from "react";
 import { Settings2, GripVertical, Eye, EyeOff } from "lucide-react";
 import { useAppSelector } from "../../store";
 import { ALL_KPI_LABELS, fmtCategoryValue, PERIOD_OPTIONS, STATUS_STYLES, WIDGET_KPIS } from "./executiveCategories";
-import { ALERT_STYLES, AlertIcon, TrendIcon, trendStyle } from "../../utils/kpiDisplay";
+import { AlertIcon, TrendIcon } from "../../utils/kpiDisplay";
+import { ALERT_STYLES, trendStyle } from "../../utils/kpiStyles";
 
 export default function OverviewTab() {
   const { selectedBranch } = useAppSelector((s) => s.branch);

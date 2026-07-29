@@ -1,3 +1,6 @@
+/* eslint-disable react-refresh/only-export-components -- standard
+   Context+Provider+hook co-location; splitting it up is a much larger,
+   unrelated restructuring than this lint pass warrants. */
 import { createContext, useContext, useState, ReactNode } from "react";
 import dayjs from "dayjs";
 

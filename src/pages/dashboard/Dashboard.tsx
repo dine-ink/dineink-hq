@@ -37,10 +37,10 @@ export default function Dashboard() {
   const [showSetupModal, setShowSetupModal] = useState(false);
   const [hasRestaurant, setHasRestaurant] = useState<boolean | null>(null);
   const [analytics, setAnalytics] = useState<any>(null);
-  const [insightsData, setInsightsData] = useState<any>(null);
-  const [staffData, setStaffData] = useState<any[]>([]);
-  const [restockHistory, setRestockHistory] = useState<any[]>([]);
-  const [inventoryStockValue, setInventoryStockValue] = useState(0);
+  const [_insightsData, setInsightsData] = useState<any>(null);
+  const [_staffData, setStaffData] = useState<any[]>([]);
+  const [_restockHistory, setRestockHistory] = useState<any[]>([]);
+  const [_inventoryStockValue, setInventoryStockValue] = useState(0);
   const [reorderAlerts, setReorderAlerts] = useState<any>(null);
   const [financeSummary, setFinanceSummary] = useState<any>(null);
   const [ratioReport, setRatioReport] = useState<any>(null);
