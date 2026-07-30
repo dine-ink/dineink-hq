@@ -686,7 +686,7 @@ export default function Shops() {
                           </td>
                           <td className="px-3 py-2.5 text-[11px] font-semibold text-gray-700">
                             {s.salary
-                              ? `₹${Number(s.salary).toLocaleString()}`
+                              ? `₹${Number(s.salary).toLocaleString("en-IN")}`
                               : "—"}
                           </td>
                           <td className="px-3 py-2.5">
@@ -907,7 +907,7 @@ export default function Shops() {
                         ) : (
                           <p className="text-[12px] font-semibold text-gray-700">
                             {s.salary
-                              ? `₹${Number(s.salary).toLocaleString()}`
+                              ? `₹${Number(s.salary).toLocaleString("en-IN")}`
                               : "—"}
                           </p>
                         )}

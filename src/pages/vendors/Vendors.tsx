@@ -342,7 +342,7 @@ export default function Vendors() {
                 },
                 {
                   label: "Outstanding",
-                  value: `₹${totalOutstanding.toLocaleString()}`,
+                  value: `₹${totalOutstanding.toLocaleString("en-IN")}`,
                   cls: "border-amber-100 bg-amber-50",
                   val: "text-amber-700",
                   icon_bg: "bg-amber-100",
@@ -399,7 +399,7 @@ export default function Vendors() {
                         {v.name}
                       </p>
                       <p className="text-[10px] text-red-600 font-semibold">
-                        ₹{Number(v.outstanding).toLocaleString()} due
+                        ₹{Number(v.outstanding).toLocaleString("en-IN")} due
                       </p>
                     </div>
                     <button
@@ -490,7 +490,10 @@ export default function Vendors() {
                           <td className="px-4 py-3">
                             {outs?.outstanding > 0 ? (
                               <span className="inline-flex rounded-full bg-red-50 px-2 py-0.5 text-[10px] font-bold text-red-700">
-                                ₹{Number(outs.outstanding).toLocaleString()}
+                                ₹
+                                {Number(outs.outstanding).toLocaleString(
+                                  "en-IN",
+                                )}
                               </span>
                             ) : (
                               <span className="inline-flex rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-600">
@@ -607,7 +610,8 @@ export default function Vendors() {
                           {p.name}
                         </td>
                         <td className="px-4 py-3 text-gray-700">
-                          ₹{Number(p.totalPurchaseValue).toLocaleString()}
+                          ₹
+                          {Number(p.totalPurchaseValue).toLocaleString("en-IN")}
                         </td>
                         <td className="px-4 py-3 text-gray-600">
                           {p.invoiceCount}
@@ -615,8 +619,8 @@ export default function Vendors() {
                         <td className="px-4 py-3">
                           {p.overdueAmount > 0 ? (
                             <span className="inline-flex rounded-full bg-red-50 px-2 py-0.5 text-[10px] font-bold text-red-700">
-                              ₹{Number(p.overdueAmount).toLocaleString()} (
-                              {p.overdueInvoiceCount})
+                              ₹{Number(p.overdueAmount).toLocaleString("en-IN")}{" "}
+                              ({p.overdueInvoiceCount})
                             </span>
                           ) : (
                             <span className="inline-flex rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-600">
@@ -963,7 +967,7 @@ export default function Vendors() {
                       >
                         <div className="flex justify-between">
                           <span className="text-[11px] font-bold text-emerald-600">
-                            ₹{Number(p.amount).toLocaleString()}
+                            ₹{Number(p.amount).toLocaleString("en-IN")}
                           </span>
                           <span className="text-[10px] text-gray-400">
                             {new Date(p.paymentDate).toLocaleDateString(
@@ -1007,8 +1011,8 @@ export default function Vendors() {
                         </div>
                         <div className="flex justify-between mt-0.5">
                           <span className="text-[10px] text-gray-500">
-                            ₹{Number(i.totalAmount).toLocaleString()} · Paid ₹
-                            {Number(i.paidAmount).toLocaleString()}
+                            ₹{Number(i.totalAmount).toLocaleString("en-IN")} ·
+                            Paid ₹{Number(i.paidAmount).toLocaleString("en-IN")}
                           </span>
                           {i.status !== "PAID" && (
                             <button

@@ -32,18 +32,32 @@ type Props = {
   onDrillDown?: () => void;
 };
 
-const TrendIcon = ({ direction }: { direction: "up" | "down" | "flat" | null }) => {
+const TrendIcon = ({
+  direction,
+}: {
+  direction: "up" | "down" | "flat" | null;
+}) => {
   if (direction === "up") return <TrendingUp className="h-3 w-3" />;
   if (direction === "down") return <TrendingDown className="h-3 w-3" />;
   return <Minus className="h-3 w-3" />;
 };
 
-export default function AnalyticsOverview({ analytics, revenue, ebitda, ebitdaPct, ratios, onDrillDown }: Props) {
+export default function AnalyticsOverview({
+  analytics,
+  revenue,
+  ebitda,
+  ebitdaPct,
+  ratios,
+  onDrillDown,
+}: Props) {
   const ebitdaPositive = ebitda == null || ebitda >= 0;
   const revenueRatio = ratios?.find((r) => r.key === "revenue");
   const ebitdaRatio = ratios?.find((r) => r.key === "ebitdaPercentage");
 
-  const trendColor = (direction: "up" | "down" | "flat" | null, higherIsBetter: boolean) => {
+  const trendColor = (
+    direction: "up" | "down" | "flat" | null,
+    higherIsBetter: boolean,
+  ) => {
     if (direction === "flat" || direction === null) return "text-gray-400";
     const isGood = higherIsBetter ? direction === "up" : direction === "down";
     return isGood ? "text-emerald-600" : "text-red-500";
@@ -52,7 +66,7 @@ export default function AnalyticsOverview({ analytics, revenue, ebitda, ebitdaPc
   const stats = [
     {
       name: "Revenue",
-      value: `₹${Math.round(revenue ?? analytics?.totalRevenue ?? 0).toLocaleString()}`,
+      value: `₹${Math.round(revenue ?? analytics?.totalRevenue ?? 0).toLocaleString("en-IN")}`,
       icon: IndianRupee,
       accent: "bg-red-500",
       iconBg: "bg-red-50",
@@ -100,16 +114,20 @@ export default function AnalyticsOverview({ analytics, revenue, ebitda, ebitdaPc
     },
     {
       name: "EBITDA",
-      value: ebitda == null ? "—" : `₹${Math.round(ebitda).toLocaleString()}`,
+      value:
+        ebitda == null ? "—" : `₹${Math.round(ebitda).toLocaleString("en-IN")}`,
       icon: TrendingUp,
       accent: ebitdaPositive ? "bg-emerald-500" : "bg-red-500",
       iconBg: ebitdaPositive ? "bg-emerald-50" : "bg-red-50",
       iconColor: ebitdaPositive ? "text-emerald-500" : "text-red-500",
-      sub: ebitda == null
-        ? "Set expenses in Insights"
-        : ebitdaPct != null
-          ? `${ebitdaPct > 0 ? "+" : ""}${ebitdaPct.toFixed(1)}% margin`
-          : ebitdaPositive ? "Profitable period" : "Loss period",
+      sub:
+        ebitda == null
+          ? "Set expenses in Insights"
+          : ebitdaPct != null
+            ? `${ebitdaPct > 0 ? "+" : ""}${ebitdaPct.toFixed(1)}% margin`
+            : ebitdaPositive
+              ? "Profitable period"
+              : "Loss period",
       ratio: ebitdaRatio,
       higherIsBetter: true,
       clickable: !!onDrillDown,
@@ -189,8 +207,13 @@ export default function AnalyticsOverview({ analytics, revenue, ebitda, ebitdaPc
                     )}
                     {ratio.target != null && (
                       <span className="text-[9px] text-gray-400">
-                        Target {ratio.unit === "percentage" ? `${ratio.target}%` : `₹${Math.round(ratio.target).toLocaleString()}`}
-                        {ratio.achievementPercentage != null ? ` · ${ratio.achievementPercentage.toFixed(0)}%` : ""}
+                        Target{" "}
+                        {ratio.unit === "percentage"
+                          ? `${ratio.target}%`
+                          : `₹${Math.round(ratio.target).toLocaleString("en-IN")}`}
+                        {ratio.achievementPercentage != null
+                          ? ` · ${ratio.achievementPercentage.toFixed(0)}%`
+                          : ""}
                       </span>
                     )}
                   </div>

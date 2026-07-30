@@ -152,7 +152,7 @@ export default function Bills() {
               {[
                 {
                   label: "Revenue",
-                  value: `₹${totalSales.toLocaleString()}`,
+                  value: `₹${totalSales.toLocaleString("en-IN")}`,
                   icon: IndianRupeeIcon,
                   cls: "border-emerald-100 bg-emerald-50",
                   val: "text-emerald-700",
@@ -170,7 +170,7 @@ export default function Bills() {
                 },
                 {
                   label: "Avg Bill",
-                  value: `₹${avgBill.toLocaleString()}`,
+                  value: `₹${avgBill.toLocaleString("en-IN")}`,
                   icon: ChartBarIcon,
                   cls: "border-orange-100 bg-orange-50",
                   val: "text-orange-700",
@@ -377,7 +377,7 @@ export default function Bills() {
                         </td>
                         <td className="px-4 py-2.5">
                           <p className="font-bold text-emerald-600">
-                            ₹{Number(b.total || 0).toLocaleString()}
+                            ₹{Number(b.total || 0).toLocaleString("en-IN")}
                           </p>
                         </td>
                         <td className="px-4 py-2.5">
@@ -444,8 +444,15 @@ export default function Bills() {
             onPageChange={setPage}
             summary={
               <>
-                Showing <span className="font-semibold text-gray-700">{paginated.length}</span> of{" "}
-                <span className="font-semibold text-gray-700">{filtered.length}</span> bills
+                Showing{" "}
+                <span className="font-semibold text-gray-700">
+                  {paginated.length}
+                </span>{" "}
+                of{" "}
+                <span className="font-semibold text-gray-700">
+                  {filtered.length}
+                </span>{" "}
+                bills
               </>
             }
           />
@@ -573,10 +580,10 @@ export default function Bills() {
                             ×{item.quantity}
                           </p>
                           <p className="text-[12px] text-gray-500 text-right">
-                            ₹{Number(item.price || 0).toLocaleString()}
+                            ₹{Number(item.price || 0).toLocaleString("en-IN")}
                           </p>
                           <p className="text-[12px] font-semibold text-gray-800 text-right">
-                            ₹{Number(item.total || 0).toLocaleString()}
+                            ₹{Number(item.total || 0).toLocaleString("en-IN")}
                           </p>
                         </div>
                       ),
@@ -627,7 +634,9 @@ export default function Bills() {
                           className={`text-[12px] font-semibold ${row.cls || "text-gray-800"}`}
                         >
                           {row.value < 0 ? "−" : ""}₹
-                          {Math.abs(Number(row.value || 0)).toLocaleString()}
+                          {Math.abs(Number(row.value || 0)).toLocaleString(
+                            "en-IN",
+                          )}
                         </p>
                       </div>
                     ))}
@@ -637,7 +646,7 @@ export default function Bills() {
                       Total
                     </p>
                     <p className="text-[15px] font-black text-[#b10000]">
-                      ₹{Number(selectedBill.total || 0).toLocaleString()}
+                      ₹{Number(selectedBill.total || 0).toLocaleString("en-IN")}
                     </p>
                   </div>
 

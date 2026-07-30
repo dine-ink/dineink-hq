@@ -268,8 +268,14 @@ export default function MenuManagement() {
   const [engineeringLoading, setEngineeringLoading] = useState(false);
   const [addOnGroups, setAddOnGroups] = useState<any[]>([]);
   const [newGroupName, setNewGroupName] = useState("");
-  const [newOptionForm, setNewOptionForm] = useState<Record<number, { name: string; price: string }>>({});
-  const [attachModal, setAttachModal] = useState<{ open: boolean; item: any | null; attachedIds: Set<number> }>({
+  const [newOptionForm, setNewOptionForm] = useState<
+    Record<number, { name: string; price: string }>
+  >({});
+  const [attachModal, setAttachModal] = useState<{
+    open: boolean;
+    item: any | null;
+    attachedIds: Set<number>;
+  }>({
     open: false,
     item: null,
     attachedIds: new Set(),
@@ -494,7 +500,11 @@ export default function MenuManagement() {
       // like Insights.tsx's.
       const now = new Date();
       const monthStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
-      const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+      const lastDay = new Date(
+        now.getFullYear(),
+        now.getMonth() + 1,
+        0,
+      ).getDate();
       const monthEnd = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
 
       const res = await fetch(
@@ -1741,9 +1751,7 @@ export default function MenuManagement() {
   /* DAILY STOCK AUDIT REMINDER — after branch closing time, if today's
      closing-stock audit hasn't been submitted yet. */
   if (selectedBranch?.closingTime && todayAuditCount === 0) {
-    const [closeH, closeM] = selectedBranch.closingTime
-      .split(":")
-      .map(Number);
+    const [closeH, closeM] = selectedBranch.closingTime.split(":").map(Number);
     const now = new Date();
     const nowMinutes = now.getHours() * 60 + now.getMinutes();
     const closingMinutes = (closeH || 0) * 60 + (closeM || 0);
@@ -2008,7 +2016,10 @@ export default function MenuManagement() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ restaurantId: user.restaurantId, name: newGroupName.trim() }),
+        body: JSON.stringify({
+          restaurantId: user.restaurantId,
+          name: newGroupName.trim(),
+        }),
       });
       const data = await res.json();
       if (data.success) {
@@ -2021,7 +2032,8 @@ export default function MenuManagement() {
   };
 
   const handleDeleteAddOnGroup = async (id: number) => {
-    if (!window.confirm("Delete this add-on group and all its options?")) return;
+    if (!window.confirm("Delete this add-on group and all its options?"))
+      return;
     try {
       await fetch(`${API_URL}/api/addons/groups/${id}`, {
         method: "DELETE",
@@ -2051,7 +2063,10 @@ export default function MenuManagement() {
       });
       const data = await res.json();
       if (data.success) {
-        setNewOptionForm((prev) => ({ ...prev, [groupId]: { name: "", price: "" } }));
+        setNewOptionForm((prev) => ({
+          ...prev,
+          [groupId]: { name: "", price: "" },
+        }));
         fetchAddOnGroups();
       }
     } catch {
@@ -2107,14 +2122,17 @@ export default function MenuManagement() {
           { method: "DELETE", headers: { Authorization: `Bearer ${token}` } },
         );
       } else {
-        await fetch(`${API_URL}/api/addons/menu-items/${attachModal.item.id}/groups`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
+        await fetch(
+          `${API_URL}/api/addons/menu-items/${attachModal.item.id}/groups`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({ addOnGroupId: groupId }),
           },
-          body: JSON.stringify({ addOnGroupId: groupId }),
-        });
+        );
       }
     } catch {
       /* silent — optimistic state may drift; modal re-fetches next time it opens */
@@ -2143,9 +2161,7 @@ export default function MenuManagement() {
         steps,
       };
       const res = await fetch(
-        sopForm.id
-          ? `${API_URL}/api/sop/${sopForm.id}`
-          : `${API_URL}/api/sop`,
+        sopForm.id ? `${API_URL}/api/sop/${sopForm.id}` : `${API_URL}/api/sop`,
         {
           method: sopForm.id ? "PUT" : "POST",
           headers: {
@@ -4803,7 +4819,11 @@ export default function MenuManagement() {
                                         return (
                                           <Cell
                                             key={`cell-${index}`}
-                                            fill={chartPalette[index % chartPalette.length]}
+                                            fill={
+                                              chartPalette[
+                                                index % chartPalette.length
+                                              ]
+                                            }
                                           />
                                         );
                                       })}
@@ -4974,7 +4994,9 @@ export default function MenuManagement() {
                                   </span>
                                 </div>
 
-                                <p className={`mt-1 text-[12px] ${alert.text || "text-gray-500"}`}>
+                                <p
+                                  className={`mt-1 text-[12px] ${alert.text || "text-gray-500"}`}
+                                >
                                   {alert.desc}
                                 </p>
 
@@ -5021,7 +5043,10 @@ export default function MenuManagement() {
                             label: "Highest Usage",
                             value: sorted[0]?.ingredient || "—",
                             sub: sorted[0]
-                              ? formatQty(Number(sorted[0].consumed || 0), sorted[0].unit)
+                              ? formatQty(
+                                  Number(sorted[0].consumed || 0),
+                                  sorted[0].unit,
+                                )
                               : "No data",
                             color: "text-red-600",
                           },
@@ -5035,13 +5060,13 @@ export default function MenuManagement() {
                             label: "Highest Cost",
                             value: costSorted[0]?.ingredient || "—",
                             sub: costSorted[0]
-                              ? `₹${Math.round(Number(costSorted[0].totalCost || 0)).toLocaleString()}`
+                              ? `₹${Math.round(Number(costSorted[0].totalCost || 0)).toLocaleString("en-IN")}`
                               : "No data",
                             color: "text-orange-600",
                           },
                           {
                             label: "Total Consumption",
-                            value: `₹${Math.round(totalConsumptionValue).toLocaleString()}`,
+                            value: `₹${Math.round(totalConsumptionValue).toLocaleString("en-IN")}`,
                             sub: `${ingredientAnalytics.length} ingredients tracked`,
                             color: "text-indigo-600",
                           },
@@ -5204,16 +5229,37 @@ export default function MenuManagement() {
                   {menuEngineering && (
                     <div className="flex flex-wrap items-center gap-2">
                       {[
-                        { label: "Stars", value: menuEngineering.summary.star, cls: "border-emerald-100 bg-emerald-50 text-emerald-700" },
-                        { label: "Plowhorses", value: menuEngineering.summary.plowhorse, cls: "border-blue-100 bg-blue-50 text-blue-700" },
-                        { label: "Puzzles", value: menuEngineering.summary.puzzle, cls: "border-orange-100 bg-orange-50 text-orange-700" },
-                        { label: "Dogs", value: menuEngineering.summary.dog, cls: "border-red-100 bg-red-50 text-red-700" },
+                        {
+                          label: "Stars",
+                          value: menuEngineering.summary.star,
+                          cls: "border-emerald-100 bg-emerald-50 text-emerald-700",
+                        },
+                        {
+                          label: "Plowhorses",
+                          value: menuEngineering.summary.plowhorse,
+                          cls: "border-blue-100 bg-blue-50 text-blue-700",
+                        },
+                        {
+                          label: "Puzzles",
+                          value: menuEngineering.summary.puzzle,
+                          cls: "border-orange-100 bg-orange-50 text-orange-700",
+                        },
+                        {
+                          label: "Dogs",
+                          value: menuEngineering.summary.dog,
+                          cls: "border-red-100 bg-red-50 text-red-700",
+                        },
                       ].map((k) => (
-                        <div key={k.label} className={`rounded-xl border px-3 py-2 ${k.cls}`}>
+                        <div
+                          key={k.label}
+                          className={`rounded-xl border px-3 py-2 ${k.cls}`}
+                        >
                           <p className="text-[9px] font-bold uppercase tracking-[0.12em] opacity-70">
                             {k.label}
                           </p>
-                          <p className="mt-1 text-[15px] font-black">{k.value}</p>
+                          <p className="mt-1 text-[15px] font-black">
+                            {k.value}
+                          </p>
                         </div>
                       ))}
                     </div>
@@ -5245,8 +5291,13 @@ export default function MenuManagement() {
                     </p>
                     <div className="h-[340px] w-full">
                       <ResponsiveContainer width="100%" height="100%">
-                        <ScatterChart margin={{ top: 20, right: 24, bottom: 10, left: 0 }}>
-                          <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                        <ScatterChart
+                          margin={{ top: 20, right: 24, bottom: 10, left: 0 }}
+                        >
+                          <CartesianGrid
+                            strokeDasharray="3 3"
+                            stroke="#f1f5f9"
+                          />
                           <XAxis
                             type="number"
                             dataKey="popularityShare"
@@ -5265,7 +5316,11 @@ export default function MenuManagement() {
                             axisLine={false}
                             tickLine={false}
                           />
-                          <ZAxis type="number" dataKey="quantitySold" range={[40, 260]} />
+                          <ZAxis
+                            type="number"
+                            dataKey="quantitySold"
+                            range={[40, 260]}
+                          />
                           <Tooltip
                             cursor={{ strokeDasharray: "3 3" }}
                             formatter={(value: any, name: string) =>
@@ -5281,11 +5336,16 @@ export default function MenuManagement() {
                               const d: any = payload[0].payload;
                               return (
                                 <div className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-[11px] shadow-lg">
-                                  <p className="font-bold text-gray-900">{d.name}</p>
-                                  <p className="text-gray-500">
-                                    Margin ₹{d.margin} · {d.popularityShare}% of sales
+                                  <p className="font-bold text-gray-900">
+                                    {d.name}
                                   </p>
-                                  <p className="text-gray-500">{d.quantitySold} sold</p>
+                                  <p className="text-gray-500">
+                                    Margin ₹{d.margin} · {d.popularityShare}% of
+                                    sales
+                                  </p>
+                                  <p className="text-gray-500">
+                                    {d.quantitySold} sold
+                                  </p>
                                 </div>
                               );
                             }}
@@ -5332,8 +5392,20 @@ export default function MenuManagement() {
                       <table className="min-w-full text-[12px]">
                         <thead className="bg-gray-50 border-b border-gray-100">
                           <tr>
-                            {["Dish", "Category", "Price", "Cost", "Margin", "Qty Sold", "Popularity", "Classification"].map((h) => (
-                              <th key={h} className="px-4 py-2.5 text-left text-[10px] font-bold uppercase tracking-[0.14em] text-gray-400">
+                            {[
+                              "Dish",
+                              "Category",
+                              "Price",
+                              "Cost",
+                              "Margin",
+                              "Qty Sold",
+                              "Popularity",
+                              "Classification",
+                            ].map((h) => (
+                              <th
+                                key={h}
+                                className="px-4 py-2.5 text-left text-[10px] font-bold uppercase tracking-[0.14em] text-gray-400"
+                              >
                                 {h}
                               </th>
                             ))}
@@ -5341,18 +5413,39 @@ export default function MenuManagement() {
                         </thead>
                         <tbody>
                           {[...menuEngineering.items]
-                            .sort((a: any, b: any) => b.quantitySold - a.quantitySold)
+                            .sort(
+                              (a: any, b: any) =>
+                                b.quantitySold - a.quantitySold,
+                            )
                             .map((item: any) => (
-                              <tr key={item.id} className="border-b border-gray-50 hover:bg-gray-50/60 transition">
-                                <td className="px-4 py-3 font-semibold text-gray-900">{item.name}</td>
-                                <td className="px-4 py-3 text-gray-500">{item.category}</td>
-                                <td className="px-4 py-3 text-gray-700">₹{item.price}</td>
-                                <td className="px-4 py-3 text-gray-500">₹{item.cost.toFixed(2)}</td>
+                              <tr
+                                key={item.id}
+                                className="border-b border-gray-50 hover:bg-gray-50/60 transition"
+                              >
                                 <td className="px-4 py-3 font-semibold text-gray-900">
-                                  ₹{item.margin} <span className="text-gray-400">({item.marginPct}%)</span>
+                                  {item.name}
                                 </td>
-                                <td className="px-4 py-3 text-gray-700">{item.quantitySold}</td>
-                                <td className="px-4 py-3 text-gray-500">{item.popularityShare}%</td>
+                                <td className="px-4 py-3 text-gray-500">
+                                  {item.category}
+                                </td>
+                                <td className="px-4 py-3 text-gray-700">
+                                  ₹{item.price}
+                                </td>
+                                <td className="px-4 py-3 text-gray-500">
+                                  ₹{item.cost.toFixed(2)}
+                                </td>
+                                <td className="px-4 py-3 font-semibold text-gray-900">
+                                  ₹{item.margin}{" "}
+                                  <span className="text-gray-400">
+                                    ({item.marginPct}%)
+                                  </span>
+                                </td>
+                                <td className="px-4 py-3 text-gray-700">
+                                  {item.quantitySold}
+                                </td>
+                                <td className="px-4 py-3 text-gray-500">
+                                  {item.popularityShare}%
+                                </td>
                                 <td className="px-4 py-3">
                                   <span
                                     className={`inline-flex rounded-full px-2.5 py-1 text-[10px] font-bold ${
@@ -5365,10 +5458,14 @@ export default function MenuManagement() {
                                             : "bg-red-50 text-red-700"
                                     }`}
                                   >
-                                    {item.classification === "STAR" && "⭐ Star — protect it"}
-                                    {item.classification === "PLOWHORSE" && "🐴 Plowhorse — reprice/cost down"}
-                                    {item.classification === "PUZZLE" && "🧩 Puzzle — promote more"}
-                                    {item.classification === "DOG" && "🐶 Dog — reconsider"}
+                                    {item.classification === "STAR" &&
+                                      "⭐ Star — protect it"}
+                                    {item.classification === "PLOWHORSE" &&
+                                      "🐴 Plowhorse — reprice/cost down"}
+                                    {item.classification === "PUZZLE" &&
+                                      "🧩 Puzzle — promote more"}
+                                    {item.classification === "DOG" &&
+                                      "🐶 Dog — reconsider"}
                                   </span>
                                 </td>
                               </tr>
@@ -5385,7 +5482,10 @@ export default function MenuManagement() {
                       </h3>
                       <div className="flex flex-wrap gap-2">
                         {menuEngineering.notSold.map((item: any) => (
-                          <span key={item.id} className="rounded-full bg-gray-100 px-3 py-1 text-[11px] font-medium text-gray-600">
+                          <span
+                            key={item.id}
+                            className="rounded-full bg-gray-100 px-3 py-1 text-[11px] font-medium text-gray-600"
+                          >
                             {item.name}
                           </span>
                         ))}
@@ -5413,13 +5513,16 @@ export default function MenuManagement() {
                             </p>
                             <p
                               className={`mt-2 text-[18px] font-bold ${
-                                c.costPercentage > 35 ? "text-red-600" : "text-emerald-600"
+                                c.costPercentage > 35
+                                  ? "text-red-600"
+                                  : "text-emerald-600"
                               }`}
                             >
                               {c.costPercentage}%
                             </p>
                             <p className="mt-1 text-[11px] text-gray-500">
-                              ₹{c.cost.toLocaleString()} cost / ₹{c.revenue.toLocaleString()} revenue
+                              ₹{c.cost.toLocaleString("en-IN")} cost / ₹
+                              {c.revenue.toLocaleString("en-IN")} revenue
                             </p>
                           </div>
                         ))}
@@ -5444,9 +5547,9 @@ export default function MenuManagement() {
                       Add-On Groups
                     </h2>
                     <p className="mt-1 text-[13px] text-gray-500">
-                      Define reusable extras (e.g. "Extra Toppings") once,
-                      then attach them to whichever dishes need them from the
-                      Menu tab.
+                      Define reusable extras (e.g. "Extra Toppings") once, then
+                      attach them to whichever dishes need them from the Menu
+                      tab.
                     </p>
                   </div>
                 </div>
@@ -5458,7 +5561,9 @@ export default function MenuManagement() {
                   <input
                     value={newGroupName}
                     onChange={(e) => setNewGroupName(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && handleCreateAddOnGroup()}
+                    onKeyDown={(e) =>
+                      e.key === "Enter" && handleCreateAddOnGroup()
+                    }
                     placeholder="New group name (e.g. Extra Toppings)"
                     className="flex-1 rounded-xl border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm outline-none transition focus:border-violet-300 focus:bg-white"
                   />
@@ -5540,7 +5645,11 @@ export default function MenuManagement() {
                           onChange={(e) =>
                             setNewOptionForm((prev) => ({
                               ...prev,
-                              [group.id]: { ...prev[group.id], name: e.target.value, price: prev[group.id]?.price || "" },
+                              [group.id]: {
+                                ...prev[group.id],
+                                name: e.target.value,
+                                price: prev[group.id]?.price || "",
+                              },
                             }))
                           }
                           placeholder="Option (e.g. Extra Cheese)"
@@ -5552,7 +5661,11 @@ export default function MenuManagement() {
                           onChange={(e) =>
                             setNewOptionForm((prev) => ({
                               ...prev,
-                              [group.id]: { ...prev[group.id], price: e.target.value, name: prev[group.id]?.name || "" },
+                              [group.id]: {
+                                ...prev[group.id],
+                                price: e.target.value,
+                                name: prev[group.id]?.name || "",
+                              },
                             }))
                           }
                           placeholder="₹"
@@ -5604,8 +5717,8 @@ export default function MenuManagement() {
                       No SOP checklists yet
                     </p>
                     <p className="mt-1 text-[12px] text-gray-400">
-                      Add prep steps, portioning standards or hygiene
-                      checklists for your team to follow
+                      Add prep steps, portioning standards or hygiene checklists
+                      for your team to follow
                     </p>
                   </div>
                 </div>
@@ -5823,7 +5936,13 @@ export default function MenuManagement() {
           {attachModal.open && attachModal.item && (
             <div
               className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
-              onClick={() => setAttachModal({ open: false, item: null, attachedIds: new Set() })}
+              onClick={() =>
+                setAttachModal({
+                  open: false,
+                  item: null,
+                  attachedIds: new Set(),
+                })
+              }
             >
               <div
                 className="w-full max-w-sm rounded-2xl bg-white p-5 shadow-xl"
@@ -5839,7 +5958,13 @@ export default function MenuManagement() {
                     </p>
                   </div>
                   <button
-                    onClick={() => setAttachModal({ open: false, item: null, attachedIds: new Set() })}
+                    onClick={() =>
+                      setAttachModal({
+                        open: false,
+                        item: null,
+                        attachedIds: new Set(),
+                      })
+                    }
                     className="flex h-7 w-7 items-center justify-center rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50"
                   >
                     <XMarkIcon className="h-4 w-4" />
@@ -5858,7 +5983,9 @@ export default function MenuManagement() {
                         <label
                           key={group.id}
                           className={`flex cursor-pointer items-center justify-between rounded-xl border px-3 py-2.5 transition ${
-                            checked ? "border-violet-300 bg-violet-50" : "border-gray-200 bg-white hover:bg-gray-50"
+                            checked
+                              ? "border-violet-300 bg-violet-50"
+                              : "border-gray-200 bg-white hover:bg-gray-50"
                           }`}
                         >
                           <div>

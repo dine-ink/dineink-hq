@@ -168,21 +168,21 @@ export default function CashSessions() {
             },
             {
               label: "Total Shortfall",
-              value: `₹${totalShortfall.toLocaleString()}`,
+              value: `₹${totalShortfall.toLocaleString("en-IN")}`,
               sub: `${shortfallSessions.length} sessions`,
               cls: "border-red-100 bg-red-50/60",
               val: "text-red-700",
             },
             {
               label: "Total Surplus",
-              value: `₹${totalSurplus.toLocaleString()}`,
+              value: `₹${totalSurplus.toLocaleString("en-IN")}`,
               sub: `${surplusSessions.length} sessions`,
               cls: "border-emerald-100 bg-emerald-50/60",
               val: "text-emerald-700",
             },
             {
               label: "Net Difference",
-              value: `${netDiff >= 0 ? "+" : ""}₹${netDiff.toLocaleString()}`,
+              value: `${netDiff >= 0 ? "+" : ""}₹${netDiff.toLocaleString("en-IN")}`,
               sub: netDiff >= 0 ? "net surplus" : "net shortfall",
               cls:
                 netDiff >= 0
@@ -233,7 +233,9 @@ export default function CashSessions() {
                       tickLine={false}
                     />
                     <Tooltip
-                      formatter={(v: any) => `₹${Number(v).toLocaleString()}`}
+                      formatter={(v: any) =>
+                        `₹${Number(v).toLocaleString("en-IN")}`
+                      }
                     />
                     <ReferenceLine
                       y={0}
@@ -289,7 +291,9 @@ export default function CashSessions() {
                       tickLine={false}
                     />
                     <Tooltip
-                      formatter={(v: any) => `₹${Number(v).toLocaleString()}`}
+                      formatter={(v: any) =>
+                        `₹${Number(v).toLocaleString("en-IN")}`
+                      }
                     />
                     <Bar
                       dataKey="opening"
@@ -381,16 +385,16 @@ export default function CashSessions() {
                             : "—"}
                         </td>
                         <td className="px-4 py-2.5 text-gray-700">
-                          ₹{Number(s.openingCash || 0).toLocaleString()}
+                          ₹{Number(s.openingCash || 0).toLocaleString("en-IN")}
                         </td>
                         <td className="px-4 py-2.5 text-gray-700">
-                          ₹{Number(s.expectedCash || 0).toLocaleString()}
+                          ₹{Number(s.expectedCash || 0).toLocaleString("en-IN")}
                         </td>
                         <td className="px-4 py-2.5 font-semibold text-gray-900">
                           ₹
                           {Number(
                             s.actualCash || s.closingCash || 0,
-                          ).toLocaleString()}
+                          ).toLocaleString("en-IN")}
                         </td>
                         <td className="px-4 py-2.5">
                           <span
@@ -398,7 +402,7 @@ export default function CashSessions() {
                           >
                             {diff === 0
                               ? "Balanced"
-                              : `${diff > 0 ? "+" : ""}₹${diff.toLocaleString()}`}
+                              : `${diff > 0 ? "+" : ""}₹${diff.toLocaleString("en-IN")}`}
                           </span>
                         </td>
                         <td className="px-4 py-2.5 max-w-[150px] truncate text-gray-500">
@@ -439,13 +443,13 @@ export default function CashSessions() {
                       ₹
                       {sessions
                         .reduce((s, r) => s + Number(r.openingCash || 0), 0)
-                        .toLocaleString()}
+                        .toLocaleString("en-IN")}
                     </td>
                     <td className="px-4 py-3 text-[12px] font-bold text-gray-700">
                       ₹
                       {sessions
                         .reduce((s, r) => s + Number(r.expectedCash || 0), 0)
-                        .toLocaleString()}
+                        .toLocaleString("en-IN")}
                     </td>
                     <td className="px-4 py-3 text-[12px] font-bold text-gray-900">
                       ₹
@@ -455,13 +459,14 @@ export default function CashSessions() {
                             s + Number(r.actualCash || r.closingCash || 0),
                           0,
                         )
-                        .toLocaleString()}
+                        .toLocaleString("en-IN")}
                     </td>
                     <td
                       className="px-4 py-3 text-[12px] font-bold"
                       style={{ color: netDiff >= 0 ? "#059669" : "#dc2626" }}
                     >
-                      {netDiff >= 0 ? "+" : ""}₹{netDiff.toLocaleString()}
+                      {netDiff >= 0 ? "+" : ""}₹
+                      {netDiff.toLocaleString("en-IN")}
                     </td>
                     <td colSpan={2} />
                   </tr>

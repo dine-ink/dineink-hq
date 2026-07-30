@@ -79,9 +79,17 @@ const ASSUMPTION_FIELD_GROUPS: {
     fields: [
       { key: "foodCostTargetPercentage", label: "Food Cost Target", unit: "%" },
       { key: "labourTargetPercentage", label: "Labour Target", unit: "%" },
-      { key: "primeCostTargetPercentage", label: "Prime Cost Target", unit: "%" },
+      {
+        key: "primeCostTargetPercentage",
+        label: "Prime Cost Target",
+        unit: "%",
+      },
       { key: "ebitdaTargetPercentage", label: "EBITDA Target", unit: "%" },
-      { key: "occupancyTargetPercentage", label: "Occupancy Target", unit: "%" },
+      {
+        key: "occupancyTargetPercentage",
+        label: "Occupancy Target",
+        unit: "%",
+      },
       { key: "utilityTargetPercentage", label: "Utility Target", unit: "%" },
     ],
   },
@@ -89,8 +97,16 @@ const ASSUMPTION_FIELD_GROUPS: {
     title: "Channel Mix & Commission",
     fields: [
       { key: "deliveryPercentage", label: "Delivery Mix", unit: "%" },
-      { key: "swiggyCommissionPercentage", label: "Swiggy Commission", unit: "%" },
-      { key: "zomatoCommissionPercentage", label: "Zomato Commission", unit: "%" },
+      {
+        key: "swiggyCommissionPercentage",
+        label: "Swiggy Commission",
+        unit: "%",
+      },
+      {
+        key: "zomatoCommissionPercentage",
+        label: "Zomato Commission",
+        unit: "%",
+      },
     ],
   },
   {
@@ -104,7 +120,11 @@ const ASSUMPTION_FIELD_GROUPS: {
   {
     title: "Escalation",
     fields: [
-      { key: "salaryIncrementPercentage", label: "Salary Increment", unit: "%" },
+      {
+        key: "salaryIncrementPercentage",
+        label: "Salary Increment",
+        unit: "%",
+      },
       { key: "rentEscalationPercentage", label: "Rent Escalation", unit: "%" },
       { key: "inflationPercentage", label: "Inflation", unit: "%" },
     ],
@@ -127,12 +147,16 @@ export default function Insights() {
 
   const [activeTab, setActiveTab] = useState("Overview");
   const [staffData, setStaffData] = useState<any[]>([]);
-  const [assumptionsMode, setAssumptionsMode] = useState<"defaults" | "branch">("defaults");
+  const [assumptionsMode, setAssumptionsMode] = useState<"defaults" | "branch">(
+    "defaults",
+  );
   const [assumptionDefaults, setAssumptionDefaults] = useState<any>({});
   const [assumptionResolved, setAssumptionResolved] = useState<any>(null);
   const [assumptionsLoading, setAssumptionsLoading] = useState(false);
   const [assumptionsSaving, setAssumptionsSaving] = useState(false);
-  const [assumptionsSavedAt, setAssumptionsSavedAt] = useState<number | null>(null);
+  const [assumptionsSavedAt, setAssumptionsSavedAt] = useState<number | null>(
+    null,
+  );
   const [insightsSection, setInsightsSection] = useState("Fixed Expenses");
   const [_ingredients, setIngredients] = useState<any>({});
   const [restockHistory, setRestockHistory] = useState<any[]>([]);
@@ -195,10 +219,18 @@ export default function Insights() {
   // legacy RestaurantInsights target fields (still editable in Insights
   // Setup below) only until that fetch resolves.
   const targets = financeSummary?.targets;
-  const targetEbitda = targets ? (targets.targetEbitda ?? 0) : n(insightsData["targetEbitda"]);
-  const targetFoodCost = targets ? (targets.targetFoodCost ?? 0) : n(insightsData["targetFoodCost"]);
-  const targetPrimeCost = targets ? (targets.targetPrimeCost ?? 0) : n(insightsData["targetPrimeCost"]);
-  const targetGrossMargin = targets ? (targets.targetGrossMargin ?? 0) : n(insightsData["targetGrossMargin"]);
+  const targetEbitda = targets
+    ? (targets.targetEbitda ?? 0)
+    : n(insightsData["targetEbitda"]);
+  const targetFoodCost = targets
+    ? (targets.targetFoodCost ?? 0)
+    : n(insightsData["targetFoodCost"]);
+  const targetPrimeCost = targets
+    ? (targets.targetPrimeCost ?? 0)
+    : n(insightsData["targetPrimeCost"]);
+  const targetGrossMargin = targets
+    ? (targets.targetGrossMargin ?? 0)
+    : n(insightsData["targetGrossMargin"]);
   const localTotalFixedExpenses =
     n(insightsData.monthlyRent) +
     n(insightsData.loanEmi) +
@@ -262,7 +294,9 @@ export default function Insights() {
   // Cost/Net Profit computed by finance.formulas.ts) once loaded.
   const revenue = fm ? fm.revenue : localRevenue;
   const totalFixedExpenses = fm ? fm.fixedExpenses : localTotalFixedExpenses;
-  const totalVariableExpenses = fm ? fm.variableExpenses : localTotalVariableExpenses;
+  const totalVariableExpenses = fm
+    ? fm.variableExpenses
+    : localTotalVariableExpenses;
   const totalLabourCost = fm ? fm.labourCost : localTotalLabourCost;
   const totalFinanceCost = fm ? fm.financeCost : localTotalFinanceCost;
   const effectiveFoodCost = fm ? fm.foodCost : localEffectiveFoodCost;
@@ -317,8 +351,10 @@ export default function Insights() {
   // finance costs are treated as fixed here (staff are scheduled and paid
   // regardless of exact covers on a given day, unlike food cost or
   // per-order variable expenses, which scale directly with volume).
-  const localBreakEvenFixedCosts = localTotalFixedExpenses + localTotalLabourCost + localTotalFinanceCost;
-  const localBreakEvenVariableCosts = localTotalVariableExpenses + localEffectiveFoodCost;
+  const localBreakEvenFixedCosts =
+    localTotalFixedExpenses + localTotalLabourCost + localTotalFinanceCost;
+  const localBreakEvenVariableCosts =
+    localTotalVariableExpenses + localEffectiveFoodCost;
   const localContributionMargin = localRevenue - localBreakEvenVariableCosts;
   const localContributionMarginPercentage =
     localRevenue > 0 ? localContributionMargin / localRevenue : 0;
@@ -326,7 +362,8 @@ export default function Insights() {
     localContributionMarginPercentage > 0
       ? localBreakEvenFixedCosts / localContributionMarginPercentage
       : localTotalExpenses; // fallback if contribution margin is 0/negative
-  const localContributionPerOrder = mtdOrders > 0 ? localContributionMargin / mtdOrders : 0;
+  const localContributionPerOrder =
+    mtdOrders > 0 ? localContributionMargin / mtdOrders : 0;
   const localBreakEvenOrders =
     localContributionPerOrder > 0
       ? Math.ceil(localBreakEvenFixedCosts / localContributionPerOrder)
@@ -367,7 +404,9 @@ export default function Insights() {
       ? (startingInventory + inventoryValue) / 2
       : inventoryStockValue;
   const inventoryTurnover =
-    averageInventoryValue > 0 ? effectiveFoodCost / averageInventoryValue : null;
+    averageInventoryValue > 0
+      ? effectiveFoodCost / averageInventoryValue
+      : null;
   const daysInventoryOutstanding =
     inventoryTurnover && inventoryTurnover > 0
       ? daysInMonth / inventoryTurnover
@@ -376,7 +415,9 @@ export default function Insights() {
   // time of sale, so there's no customer receivable to track.
   const daysSalesOutstanding = 0;
   const daysPayableOutstanding =
-    effectiveFoodCost > 0 ? (accountsPayable / effectiveFoodCost) * daysInMonth : null;
+    effectiveFoodCost > 0
+      ? (accountsPayable / effectiveFoodCost) * daysInMonth
+      : null;
   const cashConversionCycle =
     daysInventoryOutstanding !== null && daysPayableOutstanding !== null
       ? daysInventoryOutstanding + daysSalesOutstanding - daysPayableOutstanding
@@ -386,7 +427,8 @@ export default function Insights() {
   // Annualizes this month's revenue (×12) since areaSqFt is a fixed,
   // point-in-time figure — there's no trailing-12-month revenue query here.
   const branchAreaSqFt = n(selectedBranch?.areaSqFt);
-  const salesPerSqFt = branchAreaSqFt > 0 ? (revenue * 12) / branchAreaSqFt : null;
+  const salesPerSqFt =
+    branchAreaSqFt > 0 ? (revenue * 12) / branchAreaSqFt : null;
 
   /* ================= REFUND % ============================================ */
   // Real BillRefund records (partial/full refunds) plus cancelled bills —
@@ -397,7 +439,8 @@ export default function Insights() {
   // mtdRevenue already reflects refunds (bill.total is reduced at refund
   // time), so add back what was refunded to get the gross sold-before-refund
   // figure for the denominator, alongside cancelled bills.
-  const grossSalesIncludingCancelled = mtdRevenue + cancelledTotal + refundedTotal;
+  const grossSalesIncludingCancelled =
+    mtdRevenue + cancelledTotal + refundedTotal;
   const refundPercentage =
     grossSalesIncludingCancelled > 0
       ? (totalGivenBack / grossSalesIncludingCancelled) * 100
@@ -405,11 +448,13 @@ export default function Insights() {
 
   /* ================= DELIVERY / AGGREGATOR PROFITABILITY ================= */
   const revenueByOrderType = mtdAnalytics?.revenueByOrderType || {};
-  const deliveryRevenue = n(revenueByOrderType.ONLINE) + n(revenueByOrderType.DELIVERY);
+  const deliveryRevenue =
+    n(revenueByOrderType.ONLINE) + n(revenueByOrderType.DELIVERY);
   const dineInTakeawayRevenue = Object.entries(revenueByOrderType)
     .filter(([type]) => type !== "ONLINE" && type !== "DELIVERY")
     .reduce((sum, [, v]) => sum + n(v), 0);
-  const deliveryRelatedCost = n(insightsData.deliveryCharges) + n(insightsData.aggregatorCommission);
+  const deliveryRelatedCost =
+    n(insightsData.deliveryCharges) + n(insightsData.aggregatorCommission);
   const deliveryMargin = deliveryRevenue - deliveryRelatedCost;
   const deliveryCostPercentage = deliveryRevenue
     ? (deliveryRelatedCost / deliveryRevenue) * 100
@@ -642,7 +687,10 @@ export default function Insights() {
         const json = await res.json();
         const vendors = json?.data || json || [];
         const total = Array.isArray(vendors)
-          ? vendors.reduce((s: number, v: any) => s + Number(v.outstanding || 0), 0)
+          ? vendors.reduce(
+              (s: number, v: any) => s + Number(v.outstanding || 0),
+              0,
+            )
           : 0;
         setAccountsPayable(total);
       } catch {
@@ -760,7 +808,10 @@ export default function Insights() {
     fetchAssumptions();
   }, [activeTab, selectedBranch?.id, user?.restaurantId]);
 
-  const activeAssumptionValues = assumptionsMode === "defaults" ? assumptionDefaults : assumptionResolved || {};
+  const activeAssumptionValues =
+    assumptionsMode === "defaults"
+      ? assumptionDefaults
+      : assumptionResolved || {};
   const overriddenFields: string[] = assumptionResolved?.overriddenFields || [];
 
   const handleAssumptionFieldChange = (key: string, value: string) => {
@@ -794,7 +845,10 @@ export default function Insights() {
       });
       const res = await fetch(url, {
         method: "PUT",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
         body: JSON.stringify(payload),
       });
       const json = await res.json();
@@ -908,7 +962,13 @@ export default function Insights() {
             <div className="space-y-4">
               {financeSummaryError && !fm && (
                 <div className="rounded-xl border border-amber-200 bg-amber-50 px-3.5 py-2.5 text-[12px] text-amber-800">
-                  <span className="font-semibold">Showing estimated figures</span> — could not load the latest financial summary. EBITDA, Prime Cost, Net Profit, and Break-even below use a fallback calculation and may not match Dashboard, Branch Comparison, or the PDF/Excel exports until this reconnects.
+                  <span className="font-semibold">
+                    Showing estimated figures
+                  </span>{" "}
+                  — could not load the latest financial summary. EBITDA, Prime
+                  Cost, Net Profit, and Break-even below use a fallback
+                  calculation and may not match Dashboard, Branch Comparison, or
+                  the PDF/Excel exports until this reconnects.
                 </div>
               )}
               {/* TOP KPIs */}
@@ -926,7 +986,7 @@ export default function Insights() {
 
                   {
                     label: "Net Profit",
-                    value: `₹${isNaN(netProfit) ? 0 : Math.round(netProfit).toLocaleString()}`,
+                    value: `₹${isNaN(netProfit) ? 0 : Math.round(netProfit).toLocaleString("en-IN")}`,
                     sub: "EBITDA − finance cost",
                     icon: TrendingUp,
                     color: "blue",
@@ -1012,7 +1072,7 @@ export default function Insights() {
                 {[
                   {
                     label: "Gross Profit",
-                    value: `₹${Math.round(grossProfit).toLocaleString()}`,
+                    value: `₹${Math.round(grossProfit).toLocaleString("en-IN")}`,
                     sub: "Revenue − food cost",
                     icon: IndianRupee,
                     color: "emerald",
@@ -1040,26 +1100,54 @@ export default function Insights() {
                   },
                 ].map((item) => {
                   const Icon = item.icon;
-                  const colorMap: Record<string, { text: string; bg: string; icon: string }> = {
-                    emerald: { text: "text-emerald-500", bg: "bg-emerald-50", icon: "text-emerald-600" },
-                    blue: { text: "text-blue-500", bg: "bg-blue-50", icon: "text-blue-600" },
-                    violet: { text: "text-violet-500", bg: "bg-violet-50", icon: "text-violet-600" },
-                    orange: { text: "text-orange-500", bg: "bg-orange-50", icon: "text-orange-600" },
+                  const colorMap: Record<
+                    string,
+                    { text: string; bg: string; icon: string }
+                  > = {
+                    emerald: {
+                      text: "text-emerald-500",
+                      bg: "bg-emerald-50",
+                      icon: "text-emerald-600",
+                    },
+                    blue: {
+                      text: "text-blue-500",
+                      bg: "bg-blue-50",
+                      icon: "text-blue-600",
+                    },
+                    violet: {
+                      text: "text-violet-500",
+                      bg: "bg-violet-50",
+                      icon: "text-violet-600",
+                    },
+                    orange: {
+                      text: "text-orange-500",
+                      bg: "bg-orange-50",
+                      icon: "text-orange-600",
+                    },
                   };
                   const c = colorMap[item.color];
                   return (
-                    <div key={item.label} className="rounded-2xl border border-gray-200 bg-white p-3 shadow-sm">
+                    <div
+                      key={item.label}
+                      className="rounded-2xl border border-gray-200 bg-white p-3 shadow-sm"
+                    >
                       <div className="flex items-start justify-between">
                         <div>
-                          <p className={`text-[10px] font-bold uppercase tracking-[0.14em] ${c.text}`}>
+                          <p
+                            className={`text-[10px] font-bold uppercase tracking-[0.14em] ${c.text}`}
+                          >
                             {item.label}
                           </p>
                           <p className="mt-2 text-[22px] font-bold tracking-tight text-gray-900">
                             {item.value}
                           </p>
-                          <p className="mt-1 text-[11px] text-gray-500">{item.sub}</p>
+                          <p className="mt-1 text-[11px] text-gray-500">
+                            {item.sub}
+                          </p>
                         </div>
-                        <div className={`flex h-8 w-8 items-center justify-center rounded-lg ${c.bg}`}>
+                        <div
+                          className={`flex h-8 w-8 items-center justify-center rounded-lg ${c.bg}`}
+                        >
                           <Icon className={`h-4 w-4 ${c.icon}`} />
                         </div>
                       </div>
@@ -1161,9 +1249,7 @@ export default function Insights() {
                       {targetEbitda > 0
                         ? Math.min(
                             Math.round(
-                              (Number(ebitdaPercentage) /
-                                targetEbitda) *
-                                100,
+                              (Number(ebitdaPercentage) / targetEbitda) * 100,
                             ),
                             100,
                           )
@@ -1258,12 +1344,16 @@ export default function Insights() {
                             />
                             <ReTooltip
                               formatter={(v: number) => [
-                                `₹${Math.round(v).toLocaleString()}`,
+                                `₹${Math.round(v).toLocaleString("en-IN")}`,
                                 "Revenue Required",
                               ]}
                               labelFormatter={(l) => `${l} EBITDA target`}
                             />
-                            <Bar dataKey="required" radius={[0, 6, 6, 0]} barSize={20}>
+                            <Bar
+                              dataKey="required"
+                              radius={[0, 6, 6, 0]}
+                              barSize={20}
+                            >
                               {revenueTargetData.map((d) => (
                                 <Cell
                                   key={d.target}
@@ -1306,10 +1396,9 @@ export default function Insights() {
                         </ResponsiveContainer>
                       </div>
                       <p className="mt-2 text-[11px] text-gray-500">
-                        Bars show the revenue needed to hit each EBITDA
-                        target this month. Blue = revenue so far (MTD),
-                        red dashed = projected month-end revenue at the
-                        current daily pace.
+                        Bars show the revenue needed to hit each EBITDA target
+                        this month. Blue = revenue so far (MTD), red dashed =
+                        projected month-end revenue at the current daily pace.
                       </p>
                     </>
                   );
@@ -1334,17 +1423,42 @@ export default function Insights() {
                     </div>
                   </div>
                   <span className="rounded-full bg-gray-100 px-3 py-1 text-[10px] font-semibold text-gray-600">
-                    ₹{Math.round(totalExpenses).toLocaleString()} total
+                    ₹{Math.round(totalExpenses).toLocaleString("en-IN")} total
                   </span>
                 </div>
 
                 {(() => {
                   const costBreakdownData = [
-                    { label: "Fixed", value: totalFixedExpenses, icon: Wallet, color: "#3b82f6" },
-                    { label: "Variable", value: totalVariableExpenses, icon: BarChart3, color: "#f97316" },
-                    { label: "Labour", value: totalLabourCost, icon: Users, color: "#10b981" },
-                    { label: "Tax", value: totalFinanceCost, icon: Landmark, color: "#8b5cf6" },
-                    { label: "Raw Material", value: effectiveFoodCost, icon: ShoppingCart, color: "#ef4444" },
+                    {
+                      label: "Fixed",
+                      value: totalFixedExpenses,
+                      icon: Wallet,
+                      color: "#3b82f6",
+                    },
+                    {
+                      label: "Variable",
+                      value: totalVariableExpenses,
+                      icon: BarChart3,
+                      color: "#f97316",
+                    },
+                    {
+                      label: "Labour",
+                      value: totalLabourCost,
+                      icon: Users,
+                      color: "#10b981",
+                    },
+                    {
+                      label: "Tax",
+                      value: totalFinanceCost,
+                      icon: Landmark,
+                      color: "#8b5cf6",
+                    },
+                    {
+                      label: "Raw Material",
+                      value: effectiveFoodCost,
+                      icon: ShoppingCart,
+                      color: "#ef4444",
+                    },
                   ].filter((d) => d.value > 0);
 
                   if (!costBreakdownData.length) {
@@ -1376,7 +1490,9 @@ export default function Insights() {
                               ))}
                             </Pie>
                             <ReTooltip
-                              formatter={(v: number) => `₹${Math.round(v).toLocaleString()}`}
+                              formatter={(v: number) =>
+                                `₹${Math.round(v).toLocaleString("en-IN")}`
+                              }
                             />
                           </RePieChart>
                         </ResponsiveContainer>
@@ -1401,11 +1517,17 @@ export default function Insights() {
                               </div>
                               <div className="text-right">
                                 <p className="text-[13px] font-bold text-gray-900">
-                                  ₹{Math.round(item.value).toLocaleString()}
+                                  ₹
+                                  {Math.round(item.value).toLocaleString(
+                                    "en-IN",
+                                  )}
                                 </p>
                                 <p className="text-[10px] text-gray-400">
                                   {totalExpenses > 0
-                                    ? ((item.value / totalExpenses) * 100).toFixed(1)
+                                    ? (
+                                        (item.value / totalExpenses) *
+                                        100
+                                      ).toFixed(1)
                                     : "0.0"}
                                   % of expenses
                                 </p>
@@ -1442,17 +1564,19 @@ export default function Insights() {
                     {[
                       {
                         label: "MTD Revenue",
-                        value: `₹${Math.round(mtdRevenue).toLocaleString()}`,
+                        value: `₹${Math.round(mtdRevenue).toLocaleString("en-IN")}`,
                         color: "blue",
                       },
                       {
                         label: "Break-Even At",
-                        value: `₹${Math.round(breakEvenRevenue).toLocaleString()}`,
+                        value: `₹${Math.round(breakEvenRevenue).toLocaleString("en-IN")}`,
                         color: "violet",
                       },
                       {
                         label: "Break-Even Orders",
-                        value: breakEvenOrders ? breakEvenOrders.toLocaleString() : "—",
+                        value: breakEvenOrders
+                          ? breakEvenOrders.toLocaleString("en-IN")
+                          : "—",
                         color: "blue",
                       },
                       {
@@ -1522,12 +1646,15 @@ export default function Insights() {
                 {/* Month elapsed vs projected month-end */}
                 <div className="mt-4 flex flex-col gap-2 rounded-xl border border-gray-100 bg-gray-50 p-3 sm:flex-row sm:items-center sm:justify-between">
                   <p className="text-[12px] text-gray-600">
-                    {pctOfMonthElapsed.toFixed(0)}% of the month has passed —
-                    at the current daily pace (₹
-                    {Math.round(dailyRunRate).toLocaleString()}/day) you're
-                    projected to close the month at{" "}
+                    {pctOfMonthElapsed.toFixed(0)}% of the month has passed — at
+                    the current daily pace (₹
+                    {Math.round(dailyRunRate).toLocaleString("en-IN")}/day)
+                    you're projected to close the month at{" "}
                     <span className="font-semibold text-gray-900">
-                      ₹{Math.round(projectedMonthEndRevenue).toLocaleString()}
+                      ₹
+                      {Math.round(projectedMonthEndRevenue).toLocaleString(
+                        "en-IN",
+                      )}
                     </span>
                     .
                   </p>
@@ -1556,8 +1683,8 @@ export default function Insights() {
                         Delivery Profitability
                       </h3>
                       <p className="mt-1 text-[12px] text-gray-500">
-                        Online/delivery revenue vs. delivery + aggregator
-                        costs, this month
+                        Online/delivery revenue vs. delivery + aggregator costs,
+                        this month
                       </p>
                     </div>
                   </div>
@@ -1579,22 +1706,22 @@ export default function Insights() {
                     {[
                       {
                         label: "Delivery Revenue",
-                        value: `₹${Math.round(deliveryRevenue).toLocaleString()}`,
+                        value: `₹${Math.round(deliveryRevenue).toLocaleString("en-IN")}`,
                         color: "blue",
                       },
                       {
                         label: "Dine-In / Takeaway",
-                        value: `₹${Math.round(dineInTakeawayRevenue).toLocaleString()}`,
+                        value: `₹${Math.round(dineInTakeawayRevenue).toLocaleString("en-IN")}`,
                         color: "gray",
                       },
                       {
                         label: "Delivery + Aggregator Cost",
-                        value: `₹${Math.round(deliveryRelatedCost).toLocaleString()}`,
+                        value: `₹${Math.round(deliveryRelatedCost).toLocaleString("en-IN")}`,
                         color: "red",
                       },
                       {
                         label: "Net Delivery Margin",
-                        value: `₹${Math.round(deliveryMargin).toLocaleString()}`,
+                        value: `₹${Math.round(deliveryMargin).toLocaleString("en-IN")}`,
                         color: deliveryMargin >= 0 ? "emerald" : "red",
                       },
                     ].map((item) => (
@@ -1654,8 +1781,8 @@ export default function Insights() {
                       Customer Acquisition & ROI
                     </h3>
                     <p className="mt-1 text-[12px] text-gray-500">
-                      Marketing efficiency and return on your branch
-                      investment, this month
+                      Marketing efficiency and return on your branch investment,
+                      this month
                     </p>
                   </div>
                 </div>
@@ -1664,7 +1791,7 @@ export default function Insights() {
                   {[
                     {
                       label: "New Customers",
-                      value: newCustomersThisMonth.toLocaleString(),
+                      value: newCustomersThisMonth.toLocaleString("en-IN"),
                       sub: "First purchase this month",
                       color: "blue",
                     },
@@ -1672,7 +1799,7 @@ export default function Insights() {
                       label: "CAC",
                       value:
                         newCustomersThisMonth > 0
-                          ? `₹${Math.round(customerAcquisitionCost).toLocaleString()}`
+                          ? `₹${Math.round(customerAcquisitionCost).toLocaleString("en-IN")}`
                           : "—",
                       sub: "Marketing spend ÷ new customers",
                       color: "orange",
@@ -1684,7 +1811,11 @@ export default function Insights() {
                           ? `${monthlyRoiPercentage.toFixed(1)}%`
                           : "—",
                       sub: "EBITDA ÷ initial investment (this month's rate)",
-                      color: monthlyRoiPercentage !== null && monthlyRoiPercentage >= 0 ? "emerald" : "red",
+                      color:
+                        monthlyRoiPercentage !== null &&
+                        monthlyRoiPercentage >= 0
+                          ? "emerald"
+                          : "red",
                     },
                     {
                       label: "Payback Period",
@@ -1715,7 +1846,9 @@ export default function Insights() {
                       >
                         {item.value}
                       </p>
-                      <p className="mt-1 text-[11px] text-gray-500">{item.sub}</p>
+                      <p className="mt-1 text-[11px] text-gray-500">
+                        {item.sub}
+                      </p>
                     </div>
                   ))}
                 </div>
@@ -1766,18 +1899,26 @@ export default function Insights() {
                           value: `${tableOps.seatUtilizationPercentage.toFixed(1)}%`,
                           sub: "occupied vs. available seat-hours",
                           color:
-                            tableOps.seatUtilizationPercentage >= 50 ? "emerald" : "orange",
+                            tableOps.seatUtilizationPercentage >= 50
+                              ? "emerald"
+                              : "orange",
                         },
                         {
                           label: "Total Seats",
-                          value: tableOps.totalCapacity.toLocaleString(),
+                          value: tableOps.totalCapacity.toLocaleString("en-IN"),
                           sub: `${tableOps.totalTables} tables`,
                           color: "gray",
                         },
                         {
                           label: "Sales / Sq. Ft.",
-                          value: salesPerSqFt !== null ? `₹${Math.round(salesPerSqFt).toLocaleString()}` : "—",
-                          sub: salesPerSqFt !== null ? "annualized revenue ÷ area" : "add Area (Sq. Ft.) in Settings",
+                          value:
+                            salesPerSqFt !== null
+                              ? `₹${Math.round(salesPerSqFt).toLocaleString("en-IN")}`
+                              : "—",
+                          sub:
+                            salesPerSqFt !== null
+                              ? "annualized revenue ÷ area"
+                              : "add Area (Sq. Ft.) in Settings",
                           color: "emerald",
                         },
                       ].map((item) => (
@@ -1803,7 +1944,9 @@ export default function Insights() {
                           >
                             {item.value}
                           </p>
-                          <p className="mt-1 text-[11px] text-gray-500">{item.sub}</p>
+                          <p className="mt-1 text-[11px] text-gray-500">
+                            {item.sub}
+                          </p>
                         </div>
                       ))}
                     </div>
@@ -1816,15 +1959,15 @@ export default function Insights() {
                     {!tableOps.hasOperatingHours && (
                       <p className="mt-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] text-amber-700">
                         ⚠ This branch's opening/closing time isn't set — Seat
-                        Utilization is using a default 12-hour day estimate.
-                        Set exact hours in Settings for a more accurate number.
+                        Utilization is using a default 12-hour day estimate. Set
+                        exact hours in Settings for a more accurate number.
                       </p>
                     )}
                     {tableOps.tablesWithMissingCapacity > 0 && (
                       <p className="mt-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] text-amber-700">
                         ⚠ {tableOps.tablesWithMissingCapacity} table(s) have no
-                        seat capacity set — Total Seats and Seat Utilization
-                        are undercounting them. Set capacity in Shops → Tables.
+                        seat capacity set — Total Seats and Seat Utilization are
+                        undercounting them. Set capacity in Shops → Tables.
                       </p>
                     )}
                   </>
@@ -1849,8 +1992,7 @@ export default function Insights() {
                       Inventory & Cash Conversion Cycle
                     </h3>
                     <p className="mt-1 text-[12px] text-gray-500">
-                      How fast stock turns over and cash comes back, this
-                      month
+                      How fast stock turns over and cash comes back, this month
                     </p>
                   </div>
                 </div>
@@ -1859,27 +2001,42 @@ export default function Insights() {
                   {[
                     {
                       label: "Inventory Turnover",
-                      value: inventoryTurnover !== null ? `${inventoryTurnover.toFixed(1)}x` : "—",
+                      value:
+                        inventoryTurnover !== null
+                          ? `${inventoryTurnover.toFixed(1)}x`
+                          : "—",
                       sub: "food cost ÷ avg. inventory value",
                       color: "blue",
                     },
                     {
                       label: "Days Inventory Outstanding",
-                      value: daysInventoryOutstanding !== null ? `${Math.round(daysInventoryOutstanding)}d` : "—",
+                      value:
+                        daysInventoryOutstanding !== null
+                          ? `${Math.round(daysInventoryOutstanding)}d`
+                          : "—",
                       sub: "days stock takes to turn over",
                       color: "violet",
                     },
                     {
                       label: "Days Payable Outstanding",
-                      value: daysPayableOutstanding !== null ? `${Math.round(daysPayableOutstanding)}d` : "—",
+                      value:
+                        daysPayableOutstanding !== null
+                          ? `${Math.round(daysPayableOutstanding)}d`
+                          : "—",
                       sub: "vendor dues outstanding vs. food cost",
                       color: "orange",
                     },
                     {
                       label: "Cash Conversion Cycle",
-                      value: cashConversionCycle !== null ? `${Math.round(cashConversionCycle)}d` : "—",
+                      value:
+                        cashConversionCycle !== null
+                          ? `${Math.round(cashConversionCycle)}d`
+                          : "—",
                       sub: "DIO + DSO (0) − DPO",
-                      color: cashConversionCycle !== null && cashConversionCycle <= 0 ? "emerald" : "red",
+                      color:
+                        cashConversionCycle !== null && cashConversionCycle <= 0
+                          ? "emerald"
+                          : "red",
                     },
                   ].map((item) => (
                     <div
@@ -1904,22 +2061,23 @@ export default function Insights() {
                       >
                         {item.value}
                       </p>
-                      <p className="mt-1 text-[11px] text-gray-500">{item.sub}</p>
+                      <p className="mt-1 text-[11px] text-gray-500">
+                        {item.sub}
+                      </p>
                     </div>
                   ))}
                 </div>
                 <p className="mt-3 text-[11px] text-gray-400">
                   Average Inventory uses this month's opening/closing restock
-                  values (or live stock value if restock history isn't set
-                  up yet). Days Sales Outstanding is 0 since guests pay in
-                  full at the time of sale — there's no customer credit to
-                  collect.
+                  values (or live stock value if restock history isn't set up
+                  yet). Days Sales Outstanding is 0 since guests pay in full at
+                  the time of sale — there's no customer credit to collect.
                 </p>
                 {!hasVendorInvoices && (
                   <p className="mt-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] text-amber-700">
                     ⚠ No vendor invoices logged for this branch — Days Payable
-                    Outstanding is showing as 0, which may understate your
-                    real payment cycle. Log invoices in Vendors to fix this.
+                    Outstanding is showing as 0, which may understate your real
+                    payment cycle. Log invoices in Vendors to fix this.
                   </p>
                 )}
               </div>
@@ -2111,8 +2269,8 @@ export default function Insights() {
                             {insightsSection === "Labour"
                               ? "Labour Intelligence"
                               : insightsSection === "Raw Material Cost"
-                              ? "Raw Material / Food Cost"
-                              : insightsSection}
+                                ? "Raw Material / Food Cost"
+                                : insightsSection}
                           </h1>
 
                           <p className="mt-0.5 text-[12px] text-gray-500">
@@ -2159,7 +2317,7 @@ export default function Insights() {
                               insightsData.accounting +
                               insightsData.insurance +
                               insightsData.licenses
-                            ).toLocaleString()}
+                            ).toLocaleString("en-IN")}
                           </p>
 
                           <p className="mt-2 text-[12px] text-gray-500">
@@ -2302,7 +2460,7 @@ export default function Insights() {
                               insightsData.gas +
                               insightsData.maintenance +
                               insightsData.fuel
-                            ).toLocaleString()}
+                            ).toLocaleString("en-IN")}
                           </p>
 
                           <p className="mt-2 text-[12px] text-gray-500">
@@ -2437,17 +2595,21 @@ export default function Insights() {
                             This Month's Food Cost
                           </p>
                           <p className="mt-2 text-2xl font-bold tracking-tight text-gray-900">
-                            ₹{effectiveFoodCost.toLocaleString()}
+                            ₹{effectiveFoodCost.toLocaleString("en-IN")}
                           </p>
                           <p className="mt-2 text-[12px] text-gray-500">
-                            {manualFoodCostSet ? "Manual entry" : "From inventory data"}
+                            {manualFoodCostSet
+                              ? "Manual entry"
+                              : "From inventory data"}
                           </p>
                         </div>
                         <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
                           <p className="text-[12px] font-medium uppercase tracking-wide text-gray-400">
                             Food Cost %
                           </p>
-                          <p className={`mt-2 text-2xl font-bold tracking-tight ${Number(actualFoodCostPercentage) > 35 ? "text-red-600" : "text-emerald-600"}`}>
+                          <p
+                            className={`mt-2 text-2xl font-bold tracking-tight ${Number(actualFoodCostPercentage) > 35 ? "text-red-600" : "text-emerald-600"}`}
+                          >
                             {actualFoodCostPercentage}%
                           </p>
                           <p className="mt-2 text-[12px] text-gray-500">
@@ -2475,8 +2637,9 @@ export default function Insights() {
                             Manual Raw Material Cost
                           </h3>
                           <p className="mt-1 text-sm text-gray-500">
-                            Enter your total monthly spend on raw materials / groceries. When set, this
-                            overrides the per-ingredient inventory calculation in your EBITDA.
+                            Enter your total monthly spend on raw materials /
+                            groceries. When set, this overrides the
+                            per-ingredient inventory calculation in your EBITDA.
                           </p>
                         </div>
 
@@ -2502,7 +2665,8 @@ export default function Insights() {
                             />
                           </div>
                           <p className="mt-2 text-[11px] text-gray-400">
-                            Leave at 0 to auto-calculate from inventory restock data
+                            Leave at 0 to auto-calculate from inventory restock
+                            data
                           </p>
                         </div>
                       </div>
@@ -2554,7 +2718,7 @@ export default function Insights() {
                                       sum + (s.salary || 0),
                                     0,
                                   ) || 0
-                                ).toLocaleString()}
+                                ).toLocaleString("en-IN")}
                               </p>
 
                               <p className="mt-1 text-[11px] text-gray-500">
@@ -2586,7 +2750,7 @@ export default function Insights() {
                                           sum + (s.salary || 0),
                                         0,
                                       ) / staffData.length,
-                                    ).toLocaleString()
+                                    ).toLocaleString("en-IN")
                                   : 0}
                               </p>
 
@@ -2684,7 +2848,7 @@ export default function Insights() {
                                     </p>
 
                                     <p className="mt-2 text-xl font-bold tracking-tight text-gray-900">
-                                      ₹{deptSalary.toLocaleString()}
+                                      ₹{deptSalary.toLocaleString("en-IN")}
                                     </p>
 
                                     <p className="mt-1 text-[11px] text-gray-500">
@@ -2811,7 +2975,7 @@ export default function Insights() {
                                   {/* SALARY */}
 
                                   <td className="px-4 py-3 text-sm font-semibold text-gray-900">
-                                    ₹{staff.salary?.toLocaleString()}
+                                    ₹{staff.salary?.toLocaleString("en-IN")}
                                   </td>
 
                                   {/* EMPLOYMENT */}
@@ -2973,15 +3137,19 @@ export default function Insights() {
                         </div>
 
                         <p className="mb-4 rounded-lg bg-blue-50 px-3 py-2 text-[11px] text-blue-700">
-                          Target EBITDA, Food Cost %, and Prime Cost % are now configured under the{" "}
+                          Target EBITDA, Food Cost %, and Prime Cost % are now
+                          configured under the{" "}
                           <button
                             type="button"
-                            onClick={() => setActiveTab("Financial Assumptions")}
+                            onClick={() =>
+                              setActiveTab("Financial Assumptions")
+                            }
                             className="font-semibold underline"
                           >
                             Financial Assumptions
                           </button>{" "}
-                          tab, with restaurant-wide defaults and per-branch overrides.
+                          tab, with restaurant-wide defaults and per-branch
+                          overrides.
                         </p>
 
                         {/* FORM GRID */}
@@ -3165,7 +3333,7 @@ export default function Insights() {
                                 ₹
                                 {(
                                   insightsData.monthlyLoanEmi || 0
-                                ).toLocaleString()}
+                                ).toLocaleString("en-IN")}
                               </p>
 
                               <p className="mt-1 text-[11px] text-gray-500">
@@ -3192,7 +3360,7 @@ export default function Insights() {
                                 ₹
                                 {(
                                   insightsData.monthlyInterestPayments || 0
-                                ).toLocaleString()}
+                                ).toLocaleString("en-IN")}
                               </p>
 
                               <p className="mt-1 text-[11px] text-gray-500">
@@ -3223,7 +3391,7 @@ export default function Insights() {
                                   (insightsData.caFees || 0) +
                                   (insightsData.insuranceCost || 0) +
                                   (insightsData.otherTaxes || 0)
-                                ).toLocaleString()}
+                                ).toLocaleString("en-IN")}
                               </p>
 
                               <p className="mt-1 text-[11px] text-gray-500">
@@ -3816,8 +3984,8 @@ export default function Insights() {
               {assumptionsMode === "branch" && (
                 <p className="rounded-lg bg-blue-50 px-3 py-2 text-[11px] text-blue-700">
                   Fields left blank here inherit the restaurant default shown
-                  above. Only set a value if this branch is genuinely
-                  different (e.g. a different landlord's rent rate).
+                  above. Only set a value if this branch is genuinely different
+                  (e.g. a different landlord's rent rate).
                 </p>
               )}
 
@@ -3837,7 +4005,9 @@ export default function Insights() {
                       </h4>
                       <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
                         {group.fields.map((field) => {
-                          const isOverridden = overriddenFields.includes(field.key);
+                          const isOverridden = overriddenFields.includes(
+                            field.key,
+                          );
                           const value = activeAssumptionValues[field.key];
                           return (
                             <div
@@ -3848,15 +4018,18 @@ export default function Insights() {
                                 <label className="block text-[12px] font-medium text-gray-700">
                                   {field.label}
                                 </label>
-                                {assumptionsMode === "branch" && isOverridden && (
-                                  <button
-                                    type="button"
-                                    onClick={() => handleClearOverride(field.key)}
-                                    className="text-[10px] font-semibold text-[#b10000] hover:underline"
-                                  >
-                                    Reset to default
-                                  </button>
-                                )}
+                                {assumptionsMode === "branch" &&
+                                  isOverridden && (
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        handleClearOverride(field.key)
+                                      }
+                                      className="text-[10px] font-semibold text-[#b10000] hover:underline"
+                                    >
+                                      Reset to default
+                                    </button>
+                                  )}
                               </div>
                               <div className="relative">
                                 {field.unit === "₹" ? (
@@ -3871,9 +4044,16 @@ export default function Insights() {
                                 <input
                                   type="number"
                                   value={value ?? ""}
-                                  onChange={(e) => handleAssumptionFieldChange(field.key, e.target.value)}
+                                  onChange={(e) =>
+                                    handleAssumptionFieldChange(
+                                      field.key,
+                                      e.target.value,
+                                    )
+                                  }
                                   placeholder={
-                                    assumptionsMode === "branch" ? "Inherit default" : "0"
+                                    assumptionsMode === "branch"
+                                      ? "Inherit default"
+                                      : "0"
                                   }
                                   className={`w-full rounded-xl border text-sm outline-none transition-all duration-200 focus:border-red-300 focus:bg-white ${
                                     isOverridden

@@ -339,7 +339,7 @@ export default function BranchComparison() {
                     <p className="mt-1 text-[20px] font-black text-gray-900">
                       {k.fmt
                         ? k.fmt(best?.[k.key] || 0)
-                        : (best?.[k.key] || 0).toLocaleString()}
+                        : (best?.[k.key] || 0).toLocaleString("en-IN")}
                     </p>
                   </div>
                 );
@@ -503,7 +503,7 @@ export default function BranchComparison() {
                                 >
                                   {metric.format
                                     ? metric.format(val)
-                                    : val.toLocaleString()}
+                                    : val.toLocaleString("en-IN")}
                                   <WinnerBadge isWinner={!!isWinner} />
                                 </span>
                               </td>

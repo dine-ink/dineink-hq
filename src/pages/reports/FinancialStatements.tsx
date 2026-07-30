@@ -80,7 +80,11 @@ export default function FinancialStatements() {
 
   const handleExportPDF = () => {
     if (!statement) return;
-    const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+    const doc = new jsPDF({
+      orientation: "portrait",
+      unit: "mm",
+      format: "a4",
+    });
     doc.setFontSize(16);
     doc.setTextColor(177, 0, 0);
     doc.text(statement.title, 14, 16);
@@ -139,7 +143,9 @@ export default function FinancialStatements() {
       });
       lines.push("");
     });
-    const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8;" });
+    const blob = new Blob([lines.join("\n")], {
+      type: "text/csv;charset=utf-8;",
+    });
     saveAs(blob, `${statement.type}-${localDateStr(statement.startDate)}.csv`);
   };
 
@@ -160,7 +166,8 @@ export default function FinancialStatements() {
                   Financial Statements
                 </h1>
                 <p className="mt-1 text-[12px] text-gray-500">
-                  Daily/Monthly/Quarterly/Yearly statements from the shared finance engine
+                  Daily/Monthly/Quarterly/Yearly statements from the shared
+                  finance engine
                 </p>
               </div>
             </div>
@@ -210,8 +217,12 @@ export default function FinancialStatements() {
             <div className="space-y-5">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                  <h2 className="text-[18px] font-bold text-gray-900">{statement.title}</h2>
-                  <p className="text-[12px] text-gray-500">{statement.subtitle}</p>
+                  <h2 className="text-[18px] font-bold text-gray-900">
+                    {statement.title}
+                  </h2>
+                  <p className="text-[12px] text-gray-500">
+                    {statement.subtitle}
+                  </p>
                 </div>
                 <div className="flex flex-wrap gap-2 print:hidden">
                   <button
@@ -252,7 +263,10 @@ export default function FinancialStatements() {
               )}
 
               {statement.sections.map((section: any, i: number) => (
-                <div key={i} className="overflow-hidden rounded-xl border border-gray-200">
+                <div
+                  key={i}
+                  className="overflow-hidden rounded-xl border border-gray-200"
+                >
                   <div className="bg-gray-50 px-4 py-2 text-[13px] font-bold text-gray-900">
                     {section.title}
                   </div>
@@ -264,7 +278,9 @@ export default function FinancialStatements() {
                           className={`border-t border-gray-100 ${r.isTotal ? "bg-red-50/40 font-bold text-gray-900" : "text-gray-700"}`}
                         >
                           <td className="px-4 py-2">{r.label}</td>
-                          <td className="px-4 py-2 text-right">{fmtValue(r)}</td>
+                          <td className="px-4 py-2 text-right">
+                            {fmtValue(r)}
+                          </td>
                         </tr>
                       ))}
                     </tbody>

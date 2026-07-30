@@ -301,13 +301,16 @@ export default function Dashboard() {
     return () => ctrl.abort();
   }, [preset, from, to, selectedBranch?.id, token, user?.restaurantId]);
 
-  const dashboardEbitda: number | null = financeSummary?.current?.ebitda ?? null;
+  const dashboardEbitda: number | null =
+    financeSummary?.current?.ebitda ?? null;
   // Same Finance Engine call as dashboardEbitda above — StatsStrip's Revenue
   // tile used to read analytics.totalRevenue (a separate, independent
   // Prisma aggregate in analytics.service.ts) even though the adjacent
   // EBITDA tile was already Finance-Engine-sourced. Routed through here so
   // both tiles trace to the same computation.
-  const dashboardRevenue: number | null = financeSummary?.current?.revenue ?? null;
+  const dashboardRevenue: number | null =
+    financeSummary?.current?.revenue ?? null;
+  console.log("dashboardRevenue", dashboardRevenue, financeSummary);
 
   if (hasRestaurant === null) {
     return (
@@ -532,7 +535,9 @@ export default function Dashboard() {
                     />
                     <YAxis tick={TICK} axisLine={false} tickLine={false} />
                     <Tooltip
-                      formatter={(v: any) => `₹${Number(v).toLocaleString()}`}
+                      formatter={(v: any) =>
+                        `₹${Number(v).toLocaleString("en-IN")}`
+                      }
                     />
                     <Bar
                       dataKey="revenue"
@@ -900,7 +905,7 @@ export default function Dashboard() {
                             {key}
                           </p>
                           <p className="text-[12px] font-bold text-gray-700">
-                            ₹{Number(value).toLocaleString()}
+                            ₹{Number(value).toLocaleString("en-IN")}
                           </p>
                         </div>
                         <div className="mt-2 h-1 overflow-hidden rounded-full bg-gray-200">
@@ -985,7 +990,7 @@ export default function Dashboard() {
                 key: "total",
                 render: (r) => (
                   <span className="text-[13px] font-black text-gray-900">
-                    ₹{Number(r.total || 0).toLocaleString()}
+                    ₹{Number(r.total || 0).toLocaleString("en-IN")}
                   </span>
                 ),
               },

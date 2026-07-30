@@ -18,7 +18,9 @@ import { PencilSquareIcon, XMarkIcon } from "@heroicons/react/24/outline";
 // Effective hours for payroll/display purposes: an owner-entered override
 // takes precedence over whatever the POS clock-in/out computed.
 const effectiveHours = (att: any) =>
-  att?.manualTotalHours != null ? Number(att.manualTotalHours) : Number(att?.totalHours || 0);
+  att?.manualTotalHours != null
+    ? Number(att.manualTotalHours)
+    : Number(att?.totalHours || 0);
 
 const DEPT_COLOR: Record<string, string> = {
   KITCHEN: "bg-orange-100 text-orange-700",
@@ -54,7 +56,10 @@ const isLateArrival = (loginTime: string, openingTime?: string | null) => {
 
 const lateCutoffLabel = (openingTime?: string | null) => {
   const mins = lateCutoffMinutes(openingTime);
-  return dayjs().hour(Math.floor(mins / 60)).minute(mins % 60).format("h:mm A");
+  return dayjs()
+    .hour(Math.floor(mins / 60))
+    .minute(mins % 60)
+    .format("h:mm A");
 };
 
 // Standard hours-per-day assumption used to convert a monthly salary into an
@@ -70,7 +75,9 @@ const getStandardShiftHours = (shift: string | undefined, branch: any) => {
 
 const hourlyRate = (staff: any, branch: any) => {
   const standardHours = getStandardShiftHours(staff?.shift, branch);
-  return standardHours > 0 ? Number(staff?.salary || 0) / (30 * standardHours) : 0;
+  return standardHours > 0
+    ? Number(staff?.salary || 0) / (30 * standardHours)
+    : 0;
 };
 
 // Overtime hours (owner-entered on top of the regular shift) are paid at the
@@ -535,7 +542,7 @@ export default function Attendance() {
                         Monthly Total
                       </p>
                       <p className="mt-1.5 text-[18px] font-bold text-gray-900">
-                        ₹{totalMonthlySalary.toLocaleString()}
+                        ₹{totalMonthlySalary.toLocaleString("en-IN")}
                       </p>
                     </div>
                     <div className="rounded-xl border border-emerald-100 bg-emerald-50 p-3">
@@ -543,15 +550,16 @@ export default function Attendance() {
                         Today (Present)
                       </p>
                       <p className="mt-1.5 text-[18px] font-bold text-emerald-700">
-                        ₹{dailyPayroll.toLocaleString()}
+                        ₹{dailyPayroll.toLocaleString("en-IN")}
                       </p>
                     </div>
                   </div>
                   {totalOvertimeCost > 0 && (
                     <div className="rounded-xl border border-amber-100 bg-amber-50 px-3 py-2">
                       <p className="text-[10px] font-semibold text-amber-700">
-                        Includes ₹{Math.round(totalOvertimeCost).toLocaleString()} in
-                        overtime pay today
+                        Includes ₹
+                        {Math.round(totalOvertimeCost).toLocaleString("en-IN")}{" "}
+                        in overtime pay today
                       </p>
                     </div>
                   )}
@@ -561,12 +569,15 @@ export default function Attendance() {
                         (s: any) =>
                           s.department === d.dept && presentIds.has(s.id),
                       );
-                      const deptCost = deptPresent.reduce((sum: number, s: any) => {
-                        const att = attendance.find(
-                          (a: any) => a.userId === s.id,
-                        );
-                        return sum + dailyPay(s, att, selectedBranch);
-                      }, 0);
+                      const deptCost = deptPresent.reduce(
+                        (sum: number, s: any) => {
+                          const att = attendance.find(
+                            (a: any) => a.userId === s.id,
+                          );
+                          return sum + dailyPay(s, att, selectedBranch);
+                        },
+                        0,
+                      );
                       return (
                         <div
                           key={d.dept}
@@ -583,7 +594,7 @@ export default function Attendance() {
                             </span>
                           </div>
                           <span className="text-[11px] font-semibold text-gray-900">
-                            ₹{deptCost.toLocaleString()}/day
+                            ₹{deptCost.toLocaleString("en-IN")}/day
                           </span>
                         </div>
                       );
@@ -651,7 +662,10 @@ export default function Attendance() {
                       const isPresent = !!att?.loginTime;
                       const isLate =
                         isPresent &&
-                        isLateArrival(att.loginTime, selectedBranch?.openingTime);
+                        isLateArrival(
+                          att.loginTime,
+                          selectedBranch?.openingTime,
+                        );
                       return (
                         <tr
                           key={s.id}
@@ -714,14 +728,17 @@ export default function Attendance() {
                           </td>
                           <td className="px-4 py-2.5 text-gray-700">
                             <p className="font-semibold">
-                              ₹{dailyPay(s, att, selectedBranch).toLocaleString()}
+                              ₹
+                              {dailyPay(s, att, selectedBranch).toLocaleString(
+                                "en-IN",
+                              )}
                             </p>
                             {Number(att?.overtimeHours || 0) > 0 && (
                               <p className="text-[9px] font-semibold text-amber-600">
                                 +₹
                                 {Math.round(
                                   overtimePay(s, att, selectedBranch),
-                                ).toLocaleString()}{" "}
+                                ).toLocaleString("en-IN")}{" "}
                                 OT
                               </p>
                             )}
@@ -803,7 +820,7 @@ export default function Attendance() {
                   },
                   {
                     label: "Monthly Labour Cost",
-                    value: `₹${(productivity?.totals?.totalLabourCost || 0).toLocaleString()}`,
+                    value: `₹${(productivity?.totals?.totalLabourCost || 0).toLocaleString("en-IN")}`,
                     sub: "total salaries",
                     color: "red",
                   },
@@ -881,7 +898,7 @@ export default function Attendance() {
                               {s.label}
                             </p>
                             <p className="text-[12px] font-bold text-gray-700">
-                              ₹{rev.toLocaleString()}{" "}
+                              ₹{rev.toLocaleString("en-IN")}{" "}
                               <span className="text-[10px] text-gray-400">
                                 ({pct}%)
                               </span>
@@ -924,10 +941,10 @@ export default function Attendance() {
                         </div>
                         <div className="text-right">
                           <p className="text-[14px] font-bold text-red-600">
-                            ₹{d.totalSalary.toLocaleString()}
+                            ₹{d.totalSalary.toLocaleString("en-IN")}
                           </p>
                           <p className="text-[10px] text-gray-400">
-                            ₹{d.avgSalary.toLocaleString()} avg
+                            ₹{d.avgSalary.toLocaleString("en-IN")} avg
                           </p>
                         </div>
                       </div>
@@ -1016,10 +1033,10 @@ export default function Attendance() {
                             </span>
                           </td>
                           <td className="px-4 py-2.5 font-bold text-red-600">
-                            ₹{s.monthlySalary.toLocaleString()}
+                            ₹{s.monthlySalary.toLocaleString("en-IN")}
                             {Number(s.overtimeCost || 0) > 0 && (
                               <p className="text-[9px] font-semibold text-amber-600">
-                                +₹{s.overtimeCost.toLocaleString()} OT (
+                                +₹{s.overtimeCost.toLocaleString("en-IN")} OT (
                                 {s.overtimeHours}h)
                               </p>
                             )}
@@ -1050,7 +1067,9 @@ export default function Attendance() {
         {hoursModal.open && (
           <div
             className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
-            onClick={() => setHoursModal({ open: false, staff: null, att: null })}
+            onClick={() =>
+              setHoursModal({ open: false, staff: null, att: null })
+            }
           >
             <div
               className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl"
@@ -1062,11 +1081,14 @@ export default function Attendance() {
                     Edit Hours Worked
                   </h3>
                   <p className="mt-0.5 text-[11px] text-gray-500">
-                    {hoursModal.staff?.name} · {dayjs(date).format("DD MMM YYYY")}
+                    {hoursModal.staff?.name} ·{" "}
+                    {dayjs(date).format("DD MMM YYYY")}
                   </p>
                 </div>
                 <button
-                  onClick={() => setHoursModal({ open: false, staff: null, att: null })}
+                  onClick={() =>
+                    setHoursModal({ open: false, staff: null, att: null })
+                  }
                   className="flex h-7 w-7 items-center justify-center rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50"
                 >
                   <XMarkIcon className="h-4 w-4" />
@@ -1106,13 +1128,16 @@ export default function Attendance() {
                     className="h-10 w-full rounded-xl border border-gray-200 bg-white px-3 text-sm outline-none transition focus:border-red-300 focus:ring-2 focus:ring-red-100"
                   />
                   <p className="mt-1 text-[10px] text-gray-400">
-                    Extra hours worked beyond the normal shift, tracked separately for payroll.
+                    Extra hours worked beyond the normal shift, tracked
+                    separately for payroll.
                   </p>
                 </div>
 
                 <div className="flex justify-end gap-2 pt-2">
                   <button
-                    onClick={() => setHoursModal({ open: false, staff: null, att: null })}
+                    onClick={() =>
+                      setHoursModal({ open: false, staff: null, att: null })
+                    }
                     className="rounded-xl border border-gray-200 px-4 py-2 text-[13px] font-semibold text-gray-600 hover:bg-gray-50"
                   >
                     Cancel

@@ -60,9 +60,13 @@ export default function Report() {
   const [forecastData, setForecastData] = useState<any>(null);
   const [lifecycleData, setLifecycleData] = useState<any[]>([]);
   const [lifecycleLoading, setLifecycleLoading] = useState(false);
-  const [lifecycleMonth, setLifecycleMonth] = useState(new Date().getMonth() + 1);
+  const [lifecycleMonth, setLifecycleMonth] = useState(
+    new Date().getMonth() + 1,
+  );
   const [lifecycleYear, setLifecycleYear] = useState(new Date().getFullYear());
-  const [expandedIngredients, setExpandedIngredients] = useState<Set<number>>(new Set());
+  const [expandedIngredients, setExpandedIngredients] = useState<Set<number>>(
+    new Set(),
+  );
   const [compareDishAId, setCompareDishAId] = useState("");
   const [compareDishBId, setCompareDishBId] = useState("");
   const [heatmapItemId, setHeatmapItemId] = useState("");
@@ -162,7 +166,8 @@ export default function Report() {
         if (adjustData.success) setInventoryAdjustments(adjustData.data || []);
         if (heatmapJson.success) setHeatmapData(heatmapJson.data);
         if (forecastJson.success) setForecastData(forecastJson.data);
-        if (financeSummaryJson.success) setFinanceSummary(financeSummaryJson.data);
+        if (financeSummaryJson.success)
+          setFinanceSummary(financeSummaryJson.data);
       } catch {
         /* silent */
       } finally {
@@ -173,7 +178,12 @@ export default function Report() {
   }, [selectedBranch?.id, from, to]);
 
   useEffect(() => {
-    if (activeTab !== "Stock Lifecycle" || !selectedBranch?.id || !user?.restaurantId) return;
+    if (
+      activeTab !== "Stock Lifecycle" ||
+      !selectedBranch?.id ||
+      !user?.restaurantId
+    )
+      return;
     const fetchLifecycle = async () => {
       setLifecycleLoading(true);
       try {
@@ -183,7 +193,9 @@ export default function Report() {
         );
         const json = await res.json();
         if (json.success) setLifecycleData(json.data || []);
-      } catch { /* silent */ }
+      } catch {
+        /* silent */
+      }
       setLifecycleLoading(false);
     };
     fetchLifecycle();
@@ -239,11 +251,20 @@ export default function Report() {
   // Falls back to the old local estimate (raw ShopExpense sum, no food/labour
   // cost) only until the fetch resolves, same pattern used in Insights.tsx.
   const fin = financeSummary?.current;
-  const localTotalExpenses = expenses.reduce((s, e) => s + Number(e.amount || 0), 0);
+  const localTotalExpenses = expenses.reduce(
+    (s, e) => s + Number(e.amount || 0),
+    0,
+  );
   const totalExpenses = fin
-    ? fin.foodCost + fin.labourCost + fin.fixedExpenses + fin.variableExpenses + fin.financeCost
+    ? fin.foodCost +
+      fin.labourCost +
+      fin.fixedExpenses +
+      fin.variableExpenses +
+      fin.financeCost
     : localTotalExpenses;
-  const netProfit = fin ? fin.netProfit : totalRevenue - totalGST - localTotalExpenses;
+  const netProfit = fin
+    ? fin.netProfit
+    : totalRevenue - totalGST - localTotalExpenses;
 
   const [downloadingGst, setDownloadingGst] = useState(false);
   const downloadGstFiling = async () => {
@@ -259,7 +280,8 @@ export default function Report() {
         alert(json.message || "Failed to generate GST report");
         return;
       }
-      const { restaurant, branch, gstPercentage, monthly, grandTotal } = json.data;
+      const { restaurant, branch, gstPercentage, monthly, grandTotal } =
+        json.data;
 
       const wb = new ExcelJS.Workbook();
       const ws = wb.addWorksheet("GST Summary");
@@ -432,28 +454,30 @@ export default function Report() {
               {[
                 {
                   label: "Total Revenue",
-                  value: `₹${totalRevenue.toLocaleString()}`,
+                  value: `₹${totalRevenue.toLocaleString("en-IN")}`,
                   sub: `${paidBills.length} paid bills`,
                   color: "emerald",
                   badge: "+revenue",
                 },
                 {
                   label: "Total Expenses",
-                  value: `₹${Math.round(totalExpenses).toLocaleString()}`,
-                  sub: fin ? "food + labour + fixed + variable + finance cost" : `${expenses.length} expense entries`,
+                  value: `₹${Math.round(totalExpenses).toLocaleString("en-IN")}`,
+                  sub: fin
+                    ? "food + labour + fixed + variable + finance cost"
+                    : `${expenses.length} expense entries`,
                   color: "red",
                   badge: "outflow",
                 },
                 {
                   label: "GST Collected",
-                  value: `₹${totalGST.toLocaleString()}`,
-                  sub: `CGST ₹${totalCGST.toLocaleString()} + SGST ₹${totalSGST.toLocaleString()}`,
+                  value: `₹${totalGST.toLocaleString("en-IN")}`,
+                  sub: `CGST ₹${totalCGST.toLocaleString("en-IN")} + SGST ₹${totalSGST.toLocaleString("en-IN")}`,
                   color: "blue",
                   badge: "tax",
                 },
                 {
                   label: "Net Profit",
-                  value: `₹${netProfit.toLocaleString()}`,
+                  value: `₹${netProfit.toLocaleString("en-IN")}`,
                   sub: `${profitMargin}% margin`,
                   color: netProfit >= 0 ? "emerald" : "red",
                   badge: `${profitMargin}%`,
@@ -530,8 +554,8 @@ export default function Report() {
                           className={`py-2 pr-4 text-right text-[13px] font-semibold ${row.positive ? "text-emerald-600" : "text-red-600"}`}
                         >
                           {row.value < 0
-                            ? `-₹${Math.abs(row.value).toLocaleString()}`
-                            : `₹${row.value.toLocaleString()}`}
+                            ? `-₹${Math.abs(row.value).toLocaleString("en-IN")}`
+                            : `₹${row.value.toLocaleString("en-IN")}`}
                         </td>
                       </tr>
                     ))}
@@ -544,8 +568,14 @@ export default function Report() {
                       </td>
                     </tr>
                     <tr>
-                      <td colSpan={2} className="pb-2 text-[10px] italic text-gray-400">
-                        Shown for reference — GST collected is held for the government, not the restaurant's own expense, so it isn't subtracted from Net Profit below (matching the Finance Engine used across the app).
+                      <td
+                        colSpan={2}
+                        className="pb-2 text-[10px] italic text-gray-400"
+                      >
+                        Shown for reference — GST collected is held for the
+                        government, not the restaurant's own expense, so it
+                        isn't subtracted from Net Profit below (matching the
+                        Finance Engine used across the app).
                       </td>
                     </tr>
                     {[
@@ -560,7 +590,7 @@ export default function Report() {
                           {row.label}
                         </td>
                         <td className="py-2 pr-4 text-right text-[13px] font-semibold text-red-600">
-                          -₹{Math.abs(row.value).toLocaleString()}
+                          -₹{Math.abs(row.value).toLocaleString("en-IN")}
                         </td>
                       </tr>
                     ))}
@@ -572,48 +602,58 @@ export default function Report() {
                         OPERATING EXPENSES
                       </td>
                     </tr>
-                    {fin ? (
-                      // Canonical categories (Finance Engine) — matches
-                      // Dashboard/Insights/Branch Comparison exactly. The raw
-                      // ShopExpense-by-type ledger (previously shown here) is
-                      // real data too, but is a different opex source than
-                      // what everywhere else in the app uses to compute Net
-                      // Profit — it's shown in full on the Expense Tracker
-                      // tab instead of being duplicated (and mismatched) here.
-                      [
-                        { label: "Food Cost", value: fin.foodCost },
-                        { label: "Labour Cost", value: fin.labourCost },
-                        { label: "Fixed Expenses (rent, utilities, etc.)", value: fin.fixedExpenses },
-                        { label: "Variable Expenses (marketing, packaging, etc.)", value: fin.variableExpenses },
-                        { label: "Finance Cost (loan EMI, interest, etc.)", value: fin.financeCost },
-                      ].map((r) => (
-                        <tr key={r.label} className="border-b border-gray-50">
-                          <td className="py-2 pl-4 text-[13px] text-gray-600">{r.label}</td>
-                          <td className="py-2 pr-4 text-right text-[13px] font-semibold text-red-600">
-                            -₹{Math.round(r.value).toLocaleString()}
-                          </td>
-                        </tr>
-                      ))
-                    ) : (
-                      Object.entries(expenseByType).map(
-                        ([type, amount]: any) => (
-                          <tr key={type} className="border-b border-gray-50">
+                    {fin
+                      ? // Canonical categories (Finance Engine) — matches
+                        // Dashboard/Insights/Branch Comparison exactly. The raw
+                        // ShopExpense-by-type ledger (previously shown here) is
+                        // real data too, but is a different opex source than
+                        // what everywhere else in the app uses to compute Net
+                        // Profit — it's shown in full on the Expense Tracker
+                        // tab instead of being duplicated (and mismatched) here.
+                        [
+                          { label: "Food Cost", value: fin.foodCost },
+                          { label: "Labour Cost", value: fin.labourCost },
+                          {
+                            label: "Fixed Expenses (rent, utilities, etc.)",
+                            value: fin.fixedExpenses,
+                          },
+                          {
+                            label:
+                              "Variable Expenses (marketing, packaging, etc.)",
+                            value: fin.variableExpenses,
+                          },
+                          {
+                            label: "Finance Cost (loan EMI, interest, etc.)",
+                            value: fin.financeCost,
+                          },
+                        ].map((r) => (
+                          <tr key={r.label} className="border-b border-gray-50">
                             <td className="py-2 pl-4 text-[13px] text-gray-600">
-                              {type}
+                              {r.label}
                             </td>
                             <td className="py-2 pr-4 text-right text-[13px] font-semibold text-red-600">
-                              -₹{Number(amount).toLocaleString()}
+                              -₹{Math.round(r.value).toLocaleString("en-IN")}
                             </td>
                           </tr>
-                        ),
-                      )
-                    )}
+                        ))
+                      : Object.entries(expenseByType).map(
+                          ([type, amount]: any) => (
+                            <tr key={type} className="border-b border-gray-50">
+                              <td className="py-2 pl-4 text-[13px] text-gray-600">
+                                {type}
+                              </td>
+                              <td className="py-2 pr-4 text-right text-[13px] font-semibold text-red-600">
+                                -₹{Number(amount).toLocaleString("en-IN")}
+                              </td>
+                            </tr>
+                          ),
+                        )}
                     <tr className="border-b border-gray-100">
                       <td className="py-2 pl-4 text-[13px] font-bold text-gray-900">
                         Total Expenses
                       </td>
                       <td className="py-2 pr-4 text-right text-[13px] font-bold text-red-600">
-                        -₹{Math.round(totalExpenses).toLocaleString()}
+                        -₹{Math.round(totalExpenses).toLocaleString("en-IN")}
                       </td>
                     </tr>
                     <tr
@@ -625,7 +665,8 @@ export default function Report() {
                       <td
                         className={`py-3 pr-4 text-right text-[15px] font-black ${netProfit >= 0 ? "text-emerald-600" : "text-red-600"}`}
                       >
-                        {netProfit >= 0 ? "+" : ""}₹{netProfit.toLocaleString()}
+                        {netProfit >= 0 ? "+" : ""}₹
+                        {netProfit.toLocaleString("en-IN")}
                       </td>
                     </tr>
                   </tbody>
@@ -733,7 +774,7 @@ export default function Report() {
                         </Pie>
                         <Tooltip
                           formatter={(v: any) =>
-                            `₹${Number(v).toLocaleString()}`
+                            `₹${Number(v).toLocaleString("en-IN")}`
                           }
                         />
                         <Legend
@@ -784,7 +825,7 @@ export default function Report() {
                   <p
                     className={`mt-2 text-[20px] font-bold ${item.color === "emerald" ? "text-emerald-600" : item.color === "blue" ? "text-blue-600" : item.color === "violet" ? "text-violet-600" : "text-red-600"}`}
                   >
-                    ₹{Number(item.value).toLocaleString()}
+                    ₹{Number(item.value).toLocaleString("en-IN")}
                   </p>
                 </div>
               ))}
@@ -850,22 +891,22 @@ export default function Report() {
                           </span>
                         </td>
                         <td className="px-4 py-2 text-gray-700">
-                          ₹{Number(b.subtotal || 0).toLocaleString()}
+                          ₹{Number(b.subtotal || 0).toLocaleString("en-IN")}
                         </td>
                         <td className="px-4 py-2 text-blue-600">
-                          ₹{Number(b.cgst || 0).toLocaleString()}
+                          ₹{Number(b.cgst || 0).toLocaleString("en-IN")}
                         </td>
                         <td className="px-4 py-2 text-violet-600">
-                          ₹{Number(b.sgst || 0).toLocaleString()}
+                          ₹{Number(b.sgst || 0).toLocaleString("en-IN")}
                         </td>
                         <td className="px-4 py-2 font-semibold text-red-600">
                           ₹
                           {(
                             Number(b.cgst || 0) + Number(b.sgst || 0)
-                          ).toLocaleString()}
+                          ).toLocaleString("en-IN")}
                         </td>
                         <td className="px-4 py-2 font-bold text-gray-900">
-                          ₹{Number(b.total || 0).toLocaleString()}
+                          ₹{Number(b.total || 0).toLocaleString("en-IN")}
                         </td>
                         <td className="px-4 py-2">
                           <span
@@ -900,19 +941,19 @@ export default function Report() {
                           ₹
                           {bills
                             .reduce((s, b) => s + Number(b.subtotal || 0), 0)
-                            .toLocaleString()}
+                            .toLocaleString("en-IN")}
                         </td>
                         <td className="px-4 py-3 text-[12px] font-bold text-blue-600">
-                          ₹{totalCGST.toLocaleString()}
+                          ₹{totalCGST.toLocaleString("en-IN")}
                         </td>
                         <td className="px-4 py-3 text-[12px] font-bold text-violet-600">
-                          ₹{totalSGST.toLocaleString()}
+                          ₹{totalSGST.toLocaleString("en-IN")}
                         </td>
                         <td className="px-4 py-3 text-[12px] font-bold text-red-600">
-                          ₹{totalGST.toLocaleString()}
+                          ₹{totalGST.toLocaleString("en-IN")}
                         </td>
                         <td className="px-4 py-3 text-[12px] font-bold text-gray-900">
-                          ₹{totalRevenue.toLocaleString()}
+                          ₹{totalRevenue.toLocaleString("en-IN")}
                         </td>
                         <td />
                       </tr>
@@ -933,7 +974,7 @@ export default function Report() {
                   Total Expenses
                 </p>
                 <p className="mt-2 text-[22px] font-bold text-red-700">
-                  ₹{localTotalExpenses.toLocaleString()}
+                  ₹{localTotalExpenses.toLocaleString("en-IN")}
                 </p>
                 <p className="mt-1 text-[11px] text-gray-500">
                   {expenses.length} entries
@@ -957,7 +998,7 @@ export default function Report() {
                   {expenses.length
                     ? Math.round(
                         localTotalExpenses / expenses.length,
-                      ).toLocaleString()
+                      ).toLocaleString("en-IN")
                     : 0}
                 </p>
                 <p className="mt-1 text-[11px] text-gray-500">
@@ -1017,7 +1058,7 @@ export default function Report() {
                         />
                         <Tooltip
                           formatter={(v: any) =>
-                            `₹${Number(v).toLocaleString()}`
+                            `₹${Number(v).toLocaleString("en-IN")}`
                           }
                         />
                         <Bar
@@ -1064,7 +1105,7 @@ export default function Report() {
                         </div>
                       </div>
                       <p className="text-[14px] font-bold text-red-600">
-                        ₹{Number(e.amount).toLocaleString()}
+                        ₹{Number(e.amount).toLocaleString("en-IN")}
                       </p>
                     </div>
                   ))}
@@ -1105,7 +1146,7 @@ export default function Report() {
                             </p>
                             <div className="text-right">
                               <p className="text-[13px] font-bold text-gray-900">
-                                ₹{data.amount.toLocaleString()}
+                                ₹{data.amount.toLocaleString("en-IN")}
                               </p>
                               <p className="text-[10px] text-gray-400">
                                 {data.count} bills
@@ -1178,7 +1219,7 @@ export default function Report() {
                             {row.label}
                           </p>
                           <p className={`text-[13px] font-bold ${row.color}`}>
-                            ₹{row.value.toLocaleString()}{" "}
+                            ₹{row.value.toLocaleString("en-IN")}{" "}
                             <span className="text-[10px] text-gray-400">
                               ({row.count} bills)
                             </span>
@@ -1220,7 +1261,7 @@ export default function Report() {
                       ₹
                       {paidBills
                         .reduce((s, b) => s + Number(b.total || 0), 0)
-                        .toLocaleString()}
+                        .toLocaleString("en-IN")}
                     </p>
                   </div>
                   <div className="rounded-lg border border-red-100 bg-red-50 px-3 py-2 text-center">
@@ -1231,7 +1272,7 @@ export default function Report() {
                       ₹
                       {unpaidBills
                         .reduce((s, b) => s + Number(b.total || 0), 0)
-                        .toLocaleString()}
+                        .toLocaleString("en-IN")}
                     </p>
                   </div>
                 </div>
@@ -1281,21 +1322,21 @@ export default function Report() {
                           {b.paymentMethod}
                         </td>
                         <td className="px-4 py-2 text-gray-700">
-                          ₹{Number(b.subtotal || 0).toLocaleString()}
+                          ₹{Number(b.subtotal || 0).toLocaleString("en-IN")}
                         </td>
                         <td className="px-4 py-2 text-red-600">
                           ₹
                           {(
                             Number(b.cgst || 0) + Number(b.sgst || 0)
-                          ).toLocaleString()}
+                          ).toLocaleString("en-IN")}
                         </td>
                         <td className="px-4 py-2 text-orange-600">
                           {Number(b.discount || 0) > 0
-                            ? `-₹${Number(b.discount).toLocaleString()}`
+                            ? `-₹${Number(b.discount).toLocaleString("en-IN")}`
                             : "-"}
                         </td>
                         <td className="px-4 py-2 font-bold text-gray-900">
-                          ₹{Number(b.total || 0).toLocaleString()}
+                          ₹{Number(b.total || 0).toLocaleString("en-IN")}
                         </td>
                         <td className="px-4 py-2">
                           <span
@@ -1330,7 +1371,7 @@ export default function Report() {
               {[
                 {
                   label: "Total Discounts Given",
-                  value: `₹${totalDiscount.toLocaleString()}`,
+                  value: `₹${totalDiscount.toLocaleString("en-IN")}`,
                   sub: "Revenue you gave away",
                   color: "red",
                 },
@@ -1342,7 +1383,7 @@ export default function Report() {
                 },
                 {
                   label: "Avg Discount per Bill",
-                  value: `₹${bills.filter((b) => Number(b.discount) > 0).length ? Math.round(totalDiscount / bills.filter((b) => Number(b.discount) > 0).length).toLocaleString() : 0}`,
+                  value: `₹${bills.filter((b) => Number(b.discount) > 0).length ? Math.round(totalDiscount / bills.filter((b) => Number(b.discount) > 0).length).toLocaleString("en-IN") : 0}`,
                   sub: "when discount applied",
                   color: "blue",
                 },
@@ -1434,13 +1475,13 @@ export default function Report() {
                               </span>
                             </td>
                             <td className="px-4 py-2 text-gray-700">
-                              ₹{gross.toLocaleString()}
+                              ₹{gross.toLocaleString("en-IN")}
                             </td>
                             <td className="px-4 py-2 font-bold text-orange-600">
-                              -₹{Number(b.discount).toLocaleString()}
+                              -₹{Number(b.discount).toLocaleString("en-IN")}
                             </td>
                             <td className="px-4 py-2 font-bold text-gray-900">
-                              ₹{Number(b.total || 0).toLocaleString()}
+                              ₹{Number(b.total || 0).toLocaleString("en-IN")}
                             </td>
                             <td className="px-4 py-2">
                               <span
@@ -1697,7 +1738,8 @@ export default function Report() {
                               {item.qty}
                             </td>
                             <td className="px-3 py-2 text-gray-700">
-                              ₹{Math.round(item.revenue).toLocaleString()}
+                              ₹
+                              {Math.round(item.revenue).toLocaleString("en-IN")}
                             </td>
                             <td className="px-3 py-2 text-gray-700">
                               ₹{item.price}
@@ -1748,7 +1790,11 @@ export default function Report() {
                     b: any;
                     format?: (v: any) => string;
                   }> = [
-                    { label: "Category", a: dishA?.category?.name, b: dishB?.category?.name },
+                    {
+                      label: "Category",
+                      a: dishA?.category?.name,
+                      b: dishB?.category?.name,
+                    },
                     {
                       label: "Selling Price",
                       a: dishA?.price,
@@ -1759,19 +1805,22 @@ export default function Report() {
                       label: "Recipe (Food) Cost",
                       a: dishA?.recipeCost,
                       b: dishB?.recipeCost,
-                      format: (v) => (v != null ? `₹${Number(v).toFixed(2)}` : "—"),
+                      format: (v) =>
+                        v != null ? `₹${Number(v).toFixed(2)}` : "—",
                     },
                     {
                       label: "Food Cost %",
                       a: dishA?.foodCostPercent,
                       b: dishB?.foodCostPercent,
-                      format: (v) => (v != null ? `${Number(v).toFixed(1)}%` : "—"),
+                      format: (v) =>
+                        v != null ? `${Number(v).toFixed(1)}%` : "—",
                     },
                     {
                       label: "Profit Margin %",
                       a: dishA?.margin,
                       b: dishB?.margin,
-                      format: (v) => (v != null ? `${Number(v).toFixed(1)}%` : "—"),
+                      format: (v) =>
+                        v != null ? `${Number(v).toFixed(1)}%` : "—",
                     },
                     {
                       label: "Units Sold",
@@ -1792,8 +1841,8 @@ export default function Report() {
                           Compare Dishes
                         </h3>
                         <p className="mt-0.5 text-[11px] text-gray-500">
-                          Compare a proposed/alternate dish against an
-                          existing one on cost, price and margin
+                          Compare a proposed/alternate dish against an existing
+                          one on cost, price and margin
                         </p>
                       </div>
                       <div className="grid grid-cols-1 gap-3 px-4 pb-4 sm:grid-cols-2">
@@ -2052,8 +2101,8 @@ export default function Report() {
                         Category Food Cost &amp; Profitability
                       </h3>
                       <p className="mt-0.5 text-[11px] text-gray-500">
-                        Avg. food cost% and margin% per menu category, ranked
-                        by margin — with each category's most profitable dish
+                        Avg. food cost% and margin% per menu category, ranked by
+                        margin — with each category's most profitable dish
                       </p>
                     </div>
                     <div className="overflow-x-auto">
@@ -2235,9 +2284,9 @@ export default function Report() {
                                     </td>
                                     <td className="px-3 py-2 text-gray-700">
                                       ₹
-                                      {Math.round(
-                                        item.revenue,
-                                      ).toLocaleString()}
+                                      {Math.round(item.revenue).toLocaleString(
+                                        "en-IN",
+                                      )}
                                     </td>
                                     <td className="px-3 py-2 text-gray-600">
                                       ₹{item.recipeCost.toFixed(2)}
@@ -2358,7 +2407,7 @@ export default function Report() {
                     },
                     {
                       label: "Table Revenue",
-                      value: `₹${totalTableRevenue.toLocaleString()}`,
+                      value: `₹${totalTableRevenue.toLocaleString("en-IN")}`,
                       sub: "dine-in channel",
                       cls: "border-emerald-100 bg-emerald-50/60",
                       val: "text-emerald-700",
@@ -2414,7 +2463,7 @@ export default function Report() {
                             />
                             <Tooltip
                               formatter={(v: any) =>
-                                `₹${Number(v).toLocaleString()}`
+                                `₹${Number(v).toLocaleString("en-IN")}`
                               }
                             />
                             <Bar
@@ -2531,10 +2580,10 @@ export default function Report() {
                                 {t.avgTurnMins > 0 ? `${t.avgTurnMins}m` : "—"}
                               </td>
                               <td className="px-4 py-2.5 font-bold text-gray-900">
-                                ₹{t.revenue.toLocaleString()}
+                                ₹{t.revenue.toLocaleString("en-IN")}
                               </td>
                               <td className="px-4 py-2.5 text-gray-600">
-                                ₹{t.avgRevenue.toLocaleString()}
+                                ₹{t.avgRevenue.toLocaleString("en-IN")}
                               </td>
                               <td className="px-4 py-2.5">
                                 <span
@@ -2588,23 +2637,26 @@ export default function Report() {
             // though they still count toward "Total Adjustments" above.
             const wastageByIngredient = inventoryAdjustments
               .filter((a: any) => a.adjustmentType !== "SALE_DEDUCTION")
-              .reduce((acc: any, a: any) => {
-                const name = a.ingredient?.name || "Unknown";
-                if (!acc[name])
-                  acc[name] = { name, qty: 0, cost: 0, adjustments: 0 };
-                const qty = Number(a.quantity || 0);
-                acc[name].qty += qty;
-                acc[name].cost += qty * Number(a.ingredient?.pricePerUnit || 0);
-                acc[name].adjustments++;
-                return acc;
-              }, {} as Record<string, any>);
+              .reduce(
+                (acc: any, a: any) => {
+                  const name = a.ingredient?.name || "Unknown";
+                  if (!acc[name])
+                    acc[name] = { name, qty: 0, cost: 0, adjustments: 0 };
+                  const qty = Number(a.quantity || 0);
+                  acc[name].qty += qty;
+                  acc[name].cost +=
+                    qty * Number(a.ingredient?.pricePerUnit || 0);
+                  acc[name].adjustments++;
+                  return acc;
+                },
+                {} as Record<string, any>,
+              );
             const topWaste = Object.values(wastageByIngredient)
               .sort((a: any, b: any) => b.qty - a.qty)
               .slice(0, 10);
-            const totalWastageCost = Object.values(wastageByIngredient).reduce<number>(
-              (s, i: any) => s + i.cost,
-              0,
-            );
+            const totalWastageCost = Object.values(
+              wastageByIngredient,
+            ).reduce<number>((s, i: any) => s + i.cost, 0);
 
             return (
               <div className="space-y-3">
@@ -2640,7 +2692,7 @@ export default function Report() {
                     },
                     {
                       label: "Total Wastage Cost",
-                      value: `₹${Math.round(totalWastageCost).toLocaleString()}`,
+                      value: `₹${Math.round(totalWastageCost).toLocaleString("en-IN")}`,
                       sub: "qty × unit price",
                       cls: "border-amber-100 bg-amber-50/60",
                       val: "text-amber-700",
@@ -2847,305 +2899,575 @@ export default function Report() {
           })()}
 
         {/* ===== STOCK LIFECYCLE ===== */}
-        {activeTab === "Stock Lifecycle" && (() => {
-          const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-          const currentY = new Date().getFullYear();
-          const yearOptions = [currentY - 2, currentY - 1, currentY];
-          const toggleIngredient = (id: number) => {
-            setExpandedIngredients((prev) => {
-              const next = new Set(prev);
-              if (next.has(id)) next.delete(id);
-              else next.add(id);
-              return next;
-            });
-          };
-          // Quantities arrive from the API in the canonical unit (Kg/Litre/Piece);
-          // this auto-scales small amounts to grams/ml so they're readable.
-          const fmt = (n: number, unit: string) => formatQty(n, unit);
-          const adjBadge: Record<string, string> = {
-            WASTAGE: "bg-amber-100 text-amber-800",
-            DAMAGE: "bg-red-100 text-red-700",
-            EXPIRED: "bg-purple-100 text-purple-800",
-            MANUAL: "bg-gray-100 text-gray-600",
-          };
+        {activeTab === "Stock Lifecycle" &&
+          (() => {
+            const months = [
+              "Jan",
+              "Feb",
+              "Mar",
+              "Apr",
+              "May",
+              "Jun",
+              "Jul",
+              "Aug",
+              "Sep",
+              "Oct",
+              "Nov",
+              "Dec",
+            ];
+            const currentY = new Date().getFullYear();
+            const yearOptions = [currentY - 2, currentY - 1, currentY];
+            const toggleIngredient = (id: number) => {
+              setExpandedIngredients((prev) => {
+                const next = new Set(prev);
+                if (next.has(id)) next.delete(id);
+                else next.add(id);
+                return next;
+              });
+            };
+            // Quantities arrive from the API in the canonical unit (Kg/Litre/Piece);
+            // this auto-scales small amounts to grams/ml so they're readable.
+            const fmt = (n: number, unit: string) => formatQty(n, unit);
+            const adjBadge: Record<string, string> = {
+              WASTAGE: "bg-amber-100 text-amber-800",
+              DAMAGE: "bg-red-100 text-red-700",
+              EXPIRED: "bg-purple-100 text-purple-800",
+              MANUAL: "bg-gray-100 text-gray-600",
+            };
 
-          // Summary KPIs across all ingredients
-          const totalWastageQty = lifecycleData.reduce((s: number, i: any) => s + i.wastageQty, 0);
-          const totalWastageCost = lifecycleData.reduce((s: number, i: any) => s + i.wastageCost, 0);
-          const totalAvailable = lifecycleData.reduce((s: number, i: any) => s + i.available, 0);
-          const overallWastePct = totalAvailable > 0 ? ((totalWastageQty / totalAvailable) * 100).toFixed(1) : "0";
-          const worstIng = [...lifecycleData].sort((a: any, b: any) => b.wastagePercentage - a.wastagePercentage)[0];
+            // Summary KPIs across all ingredients
+            const totalWastageQty = lifecycleData.reduce(
+              (s: number, i: any) => s + i.wastageQty,
+              0,
+            );
+            const totalWastageCost = lifecycleData.reduce(
+              (s: number, i: any) => s + i.wastageCost,
+              0,
+            );
+            const totalAvailable = lifecycleData.reduce(
+              (s: number, i: any) => s + i.available,
+              0,
+            );
+            const overallWastePct =
+              totalAvailable > 0
+                ? ((totalWastageQty / totalAvailable) * 100).toFixed(1)
+                : "0";
+            const worstIng = [...lifecycleData].sort(
+              (a: any, b: any) => b.wastagePercentage - a.wastagePercentage,
+            )[0];
 
-          return (
-            <div className="space-y-3">
-              {/* Month / Year selector */}
-              <div className="flex flex-wrap items-center gap-3 rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-                <div>
-                  <p className="mb-1 text-[10px] font-bold uppercase tracking-wide text-gray-500">Period</p>
-                  <div className="flex gap-2">
-                    <select
-                      value={lifecycleMonth}
-                      onChange={(e) => setLifecycleMonth(Number(e.target.value))}
-                      className="rounded-lg border border-gray-200 px-2 py-1.5 text-[12px] focus:outline-none focus:ring-1 focus:ring-[#b10000]"
-                    >
-                      {months.map((m, i) => <option key={i} value={i + 1}>{m}</option>)}
-                    </select>
-                    <select
-                      value={lifecycleYear}
-                      onChange={(e) => setLifecycleYear(Number(e.target.value))}
-                      className="rounded-lg border border-gray-200 px-2 py-1.5 text-[12px] focus:outline-none focus:ring-1 focus:ring-[#b10000]"
-                    >
-                      {yearOptions.map((y) => <option key={y} value={y}>{y}</option>)}
-                    </select>
-                  </div>
-                </div>
-                <div className="ml-auto text-right">
-                  <p className="text-[12px] font-semibold text-gray-700">{lifecycleData.length} ingredient{lifecycleData.length !== 1 ? "s" : ""} tracked</p>
-                  <p className="text-[11px] text-gray-400">{months[lifecycleMonth - 1]} {lifecycleYear}</p>
-                </div>
-              </div>
-
-              {lifecycleLoading ? (
-                <div className="rounded-xl border border-gray-200 bg-white py-12 text-center text-[12px] text-gray-400">Loading lifecycle data…</div>
-              ) : lifecycleData.length === 0 ? (
-                <div className="rounded-xl border border-gray-200 bg-white p-8 text-center">
-                  <p className="text-[13px] font-semibold text-gray-600">No stock data for this period</p>
-                  <p className="mt-1 text-[11px] text-gray-400">Upload monthly restock data in Operations → Restock, or log inventory adjustments in the POS app.</p>
-                </div>
-              ) : (
-                <>
-                  {/* KPI summary */}
-                  <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
-                    {[
-                      { label: "Overall Wastage %", value: `${overallWastePct}%`, sub: "of total stock received", color: "red" },
-                      { label: "Total Wastage Cost", value: `₹${totalWastageCost.toLocaleString("en-IN", { maximumFractionDigits: 0 })}`, sub: "wastage × unit price", color: "amber" },
-                      { label: "Highest Waste Ingredient", value: worstIng?.name || "—", sub: worstIng ? `${worstIng.wastagePercentage}% wastage` : "", color: "purple" },
-                      { label: "Ingredients Tracked", value: lifecycleData.length, sub: `${months[lifecycleMonth - 1]} ${lifecycleYear}`, color: "blue" },
-                    ].map((k: any) => (
-                      <div key={k.label} className={`rounded-xl border p-4 ${k.color === "red" ? "border-red-100 bg-red-50/60" : k.color === "amber" ? "border-amber-100 bg-amber-50/60" : k.color === "purple" ? "border-purple-100 bg-purple-50/60" : "border-blue-100 bg-blue-50/60"}`}>
-                        <p className="text-[10px] font-bold uppercase tracking-wide text-gray-500">{k.label}</p>
-                        <p className={`mt-2 text-[20px] font-bold truncate ${k.color === "red" ? "text-red-700" : k.color === "amber" ? "text-amber-700" : k.color === "purple" ? "text-purple-700" : "text-blue-700"}`}>{k.value}</p>
-                        <p className="mt-1 text-[11px] text-gray-500">{k.sub}</p>
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* Formula legend */}
-                  <div className="rounded-xl border border-gray-100 bg-gray-50 px-4 py-3 text-[11px] text-gray-500">
-                    <span className="font-semibold text-gray-700">Wastage Formula: </span>
-                    Wastage = Opening Stock + Purchases − Closing Stock − Expected Consumption per SOP (recipe qty × dishes sold)
-                    &nbsp;&nbsp;|&nbsp;&nbsp;
-                    <span className="font-semibold text-gray-700">Wastage % </span>= (Wastage ÷ Total Received) × 100
-                    &nbsp;&nbsp;|&nbsp;&nbsp;
-                    <span className="font-semibold text-gray-700">Wastage Cost </span>= Wastage Qty × Unit Price
-                  </div>
-
-                  {/* Wastage report view — weight / product / price */}
-                  <div className="flex items-center gap-2 rounded-xl border border-gray-200 bg-white p-2">
-                    <span className="pl-2 text-[11px] font-bold uppercase tracking-wide text-gray-400">
-                      View by
-                    </span>
-                    {(
-                      [
-                        { key: "weight", label: "Weightage" },
-                        { key: "product", label: "Product" },
-                        { key: "price", label: "Price" },
-                      ] as const
-                    ).map((v) => (
-                      <button
-                        key={v.key}
-                        onClick={() => setWastageSortBy(v.key)}
-                        className={`rounded-lg px-3 py-1.5 text-[12px] font-semibold transition ${wastageSortBy === v.key ? "bg-[#b10000] text-white" : "text-gray-500 hover:bg-gray-50"}`}
+            return (
+              <div className="space-y-3">
+                {/* Month / Year selector */}
+                <div className="flex flex-wrap items-center gap-3 rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+                  <div>
+                    <p className="mb-1 text-[10px] font-bold uppercase tracking-wide text-gray-500">
+                      Period
+                    </p>
+                    <div className="flex gap-2">
+                      <select
+                        value={lifecycleMonth}
+                        onChange={(e) =>
+                          setLifecycleMonth(Number(e.target.value))
+                        }
+                        className="rounded-lg border border-gray-200 px-2 py-1.5 text-[12px] focus:outline-none focus:ring-1 focus:ring-[#b10000]"
                       >
-                        {v.label}
-                      </button>
-                    ))}
+                        {months.map((m, i) => (
+                          <option key={i} value={i + 1}>
+                            {m}
+                          </option>
+                        ))}
+                      </select>
+                      <select
+                        value={lifecycleYear}
+                        onChange={(e) =>
+                          setLifecycleYear(Number(e.target.value))
+                        }
+                        className="rounded-lg border border-gray-200 px-2 py-1.5 text-[12px] focus:outline-none focus:ring-1 focus:ring-[#b10000]"
+                      >
+                        {yearOptions.map((y) => (
+                          <option key={y} value={y}>
+                            {y}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
                   </div>
+                  <div className="ml-auto text-right">
+                    <p className="text-[12px] font-semibold text-gray-700">
+                      {lifecycleData.length} ingredient
+                      {lifecycleData.length !== 1 ? "s" : ""} tracked
+                    </p>
+                    <p className="text-[11px] text-gray-400">
+                      {months[lifecycleMonth - 1]} {lifecycleYear}
+                    </p>
+                  </div>
+                </div>
 
-                  {/* Per-ingredient cards */}
-                  {[...lifecycleData]
-                    .sort((a: any, b: any) => {
-                      if (wastageSortBy === "price")
-                        return b.wastageCost - a.wastageCost;
-                      if (wastageSortBy === "product")
-                        return a.name.localeCompare(b.name);
-                      return b.wastageQty - a.wastageQty;
-                    })
-                    .map((ing: any) => {
-                    const expanded = expandedIngredients.has(ing.ingredientId);
-                    const avail = ing.available || 1;
-                    const dishPct = Math.min(100, (ing.expectedConsumption / avail) * 100);
-                    const wastePct = Math.max(0, Math.min(100, (ing.wastageQty / avail) * 100));
-                    const closePct = Math.min(100, (ing.closingQty / avail) * 100);
-                    return (
-                      <div key={ing.ingredientId} className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
-                        {/* Header */}
-                        <button className="flex w-full items-start gap-3 px-4 py-3 text-left hover:bg-gray-50" onClick={() => toggleIngredient(ing.ingredientId)}>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex flex-wrap items-center gap-2">
-                              <span className="text-[13px] font-bold text-gray-800">{ing.name}</span>
-                              <span className="text-[10px] text-gray-400">{ing.unit}</span>
-                              {!ing.hasRestockData && <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[9px] font-semibold text-amber-700">No restock data</span>}
-                              {ing.wastagePercentage > 0 && (
-                                <span className={`rounded px-1.5 py-0.5 text-[9px] font-bold ${ing.wastagePercentage > 15 ? "bg-red-100 text-red-700" : ing.wastagePercentage > 8 ? "bg-amber-100 text-amber-700" : "bg-green-100 text-green-700"}`}>
-                                  {ing.wastagePercentage}% waste
-                                </span>
-                              )}
-                              {ing.wastagePercentage < 0 && (
-                                <span className="rounded bg-blue-100 px-1.5 py-0.5 text-[9px] font-bold text-blue-700">
-                                  {Math.abs(ing.wastagePercentage)}% under-used
-                                </span>
-                              )}
-                            </div>
-                            <div className="mt-1 flex flex-wrap gap-3 text-[11px]">
-                              <span className="text-gray-500">Received: <span className="font-semibold text-gray-700">{fmt(ing.available, ing.unit)}</span></span>
-                              <span className="text-emerald-600">Dishes: <span className="font-semibold">{fmt(ing.expectedConsumption, ing.unit)}</span></span>
-                              {ing.wastageQty < 0 ? (
-                                <span className="text-blue-600">Under-used: <span className="font-semibold">{fmt(Math.abs(ing.wastageQty), ing.unit)}</span></span>
-                              ) : (
-                                <span className="text-red-600">Wastage: <span className="font-semibold">{fmt(ing.wastageQty, ing.unit)}</span></span>
-                              )}
-                              {ing.pricePerUnit > 0 && ing.wastageQty > 0 && <span className="text-gray-500">Cost: <span className="font-semibold text-red-700">₹{ing.wastageCost.toLocaleString("en-IN", { maximumFractionDigits: 0 })}</span></span>}
-                            </div>
-                            {/* Progress bar: dishes (green) | wastage (red) | closing (blue) */}
-                            {ing.available > 0 && (
-                              <div className="mt-2 flex h-2 w-full overflow-hidden rounded-full bg-gray-100">
-                                <div className="bg-emerald-400" style={{ width: `${dishPct}%` }} title={`Dishes: ${fmt(ing.expectedConsumption, ing.unit)}`} />
-                                <div className="bg-red-400" style={{ width: `${wastePct}%` }} title={`Wastage: ${fmt(ing.wastageQty, ing.unit)}`} />
-                                <div className="bg-blue-300" style={{ width: `${closePct}%` }} title={`Closing: ${fmt(ing.closingQty, ing.unit)}`} />
+                {lifecycleLoading ? (
+                  <div className="rounded-xl border border-gray-200 bg-white py-12 text-center text-[12px] text-gray-400">
+                    Loading lifecycle data…
+                  </div>
+                ) : lifecycleData.length === 0 ? (
+                  <div className="rounded-xl border border-gray-200 bg-white p-8 text-center">
+                    <p className="text-[13px] font-semibold text-gray-600">
+                      No stock data for this period
+                    </p>
+                    <p className="mt-1 text-[11px] text-gray-400">
+                      Upload monthly restock data in Operations → Restock, or
+                      log inventory adjustments in the POS app.
+                    </p>
+                  </div>
+                ) : (
+                  <>
+                    {/* KPI summary */}
+                    <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+                      {[
+                        {
+                          label: "Overall Wastage %",
+                          value: `${overallWastePct}%`,
+                          sub: "of total stock received",
+                          color: "red",
+                        },
+                        {
+                          label: "Total Wastage Cost",
+                          value: `₹${totalWastageCost.toLocaleString("en-IN", { maximumFractionDigits: 0 })}`,
+                          sub: "wastage × unit price",
+                          color: "amber",
+                        },
+                        {
+                          label: "Highest Waste Ingredient",
+                          value: worstIng?.name || "—",
+                          sub: worstIng
+                            ? `${worstIng.wastagePercentage}% wastage`
+                            : "",
+                          color: "purple",
+                        },
+                        {
+                          label: "Ingredients Tracked",
+                          value: lifecycleData.length,
+                          sub: `${months[lifecycleMonth - 1]} ${lifecycleYear}`,
+                          color: "blue",
+                        },
+                      ].map((k: any) => (
+                        <div
+                          key={k.label}
+                          className={`rounded-xl border p-4 ${k.color === "red" ? "border-red-100 bg-red-50/60" : k.color === "amber" ? "border-amber-100 bg-amber-50/60" : k.color === "purple" ? "border-purple-100 bg-purple-50/60" : "border-blue-100 bg-blue-50/60"}`}
+                        >
+                          <p className="text-[10px] font-bold uppercase tracking-wide text-gray-500">
+                            {k.label}
+                          </p>
+                          <p
+                            className={`mt-2 text-[20px] font-bold truncate ${k.color === "red" ? "text-red-700" : k.color === "amber" ? "text-amber-700" : k.color === "purple" ? "text-purple-700" : "text-blue-700"}`}
+                          >
+                            {k.value}
+                          </p>
+                          <p className="mt-1 text-[11px] text-gray-500">
+                            {k.sub}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Formula legend */}
+                    <div className="rounded-xl border border-gray-100 bg-gray-50 px-4 py-3 text-[11px] text-gray-500">
+                      <span className="font-semibold text-gray-700">
+                        Wastage Formula:{" "}
+                      </span>
+                      Wastage = Opening Stock + Purchases − Closing Stock −
+                      Expected Consumption per SOP (recipe qty × dishes sold)
+                      &nbsp;&nbsp;|&nbsp;&nbsp;
+                      <span className="font-semibold text-gray-700">
+                        Wastage %{" "}
+                      </span>
+                      = (Wastage ÷ Total Received) × 100
+                      &nbsp;&nbsp;|&nbsp;&nbsp;
+                      <span className="font-semibold text-gray-700">
+                        Wastage Cost{" "}
+                      </span>
+                      = Wastage Qty × Unit Price
+                    </div>
+
+                    {/* Wastage report view — weight / product / price */}
+                    <div className="flex items-center gap-2 rounded-xl border border-gray-200 bg-white p-2">
+                      <span className="pl-2 text-[11px] font-bold uppercase tracking-wide text-gray-400">
+                        View by
+                      </span>
+                      {(
+                        [
+                          { key: "weight", label: "Weightage" },
+                          { key: "product", label: "Product" },
+                          { key: "price", label: "Price" },
+                        ] as const
+                      ).map((v) => (
+                        <button
+                          key={v.key}
+                          onClick={() => setWastageSortBy(v.key)}
+                          className={`rounded-lg px-3 py-1.5 text-[12px] font-semibold transition ${wastageSortBy === v.key ? "bg-[#b10000] text-white" : "text-gray-500 hover:bg-gray-50"}`}
+                        >
+                          {v.label}
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* Per-ingredient cards */}
+                    {[...lifecycleData]
+                      .sort((a: any, b: any) => {
+                        if (wastageSortBy === "price")
+                          return b.wastageCost - a.wastageCost;
+                        if (wastageSortBy === "product")
+                          return a.name.localeCompare(b.name);
+                        return b.wastageQty - a.wastageQty;
+                      })
+                      .map((ing: any) => {
+                        const expanded = expandedIngredients.has(
+                          ing.ingredientId,
+                        );
+                        const avail = ing.available || 1;
+                        const dishPct = Math.min(
+                          100,
+                          (ing.expectedConsumption / avail) * 100,
+                        );
+                        const wastePct = Math.max(
+                          0,
+                          Math.min(100, (ing.wastageQty / avail) * 100),
+                        );
+                        const closePct = Math.min(
+                          100,
+                          (ing.closingQty / avail) * 100,
+                        );
+                        return (
+                          <div
+                            key={ing.ingredientId}
+                            className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm"
+                          >
+                            {/* Header */}
+                            <button
+                              className="flex w-full items-start gap-3 px-4 py-3 text-left hover:bg-gray-50"
+                              onClick={() => toggleIngredient(ing.ingredientId)}
+                            >
+                              <div className="flex-1 min-w-0">
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <span className="text-[13px] font-bold text-gray-800">
+                                    {ing.name}
+                                  </span>
+                                  <span className="text-[10px] text-gray-400">
+                                    {ing.unit}
+                                  </span>
+                                  {!ing.hasRestockData && (
+                                    <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[9px] font-semibold text-amber-700">
+                                      No restock data
+                                    </span>
+                                  )}
+                                  {ing.wastagePercentage > 0 && (
+                                    <span
+                                      className={`rounded px-1.5 py-0.5 text-[9px] font-bold ${ing.wastagePercentage > 15 ? "bg-red-100 text-red-700" : ing.wastagePercentage > 8 ? "bg-amber-100 text-amber-700" : "bg-green-100 text-green-700"}`}
+                                    >
+                                      {ing.wastagePercentage}% waste
+                                    </span>
+                                  )}
+                                  {ing.wastagePercentage < 0 && (
+                                    <span className="rounded bg-blue-100 px-1.5 py-0.5 text-[9px] font-bold text-blue-700">
+                                      {Math.abs(ing.wastagePercentage)}%
+                                      under-used
+                                    </span>
+                                  )}
+                                </div>
+                                <div className="mt-1 flex flex-wrap gap-3 text-[11px]">
+                                  <span className="text-gray-500">
+                                    Received:{" "}
+                                    <span className="font-semibold text-gray-700">
+                                      {fmt(ing.available, ing.unit)}
+                                    </span>
+                                  </span>
+                                  <span className="text-emerald-600">
+                                    Dishes:{" "}
+                                    <span className="font-semibold">
+                                      {fmt(ing.expectedConsumption, ing.unit)}
+                                    </span>
+                                  </span>
+                                  {ing.wastageQty < 0 ? (
+                                    <span className="text-blue-600">
+                                      Under-used:{" "}
+                                      <span className="font-semibold">
+                                        {fmt(
+                                          Math.abs(ing.wastageQty),
+                                          ing.unit,
+                                        )}
+                                      </span>
+                                    </span>
+                                  ) : (
+                                    <span className="text-red-600">
+                                      Wastage:{" "}
+                                      <span className="font-semibold">
+                                        {fmt(ing.wastageQty, ing.unit)}
+                                      </span>
+                                    </span>
+                                  )}
+                                  {ing.pricePerUnit > 0 &&
+                                    ing.wastageQty > 0 && (
+                                      <span className="text-gray-500">
+                                        Cost:{" "}
+                                        <span className="font-semibold text-red-700">
+                                          ₹
+                                          {ing.wastageCost.toLocaleString(
+                                            "en-IN",
+                                            { maximumFractionDigits: 0 },
+                                          )}
+                                        </span>
+                                      </span>
+                                    )}
+                                </div>
+                                {/* Progress bar: dishes (green) | wastage (red) | closing (blue) */}
+                                {ing.available > 0 && (
+                                  <div className="mt-2 flex h-2 w-full overflow-hidden rounded-full bg-gray-100">
+                                    <div
+                                      className="bg-emerald-400"
+                                      style={{ width: `${dishPct}%` }}
+                                      title={`Dishes: ${fmt(ing.expectedConsumption, ing.unit)}`}
+                                    />
+                                    <div
+                                      className="bg-red-400"
+                                      style={{ width: `${wastePct}%` }}
+                                      title={`Wastage: ${fmt(ing.wastageQty, ing.unit)}`}
+                                    />
+                                    <div
+                                      className="bg-blue-300"
+                                      style={{ width: `${closePct}%` }}
+                                      title={`Closing: ${fmt(ing.closingQty, ing.unit)}`}
+                                    />
+                                  </div>
+                                )}
+                              </div>
+                              <span className="mt-1 shrink-0 text-[14px] text-gray-400">
+                                {expanded ? "▲" : "▼"}
+                              </span>
+                            </button>
+
+                            {/* Expanded detail */}
+                            {expanded && (
+                              <div className="border-t border-gray-100 px-4 pb-4 pt-3 space-y-3 text-[12px]">
+                                {/* Step 1: Stock in */}
+                                <div className="rounded-lg bg-gray-50 p-3 space-y-1">
+                                  <p className="text-[10px] font-bold uppercase tracking-wide text-gray-400 mb-2">
+                                    Total Stock Received
+                                  </p>
+                                  <div className="flex justify-between text-gray-600">
+                                    <span>Opening stock</span>
+                                    <span className="font-semibold">
+                                      {fmt(ing.openingQty, ing.unit)}
+                                    </span>
+                                  </div>
+                                  <div className="flex justify-between text-gray-600">
+                                    <span>+ Purchased this month</span>
+                                    <span className="font-semibold">
+                                      {fmt(ing.purchases, ing.unit)}
+                                    </span>
+                                  </div>
+                                  <div className="flex justify-between border-t border-gray-200 pt-1 font-bold text-gray-800">
+                                    <span>= Total Received</span>
+                                    <span>{fmt(ing.available, ing.unit)}</span>
+                                  </div>
+                                </div>
+
+                                {/* Step 2: Expected Consumption (dishes) */}
+                                <div className="rounded-lg bg-emerald-50 p-3">
+                                  <div className="flex justify-between font-semibold text-emerald-800 mb-2">
+                                    <span>
+                                      Expected Consumption{" "}
+                                      <span className="text-[10px] font-normal text-emerald-600">
+                                        (Σ Qty Sold × Recipe Qty)
+                                      </span>
+                                    </span>
+                                    <span>
+                                      {fmt(ing.expectedConsumption, ing.unit)}
+                                    </span>
+                                  </div>
+                                  {ing.usedInDishesByDish.length > 0 ? (
+                                    <div className="space-y-1 pl-3">
+                                      {ing.usedInDishesByDish.map(
+                                        (d: any, idx: number) => (
+                                          <div
+                                            key={idx}
+                                            className="flex justify-between text-emerald-700"
+                                          >
+                                            <span className="flex items-center gap-1.5">
+                                              <span className="text-emerald-400">
+                                                └
+                                              </span>
+                                              {d.dishName}
+                                              <span className="text-[10px] text-emerald-500">
+                                                ({d.orders} sold)
+                                              </span>
+                                            </span>
+                                            <span>{fmt(d.qty, ing.unit)}</span>
+                                          </div>
+                                        ),
+                                      )}
+                                    </div>
+                                  ) : (
+                                    <p className="pl-3 text-[11px] text-emerald-600/70">
+                                      {ing.expectedConsumption > 0
+                                        ? "Menu-ingredient mapping needed for dish breakdown."
+                                        : "No dish usage this period."}
+                                    </p>
+                                  )}
+                                </div>
+
+                                {/* Step 3: Closing stock */}
+                                <div className="rounded-lg bg-blue-50 p-3 flex justify-between font-semibold text-blue-800">
+                                  <span>
+                                    Closing Stock{" "}
+                                    <span className="text-[10px] font-normal text-blue-600">
+                                      (end of period)
+                                    </span>
+                                  </span>
+                                  <span>{fmt(ing.closingQty, ing.unit)}</span>
+                                </div>
+
+                                {/* Step 4: Wastage result */}
+                                <div className="rounded-lg bg-red-50 p-3 space-y-2">
+                                  <div className="flex justify-between font-bold text-red-800">
+                                    <span>
+                                      Wastage
+                                      <span className="ml-1 text-[10px] font-normal text-red-600">
+                                        = Total Received − Closing − Expected
+                                        Consumption
+                                      </span>
+                                    </span>
+                                    <span>{fmt(ing.wastageQty, ing.unit)}</span>
+                                  </div>
+                                  <div className="flex flex-wrap gap-4 text-[11px] text-red-700 border-t border-red-100 pt-2">
+                                    <span>
+                                      Wastage % ={" "}
+                                      <strong>{ing.wastagePercentage}%</strong>{" "}
+                                      <span className="text-[10px] text-red-500">
+                                        (÷ Total Received × 100)
+                                      </span>
+                                    </span>
+                                    {ing.pricePerUnit > 0 && (
+                                      <span>
+                                        Wastage Cost ={" "}
+                                        <strong>
+                                          ₹
+                                          {ing.wastageCost.toLocaleString(
+                                            "en-IN",
+                                            { maximumFractionDigits: 0 },
+                                          )}
+                                        </strong>{" "}
+                                        <span className="text-[10px] text-red-500">
+                                          ({fmt(ing.wastageQty, ing.unit)} × ₹
+                                          {ing.pricePerUnit}/unit)
+                                        </span>
+                                      </span>
+                                    )}
+                                  </div>
+
+                                  {/* Wastage breakdown: logged entries + unaccounted */}
+                                  {ing.wastageQty > 0.01 && (
+                                    <div className="border-t border-red-100 pt-2 space-y-1">
+                                      <p className="text-[10px] font-semibold text-red-600 uppercase tracking-wide">
+                                        Wastage Breakdown
+                                      </p>
+                                      {ing.adjustmentEntries.length > 0 && (
+                                        <div className="space-y-1">
+                                          {ing.adjustmentEntries.map(
+                                            (a: any, idx: number) => (
+                                              <div
+                                                key={idx}
+                                                className="flex items-center justify-between gap-2 text-red-700 pl-2"
+                                              >
+                                                <span className="flex items-center gap-1.5 flex-wrap">
+                                                  <span className="text-red-400">
+                                                    └
+                                                  </span>
+                                                  <span
+                                                    className={`rounded px-1 py-0.5 text-[9px] font-bold ${adjBadge[a.type] || "bg-gray-100 text-gray-600"}`}
+                                                  >
+                                                    {a.type}
+                                                  </span>
+                                                  {a.reason && (
+                                                    <span>{a.reason}</span>
+                                                  )}
+                                                  {a.by && (
+                                                    <span className="text-[10px] text-red-400">
+                                                      by {a.by}
+                                                    </span>
+                                                  )}
+                                                  <span className="text-[10px] text-red-400">
+                                                    {new Date(
+                                                      a.date,
+                                                    ).toLocaleDateString(
+                                                      "en-IN",
+                                                    )}
+                                                  </span>
+                                                </span>
+                                                <span className="shrink-0 font-semibold">
+                                                  {fmt(a.qty, ing.unit)}
+                                                </span>
+                                              </div>
+                                            ),
+                                          )}
+                                        </div>
+                                      )}
+                                      {ing.unaccountedWastage > 0.01 && (
+                                        <div className="flex justify-between text-red-700 pl-2 font-semibold">
+                                          <span className="flex items-center gap-1.5">
+                                            <span className="text-red-400">
+                                              └
+                                            </span>
+                                            <span className="rounded bg-red-100 px-1 py-0.5 text-[9px] font-bold text-red-700">
+                                              UNACCOUNTED
+                                            </span>
+                                            <span className="text-[10px] font-normal text-red-500">
+                                              no log entry
+                                            </span>
+                                          </span>
+                                          <span>
+                                            {fmt(
+                                              ing.unaccountedWastage,
+                                              ing.unit,
+                                            )}
+                                          </span>
+                                        </div>
+                                      )}
+                                      {ing.loggedWastage > 0 && (
+                                        <div className="flex justify-between text-[11px] text-red-600 pl-2 border-t border-red-100 pt-1">
+                                          <span>Logged entries total</span>
+                                          <span className="font-semibold">
+                                            {fmt(ing.loggedWastage, ing.unit)}
+                                          </span>
+                                        </div>
+                                      )}
+                                    </div>
+                                  )}
+                                </div>
+
+                                {/* Legend */}
+                                <div className="flex flex-wrap gap-3 pt-1">
+                                  <span className="flex items-center gap-1 text-[10px] text-gray-500">
+                                    <span className="inline-block h-2 w-3 rounded-sm bg-emerald-400" />{" "}
+                                    Expected (dishes)
+                                  </span>
+                                  <span className="flex items-center gap-1 text-[10px] text-gray-500">
+                                    <span className="inline-block h-2 w-3 rounded-sm bg-red-400" />{" "}
+                                    Wastage
+                                  </span>
+                                  <span className="flex items-center gap-1 text-[10px] text-gray-500">
+                                    <span className="inline-block h-2 w-3 rounded-sm bg-blue-300" />{" "}
+                                    Closing stock
+                                  </span>
+                                </div>
                               </div>
                             )}
                           </div>
-                          <span className="mt-1 shrink-0 text-[14px] text-gray-400">{expanded ? "▲" : "▼"}</span>
-                        </button>
-
-                        {/* Expanded detail */}
-                        {expanded && (
-                          <div className="border-t border-gray-100 px-4 pb-4 pt-3 space-y-3 text-[12px]">
-
-                            {/* Step 1: Stock in */}
-                            <div className="rounded-lg bg-gray-50 p-3 space-y-1">
-                              <p className="text-[10px] font-bold uppercase tracking-wide text-gray-400 mb-2">Total Stock Received</p>
-                              <div className="flex justify-between text-gray-600">
-                                <span>Opening stock</span>
-                                <span className="font-semibold">{fmt(ing.openingQty, ing.unit)}</span>
-                              </div>
-                              <div className="flex justify-between text-gray-600">
-                                <span>+ Purchased this month</span>
-                                <span className="font-semibold">{fmt(ing.purchases, ing.unit)}</span>
-                              </div>
-                              <div className="flex justify-between border-t border-gray-200 pt-1 font-bold text-gray-800">
-                                <span>= Total Received</span>
-                                <span>{fmt(ing.available, ing.unit)}</span>
-                              </div>
-                            </div>
-
-                            {/* Step 2: Expected Consumption (dishes) */}
-                            <div className="rounded-lg bg-emerald-50 p-3">
-                              <div className="flex justify-between font-semibold text-emerald-800 mb-2">
-                                <span>Expected Consumption <span className="text-[10px] font-normal text-emerald-600">(Σ Qty Sold × Recipe Qty)</span></span>
-                                <span>{fmt(ing.expectedConsumption, ing.unit)}</span>
-                              </div>
-                              {ing.usedInDishesByDish.length > 0 ? (
-                                <div className="space-y-1 pl-3">
-                                  {ing.usedInDishesByDish.map((d: any, idx: number) => (
-                                    <div key={idx} className="flex justify-between text-emerald-700">
-                                      <span className="flex items-center gap-1.5">
-                                        <span className="text-emerald-400">└</span>
-                                        {d.dishName}
-                                        <span className="text-[10px] text-emerald-500">({d.orders} sold)</span>
-                                      </span>
-                                      <span>{fmt(d.qty, ing.unit)}</span>
-                                    </div>
-                                  ))}
-                                </div>
-                              ) : (
-                                <p className="pl-3 text-[11px] text-emerald-600/70">
-                                  {ing.expectedConsumption > 0 ? "Menu-ingredient mapping needed for dish breakdown." : "No dish usage this period."}
-                                </p>
-                              )}
-                            </div>
-
-                            {/* Step 3: Closing stock */}
-                            <div className="rounded-lg bg-blue-50 p-3 flex justify-between font-semibold text-blue-800">
-                              <span>Closing Stock <span className="text-[10px] font-normal text-blue-600">(end of period)</span></span>
-                              <span>{fmt(ing.closingQty, ing.unit)}</span>
-                            </div>
-
-                            {/* Step 4: Wastage result */}
-                            <div className="rounded-lg bg-red-50 p-3 space-y-2">
-                              <div className="flex justify-between font-bold text-red-800">
-                                <span>
-                                  Wastage
-                                  <span className="ml-1 text-[10px] font-normal text-red-600">
-                                    = Total Received − Closing − Expected Consumption
-                                  </span>
-                                </span>
-                                <span>{fmt(ing.wastageQty, ing.unit)}</span>
-                              </div>
-                              <div className="flex flex-wrap gap-4 text-[11px] text-red-700 border-t border-red-100 pt-2">
-                                <span>Wastage % = <strong>{ing.wastagePercentage}%</strong> <span className="text-[10px] text-red-500">(÷ Total Received × 100)</span></span>
-                                {ing.pricePerUnit > 0 && (
-                                  <span>Wastage Cost = <strong>₹{ing.wastageCost.toLocaleString("en-IN", { maximumFractionDigits: 0 })}</strong> <span className="text-[10px] text-red-500">({fmt(ing.wastageQty, ing.unit)} × ₹{ing.pricePerUnit}/unit)</span></span>
-                                )}
-                              </div>
-
-                              {/* Wastage breakdown: logged entries + unaccounted */}
-                              {ing.wastageQty > 0.01 && (
-                                <div className="border-t border-red-100 pt-2 space-y-1">
-                                  <p className="text-[10px] font-semibold text-red-600 uppercase tracking-wide">Wastage Breakdown</p>
-                                  {ing.adjustmentEntries.length > 0 && (
-                                    <div className="space-y-1">
-                                      {ing.adjustmentEntries.map((a: any, idx: number) => (
-                                        <div key={idx} className="flex items-center justify-between gap-2 text-red-700 pl-2">
-                                          <span className="flex items-center gap-1.5 flex-wrap">
-                                            <span className="text-red-400">└</span>
-                                            <span className={`rounded px-1 py-0.5 text-[9px] font-bold ${adjBadge[a.type] || "bg-gray-100 text-gray-600"}`}>{a.type}</span>
-                                            {a.reason && <span>{a.reason}</span>}
-                                            {a.by && <span className="text-[10px] text-red-400">by {a.by}</span>}
-                                            <span className="text-[10px] text-red-400">{new Date(a.date).toLocaleDateString("en-IN")}</span>
-                                          </span>
-                                          <span className="shrink-0 font-semibold">{fmt(a.qty, ing.unit)}</span>
-                                        </div>
-                                      ))}
-                                    </div>
-                                  )}
-                                  {ing.unaccountedWastage > 0.01 && (
-                                    <div className="flex justify-between text-red-700 pl-2 font-semibold">
-                                      <span className="flex items-center gap-1.5">
-                                        <span className="text-red-400">└</span>
-                                        <span className="rounded bg-red-100 px-1 py-0.5 text-[9px] font-bold text-red-700">UNACCOUNTED</span>
-                                        <span className="text-[10px] font-normal text-red-500">no log entry</span>
-                                      </span>
-                                      <span>{fmt(ing.unaccountedWastage, ing.unit)}</span>
-                                    </div>
-                                  )}
-                                  {ing.loggedWastage > 0 && (
-                                    <div className="flex justify-between text-[11px] text-red-600 pl-2 border-t border-red-100 pt-1">
-                                      <span>Logged entries total</span>
-                                      <span className="font-semibold">{fmt(ing.loggedWastage, ing.unit)}</span>
-                                    </div>
-                                  )}
-                                </div>
-                              )}
-                            </div>
-
-                            {/* Legend */}
-                            <div className="flex flex-wrap gap-3 pt-1">
-                              <span className="flex items-center gap-1 text-[10px] text-gray-500"><span className="inline-block h-2 w-3 rounded-sm bg-emerald-400" /> Expected (dishes)</span>
-                              <span className="flex items-center gap-1 text-[10px] text-gray-500"><span className="inline-block h-2 w-3 rounded-sm bg-red-400" /> Wastage</span>
-                              <span className="flex items-center gap-1 text-[10px] text-gray-500"><span className="inline-block h-2 w-3 rounded-sm bg-blue-300" /> Closing stock</span>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </>
-              )}
-            </div>
-          );
-        })()}
+                        );
+                      })}
+                  </>
+                )}
+              </div>
+            );
+          })()}
 
         {/* ===== HOURLY HEATMAP ===== */}
         {activeTab === "Hourly Heatmap" && (
@@ -3212,7 +3534,7 @@ export default function Report() {
                   value: heatmapData?.peakHour?.label || "—",
                   sub: heatmapData?.itemFiltered
                     ? `${heatmapData?.peakHour?.orders || 0} sold in that hour`
-                    : `₹${(heatmapData?.peakHour?.revenue || 0).toLocaleString()} revenue`,
+                    : `₹${(heatmapData?.peakHour?.revenue || 0).toLocaleString("en-IN")} revenue`,
                   color: "red",
                 },
                 {
@@ -3220,7 +3542,7 @@ export default function Report() {
                   value: heatmapData?.peakDay?.name || "—",
                   sub: heatmapData?.itemFiltered
                     ? `${heatmapData?.peakDay?.orders || 0} sold that day`
-                    : `₹${(heatmapData?.peakDay?.revenue || 0).toLocaleString()} revenue`,
+                    : `₹${(heatmapData?.peakDay?.revenue || 0).toLocaleString("en-IN")} revenue`,
                   color: "emerald",
                 },
                 {
@@ -3300,7 +3622,7 @@ export default function Report() {
                         />
                         <Tooltip
                           formatter={(v: any) =>
-                            `₹${Number(v).toLocaleString()}`
+                            `₹${Number(v).toLocaleString("en-IN")}`
                           }
                         />
                         <Bar
@@ -3352,7 +3674,7 @@ export default function Report() {
                         />
                         <Tooltip
                           formatter={(v: any) =>
-                            `₹${Number(v).toLocaleString()}`
+                            `₹${Number(v).toLocaleString("en-IN")}`
                           }
                         />
                         <Bar
@@ -3404,7 +3726,7 @@ export default function Report() {
                       return (
                         <td
                           key={h}
-                          title={`₹${(c?.revenue || 0).toLocaleString()}`}
+                          title={`₹${(c?.revenue || 0).toLocaleString("en-IN")}`}
                           className="border border-white p-0"
                           style={{
                             background:
@@ -3525,13 +3847,13 @@ export default function Report() {
                             </div>
                           </td>
                           <td className="px-4 py-3 font-bold text-gray-900">
-                            ₹{d.revenue.toLocaleString()}
+                            ₹{d.revenue.toLocaleString("en-IN")}
                           </td>
                           <td className="px-4 py-3 text-gray-700">
                             {d.orders}
                           </td>
                           <td className="px-4 py-3 text-gray-600">
-                            ₹{d.avgBill.toLocaleString()}
+                            ₹{d.avgBill.toLocaleString("en-IN")}
                           </td>
                           <td className="px-4 py-3">
                             <div className="flex items-center gap-2">
@@ -3586,13 +3908,13 @@ export default function Report() {
               {[
                 {
                   label: "Last 7-Day Avg",
-                  value: `₹${(forecastData?.summary?.avg7 || 0).toLocaleString()}`,
+                  value: `₹${(forecastData?.summary?.avg7 || 0).toLocaleString("en-IN")}`,
                   sub: "daily average",
                   color: "blue",
                 },
                 {
                   label: "Prev 7-Day Avg",
-                  value: `₹${(forecastData?.summary?.avgPrev7 || 0).toLocaleString()}`,
+                  value: `₹${(forecastData?.summary?.avgPrev7 || 0).toLocaleString("en-IN")}`,
                   sub: "comparison period",
                   color: "gray",
                 },
@@ -3607,7 +3929,7 @@ export default function Report() {
                 },
                 {
                   label: "Forecast (7 days)",
-                  value: `₹${(forecastData?.summary?.forecastTotal || 0).toLocaleString()}`,
+                  value: `₹${(forecastData?.summary?.forecastTotal || 0).toLocaleString("en-IN")}`,
                   sub: "predicted next week",
                   color: "violet",
                 },
@@ -3704,7 +4026,7 @@ export default function Report() {
                           />
                           <Tooltip
                             formatter={(v: any) =>
-                              `₹${Number(v).toLocaleString()}`
+                              `₹${Number(v).toLocaleString("en-IN")}`
                             }
                           />
                           <Area
@@ -3774,7 +4096,9 @@ export default function Report() {
                         tickFormatter={(v) => `₹${(v / 1000).toFixed(0)}k`}
                       />
                       <Tooltip
-                        formatter={(v: any) => `₹${Number(v).toLocaleString()}`}
+                        formatter={(v: any) =>
+                          `₹${Number(v).toLocaleString("en-IN")}`
+                        }
                       />
                       <Bar
                         dataKey="revenue"
@@ -3807,11 +4131,11 @@ export default function Report() {
                       </p>
                       <div className="text-right">
                         <p className="text-[13px] font-bold text-violet-700">
-                          ₹{f.predicted.toLocaleString()}
+                          ₹{f.predicted.toLocaleString("en-IN")}
                         </p>
                         <p className="text-[10px] text-gray-400">
-                          ₹{f.lower.toLocaleString()} – ₹
-                          {f.upper.toLocaleString()}
+                          ₹{f.lower.toLocaleString("en-IN")} – ₹
+                          {f.upper.toLocaleString("en-IN")}
                         </p>
                       </div>
                     </div>

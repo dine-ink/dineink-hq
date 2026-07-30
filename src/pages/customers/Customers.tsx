@@ -295,7 +295,7 @@ export default function Customers() {
                 },
                 {
                   label: "Revenue",
-                  value: `₹${revenue.toLocaleString()}`,
+                  value: `₹${revenue.toLocaleString("en-IN")}`,
                   Icon: BarChart3Icon,
                   cls: "border-red-100 bg-red-50",
                   ibg: "bg-red-100",
@@ -601,7 +601,7 @@ export default function Customers() {
                 },
                 {
                   label: "Lifetime Value",
-                  value: `₹${Math.round(ltv).toLocaleString()}`,
+                  value: `₹${Math.round(ltv).toLocaleString("en-IN")}`,
                   sub: avgLifespanYears
                     ? `${avgAnnualRevenuePerCustomer.toLocaleString(undefined, { maximumFractionDigits: 0 })}/yr × ${avgLifespanYears.toFixed(1)}yr lifespan`
                     : "annual revenue per customer",
@@ -642,7 +642,7 @@ export default function Customers() {
                   label: "CAC",
                   value:
                     newCustomersThisMonth > 0
-                      ? `₹${Math.round(cac).toLocaleString()}`
+                      ? `₹${Math.round(cac).toLocaleString("en-IN")}`
                       : "—",
                   // Customer records aren't tied to a single branch (a
                   // customer can visit any branch), so "new customers" here
@@ -709,7 +709,7 @@ export default function Customers() {
                       </div>
                       <div className="text-right">
                         <p className="text-[13px] font-bold text-emerald-600">
-                          ₹{Number(c.spend || 0).toLocaleString()}
+                          ₹{Number(c.spend || 0).toLocaleString("en-IN")}
                         </p>
                         <p className="text-[9px] text-gray-400">
                           ₹{c.visits ? Math.round(c.spend / c.visits) : 0} avg
@@ -842,7 +842,7 @@ export default function Customers() {
                             {c.visits}
                           </td>
                           <td className="px-4 py-2.5 font-semibold text-gray-900">
-                            ₹{Number(c.spend || 0).toLocaleString()}
+                            ₹{Number(c.spend || 0).toLocaleString("en-IN")}
                           </td>
                           <td className="px-4 py-2.5 text-gray-500">
                             {c.lastVisit
@@ -946,7 +946,7 @@ export default function Customers() {
                           {count}
                         </p>
                         <p className="mt-0.5 text-[10px] text-gray-500">
-                          ₹{Number(rev).toLocaleString()} revenue
+                          ₹{Number(rev).toLocaleString("en-IN")} revenue
                         </p>
                         <p className="mt-1 text-[10px] text-gray-400">
                           {s.sub}
@@ -1068,7 +1068,7 @@ export default function Customers() {
                                   {c.frequency}
                                 </td>
                                 <td className="px-4 py-2.5 font-bold text-emerald-600">
-                                  ₹{c.monetary.toLocaleString()}
+                                  ₹{c.monetary.toLocaleString("en-IN")}
                                 </td>
                               </tr>
                             );
