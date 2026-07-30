@@ -8,7 +8,10 @@ import {
   XMarkIcon,
   CameraIcon,
 } from "@heroicons/react/24/outline";
-import { getIndianCitiesForState, getIndianStates } from "../../utils/indiaLocations";
+import {
+  getIndianCitiesForState,
+  getIndianStates,
+} from "../../utils/indiaLocations";
 
 const INPUT_BASE =
   "w-full rounded-xl border bg-white px-3 py-2 text-sm outline-none transition-all";
@@ -744,7 +747,7 @@ export default function Shops() {
                               prev.filter((x: any) => x.id !== s.id),
                             )
                           }
-                          className="rounded-lg border border-red-100 bg-[#b10000] px-2.5 py-1 text-[10px] font-semibold text-red-600 hover:bg-red-100"
+                          className="rounded-lg border border-red-100 bg-[#b10000] px-2.5 py-1 text-[10px] font-semibold text-white hover:bg-red-100"
                         >
                           Remove
                         </button>

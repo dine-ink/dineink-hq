@@ -109,10 +109,6 @@ const NAV = [
   { name: "Kitchen", href: "/dashboard/kitchen", icon: FireIcon },
 ];
 
-const SECONDARY = [
-  { name: "Settings", href: "/dashboard/settings", icon: Cog6ToothIcon },
-];
-
 const navLinkCls = (isActive: boolean, collapsed: boolean) =>
   `group flex items-center rounded-lg text-[11px] font-semibold transition-all duration-200 ${
     collapsed ? "justify-center p-2.5" : "gap-2.5 px-2.5 py-2"
@@ -291,29 +287,7 @@ export default function DashboardLayout() {
               ))}
             </div>
             <div className="space-y-1">
-              {!collapsed && (
-                <p className="mb-1 px-1.5 text-[8px] font-bold uppercase tracking-[0.2em] text-red-300/60">
-                  Account
-                </p>
-              )}
-              {SECONDARY.map((item) => (
-                <NavLink
-                  key={item.name}
-                  to={item.href}
-                  className={({ isActive }) => navLinkCls(isActive, collapsed)}
-                  title={collapsed ? item.name : undefined}
-                >
-                  {({ isActive }) => (
-                    <>
-                      <item.icon className={iconCls(isActive)} />
-                      {!collapsed && (
-                        <span className="truncate">{item.name}</span>
-                      )}
-                    </>
-                  )}
-                </NavLink>
-              ))}
-              <div className="mt-2 border-t border-white/10 pt-2">
+              <div className="border-t border-white/10 pt-2">
                 {collapsed ? (
                   <div className="flex justify-center">
                     <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white/20 text-[11px] font-black text-white">
