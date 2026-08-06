@@ -11,7 +11,12 @@ import {
   MagnifyingGlassIcon,
   XMarkIcon,
   CheckIcon,
+  ArrowPathIcon,
+  ChartBarIcon,
+  PaperClipIcon,
 } from "@heroicons/react/24/outline";
+import { StatusChip } from "../../design";
+import ReorderDialog from "./ReorderDialog";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -25,6 +30,7 @@ export default function Vendors() {
   const [outstanding, setOutstanding] = useState<any[]>([]);
   const [performance, setPerformance] = useState<any[]>([]);
   const [search, setSearch] = useState("");
+  const [typeFilter, setTypeFilter] = useState("");
   const [loading, setLoading] = useState(false);
 
   // Modals
@@ -40,6 +46,16 @@ export default function Vendors() {
     open: boolean;
     vendor: any | null;
   }>({ open: false, vendor: null });
+  const [reorderModal, setReorderModal] = useState<{
+    open: boolean;
+    vendor: any | null;
+  }>({ open: false, vendor: null });
+  const [priceHistoryModal, setPriceHistoryModal] = useState<{
+    open: boolean;
+    vendor: any | null;
+    data: any[];
+    loading: boolean;
+  }>({ open: false, vendor: null, data: [], loading: false });
   const [detailModal, setDetailModal] = useState<{
     open: boolean;
     vendor: any | null;
@@ -60,6 +76,7 @@ export default function Vendors() {
     address: "",
     phone: "",
     email: "",
+    vendorType: "",
   });
   const [paymentForm, setPaymentForm] = useState({
     amount: "",
@@ -74,6 +91,7 @@ export default function Vendors() {
     totalAmount: "",
     notes: "",
   });
+  const [invoiceFile, setInvoiceFile] = useState<File | null>(null);
 
   const headers = {
     Authorization: `Bearer ${token}`,
@@ -159,8 +177,9 @@ export default function Vendors() {
             address: v.address || "",
             phone: v.phone || "",
             email: v.email || "",
+            vendorType: v.vendorType || "",
           }
-        : { name: "", address: "", phone: "", email: "" },
+        : { name: "", address: "", phone: "", email: "", vendorType: "" },
     );
     setVendorModal({ open: true, editing: v ?? null });
   };
@@ -265,18 +284,42 @@ export default function Vendors() {
       !selectedBranch?.id
     )
       return;
-    await fetch(`${API_URL}/api/vendors/invoices`, {
-      method: "POST",
-      headers,
-      body: JSON.stringify({
-        vendorId: invoiceModal.vendor.id,
-        restaurantId: user.restaurantId,
-        branchId: selectedBranch.id,
-        ...invoiceForm,
-        totalAmount: Number(invoiceForm.totalAmount),
-        createdById: user.id,
-      }),
-    });
+    // If an e-bill file was attached, send the same fields as multipart
+    // form-data with a "document" file field — the invoice endpoint
+    // picks it up and sets documentUrl on the created invoice. With no
+    // file attached, keep sending exactly the JSON body this page has
+    // always sent (no behavior change for the no-file case).
+    if (invoiceFile) {
+      const fd = new FormData();
+      fd.append("vendorId", String(invoiceModal.vendor.id));
+      fd.append("restaurantId", String(user.restaurantId));
+      fd.append("branchId", String(selectedBranch.id));
+      fd.append("invoiceNumber", invoiceForm.invoiceNumber);
+      fd.append("invoiceDate", invoiceForm.invoiceDate);
+      fd.append("dueDate", invoiceForm.dueDate);
+      fd.append("totalAmount", String(Number(invoiceForm.totalAmount)));
+      fd.append("notes", invoiceForm.notes);
+      fd.append("createdById", String(user.id));
+      fd.append("document", invoiceFile);
+      await fetch(`${API_URL}/api/vendors/invoices`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+        body: fd,
+      });
+    } else {
+      await fetch(`${API_URL}/api/vendors/invoices`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          vendorId: invoiceModal.vendor.id,
+          restaurantId: user.restaurantId,
+          branchId: selectedBranch.id,
+          ...invoiceForm,
+          totalAmount: Number(invoiceForm.totalAmount),
+          createdById: user.id,
+        }),
+      });
+    }
     setInvoiceModal({ open: false, vendor: null });
     setInvoiceForm({
       invoiceNumber: "",
@@ -285,7 +328,36 @@ export default function Vendors() {
       totalAmount: "",
       notes: "",
     });
+    setInvoiceFile(null);
     fetchOutstanding();
+  };
+
+  // Mirrors ComplianceChecker.tsx's resolveDocumentUrl convention: a
+  // server-relative documentUrl is joined directly onto API_URL (with the
+  // trailing slash stripped), an already-absolute URL is used as-is.
+  const resolveDocumentUrl = (documentUrl?: string | null) => {
+    if (!documentUrl) return null;
+    if (/^https?:\/\//i.test(documentUrl)) return documentUrl;
+    return `${API_URL.replace(/\/$/, "")}${documentUrl}`;
+  };
+
+  const openPriceHistory = async (vendor: any) => {
+    setPriceHistoryModal({ open: true, vendor, data: [], loading: true });
+    try {
+      const res = await fetch(
+        `${API_URL}/api/vendors/${vendor.id}/pricing-history`,
+        { headers },
+      );
+      const data = await res.json();
+      setPriceHistoryModal({
+        open: true,
+        vendor,
+        data: data.data || [],
+        loading: false,
+      });
+    } catch {
+      setPriceHistoryModal({ open: true, vendor, data: [], loading: false });
+    }
   };
 
   const payInvoice = async (invoiceId: number, remaining: number) => {
@@ -304,10 +376,14 @@ export default function Vendors() {
     (s, v) => s + (v.outstanding ?? 0),
     0,
   );
+  const vendorTypes = Array.from(
+    new Set(vendors.map((v) => v.vendorType).filter(Boolean)),
+  ) as string[];
   const filtered = vendors.filter(
     (v) =>
-      v.name.toLowerCase().includes(search.toLowerCase()) ||
-      (v.phone || "").includes(search),
+      (v.name.toLowerCase().includes(search.toLowerCase()) ||
+        (v.phone || "").includes(search)) &&
+      (!typeFilter || v.vendorType === typeFilter),
   );
 
   return (
@@ -433,6 +509,36 @@ export default function Vendors() {
               />
             </div>
           </div>
+          {vendorTypes.length > 0 && (
+            <div className="flex flex-wrap items-center gap-1.5 border-b border-gray-100 bg-gray-50/50 px-5 py-2">
+              <span className="mr-1 text-[10px] font-bold uppercase tracking-wide text-gray-400">
+                Type:
+              </span>
+              <button
+                onClick={() => setTypeFilter("")}
+                className={`rounded-full px-2.5 py-1 text-[10px] font-bold transition ${
+                  !typeFilter
+                    ? "bg-[#b10000] text-white"
+                    : "border border-gray-200 bg-white text-gray-500 hover:bg-gray-100"
+                }`}
+              >
+                All
+              </button>
+              {vendorTypes.map((t) => (
+                <button
+                  key={t}
+                  onClick={() => setTypeFilter(t)}
+                  className={`rounded-full px-2.5 py-1 text-[10px] font-bold transition ${
+                    typeFilter === t
+                      ? "bg-[#b10000] text-white"
+                      : "border border-gray-200 bg-white text-gray-500 hover:bg-gray-100"
+                  }`}
+                >
+                  {t}
+                </button>
+              ))}
+            </div>
+          )}
           {loading ? (
             <div className="flex h-40 items-center justify-center">
               <div className="h-6 w-6 animate-spin rounded-full border-2 border-gray-200 border-t-red-500" />
@@ -473,9 +579,18 @@ export default function Vendors() {
                               <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#b10000] text-[10px] font-bold text-white">
                                 {v.name.charAt(0).toUpperCase()}
                               </div>
-                              <span className="font-semibold text-gray-900">
-                                {v.name}
-                              </span>
+                              <div>
+                                <span className="font-semibold text-gray-900">
+                                  {v.name}
+                                </span>
+                                {v.vendorType && (
+                                  <div className="mt-0.5">
+                                    <StatusChip status="neutral">
+                                      {v.vendorType}
+                                    </StatusChip>
+                                  </div>
+                                )}
+                              </div>
                             </div>
                           </td>
                           <td className="px-4 py-3 text-gray-600">
@@ -527,6 +642,22 @@ export default function Vendors() {
                                 className="flex h-7 w-7 items-center justify-center rounded-lg border border-emerald-200 bg-emerald-50 text-emerald-600 hover:bg-emerald-100"
                               >
                                 <BanknotesIcon className="h-3.5 w-3.5" />
+                              </button>
+                              <button
+                                onClick={() =>
+                                  setReorderModal({ open: true, vendor: v })
+                                }
+                                title="Reorder via WhatsApp/Email"
+                                className="flex h-7 w-7 items-center justify-center rounded-lg border border-teal-200 bg-teal-50 text-teal-600 hover:bg-teal-100"
+                              >
+                                <ArrowPathIcon className="h-3.5 w-3.5" />
+                              </button>
+                              <button
+                                onClick={() => openPriceHistory(v)}
+                                title="Price history"
+                                className="flex h-7 w-7 items-center justify-center rounded-lg border border-orange-200 bg-orange-50 text-orange-600 hover:bg-orange-100"
+                              >
+                                <ChartBarIcon className="h-3.5 w-3.5" />
                               </button>
                               <button
                                 onClick={() => openVendorModal(v)}
@@ -695,6 +826,11 @@ export default function Vendors() {
                   key: "address",
                   placeholder: "Full address",
                 },
+                {
+                  label: "Vendor Type",
+                  key: "vendorType",
+                  placeholder: "e.g. Dairy, Produce, Meat, Beverages",
+                },
               ].map(({ label, key, placeholder }) => (
                 <div key={key}>
                   <label className="mb-1 block text-[11px] font-bold text-gray-600">
@@ -845,7 +981,10 @@ export default function Vendors() {
                 Add Purchase Invoice
               </h3>
               <button
-                onClick={() => setInvoiceModal({ open: false, vendor: null })}
+                onClick={() => {
+                  setInvoiceModal({ open: false, vendor: null });
+                  setInvoiceFile(null);
+                }}
                 className="text-gray-400 hover:text-gray-600"
               >
                 <XMarkIcon className="h-5 w-5" />
@@ -905,10 +1044,31 @@ export default function Vendors() {
                   />
                 </div>
               ))}
+              <div>
+                <label className="mb-1 block text-[11px] font-bold text-gray-600">
+                  Attach e-bill (image or PDF)
+                </label>
+                <input
+                  type="file"
+                  accept="image/*,application/pdf"
+                  onChange={(e) =>
+                    setInvoiceFile(e.target.files?.[0] || null)
+                  }
+                  className="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-[11px] outline-none file:mr-2 file:rounded-lg file:border-0 file:bg-violet-100 file:px-2 file:py-1 file:text-[10px] file:font-bold file:text-violet-700"
+                />
+                {invoiceFile && (
+                  <p className="mt-1 text-[10px] text-gray-500">
+                    Selected: {invoiceFile.name}
+                  </p>
+                )}
+              </div>
             </div>
             <div className="mt-5 flex gap-2">
               <button
-                onClick={() => setInvoiceModal({ open: false, vendor: null })}
+                onClick={() => {
+                  setInvoiceModal({ open: false, vendor: null });
+                  setInvoiceFile(null);
+                }}
                 className="flex-1 rounded-xl border border-gray-200 py-2 text-[12px] font-semibold text-gray-600"
               >
                 Cancel
@@ -1025,6 +1185,16 @@ export default function Vendors() {
                             </button>
                           )}
                         </div>
+                        {i.documentUrl && (
+                          <a
+                            href={resolveDocumentUrl(i.documentUrl) ?? undefined}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="mt-1 inline-flex items-center gap-1 text-[9px] font-bold text-violet-600 underline"
+                          >
+                            <PaperClipIcon className="h-3 w-3" /> View e-bill
+                          </a>
+                        )}
                       </div>
                     ))}
                   </div>
@@ -1092,6 +1262,115 @@ export default function Vendors() {
                 </div>
               )}
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Reorder Modal */}
+      <ReorderDialog
+        open={reorderModal.open}
+        vendor={reorderModal.vendor}
+        branchId={selectedBranch?.id}
+        apiUrl={API_URL}
+        token={token}
+        onClose={() => setReorderModal({ open: false, vendor: null })}
+      />
+
+      {/* Price History Modal */}
+      {priceHistoryModal.open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl bg-white p-6 shadow-xl">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-[15px] font-black text-gray-900">
+                Price History — {priceHistoryModal.vendor?.name}
+              </h3>
+              <button
+                onClick={() =>
+                  setPriceHistoryModal({
+                    open: false,
+                    vendor: null,
+                    data: [],
+                    loading: false,
+                  })
+                }
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <XMarkIcon className="h-5 w-5" />
+              </button>
+            </div>
+            {priceHistoryModal.loading ? (
+              <div className="flex h-40 items-center justify-center">
+                <div className="h-6 w-6 animate-spin rounded-full border-2 border-gray-200 border-t-red-500" />
+              </div>
+            ) : priceHistoryModal.data.length === 0 ? (
+              <p className="text-[11px] text-gray-400">
+                No price history recorded for this vendor's ingredients yet.
+              </p>
+            ) : (
+              <div className="overflow-x-auto rounded-lg border border-gray-100">
+                <table className="min-w-full text-[12px]">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      {[
+                        "Ingredient",
+                        "Current Price",
+                        "Previous Price",
+                        "Change",
+                      ].map((h) => (
+                        <th
+                          key={h}
+                          className="px-3 py-2 text-left text-[10px] font-bold uppercase tracking-wide text-gray-400"
+                        >
+                          {h}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {priceHistoryModal.data.map((row: any) => (
+                      <tr
+                        key={row.ingredientId}
+                        className="border-t border-gray-100"
+                      >
+                        <td className="px-3 py-2 font-semibold text-gray-900">
+                          {row.ingredientName}
+                        </td>
+                        <td className="px-3 py-2 text-gray-700">
+                          ₹{Number(row.currentPrice).toLocaleString("en-IN")}
+                        </td>
+                        <td className="px-3 py-2 text-gray-500">
+                          {row.previousPrice != null
+                            ? `₹${Number(row.previousPrice).toLocaleString("en-IN")}`
+                            : "—"}
+                        </td>
+                        <td className="px-3 py-2">
+                          {row.changePercent != null ? (
+                            <span
+                              className={`font-bold ${
+                                row.changePercent > 0
+                                  ? "text-red-600"
+                                  : row.changePercent < 0
+                                    ? "text-emerald-600"
+                                    : "text-gray-500"
+                              }`}
+                            >
+                              {row.changePercent > 0
+                                ? "↑"
+                                : row.changePercent < 0
+                                  ? "↓"
+                                  : ""}{" "}
+                              {Math.abs(row.changePercent)}%
+                            </span>
+                          ) : (
+                            <span className="text-gray-400">—</span>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         </div>
       )}

@@ -4,6 +4,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import DashboardLayout from "../layouts/DashboardLayout";
 import ProtectedRoute from './ProtectedRoute'
 import AuthRoute from './AuthRoute'
+import RequireRole from './RequireRole'
 import NotFound from "../pages/NotFound";
 
 // Every page below is route-split via React.lazy — previously all ~26 pages
@@ -45,6 +46,12 @@ const InvestmentAnalysis = lazy(() => import("@/pages/investment/InvestmentAnaly
 const ExecutiveDashboard = lazy(() => import("@/pages/executive/ExecutiveDashboard"));
 const AIAdvisorDashboard = lazy(() => import("@/pages/ai/AIAdvisorDashboard"));
 const DailyStockAudit = lazy(() => import("@/pages/stockAudit/DailyStockAudit"));
+const EquipmentList = lazy(() => import("@/pages/equipment/EquipmentList"));
+const ComplianceChecker = lazy(() => import("@/pages/compliance/ComplianceChecker"));
+const DuesTracker = lazy(() => import("@/pages/dues/DuesTracker"));
+const WhatsAppCenter = lazy(() => import("@/pages/whatsapp/WhatsAppCenter"));
+const CashFlowPredictor = lazy(() => import("@/pages/cashflow/CashFlowPredictor"));
+const AccountBankIntegration = lazy(() => import("@/pages/banking/AccountBankIntegration"));
 
 const PageLoader = () => (
   <div className="flex min-h-[60vh] items-center justify-center">
@@ -123,6 +130,12 @@ export default function AppRoutes() {
           <Route path="vendors" element={withSuspense(<Vendors />)}/>
           <Route path="procurement-intelligence" element={withSuspense(<ProcurementIntelligence />)}/>
           <Route path="daily-stock-audit" element={withSuspense(<DailyStockAudit />)}/>
+          <Route path="equipment" element={<RequireRole roles={["OWNER", "MANAGER"]}>{withSuspense(<EquipmentList />)}</RequireRole>}/>
+          <Route path="compliance" element={<RequireRole roles={["OWNER", "MANAGER"]}>{withSuspense(<ComplianceChecker />)}</RequireRole>}/>
+          <Route path="dues" element={<RequireRole roles={["OWNER", "MANAGER"]}>{withSuspense(<DuesTracker />)}</RequireRole>}/>
+          <Route path="whatsapp" element={<RequireRole roles={["OWNER", "MANAGER"]}>{withSuspense(<WhatsAppCenter />)}</RequireRole>}/>
+          <Route path="cash-flow" element={<RequireRole roles={["OWNER", "MANAGER"]}>{withSuspense(<CashFlowPredictor />)}</RequireRole>}/>
+          <Route path="banking" element={<RequireRole roles={["OWNER", "MANAGER"]}>{withSuspense(<AccountBankIntegration />)}</RequireRole>}/>
         </Route>
 
         {/* 404 */}

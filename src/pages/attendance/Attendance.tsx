@@ -13,7 +13,15 @@ import {
   Line,
   ReferenceLine,
 } from "recharts";
-import { PencilSquareIcon, XMarkIcon } from "@heroicons/react/24/outline";
+import {
+  CalendarDaysIcon,
+  ClipboardDocumentListIcon,
+  PencilSquareIcon,
+  UserGroupIcon,
+  XMarkIcon,
+} from "@heroicons/react/24/outline";
+import LeaveManagementTab from "./LeaveManagementTab";
+import PayrollProcessingTab from "./PayrollProcessingTab";
 
 // Effective hours for payroll/display purposes: an owner-entered override
 // takes precedence over whatever the POS clock-in/out computed.
@@ -94,6 +102,9 @@ export default function Attendance() {
   const API_URL = import.meta.env.VITE_API_URL;
   const { selectedBranch } = useAppSelector((s) => s.branch);
   const { user, token } = useAppSelector((s) => s.auth);
+  const [pageTab, setPageTab] = useState<"register" | "leave" | "payroll">(
+    "register",
+  );
   const [date, setDate] = useState(dayjs().format("YYYY-MM-DD"));
   const [viewMode, setViewMode] = useState<"daily" | "monthly">("daily");
   const [activeSection, setActiveSection] = useState<
@@ -288,6 +299,39 @@ export default function Attendance() {
   return (
     <main className="min-h-screen bg-gray-50">
       <div className="mx-auto flex flex-col gap-3">
+        {/* PAGE TABS — Attendance Register wraps all pre-existing content
+            below unchanged; Leave Management/Payroll Processing are new. */}
+        <div className="flex flex-wrap items-center gap-2">
+          {(
+            [
+              { key: "register", label: "Attendance Register", icon: CalendarDaysIcon },
+              { key: "leave", label: "Leave Management", icon: ClipboardDocumentListIcon },
+              { key: "payroll", label: "Payroll Processing", icon: UserGroupIcon },
+            ] as const
+          ).map((t) => {
+            const Icon = t.icon;
+            return (
+              <button
+                key={t.key}
+                onClick={() => setPageTab(t.key)}
+                className={`inline-flex items-center gap-1.5 rounded-xl px-3.5 py-2 text-[12px] font-semibold transition-all duration-200 ${
+                  pageTab === t.key
+                    ? "bg-[#b10000] text-white shadow-sm"
+                    : "border border-gray-200 bg-white text-gray-600 hover:bg-gray-50"
+                }`}
+              >
+                <Icon className="h-3.5 w-3.5" />
+                {t.label}
+              </button>
+            );
+          })}
+        </div>
+
+        {pageTab === "leave" && <LeaveManagementTab allStaff={allStaff} />}
+        {pageTab === "payroll" && <PayrollProcessingTab allStaff={allStaff} />}
+
+        {pageTab === "register" && (
+          <>
         {/* HEADER */}
         <div className="relative overflow-hidden rounded-md border border-gray-200 bg-white px-4 py-3 shadow-sm">
           <div className="absolute -right-8 -top-8 h-24 w-24 rounded-full bg-red-100/40 blur-3xl" />
@@ -1153,6 +1197,8 @@ export default function Attendance() {
               </div>
             </div>
           </div>
+        )}
+          </>
         )}
       </div>
     </main>

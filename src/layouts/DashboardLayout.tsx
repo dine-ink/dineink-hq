@@ -39,6 +39,9 @@ import {
   BuildingLibraryIcon,
   Squares2X2Icon,
   SparklesIcon,
+  WrenchScrewdriverIcon,
+  ShieldCheckIcon,
+  ChatBubbleLeftRightIcon,
 } from "@heroicons/react/24/outline";
 import { useAppDispatch, useAppSelector } from "../store";
 import { setSelectedBranch } from "../store/slices/branchSlice";
@@ -107,6 +110,12 @@ const NAV = [
   },
   { name: "Compare", href: "/dashboard/comparison", icon: ArrowsRightLeftIcon },
   { name: "Kitchen", href: "/dashboard/kitchen", icon: FireIcon },
+  { name: "Cash Flow", href: "/dashboard/cash-flow", icon: BanknotesIcon, roles: ["OWNER", "MANAGER"] },
+  { name: "Dues", href: "/dashboard/dues", icon: DocumentTextIcon, roles: ["OWNER", "MANAGER"] },
+  { name: "Equipment", href: "/dashboard/equipment", icon: WrenchScrewdriverIcon, roles: ["OWNER", "MANAGER"] },
+  { name: "Compliance", href: "/dashboard/compliance", icon: ShieldCheckIcon, roles: ["OWNER", "MANAGER"] },
+  { name: "WhatsApp", href: "/dashboard/whatsapp", icon: ChatBubbleLeftRightIcon, roles: ["OWNER", "MANAGER"] },
+  { name: "Banking", href: "/dashboard/banking", icon: BuildingLibraryIcon, roles: ["OWNER", "MANAGER"] },
 ];
 
 const navLinkCls = (isActive: boolean, collapsed: boolean) =>
@@ -133,6 +142,11 @@ export default function DashboardLayout() {
   const { branches, selectedBranch } = useAppSelector((s) => s.branch);
   const { user, token } = useAppSelector((s) => s.auth);
   const { preset, from, to } = useAppSelector((s) => s.dateRange);
+
+  // Nav items with a `roles` allowlist are hidden from anyone whose role
+  // isn't in it — the first role-based nav filtering in this app, backing
+  // the RequireRole route guard on the same pages (see routes/RequireRole.tsx).
+  const visibleNav = NAV.filter((item) => !item.roles || item.roles.includes(user?.role));
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
@@ -210,8 +224,8 @@ export default function DashboardLayout() {
                 Restaurant Intelligence
               </p>
             </div>
-            <nav className="flex-1 space-y-1 overflow-y-auto px-3">
-              {NAV.map((item) => (
+            <nav className="flex-1 space-y-1 overflow-y-auto px-3 no-scrollbar">
+              {visibleNav.map((item) => (
                 <Link
                   key={item.name}
                   to={item.href}
@@ -260,14 +274,14 @@ export default function DashboardLayout() {
               </button>
             )}
           </div>
-          <nav className="flex flex-1 flex-col justify-between overflow-y-auto px-2 pb-2">
+          <nav className="flex flex-1 flex-col justify-between overflow-y-auto px-2 pb-2 no-scrollbar">
             <div className="space-y-0.5">
               {!collapsed && (
                 <p className="mb-1.5 px-1.5 text-[8px] font-bold uppercase tracking-[0.2em] text-red-300/60">
                   Menu
                 </p>
               )}
-              {NAV.map((item) => (
+              {visibleNav.map((item) => (
                 <NavLink
                   key={item.name}
                   to={item.href}
@@ -286,39 +300,18 @@ export default function DashboardLayout() {
                 </NavLink>
               ))}
             </div>
-            <div className="space-y-1">
-              <div className="border-t border-white/10 pt-2">
-                {collapsed ? (
-                  <div className="flex justify-center">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white/20 text-[11px] font-black text-white">
-                      {user?.name?.charAt(0)?.toUpperCase() || "U"}
-                    </div>
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-2 rounded-lg bg-black/15 px-2.5 py-2">
-                    <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white/25 text-[10px] font-black text-white">
-                      {user?.name?.charAt(0)?.toUpperCase() || "U"}
-                    </div>
-                    <div className="min-w-0">
-                      <p className="truncate text-[10px] font-bold leading-none text-white">
-                        {user?.name || "User"}
-                      </p>
-                      <p className="mt-0.5 truncate text-[8px] leading-none text-red-200/70">
-                        {user?.role || "Owner"}
-                      </p>
-                    </div>
-                  </div>
-                )}
-                {collapsed && (
+            {collapsed && (
+              <div className="space-y-1">
+                <div className="border-t border-white/10 pt-2">
                   <button
                     onClick={() => setCollapsed(false)}
-                    className="mt-1 flex w-full items-center justify-center py-1.5 text-white/50 hover:text-white transition"
+                    className="flex w-full items-center justify-center py-1.5 text-white/50 hover:text-white transition"
                   >
                     <ChevronRightIcon className="h-3.5 w-3.5" />
                   </button>
-                )}
+                </div>
               </div>
-            </div>
+            )}
           </nav>
         </div>
       </div>

@@ -4,6 +4,7 @@ import {
   EyeIcon,
   UsersIcon,
   MagnifyingGlassIcon,
+  ChatBubbleLeftRightIcon,
 } from "@heroicons/react/24/outline";
 import {
   BarChart3Icon,
@@ -11,6 +12,7 @@ import {
   RepeatIcon,
   CalendarClockIcon,
 } from "lucide-react";
+import SendWhatsAppDialog from "../../components/common/SendWhatsAppDialog";
 
 export default function Customers() {
   const { selectedBranch } = useAppSelector((s) => s.branch);
@@ -19,6 +21,7 @@ export default function Customers() {
   const [loading, setLoading] = useState(false);
   const [_selectedCustomer, setSelectedCustomer] = useState<any>(null);
   const [customers, setCustomers] = useState<any[]>([]);
+  const [messageCustomer, setMessageCustomer] = useState<any>(null);
   const [page, setPage] = useState(1);
   const rowsPerPage = 5;
   const filtered = customers.filter(
@@ -523,12 +526,21 @@ export default function Customers() {
                         {/* ACTION */}
 
                         <td className="px-4 py-1.5">
-                          <button
-                            onClick={() => setSelectedCustomer(c)}
-                            className="flex h-7 w-7 items-center justify-center rounded-md bg-gray-100 transition hover:bg-[#b10000]"
-                          >
-                            <EyeIcon className="h-3.5 w-3.5 text-gray-600 hover:text-red-600" />
-                          </button>
+                          <div className="flex items-center gap-1.5">
+                            <button
+                              onClick={() => setSelectedCustomer(c)}
+                              className="flex h-7 w-7 items-center justify-center rounded-md bg-gray-100 transition hover:bg-[#b10000]"
+                            >
+                              <EyeIcon className="h-3.5 w-3.5 text-gray-600 hover:text-red-600" />
+                            </button>
+                            <button
+                              onClick={() => setMessageCustomer(c)}
+                              title="Send WhatsApp message"
+                              className="flex h-7 w-7 items-center justify-center rounded-md bg-gray-100 transition hover:bg-[#b10000]"
+                            >
+                              <ChatBubbleLeftRightIcon className="h-3.5 w-3.5 text-gray-600 hover:text-red-600" />
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     );
@@ -1092,6 +1104,15 @@ export default function Customers() {
           </div>
         )}
       </div>
+
+      <SendWhatsAppDialog
+        open={!!messageCustomer}
+        onClose={() => setMessageCustomer(null)}
+        defaultPhone={messageCustomer?.phone}
+        templateType="CUSTOMER_MARKETING"
+        relatedEntityType="Customer"
+        relatedEntityId={messageCustomer?.id}
+      />
     </main>
   );
 }

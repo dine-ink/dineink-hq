@@ -17,6 +17,7 @@ export const FORECAST_KPIS: ForecastKpiDef[] = [
   { key: "revenue", label: "Revenue", unit: "currency", group: "Revenue & Volume" },
   { key: "orders", label: "Orders", unit: "count", group: "Revenue & Volume" },
   { key: "avgOrderValue", label: "Average Order Value", unit: "currency", group: "Revenue & Volume" },
+  { key: "avgDailySales", label: "Average Daily Sales", unit: "currency", group: "Revenue & Volume" },
 
   { key: "foodCost", label: "Food Cost", unit: "currency", group: "Cost of Goods" },
   { key: "foodCostPercentage", label: "Food Cost %", unit: "percentage", group: "Cost of Goods" },

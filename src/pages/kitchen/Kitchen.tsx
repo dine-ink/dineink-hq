@@ -5,15 +5,17 @@ import {
   Bar,
   LineChart,
   Line,
+  Cell,
   ResponsiveContainer,
   XAxis,
   YAxis,
   CartesianGrid,
   Tooltip,
+  Legend,
   ReferenceLine,
 } from "recharts";
 import { FireIcon } from "@heroicons/react/24/outline";
-import { PageContainer, PageHeader, MetricCard, LoadingOverlay, type MetricStatus } from "../../design";
+import { PageContainer, PageHeader, MetricCard, LoadingOverlay, Alert, type MetricStatus } from "../../design";
 
 const TICK = { fontSize: 10, fill: "#6b7280" };
 
@@ -35,6 +37,8 @@ export default function Kitchen() {
   const { user, token } = useAppSelector((s) => s.auth);
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState<any>(null);
+  const [peakHourData, setPeakHourData] = useState<any>(null);
+  const [etaData, setEtaData] = useState<any>(null);
 
   useEffect(() => {
     const fetch_ = async () => {
@@ -51,6 +55,30 @@ export default function Kitchen() {
         );
         const json = await res.json();
         if (json.success) setData(json.data);
+
+        if (selectedBranch?.id) {
+          try {
+            const peakRes = await fetch(
+              `${API_URL}/api/analytics/${user.restaurantId}/${selectedBranch.id}/peak-hour-analysis?from=${from}&to=${to}`,
+              { headers: h },
+            );
+            const peakJson = await peakRes.json();
+            if (peakJson.success) setPeakHourData(peakJson.data);
+          } catch {
+            /* silent */
+          }
+
+          try {
+            const etaRes = await fetch(
+              `${API_URL}/api/analytics/${user.restaurantId}/${selectedBranch.id}/eta-prediction`,
+              { headers: h },
+            );
+            const etaJson = await etaRes.json();
+            if (etaJson.success) setEtaData(etaJson.data);
+          } catch {
+            /* silent */
+          }
+        }
       } catch {
         /* silent */
       } finally {
@@ -76,6 +104,12 @@ export default function Kitchen() {
   const activeHours = hourlyData.filter(
     (h: any) => h.hour >= 6 && h.hour <= 23,
   );
+
+  const peakHourly = peakHourData?.hourly || [];
+  const peakCurrent = peakHourData?.current || null;
+  const dineInEta = etaData?.dineIn || null;
+  const takeawayEta = etaData?.takeaway || null;
+  const deliveryEta = etaData?.delivery || null;
 
   return (
     <PageContainer>
@@ -425,6 +459,165 @@ export default function Kitchen() {
                 No kitchen item data
               </div>
             )}
+          </div>
+        </div>
+
+        {/* PEAK HOUR DEPLETION */}
+        <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+          <div className="border-b border-gray-100 px-4 py-3">
+            <h3 className="text-[15px] font-bold text-gray-900">
+              Peak Hour Depletion
+            </h3>
+            <p className="mt-0.5 text-[11px] text-gray-500">
+              Live kitchen load, staffing requirement per hour, and order ETA
+              predictions
+            </p>
+          </div>
+          <div className="p-4">
+            {/* Live status */}
+            {peakCurrent ? (
+              <div className="mb-4 space-y-3">
+                <div className="grid grid-cols-2 gap-3 xl:grid-cols-3">
+                  <MetricCard
+                    label="Current Queue Depth"
+                    value={peakCurrent.queueDepth ?? 0}
+                    sub="orders currently in kitchen"
+                    status={legacyColorToStatus[peakCurrent.isBottleneckNow ? "red" : "blue"]}
+                  />
+                  <MetricCard
+                    label="Current Utilization"
+                    value={
+                      peakCurrent.utilizationPercentNow != null
+                        ? `${peakCurrent.utilizationPercentNow}%`
+                        : "—"
+                    }
+                    sub="of kitchen capacity"
+                    status={legacyColorToStatus[peakCurrent.isBottleneckNow ? "red" : "orange"]}
+                  />
+                  <MetricCard
+                    label="Bottleneck Right Now"
+                    value={peakCurrent.isBottleneckNow ? "Yes" : "No"}
+                    sub="based on current queue vs. staffing"
+                    status={legacyColorToStatus[peakCurrent.isBottleneckNow ? "red" : "emerald"]}
+                  />
+                </div>
+                {peakCurrent.throttleSuggested && (
+                  <Alert variant="warning" title="Kitchen at capacity">
+                    Consider holding new dine-in orders until load decreases.
+                    This is informational only — order throttling is managed
+                    from the POS app.
+                  </Alert>
+                )}
+              </div>
+            ) : (
+              <div className="mb-4 flex h-[60px] items-center justify-center rounded-lg bg-gray-50 text-[12px] text-gray-400">
+                No live queue data available
+              </div>
+            )}
+
+            {/* Staff requirement + bottleneck chart */}
+            <div className="mb-4">
+              <h4 className="mb-2 text-[12px] font-bold text-gray-700">
+                Orders vs. Staff Requirement by Hour
+              </h4>
+              {peakHourly.length > 0 ? (
+                <ResponsiveContainer width="100%" height={220}>
+                  <BarChart data={peakHourly}>
+                    <CartesianGrid
+                      strokeDasharray="3 3"
+                      vertical={false}
+                      stroke="#f1f5f9"
+                    />
+                    <XAxis
+                      dataKey="label"
+                      tick={TICK}
+                      axisLine={false}
+                      tickLine={false}
+                      interval={2}
+                    />
+                    <YAxis tick={TICK} axisLine={false} tickLine={false} />
+                    <Tooltip />
+                    <Legend wrapperStyle={{ fontSize: 11 }} />
+                    <Bar
+                      dataKey="orders"
+                      name="Orders"
+                      radius={[4, 4, 0, 0]}
+                    >
+                      {peakHourly.map((entry: any, idx: number) => (
+                        <Cell
+                          key={`peak-cell-${idx}`}
+                          fill={entry.isBottleneck ? "#ef4444" : "#f97316"}
+                        />
+                      ))}
+                    </Bar>
+                    <Bar
+                      dataKey="staffRequirement"
+                      name="Staff Required"
+                      fill="#3b82f6"
+                      radius={[4, 4, 0, 0]}
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="flex h-[220px] items-center justify-center text-[12px] text-gray-400">
+                  No peak hour data for this period
+                </div>
+              )}
+              {peakHourly.some((h: any) => h.isBottleneck) && (
+                <p className="mt-1.5 text-[10px] text-gray-400">
+                  <span className="mr-1 inline-block h-2 w-2 rounded-sm bg-red-500 align-middle" />
+                  Red bars mark bottleneck hours (staffing likely insufficient
+                  for order volume)
+                </p>
+              )}
+            </div>
+
+            {/* ETA predictions */}
+            <div>
+              <h4 className="mb-2 text-[12px] font-bold text-gray-700">
+                Predicted Order Completion Time (ETA)
+              </h4>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                <MetricCard
+                  label="Dine-In ETA"
+                  value={dineInEta ? `${dineInEta.predictedMinutes}m` : "—"}
+                  sub={
+                    dineInEta
+                      ? `Historical avg: ${dineInEta.historicalAvgMinutes}m`
+                      : "No data available"
+                  }
+                  status={legacyColorToStatus.blue}
+                />
+                <MetricCard
+                  label="Takeaway ETA"
+                  value={
+                    takeawayEta ? `${takeawayEta.predictedMinutes}m` : "—"
+                  }
+                  sub={
+                    takeawayEta
+                      ? `Historical avg: ${takeawayEta.historicalAvgMinutes}m`
+                      : "No data available"
+                  }
+                  status={legacyColorToStatus.violet}
+                />
+                <MetricCard
+                  label="Delivery ETA"
+                  value={
+                    deliveryEta && deliveryEta.sampleSize > 0
+                      ? `${deliveryEta.predictedMinutes}m`
+                      : "—"
+                  }
+                  sub={
+                    deliveryEta
+                      ? deliveryEta.sampleSize === 0
+                        ? deliveryEta.note || "No delivery order data yet"
+                        : `Historical avg: ${deliveryEta.historicalAvgMinutes}m`
+                      : "No data available"
+                  }
+                  status={legacyColorToStatus[deliveryEta?.sampleSize === 0 ? "orange" : "emerald"]}
+                />
+              </div>
+            </div>
           </div>
         </div>
 

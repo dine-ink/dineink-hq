@@ -1,3 +1,13 @@
 @import "tailwindcss";
 @import "../design/theme/theme.css";
 
+/* Scrollable containers that should still scroll but never show a visible
+   scrollbar track (e.g. the dashboard sidebar nav) — cross-browser. */
+.no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+

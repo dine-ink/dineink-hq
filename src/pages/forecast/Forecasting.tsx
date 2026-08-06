@@ -4,8 +4,11 @@ import OverviewTab from "./OverviewTab";
 import BranchComparisonTab from "./BranchComparisonTab";
 import AccuracyTab from "./AccuracyTab";
 import ReportsTab from "./ReportsTab";
+import PeakHourForecastTab from "./PeakHourForecastTab";
+import DemandForecastTab from "./DemandForecastTab";
+import InventoryForecastTab from "./InventoryForecastTab";
 
-const TABS = ["Overview", "Branch Comparison", "Accuracy", "Reports"];
+const TABS = ["Overview", "Branch Comparison", "Peak Hour", "Demand", "Inventory", "Accuracy", "Reports"];
 
 export default function Forecasting() {
   const [activeTab, setActiveTab] = useState("Overview");
@@ -52,6 +55,9 @@ export default function Forecasting() {
         <div className="min-h-0 flex-1 overflow-y-auto rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
           {activeTab === "Overview" && <OverviewTab />}
           {activeTab === "Branch Comparison" && <BranchComparisonTab />}
+          {activeTab === "Peak Hour" && <PeakHourForecastTab />}
+          {activeTab === "Demand" && <DemandForecastTab />}
+          {activeTab === "Inventory" && <InventoryForecastTab />}
           {activeTab === "Accuracy" && <AccuracyTab />}
           {activeTab === "Reports" && <ReportsTab />}
         </div>
