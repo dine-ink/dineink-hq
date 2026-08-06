@@ -978,7 +978,10 @@ export default function Insights() {
                 {[
                   {
                     label: "Revenue",
-                    value: revenue,
+                    value: revenue.toLocaleString("en-IN", {
+                      minimumFractionDigits: 0,
+                      maximumFractionDigits: 2,
+                    }),
                     sub: "Monthly earnings",
                     icon: IndianRupee,
                     color: "emerald",
