@@ -7,6 +7,8 @@ export interface BudgetCategoryDef {
   label: string;
   unit: "currency" | "percentage" | "count";
   group: string;
+  /** true = a contracted/scheduled cost whose planned value is pre-filled from live data (Insights/payroll) when creating a budget, but still editable. */
+  isFixed: boolean;
 }
 
 export const BUDGET_CATEGORIES: BudgetCategoryDef[] = [
@@ -15,13 +17,15 @@ export const BUDGET_CATEGORIES: BudgetCategoryDef[] = [
     label: "Revenue",
     unit: "currency",
     group: "Revenue & Volume",
+    isFixed: false,
   },
-  { key: "orders", label: "Orders", unit: "count", group: "Revenue & Volume" },
+  { key: "orders", label: "Orders", unit: "count", group: "Revenue & Volume", isFixed: false },
   {
     key: "avgOrderValue",
     label: "Average Order Value",
     unit: "currency",
     group: "Revenue & Volume",
+    isFixed: false,
   },
 
   {
@@ -29,89 +33,146 @@ export const BUDGET_CATEGORIES: BudgetCategoryDef[] = [
     label: "Food Cost",
     unit: "currency",
     group: "Cost of Goods",
+    isFixed: false,
   },
   {
     key: "foodCostPercentage",
     label: "Food Cost %",
     unit: "percentage",
     group: "Cost of Goods",
+    isFixed: false,
   },
   {
     key: "primeCost",
     label: "Prime Cost",
     unit: "currency",
     group: "Cost of Goods",
+    isFixed: false,
   },
 
-  { key: "labour", label: "Labour", unit: "currency", group: "Labour" },
+  { key: "labour", label: "Labour", unit: "currency", group: "Labour", isFixed: true },
   {
     key: "labourPercentage",
     label: "Labour %",
     unit: "percentage",
     group: "Labour",
+    isFixed: false,
   },
 
   {
     key: "rent",
     label: "Rent",
     unit: "currency",
-    group: "Fixed & Operating Costs",
+    group: "Fixed Costs",
+    isFixed: true,
   },
+  {
+    key: "loanEmi",
+    label: "Loan EMI",
+    unit: "currency",
+    group: "Fixed Costs",
+    isFixed: true,
+  },
+  {
+    key: "internet",
+    label: "Internet",
+    unit: "currency",
+    group: "Fixed Costs",
+    isFixed: true,
+  },
+  {
+    key: "phoneBills",
+    label: "Phone Bills",
+    unit: "currency",
+    group: "Fixed Costs",
+    isFixed: true,
+  },
+  {
+    key: "accounting",
+    label: "Accounting Fees",
+    unit: "currency",
+    group: "Fixed Costs",
+    isFixed: true,
+  },
+  {
+    key: "insurance",
+    label: "Insurance",
+    unit: "currency",
+    group: "Fixed Costs",
+    isFixed: true,
+  },
+  {
+    key: "licenses",
+    label: "Licenses & Permits",
+    unit: "currency",
+    group: "Fixed Costs",
+    isFixed: true,
+  },
+
   {
     key: "utilities",
     label: "Utilities",
     unit: "currency",
-    group: "Fixed & Operating Costs",
+    group: "Operating Costs",
+    isFixed: false,
   },
   {
     key: "marketing",
     label: "Marketing",
     unit: "currency",
-    group: "Fixed & Operating Costs",
+    group: "Operating Costs",
+    isFixed: false,
   },
   {
     key: "maintenance",
     label: "Maintenance",
     unit: "currency",
-    group: "Fixed & Operating Costs",
+    group: "Operating Costs",
+    isFixed: false,
   },
   {
     key: "cleaning",
     label: "Cleaning",
     unit: "currency",
-    group: "Fixed & Operating Costs",
+    group: "Operating Costs",
+    isFixed: false,
   },
   {
     key: "packaging",
     label: "Packaging",
     unit: "currency",
-    group: "Fixed & Operating Costs",
+    group: "Operating Costs",
+    isFixed: false,
   },
   {
     key: "deliveryCommission",
     label: "Delivery Commission",
     unit: "currency",
-    group: "Fixed & Operating Costs",
+    group: "Operating Costs",
+    isFixed: false,
   },
   {
     key: "operatingExpenses",
     label: "Operating Expenses",
     unit: "currency",
-    group: "Fixed & Operating Costs",
+    group: "Operating Costs",
+    isFixed: false,
   },
 
-  { key: "ebitda", label: "EBITDA", unit: "currency", group: "Profitability" },
+  { key: "ebitda", label: "EBITDA", unit: "currency", group: "Profitability", isFixed: false },
   {
     key: "netProfit",
     label: "Net Profit",
     unit: "currency",
     group: "Profitability",
+    isFixed: false,
   },
   {
     key: "cashFlow",
     label: "Cash Flow",
     unit: "currency",
     group: "Profitability",
+    isFixed: false,
   },
 ];
 

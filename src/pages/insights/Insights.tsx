@@ -169,6 +169,10 @@ export default function Insights() {
   const [hasVendorInvoices, setHasVendorInvoices] = useState(true);
   const [insightsData, setInsightsData] = useState<any>({
     monthlyRent: 0,
+    rentModel: "FIXED",
+    rentSharePercentDineIn: 0,
+    rentSharePercentTakeaway: 0,
+    rentSharePercentDelivery: 0,
     loanEmi: 0,
     internet: 0,
     phoneBills: 0,
@@ -2371,12 +2375,103 @@ export default function Insights() {
                           </p>
                         </div>
 
+                        <div className="rounded-xl border border-gray-200 bg-white p-3 mb-3">
+                          <div className="mb-2 flex items-center justify-between">
+                            <label className="block text-sm font-medium text-gray-700">
+                              Rent
+                            </label>
+                            <div className="flex rounded-lg border border-gray-200 bg-gray-50 p-0.5 text-[11px] font-semibold">
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setInsightsData({ ...insightsData, rentModel: "FIXED" })
+                                }
+                                className={`rounded-md px-2.5 py-1 transition-all ${
+                                  (insightsData.rentModel || "FIXED") === "FIXED"
+                                    ? "bg-[#b10000] text-white shadow-sm"
+                                    : "text-gray-500"
+                                }`}
+                              >
+                                Fixed Monthly
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setInsightsData({ ...insightsData, rentModel: "REVENUE_SHARE" })
+                                }
+                                className={`rounded-md px-2.5 py-1 transition-all ${
+                                  insightsData.rentModel === "REVENUE_SHARE"
+                                    ? "bg-[#b10000] text-white shadow-sm"
+                                    : "text-gray-500"
+                                }`}
+                              >
+                                Revenue Share
+                              </button>
+                            </div>
+                          </div>
+
+                          <div className="relative">
+                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-400">
+                              ₹
+                            </span>
+                            <input
+                              type="number"
+                              value={insightsData.monthlyRent || ""}
+                              disabled={insightsData.rentModel === "REVENUE_SHARE"}
+                              onChange={(e) =>
+                                setInsightsData({
+                                  ...insightsData,
+                                  monthlyRent: Number(e.target.value),
+                                })
+                              }
+                              placeholder="0"
+                              className="w-full rounded-xl border border-gray-200 bg-gray-50 py-2.5 pl-8 pr-3 text-sm outline-none transition-all duration-200 focus:border-red-300 focus:bg-white disabled:text-gray-400"
+                            />
+                          </div>
+                          <p className="mt-2 text-[11px] text-gray-400">
+                            {insightsData.rentModel === "REVENUE_SHARE"
+                              ? "Rent is calculated automatically from sales — see percentages below."
+                              : "Fixed monthly operational expense"}
+                          </p>
+
+                          {insightsData.rentModel === "REVENUE_SHARE" && (
+                            <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
+                              {[
+                                { label: "Dine-In", key: "rentSharePercentDineIn" },
+                                { label: "Takeaway", key: "rentSharePercentTakeaway" },
+                                { label: "Delivery", key: "rentSharePercentDelivery" },
+                              ].map((f) => (
+                                <div key={f.key}>
+                                  <label className="mb-1 block text-[11px] font-medium text-gray-600">
+                                    {f.label} %
+                                  </label>
+                                  <div className="relative">
+                                    <input
+                                      type="number"
+                                      min="0"
+                                      max="100"
+                                      value={insightsData[f.key] || ""}
+                                      onChange={(e) =>
+                                        setInsightsData({
+                                          ...insightsData,
+                                          [f.key]: Number(e.target.value),
+                                        })
+                                      }
+                                      placeholder="0"
+                                      className="w-full rounded-xl border border-gray-200 bg-gray-50 py-2 pl-3 pr-7 text-sm outline-none focus:border-red-300 focus:bg-white"
+                                    />
+                                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[11px] text-gray-400">
+                                      %
+                                    </span>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+
                         <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
                           {[
-                            {
-                              label: "Monthly Rent",
-                              key: "monthlyRent",
-                            },
                             {
                               label: "Loan EMI",
                               key: "loanEmi",

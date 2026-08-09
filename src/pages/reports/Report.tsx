@@ -2935,16 +2935,26 @@ export default function Report() {
               MANUAL: "bg-gray-100 text-gray-600",
             };
 
-            // Summary KPIs across all ingredients
-            const totalWastageQty = lifecycleData.reduce(
+            // Summary KPIs across all ingredients — excluding ones with no
+            // recipe link anywhere (Packaging/Cleaning Supplies etc.).
+            // Their "expected consumption" isn't zero-this-month, it's
+            // structurally undefined (no recipe will ever explain their
+            // usage), so counting their full consumption as "wastage"
+            // would inflate the overall % with non-food, non-wasted items.
+            // `wastagePercentage === null` is exactly how the backend flags
+            // this (see inventory.service.ts's hasRecipeMapping).
+            const recipeTrackedIngredients = lifecycleData.filter(
+              (i: any) => i.wastagePercentage !== null,
+            );
+            const totalWastageQty = recipeTrackedIngredients.reduce(
               (s: number, i: any) => s + i.wastageQty,
               0,
             );
-            const totalWastageCost = lifecycleData.reduce(
+            const totalWastageCost = recipeTrackedIngredients.reduce(
               (s: number, i: any) => s + i.wastageCost,
               0,
             );
-            const totalAvailable = lifecycleData.reduce(
+            const totalAvailable = recipeTrackedIngredients.reduce(
               (s: number, i: any) => s + i.available,
               0,
             );
@@ -2952,7 +2962,7 @@ export default function Report() {
               totalAvailable > 0
                 ? ((totalWastageQty / totalAvailable) * 100).toFixed(1)
                 : "0";
-            const worstIng = [...lifecycleData].sort(
+            const worstIng = [...recipeTrackedIngredients].sort(
               (a: any, b: any) => b.wastagePercentage - a.wastagePercentage,
             )[0];
 
@@ -3159,6 +3169,14 @@ export default function Report() {
                                       No restock data
                                     </span>
                                   )}
+                                  {ing.hasRecipeMapping === false && (
+                                    <span
+                                      className="rounded bg-gray-100 px-1.5 py-0.5 text-[9px] font-semibold text-gray-500"
+                                      title="Not used in any menu item recipe — its consumption isn't judged against an 'expected usage' figure, so it's excluded from wastage %"
+                                    >
+                                      Not recipe-tracked
+                                    </span>
+                                  )}
                                   {ing.wastagePercentage > 0 && (
                                     <span
                                       className={`rounded px-1.5 py-0.5 text-[9px] font-bold ${ing.wastagePercentage > 15 ? "bg-red-100 text-red-700" : ing.wastagePercentage > 8 ? "bg-amber-100 text-amber-700" : "bg-green-100 text-green-700"}`}
@@ -3307,9 +3325,11 @@ export default function Report() {
                                     </div>
                                   ) : (
                                     <p className="pl-3 text-[11px] text-emerald-600/70">
-                                      {ing.expectedConsumption > 0
-                                        ? "Menu-ingredient mapping needed for dish breakdown."
-                                        : "No dish usage this period."}
+                                      {ing.hasRecipeMapping === false
+                                        ? "Not used in any menu item recipe (e.g. packaging/cleaning supplies aren't part of a dish) — consumption isn't judged against an expected-usage figure."
+                                        : ing.expectedConsumption > 0
+                                          ? "Menu-ingredient mapping needed for dish breakdown."
+                                          : "No dish usage this period."}
                                     </p>
                                   )}
                                 </div>
@@ -3325,7 +3345,18 @@ export default function Report() {
                                   <span>{fmt(ing.closingQty, ing.unit)}</span>
                                 </div>
 
-                                {/* Step 4: Wastage result */}
+                                {/* Step 4: Wastage result — not computed at all for ingredients with
+                                    no recipe link anywhere (see hasRecipeMapping); showing a red
+                                    "wastage" box for a takeaway box or cleaning spray would be
+                                    misleading, not just uninteresting. */}
+                                {ing.hasRecipeMapping === false ? (
+                                  <div className="rounded-lg bg-gray-50 p-3 text-[11px] text-gray-500">
+                                    Wastage % isn't calculated for this ingredient — it has no menu
+                                    item recipe to compare its consumption against. Its stock is
+                                    still tracked (opening/purchases/closing above); use manual
+                                    inventory adjustments to log damage/expiry for it instead.
+                                  </div>
+                                ) : (
                                 <div className="rounded-lg bg-red-50 p-3 space-y-2">
                                   <div className="flex justify-between font-bold text-red-800">
                                     <span>
@@ -3442,6 +3473,7 @@ export default function Report() {
                                     </div>
                                   )}
                                 </div>
+                                )}
 
                                 {/* Legend */}
                                 <div className="flex flex-wrap gap-3 pt-1">

@@ -8,16 +8,31 @@ interface EbitdaTabProps {
   year: number;
 }
 
-// Keys that read more naturally as a percentage than as a currency amount —
-// matched loosely since the finance module's exact field names aren't
-// contractually fixed from this page's point of view.
-const PERCENT_KEY_PATTERN = /(percent|pct|margin|ratio|rate)/i;
+// Keys that are actually percentages — matched on the explicit "Percentage"/
+// "Pct" SUFFIX only (the finance module's own naming convention, e.g.
+// computeGrossProfitMarginPercentage/computeEBITDAPercentage), not on any
+// occurrence of "margin"/"ratio"/"rate" as a bare substring — that broader
+// match used to mislabel `contributionMargin` (a ₹ amount) as a percentage.
+const PERCENT_KEY_PATTERN = /(?:Percentage|Pct)$/i;
 
-const formatMetricValue = (key: string, value: number): string =>
-  PERCENT_KEY_PATTERN.test(key) ? `${value.toFixed(1)}%` : formatCurrency(value);
+// Plain counts (orders, bill counts, etc.) — a number, but never money and
+// never a percentage.
+const COUNT_KEY_PATTERN = /(?:orders?|bills?|count|quantity|qty)$/i;
+
+// `month`/`year` are query parameters this tab was called with, not metrics
+// — they're already shown in the page's own month/year selector, so they're
+// dropped from the grid entirely rather than formatted at all.
+const EXCLUDED_KEYS = new Set(["month", "year"]);
+
+const formatMetricValue = (key: string, value: number): string => {
+  if (PERCENT_KEY_PATTERN.test(key)) return `${value.toFixed(1)}%`;
+  if (COUNT_KEY_PATTERN.test(key)) return Math.round(value).toLocaleString("en-IN");
+  return formatCurrency(value);
+};
 
 const statusForValue = (key: string, value: number): MetricStatus => {
   if (PERCENT_KEY_PATTERN.test(key)) return value >= 0 ? "success" : "danger";
+  if (COUNT_KEY_PATTERN.test(key)) return "primary";
   if (/ebitda|profit|margin/i.test(key)) return value >= 0 ? "success" : "danger";
   return value < 0 ? "danger" : "primary";
 };
@@ -58,7 +73,7 @@ export default function EbitdaTab({ month, year }: EbitdaTabProps) {
   }
 
   const numericEntries = Object.entries(data || {}).filter(
-    ([, value]) => typeof value === "number" && Number.isFinite(value),
+    ([key, value]) => typeof value === "number" && Number.isFinite(value) && !EXCLUDED_KEYS.has(key.toLowerCase()),
   ) as [string, number][];
 
   return (

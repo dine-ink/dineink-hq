@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Plus, Copy, Save, ArrowLeft, Archive, CheckCircle2 } from "lucide-react";
+import { Plus, Copy, Save, ArrowLeft, Archive, CheckCircle2, Trash2 } from "lucide-react";
 import { useAppSelector } from "../../store";
 import { BUDGET_CATEGORIES, BUDGET_CATEGORY_GROUPS, MONTH_NAMES, fyMonths } from "./budgetCategories";
 
@@ -25,6 +25,35 @@ export default function BudgetsTab() {
   const [formFy, setFormFy] = useState(String(currentFyStartYear()));
   const [formBranchId, setFormBranchId] = useState<string>("restaurant");
   const [formDefaults, setFormDefaults] = useState<Record<string, string>>({});
+
+  // Fixed-cost categories (Rent, Labour, EMI, ...) are pre-filled from live
+  // RestaurantInsights/payroll data whenever the create form is open — still
+  // ordinary editable inputs, just not starting from a blank 0.
+  useEffect(() => {
+    if (view !== "create" || !user?.restaurantId) return;
+    const params = formBranchId === "restaurant" ? "" : `?branchId=${formBranchId}`;
+    fetch(`${API_URL}/api/budgets/${user.restaurantId}/fixed-defaults${params}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((res) => res.json())
+      .then((json) => {
+        if (!json.success) return;
+        setFormDefaults((prev) => ({
+          ...prev,
+          rent: String(json.data.rent || ""),
+          labour: String(json.data.labour || ""),
+          loanEmi: String(json.data.loanEmi || ""),
+          internet: String(json.data.internet || ""),
+          phoneBills: String(json.data.phoneBills || ""),
+          accounting: String(json.data.accounting || ""),
+          insurance: String(json.data.insurance || ""),
+          licenses: String(json.data.licenses || ""),
+        }));
+      })
+      .catch(() => {
+        // fixed-defaults fetch failure — fields simply stay blank/editable
+      });
+  }, [view, formBranchId, user?.restaurantId]);
 
   const fetchBudgets = async () => {
     if (!user?.restaurantId) return;
@@ -163,6 +192,25 @@ export default function BudgetsTab() {
     }
   };
 
+  const handleDeleteBudget = async (budget: any) => {
+    if (!window.confirm(`Delete "${budget.name}"? This cannot be undone.`)) return;
+    try {
+      const res = await fetch(`${API_URL}/api/budgets/${user.restaurantId}/${budget.id}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const json = await res.json();
+      if (json.success) {
+        if (selectedBudget?.id === budget.id) setView("list");
+        await fetchBudgets();
+      } else {
+        alert(json.message || "Failed to delete budget");
+      }
+    } catch {
+      alert("Failed to delete budget");
+    }
+  };
+
   const handleDuplicate = async (budgetId: number) => {
     try {
       const res = await fetch(`${API_URL}/api/budgets/${user.restaurantId}/${budgetId}/duplicate`, {
@@ -256,13 +304,22 @@ export default function BudgetsTab() {
                     <td className="px-4 py-2.5 text-gray-600">FY{b.financialYear}-{String(Number(b.financialYear) + 1).slice(-2)}</td>
                     <td className="px-4 py-2.5">{statusBadge(b.status)}</td>
                     <td className="px-4 py-2.5 text-right">
-                      <button
-                        type="button"
-                        onClick={() => handleDuplicate(b.id)}
-                        className="inline-flex items-center gap-1 rounded-lg border border-gray-200 px-2 py-1 text-[10px] font-semibold text-gray-600 hover:bg-gray-50"
-                      >
-                        <Copy className="h-3 w-3" /> Duplicate
-                      </button>
+                      <div className="inline-flex gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => handleDuplicate(b.id)}
+                          className="inline-flex items-center gap-1 rounded-lg border border-gray-200 px-2 py-1 text-[10px] font-semibold text-gray-600 hover:bg-gray-50"
+                        >
+                          <Copy className="h-3 w-3" /> Duplicate
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteBudget(b)}
+                          className="inline-flex items-center gap-1 rounded-lg border border-red-200 px-2 py-1 text-[10px] font-semibold text-red-600 hover:bg-red-50"
+                        >
+                          <Trash2 className="h-3 w-3" /> Delete
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -325,7 +382,14 @@ export default function BudgetsTab() {
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
             {BUDGET_CATEGORIES.map((cat) => (
               <div key={cat.key}>
-                <label className="mb-1 block text-[11px] font-medium text-gray-600">{cat.label}</label>
+                <label className="mb-1 flex items-center gap-1.5 text-[11px] font-medium text-gray-600">
+                  {cat.label}
+                  {cat.isFixed && (
+                    <span className="rounded-full bg-emerald-50 px-1.5 py-0.5 text-[9px] font-semibold text-emerald-700">
+                      Auto-filled
+                    </span>
+                  )}
+                </label>
                 <div className="relative">
                   {cat.unit === "currency" && (
                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-400">₹</span>
@@ -410,6 +474,13 @@ export default function BudgetsTab() {
             className="flex items-center gap-1.5 rounded-xl bg-[#b10000] px-3 py-2 text-[12px] font-semibold text-white shadow-sm transition hover:bg-[#950000] disabled:opacity-50"
           >
             <Save className="h-3.5 w-3.5" /> {saving ? "Saving…" : "Save Changes"}
+          </button>
+          <button
+            type="button"
+            onClick={() => handleDeleteBudget(selectedBudget)}
+            className="flex items-center gap-1.5 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-[12px] font-semibold text-red-600 shadow-sm transition hover:bg-red-100"
+          >
+            <Trash2 className="h-3.5 w-3.5" /> Delete
           </button>
         </div>
       </div>
