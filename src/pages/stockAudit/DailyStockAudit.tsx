@@ -38,11 +38,18 @@ export default function DailyStockAudit() {
       const json = await res.json();
       if (json.success) {
         setIngredients(json.data || []);
-        // Pre-fill inputs from already-saved audits
+        // Pre-fill from an already-saved audit if one exists for this date;
+        // otherwise default to the calculated Expected value instead of
+        // leaving it blank — with 200+ ingredients, typing every single
+        // closing qty from scratch isn't realistic. Staff only need to
+        // correct the rows where their physical count actually differs;
+        // anything left untouched saves as "matched expected, no wastage",
+        // which is exactly what a real, uneventful count would show anyway.
         const initClosing: Record<number, string> = {};
         const initNotes: Record<number, string> = {};
         for (const ing of json.data || []) {
           if (ing.closingQty !== null) initClosing[ing.ingredientId] = String(ing.closingQty);
+          else if (ing.expectedClosing !== null && ing.expectedClosing !== undefined) initClosing[ing.ingredientId] = String(ing.expectedClosing);
           if (ing.notes) initNotes[ing.ingredientId] = ing.notes;
         }
         setClosingInputs(initClosing);
@@ -379,7 +386,7 @@ export default function DailyStockAudit() {
             <span><span className="font-semibold text-gray-700">Opening</span> — stock at start of day</span>
             <span><span className="font-semibold text-emerald-700">SOP Used</span> — Σ(orders × recipe qty)</span>
             <span><span className="font-semibold text-blue-700">Expected</span> — Opening − SOP Used</span>
-            <span><span className="font-semibold text-gray-700">Actual Closing</span> — you enter this</span>
+            <span><span className="font-semibold text-gray-700">Actual Closing</span> — pre-filled with Expected; edit only where your physical count differs</span>
             <span><span className="font-semibold text-red-700">Wastage</span> — Expected − Actual</span>
             <span><span className="font-semibold text-blue-600">Under-used</span> — Actual &gt; Expected</span>
           </div>

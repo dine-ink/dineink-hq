@@ -14,10 +14,16 @@ const PERIODS = [
 ];
 
 export default function OverviewTab() {
-  const { selectedBranch } = useAppSelector((s) => s.branch);
+  const { branches } = useAppSelector((s) => s.branch);
   const { user, token } = useAppSelector((s) => s.auth);
   const API_URL = import.meta.env.VITE_API_URL;
 
+  // Independent of the global top-nav branch selector — same convention as
+  // the Scenarios tab's own scope dropdown. A scenario's visibility here is
+  // driven ONLY by this, so a restaurant-wide custom scenario stays visible
+  // regardless of which branch happens to be selected in the top nav, and
+  // vice versa.
+  const [scopeBranchId, setScopeBranchId] = useState<string>("restaurant");
   const [scenarios, setScenarios] = useState<any[]>([]);
   const [selectedScenarioId, setSelectedScenarioId] = useState<number | null>(null);
   const [period, setPeriod] = useState("currentMonth");
@@ -33,7 +39,7 @@ export default function OverviewTab() {
     const fetchScenarios = async () => {
       if (!user?.restaurantId) return;
       try {
-        const branchParam = selectedBranch?.id ?? "null";
+        const branchParam = scopeBranchId === "restaurant" ? "null" : scopeBranchId;
         const res = await fetch(`${API_URL}/api/scenarios/${user.restaurantId}?branchId=${branchParam}&activeOnly=true`, {
           headers: { Authorization: `Bearer ${token}` },
         });
@@ -48,9 +54,15 @@ export default function OverviewTab() {
       }
     };
     fetchScenarios();
-  }, [user?.restaurantId, selectedBranch?.id]);
+  }, [user?.restaurantId, scopeBranchId]);
 
   const selectedScenario = scenarios.find((s) => s.id === selectedScenarioId) || null;
+  // Built-in scenarios (Conservative/Expected/Optimistic) are fixed reference
+  // points shared across every restaurant — the What-If sliders here are for
+  // trying things out, so they're locked to Custom scenarios only. To
+  // experiment starting from a built-in, clone it into a Custom scenario
+  // from the Scenarios tab first.
+  const isCustom = selectedScenario?.type === "CUSTOM";
 
   // Sliders always reflect the CURRENT scenario's saved overrides when it changes.
   useEffect(() => {
@@ -156,6 +168,16 @@ export default function OverviewTab() {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex flex-wrap items-center gap-2">
           <select
+            value={scopeBranchId}
+            onChange={(e) => setScopeBranchId(e.target.value)}
+            className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-[12px] font-semibold text-gray-700 outline-none"
+          >
+            <option value="restaurant">Restaurant-wide (all branches)</option>
+            {(branches || []).map((b: any) => (
+              <option key={b.id} value={b.id}>{b.name}</option>
+            ))}
+          </select>
+          <select
             value={selectedScenarioId ?? ""}
             onChange={(e) => setSelectedScenarioId(Number(e.target.value))}
             className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-[12px] font-semibold text-gray-700 outline-none"
@@ -203,7 +225,9 @@ export default function OverviewTab() {
       <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
         <h4 className="mb-3 text-[13px] font-bold text-gray-900">What-If Controls</h4>
         <p className="mb-3 text-[11px] text-gray-500">
-          Adjust any assumption below — projections update instantly. Nothing is written to actuals; use "Save to Scenario" to keep these values.
+          {isCustom
+            ? 'Adjust any assumption below — projections update instantly. Nothing is written to actuals; use "Save to Scenario" to keep these values.'
+            : "Built-in scenarios have fixed assumptions and can't be adjusted here — go to the Scenarios tab and clone this into a Custom scenario to experiment."}
         </p>
         {OVERRIDE_FIELD_GROUPS.map((group) => (
           <div key={group} className="mb-4 last:mb-0">
@@ -211,12 +235,17 @@ export default function OverviewTab() {
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
               {OVERRIDE_FIELDS.filter((f) => f.group === group).map((f) => {
                 const raw = sliderValues[f.key] ?? "";
+                const current = whatIf?.currentValues?.[f.key];
                 return (
                   <div key={f.key}>
                     <div className="mb-1 flex items-center justify-between">
                       <label className="text-[11px] font-medium text-gray-600">{f.label}</label>
                       <span className="text-[11px] font-semibold text-gray-900">
-                        {raw === "" ? "Inherit" : fmtCategoryValue(Number(raw), f.unit)}
+                        {raw !== ""
+                          ? fmtCategoryValue(Number(raw), f.unit)
+                          : current != null
+                            ? `${fmtCategoryValue(current, f.unit)} (current)`
+                            : "Inherit"}
                       </span>
                     </div>
                     {f.slider ? (
@@ -227,15 +256,17 @@ export default function OverviewTab() {
                         step={f.step}
                         value={raw === "" ? (f.min < 0 && f.max > 0 ? 0 : f.min) : raw}
                         onChange={(e) => handleSliderChange(f.key, e.target.value)}
-                        className="w-full accent-[#b10000]"
+                        disabled={!isCustom}
+                        className="w-full accent-[#b10000] disabled:cursor-not-allowed disabled:opacity-40"
                       />
                     ) : (
                       <input
                         type="number"
                         value={raw}
                         onChange={(e) => handleSliderChange(f.key, e.target.value)}
-                        placeholder="Inherit"
-                        className="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-1.5 text-sm outline-none focus:border-red-300 focus:bg-white"
+                        placeholder={current != null ? String(current) : "Inherit"}
+                        disabled={!isCustom}
+                        className={`w-full rounded-xl border border-gray-200 px-3 py-1.5 text-sm outline-none focus:border-red-300 focus:bg-white ${isCustom ? "bg-gray-50" : "cursor-not-allowed bg-gray-100 text-gray-400"}`}
                       />
                     )}
                   </div>

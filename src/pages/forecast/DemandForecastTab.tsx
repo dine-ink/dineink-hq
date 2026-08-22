@@ -5,26 +5,38 @@ import { MODEL_OPTIONS, PERIOD_OPTIONS } from "./forecastCategories";
 
 interface DemandItem {
   name?: string;
-  projectedDailyOrders?: number;
-  projectedTotal?: number;
+  unit?: string | null;
+  historicalDailyAverage?: number;
+  projectedDailyConsumption?: number;
+  projectedTotalConsumption?: number;
   [key: string]: any;
 }
+
+const fmtQty = (value: number | undefined, unit: string | null | undefined) =>
+  value != null ? `${value.toLocaleString("en-IN", { maximumFractionDigits: 2 })}${unit ? ` ${unit}` : ""}` : "—";
 
 const columns: DataTableColumn<DemandItem>[] = [
   { key: "name", header: "Item", render: (row) => <span className="font-medium text-gray-700">{row.name ?? "—"}</span> },
   {
-    key: "projectedDailyOrders",
-    header: "Projected Daily Orders",
+    key: "historicalDailyAverage",
+    header: "Historical Daily Avg",
     headerClassName: "text-right",
-    className: "text-right text-gray-600",
-    render: (row) => (row.projectedDailyOrders != null ? row.projectedDailyOrders.toLocaleString("en-IN") : "—"),
+    className: "text-right text-gray-500",
+    render: (row) => fmtQty(row.historicalDailyAverage, row.unit),
   },
   {
-    key: "projectedTotal",
+    key: "projectedDailyConsumption",
+    header: "Projected Daily Demand",
+    headerClassName: "text-right",
+    className: "text-right text-gray-600",
+    render: (row) => fmtQty(row.projectedDailyConsumption, row.unit),
+  },
+  {
+    key: "projectedTotalConsumption",
     header: "Projected Total (Period)",
     headerClassName: "text-right",
     className: "text-right font-semibold text-gray-900",
-    render: (row) => (row.projectedTotal != null ? row.projectedTotal.toLocaleString("en-IN") : "—"),
+    render: (row) => fmtQty(row.projectedTotalConsumption, row.unit),
   },
 ];
 

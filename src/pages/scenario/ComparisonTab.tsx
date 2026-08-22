@@ -16,11 +16,18 @@ const BUDGET_COMPARABLE_KEYS = new Set([
   "labour", "labourPercentage", "rent", "utilities", "operatingExpenses", "ebitda", "netProfit", "cashFlow",
 ]);
 
+const MAX_SELECTED_SCENARIOS = 4;
+
 export default function ComparisonTab() {
-  const { selectedBranch } = useAppSelector((s) => s.branch);
+  const { branches } = useAppSelector((s) => s.branch);
   const { user, token } = useAppSelector((s) => s.auth);
   const API_URL = import.meta.env.VITE_API_URL;
 
+  // Independent of the global top-nav branch selector — same convention as
+  // the Scenarios tab's own scope dropdown, so a restaurant-wide custom
+  // scenario stays visible here regardless of which branch happens to be
+  // selected in the top nav, and vice versa.
+  const [scopeBranchId, setScopeBranchId] = useState<string>("restaurant");
   const [scenarios, setScenarios] = useState<any[]>([]);
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [period, setPeriod] = useState("currentMonth");
@@ -32,21 +39,24 @@ export default function ComparisonTab() {
     const fetchScenarios = async () => {
       if (!user?.restaurantId) return;
       try {
-        const branchParam = selectedBranch?.id ?? "null";
+        const branchParam = scopeBranchId === "restaurant" ? "null" : scopeBranchId;
         const res = await fetch(`${API_URL}/api/scenarios/${user.restaurantId}?branchId=${branchParam}&activeOnly=true`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         const json = await res.json();
         if (json.success) {
           setScenarios(json.data);
-          setSelectedIds(json.data.map((s: any) => s.id));
+          // Pre-select up to the max so the table isn't empty on first load,
+          // without silently dropping scenarios beyond the cap — the rest are
+          // just left unselected, still pickable via the chips below.
+          setSelectedIds(json.data.slice(0, MAX_SELECTED_SCENARIOS).map((s: any) => s.id));
         }
       } catch {
         // fetch error — silently ignored
       }
     };
     fetchScenarios();
-  }, [user?.restaurantId, selectedBranch?.id]);
+  }, [user?.restaurantId, scopeBranchId]);
 
   useEffect(() => {
     const fetchComparison = async () => {
@@ -70,11 +80,12 @@ export default function ComparisonTab() {
         // Optional Budget column — reuses the Budget module's own variance
         // endpoint rather than re-deriving budget figures; skipped silently
         // if no published budget exists for this scope.
-        const branchParam = selectedBranch?.id ? `?branchId=${selectedBranch.id}&status=PUBLISHED` : "?status=PUBLISHED";
+        const budgetBranchId = scopeBranchId === "restaurant" ? null : Number(scopeBranchId);
+        const branchParam = budgetBranchId ? `?branchId=${budgetBranchId}&status=PUBLISHED` : "?status=PUBLISHED";
         const budgetListRes = await fetch(`${API_URL}/api/budgets/${user.restaurantId}${branchParam}`, { headers: { Authorization: `Bearer ${token}` } });
         const budgetListJson = await budgetListRes.json();
-        const budget = selectedBranch?.id
-          ? budgetListJson.data?.find((b: any) => b.branchId === selectedBranch.id)
+        const budget = budgetBranchId
+          ? budgetListJson.data?.find((b: any) => b.branchId === budgetBranchId)
           : budgetListJson.data?.find((b: any) => b.branchId === null) || budgetListJson.data?.[0];
         if (budget) {
           const varianceRes = await fetch(`${API_URL}/api/budgets/${user.restaurantId}/${budget.id}/variance?period=${period}`, { headers: { Authorization: `Bearer ${token}` } });
@@ -92,10 +103,14 @@ export default function ComparisonTab() {
       }
     };
     fetchComparison();
-  }, [selectedIds, period, user?.restaurantId, selectedBranch?.id]);
+  }, [selectedIds, period, user?.restaurantId, scopeBranchId]);
 
   const toggleScenario = (id: number) => {
-    setSelectedIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+    setSelectedIds((prev) => {
+      if (prev.includes(id)) return prev.filter((x) => x !== id);
+      if (prev.length >= MAX_SELECTED_SCENARIOS) return prev; // cap reached — ignore until one is deselected
+      return [...prev, id];
+    });
   };
 
   // Every selected scenario's what-if call resolves against the SAME real
@@ -120,35 +135,58 @@ export default function ComparisonTab() {
     <div className="space-y-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h3 className="text-[16px] font-bold text-gray-900">Actual vs Budget vs Scenarios</h3>
-        <div className="flex items-center gap-1 rounded-xl bg-gray-100 p-1">
-          {PERIODS.map((p) => (
-            <button
-              key={p.key}
-              type="button"
-              onClick={() => setPeriod(p.key)}
-              className={`rounded-lg px-3 py-1.5 text-[11px] font-semibold transition ${
-                period === p.key ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"
-              }`}
-            >
-              {p.label}
-            </button>
-          ))}
+        <div className="flex flex-wrap items-center gap-2">
+          <select
+            value={scopeBranchId}
+            onChange={(e) => setScopeBranchId(e.target.value)}
+            className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-[12px] font-semibold text-gray-700 outline-none"
+          >
+            <option value="restaurant">Restaurant-wide (all branches)</option>
+            {(branches || []).map((b: any) => (
+              <option key={b.id} value={b.id}>{b.name}</option>
+            ))}
+          </select>
+          <div className="flex items-center gap-1 rounded-xl bg-gray-100 p-1">
+            {PERIODS.map((p) => (
+              <button
+                key={p.key}
+                type="button"
+                onClick={() => setPeriod(p.key)}
+                className={`rounded-lg px-3 py-1.5 text-[11px] font-semibold transition ${
+                  period === p.key ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"
+                }`}
+              >
+                {p.label}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
-      <div className="flex flex-wrap gap-2">
-        {scenarios.map((s) => (
-          <button
-            key={s.id}
-            type="button"
-            onClick={() => toggleScenario(s.id)}
-            className={`rounded-xl border px-3 py-1.5 text-[11px] font-semibold transition ${
-              selectedIds.includes(s.id) ? "border-[#b10000] bg-red-50 text-[#b10000]" : "border-gray-200 bg-white text-gray-500 hover:bg-gray-50"
-            }`}
-          >
-            {s.name}
-          </button>
-        ))}
+      <div className="flex flex-wrap items-center gap-2">
+        {scenarios.map((s) => {
+          const selected = selectedIds.includes(s.id);
+          const disabled = !selected && selectedIds.length >= MAX_SELECTED_SCENARIOS;
+          return (
+            <button
+              key={s.id}
+              type="button"
+              onClick={() => toggleScenario(s.id)}
+              disabled={disabled}
+              title={disabled ? `Up to ${MAX_SELECTED_SCENARIOS} scenarios can be compared at once — deselect one first` : undefined}
+              className={`rounded-xl border px-3 py-1.5 text-[11px] font-semibold transition ${
+                selected
+                  ? "border-[#b10000] bg-red-50 text-[#b10000]"
+                  : disabled
+                    ? "cursor-not-allowed border-gray-100 bg-gray-50 text-gray-300"
+                    : "border-gray-200 bg-white text-gray-500 hover:bg-gray-50"
+              }`}
+            >
+              {s.name}
+            </button>
+          );
+        })}
+        <span className="text-[10px] font-semibold text-gray-400">{selectedIds.length}/{MAX_SELECTED_SCENARIOS} selected</span>
       </div>
 
       {loading ? (

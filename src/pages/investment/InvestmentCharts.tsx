@@ -41,6 +41,14 @@ export default function InvestmentCharts({ projects }: { projects: { project: an
 
   const tickFormatter = (v: number) => (Math.abs(v) >= 100000 ? `${(v / 100000).toFixed(1)}L` : Math.abs(v) >= 1000 ? `${(v / 1000).toFixed(0)}k` : String(v));
 
+  // Project names (e.g. "New Franchise Outlet — Chennai Suburb") are
+  // arbitrary-length and otherwise overflow the chart's plotting area —
+  // angled X-axis labels clip past the card's left edge, and wrapped Y-axis
+  // category labels overlap neighboring rows. Truncating on the axis only
+  // affects the rendered tick text; Tooltip still reads the untruncated name
+  // from each row's own `name` field, so hovering always shows it in full.
+  const truncateLabel = (maxLen: number) => (name: string) => (name.length > maxLen ? `${name.slice(0, maxLen - 1)}…` : name);
+
   return (
     <div className="space-y-4">
       <h4 className="text-[13px] font-bold text-gray-900">Investment Charts</h4>
@@ -65,9 +73,9 @@ export default function InvestmentCharts({ projects }: { projects: { project: an
         <div className={CHART_CARD}>
           <p className="mb-2 text-[11px] font-bold text-gray-700">ROI Comparison</p>
           <ResponsiveContainer width="100%" height={220}>
-            <BarChart data={roiData} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
+            <BarChart data={roiData} margin={{ top: 8, right: 12, left: 8, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-              <XAxis dataKey="name" tick={TICK} axisLine={false} tickLine={false} interval={0} angle={-20} textAnchor="end" height={60} />
+              <XAxis dataKey="name" tick={TICK} axisLine={false} tickLine={false} interval={0} angle={-20} textAnchor="end" height={60} tickFormatter={truncateLabel(16)} />
               <YAxis tick={TICK} axisLine={false} tickLine={false} tickFormatter={(v) => `${v}%`} />
               <Tooltip formatter={(v: number) => `${v.toFixed(1)}%`} />
               <Bar dataKey="roi" name="ROI %" radius={[4, 4, 0, 0]}>
@@ -80,9 +88,9 @@ export default function InvestmentCharts({ projects }: { projects: { project: an
         <div className={CHART_CARD}>
           <p className="mb-2 text-[11px] font-bold text-gray-700">NPV Comparison</p>
           <ResponsiveContainer width="100%" height={220}>
-            <BarChart data={npvData} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
+            <BarChart data={npvData} margin={{ top: 8, right: 12, left: 8, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-              <XAxis dataKey="name" tick={TICK} axisLine={false} tickLine={false} interval={0} angle={-20} textAnchor="end" height={60} />
+              <XAxis dataKey="name" tick={TICK} axisLine={false} tickLine={false} interval={0} angle={-20} textAnchor="end" height={60} tickFormatter={truncateLabel(16)} />
               <YAxis tick={TICK} axisLine={false} tickLine={false} tickFormatter={tickFormatter} />
               <Tooltip formatter={(v: number) => fmtCategoryValue(v, "currency")} />
               <Bar dataKey="npv" name="NPV" radius={[4, 4, 0, 0]}>
@@ -95,9 +103,9 @@ export default function InvestmentCharts({ projects }: { projects: { project: an
         <div className={CHART_CARD}>
           <p className="mb-2 text-[11px] font-bold text-gray-700">Investment vs Return</p>
           <ResponsiveContainer width="100%" height={220}>
-            <BarChart data={investmentVsReturnData} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
+            <BarChart data={investmentVsReturnData} margin={{ top: 8, right: 12, left: 8, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-              <XAxis dataKey="name" tick={TICK} axisLine={false} tickLine={false} interval={0} angle={-20} textAnchor="end" height={60} />
+              <XAxis dataKey="name" tick={TICK} axisLine={false} tickLine={false} interval={0} angle={-20} textAnchor="end" height={60} tickFormatter={truncateLabel(16)} />
               <YAxis tick={TICK} axisLine={false} tickLine={false} tickFormatter={tickFormatter} />
               <Tooltip formatter={(v: number) => fmtCategoryValue(v, "currency")} />
               <Legend wrapperStyle={{ fontSize: 10 }} />
@@ -109,11 +117,14 @@ export default function InvestmentCharts({ projects }: { projects: { project: an
 
         <div className={CHART_CARD}>
           <p className="mb-2 text-[11px] font-bold text-gray-700">Payback Timeline (Years)</p>
-          <ResponsiveContainer width="100%" height={220}>
-            <BarChart data={paybackData} layout="vertical" margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
+          {/* Height scales with project count so each row keeps a fixed ~36px
+              band — a static height cramped long project names into
+              overlapping wrapped lines once there were more than ~5 rows. */}
+          <ResponsiveContainer width="100%" height={Math.max(220, paybackData.length * 36)}>
+            <BarChart data={paybackData} layout="vertical" margin={{ top: 8, right: 12, left: 8, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
               <XAxis type="number" tick={TICK} axisLine={false} tickLine={false} tickFormatter={(v) => `${v}y`} />
-              <YAxis type="category" dataKey="name" tick={TICK} axisLine={false} tickLine={false} width={120} />
+              <YAxis type="category" dataKey="name" tick={TICK} axisLine={false} tickLine={false} width={130} tickFormatter={truncateLabel(18)} />
               <Tooltip formatter={(v: number) => `${v.toFixed(2)} years`} />
               <Bar dataKey="years" name="Payback" fill="#2563eb" radius={[0, 4, 4, 0]} />
             </BarChart>

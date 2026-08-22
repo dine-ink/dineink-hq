@@ -13,6 +13,7 @@ import {
   CalendarClockIcon,
 } from "lucide-react";
 import SendWhatsAppDialog from "../../components/common/SendWhatsAppDialog";
+import { getCustomerSegment } from "../../utils/customerSegments";
 
 export default function Customers() {
   const { selectedBranch } = useAppSelector((s) => s.branch);
@@ -47,32 +48,12 @@ export default function Customers() {
   const revenue = filtered.reduce((s, c) => s + c.spend, 0);
   const avg = total ? Math.round(revenue / total) : 0;
 
-  // Churn analysis
+  // Churn analysis — thresholds live in utils/customerSegments.ts so every
+  // screen that segments customers (this page, WhatsApp bulk send) agrees.
   const now = new Date();
-  const active = customers.filter(
-    (c) =>
-      c.lastVisit &&
-      (now.getTime() - new Date(c.lastVisit).getTime()) /
-        (1000 * 60 * 60 * 24) <=
-        30,
-  );
-  const atRisk = customers.filter(
-    (c) =>
-      c.lastVisit &&
-      (now.getTime() - new Date(c.lastVisit).getTime()) /
-        (1000 * 60 * 60 * 24) >
-        30 &&
-      (now.getTime() - new Date(c.lastVisit).getTime()) /
-        (1000 * 60 * 60 * 24) <=
-        90,
-  );
-  const churned = customers.filter(
-    (c) =>
-      !c.lastVisit ||
-      (now.getTime() - new Date(c.lastVisit).getTime()) /
-        (1000 * 60 * 60 * 24) >
-        90,
-  );
+  const active = customers.filter((c) => getCustomerSegment(c.lastVisit) === "active");
+  const atRisk = customers.filter((c) => getCustomerSegment(c.lastVisit) === "at_risk");
+  const churned = customers.filter((c) => getCustomerSegment(c.lastVisit) === "churned");
   const topCustomers = [...customers]
     .sort((a, b) => b.spend - a.spend)
     .slice(0, 10);

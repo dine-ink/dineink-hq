@@ -382,6 +382,8 @@ export default function ScenariosTab() {
   }
 
   // ── EDIT VIEW ─────────────────────────────────────────────────────────
+  const isCustom = selectedScenario?.type === "CUSTOM";
+
   return (
     <div className="space-y-4">
       <button type="button" onClick={() => setView("list")} className="flex items-center gap-1 text-[12px] font-semibold text-gray-500 hover:text-gray-700">
@@ -397,13 +399,24 @@ export default function ScenariosTab() {
           </span>
         </div>
         <div className="flex flex-wrap gap-2">
-          <button
-            type="button"
-            onClick={handleResetAll}
-            className="flex items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3 py-2 text-[12px] font-semibold text-gray-700 shadow-sm transition hover:bg-gray-50"
-          >
-            <RotateCcw className="h-3.5 w-3.5" /> Reset All
-          </button>
+          {isCustom && (
+            <button
+              type="button"
+              onClick={handleResetAll}
+              className="flex items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3 py-2 text-[12px] font-semibold text-gray-700 shadow-sm transition hover:bg-gray-50"
+            >
+              <RotateCcw className="h-3.5 w-3.5" /> Reset All
+            </button>
+          )}
+          {!isCustom && (
+            <button
+              type="button"
+              onClick={() => handleClone(selectedScenario.id)}
+              className="flex items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3 py-2 text-[12px] font-semibold text-gray-700 shadow-sm transition hover:bg-gray-50"
+            >
+              <Copy className="h-3.5 w-3.5" /> Clone to Customize
+            </button>
+          )}
           <button
             type="button"
             onClick={handleToggleActive}
@@ -414,16 +427,24 @@ export default function ScenariosTab() {
             {selectedScenario?.isActive ? <Archive className="h-3.5 w-3.5" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
             {selectedScenario?.isActive ? "Archive" : "Reactivate"}
           </button>
-          <button
-            type="button"
-            onClick={handleSave}
-            disabled={saving}
-            className="flex items-center gap-1.5 rounded-xl bg-[#b10000] px-3 py-2 text-[12px] font-semibold text-white shadow-sm transition hover:bg-[#950000] disabled:opacity-50"
-          >
-            <Save className="h-3.5 w-3.5" /> {saving ? "Saving…" : "Save Changes"}
-          </button>
+          {isCustom && (
+            <button
+              type="button"
+              onClick={handleSave}
+              disabled={saving}
+              className="flex items-center gap-1.5 rounded-xl bg-[#b10000] px-3 py-2 text-[12px] font-semibold text-white shadow-sm transition hover:bg-[#950000] disabled:opacity-50"
+            >
+              <Save className="h-3.5 w-3.5" /> {saving ? "Saving…" : "Save Changes"}
+            </button>
+          )}
         </div>
       </div>
+
+      {!isCustom && (
+        <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-2.5 text-[11px] font-medium text-amber-800">
+          Built-in scenarios have fixed assumptions (Conservative −5%, Expected 0%, Optimistic +10% revenue/order growth) so every restaurant shares the same baseline — they can't be edited. Use "Clone to Customize" above to start a Custom scenario from these values.
+        </div>
+      )}
 
       {OVERRIDE_FIELD_GROUPS.map((group) => (
         <div key={group} className="overflow-hidden rounded-xl border border-gray-200">
@@ -433,7 +454,7 @@ export default function ScenariosTab() {
               <div key={f.key}>
                 <div className="mb-1 flex items-center justify-between">
                   <label className="block text-[11px] font-medium text-gray-600">{f.label}</label>
-                  {overrideValues[f.key] !== "" && overrideValues[f.key] !== undefined && (
+                  {isCustom && overrideValues[f.key] !== "" && overrideValues[f.key] !== undefined && (
                     <button type="button" onClick={() => handleResetField(f.key)} className="text-[10px] font-semibold text-gray-400 hover:text-[#b10000]">
                       Reset
                     </button>
@@ -446,7 +467,8 @@ export default function ScenariosTab() {
                     value={overrideValues[f.key] ?? ""}
                     onChange={(e) => setOverrideValues((prev) => ({ ...prev, [f.key]: e.target.value }))}
                     placeholder="Inherit"
-                    className={`w-full rounded-xl border border-gray-200 bg-gray-50 py-2 text-sm outline-none focus:border-red-300 focus:bg-white ${f.unit === "currency" ? "pl-7 pr-3" : "px-3"}`}
+                    disabled={!isCustom}
+                    className={`w-full rounded-xl border border-gray-200 py-2 text-sm outline-none focus:border-red-300 focus:bg-white ${f.unit === "currency" ? "pl-7 pr-3" : "px-3"} ${isCustom ? "bg-gray-50" : "cursor-not-allowed bg-gray-100 text-gray-400"}`}
                   />
                   {f.unit === "percentage" && <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[11px] text-gray-400">%</span>}
                 </div>

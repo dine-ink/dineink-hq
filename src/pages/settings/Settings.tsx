@@ -283,7 +283,9 @@ export default function Settings() {
     }
   };
 
-  const updateBranch = (id: number, field: string, value: string | number) =>
+  // boolean is in the union for autoThrottleEnabled (the kitchen-capacity
+  // policy's only checkbox field) — every other branch field is text/number.
+  const updateBranch = (id: number, field: string, value: string | number | boolean) =>
     setData((prev: any) => ({
       ...prev,
       branches: prev.branches.map((b: any) =>
@@ -1166,6 +1168,92 @@ export default function Settings() {
                               />
                             </div>
                           ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {branchEditMode && (
+                      <div className="border-t border-gray-100 px-5 py-4">
+                        <p className="mb-1 text-[10px] font-bold uppercase tracking-wide text-gray-400">
+                          Kitchen Capacity & Labor Policy
+                        </p>
+                        <p className="mb-3 text-[11px] text-gray-400">
+                          Drives bottleneck detection on Kitchen Analytics and the
+                          staffing plan on Labor & Capacity. Leave the hourly
+                          ceiling blank if you don't know it — a blank means "no
+                          assessment", which is safer than a guessed number
+                          quietly flagging false bottlenecks.
+                        </p>
+                        <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+                          {[
+                            {
+                              field: "kitchenCapacityPerHour",
+                              label: "Kitchen Capacity (orders/hr)",
+                              step: 1,
+                              hint: "Most orders the whole kitchen can complete in an hour",
+                            },
+                            {
+                              field: "staffUtilizationFactor",
+                              label: "Productive Time Factor",
+                              step: 0.05,
+                              hint: "0.75 = 45 productive minutes per hour",
+                            },
+                            {
+                              field: "targetTicketMinutes",
+                              label: "Target Ticket Time (min)",
+                              step: 1,
+                              hint: "Service level the staffing plan aims for",
+                            },
+                          ].map((f) => (
+                            <div key={f.field}>
+                              <p className="mb-1 text-[10px] font-bold uppercase tracking-wide text-gray-400">
+                                {f.label}
+                              </p>
+                              <input
+                                type="number"
+                                min={0}
+                                step={f.step}
+                                value={(branch as any)[f.field] ?? ""}
+                                onChange={(e) =>
+                                  updateBranch(
+                                    branch.id,
+                                    f.field,
+                                    e.target.value === ""
+                                      ? ""
+                                      : Number(e.target.value),
+                                  )
+                                }
+                                className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-[12px] outline-none focus:border-red-400"
+                                placeholder={f.label}
+                              />
+                              <p className="mt-1 text-[10px] text-gray-400">{f.hint}</p>
+                            </div>
+                          ))}
+                          <div>
+                            <p className="mb-1 text-[10px] font-bold uppercase tracking-wide text-gray-400">
+                              Order Hold Suggestion
+                            </p>
+                            <label className="flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-3 py-2">
+                              <input
+                                type="checkbox"
+                                checked={!!(branch as any).autoThrottleEnabled}
+                                onChange={(e) =>
+                                  updateBranch(
+                                    branch.id,
+                                    "autoThrottleEnabled",
+                                    e.target.checked,
+                                  )
+                                }
+                                className="h-4 w-4 accent-[#b10000]"
+                              />
+                              <span className="text-[12px] text-gray-700">
+                                Suggest holding orders at capacity
+                              </span>
+                            </label>
+                            <p className="mt-1 text-[10px] text-gray-400">
+                              Advisory only — never auto-rejects an order
+                            </p>
+                          </div>
                         </div>
                       </div>
                     )}

@@ -40,6 +40,7 @@ import {
   Squares2X2Icon,
   SparklesIcon,
   WrenchScrewdriverIcon,
+  UserGroupIcon,
   ShieldCheckIcon,
   ChatBubbleLeftRightIcon,
 } from "@heroicons/react/24/outline";
@@ -110,6 +111,7 @@ const NAV = [
   },
   { name: "Compare", href: "/dashboard/comparison", icon: ArrowsRightLeftIcon },
   { name: "Kitchen", href: "/dashboard/kitchen", icon: FireIcon },
+  { name: "Labor & Capacity", href: "/dashboard/labor-capacity", icon: UserGroupIcon, roles: ["OWNER", "MANAGER"] },
   { name: "Cash Flow", href: "/dashboard/cash-flow", icon: BanknotesIcon, roles: ["OWNER", "MANAGER"] },
   { name: "Dues", href: "/dashboard/dues", icon: DocumentTextIcon, roles: ["OWNER", "MANAGER"] },
   { name: "Equipment", href: "/dashboard/equipment", icon: WrenchScrewdriverIcon, roles: ["OWNER", "MANAGER"] },

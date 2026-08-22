@@ -26,8 +26,10 @@ const localDateStr = (iso: string) => {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 };
 
+const MAX_COMPARISON_SCENARIOS = 4;
+
 export default function ReportsTab() {
-  const { branches, selectedBranch } = useAppSelector((s) => s.branch);
+  const { branches } = useAppSelector((s) => s.branch);
   const { user, token } = useAppSelector((s) => s.auth);
   const API_URL = import.meta.env.VITE_API_URL;
 
@@ -35,6 +37,11 @@ export default function ReportsTab() {
   const [period, setPeriod] = useState("currentMonth");
   const [customFrom, setCustomFrom] = useState("");
   const [customTo, setCustomTo] = useState("");
+  // Independent of the global top-nav branch selector — same convention as
+  // the Scenarios tab's own scope dropdown, so a restaurant-wide custom
+  // scenario stays visible here regardless of which branch happens to be
+  // selected in the top nav, and vice versa. Drives "summary"/"comparison".
+  const [scopeBranchId, setScopeBranchId] = useState<string>("restaurant");
   const [scenarios, setScenarios] = useState<any[]>([]);
   const [selectedScenarioId, setSelectedScenarioId] = useState<number | null>(null);
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
@@ -44,25 +51,25 @@ export default function ReportsTab() {
   const [rows, setRows] = useState<any[]>([]);
   const [meta, setMeta] = useState({ startDate: "", endDate: "" });
 
-  // Scenarios scoped to the currently-selected branch (used by "summary").
+  // Scenarios scoped to scopeBranchId (used by "summary" and "comparison").
   useEffect(() => {
     const fetchScenarios = async () => {
       if (!user?.restaurantId) return;
       try {
-        const branchParam = selectedBranch?.id ?? "null";
+        const branchParam = scopeBranchId === "restaurant" ? "null" : scopeBranchId;
         const res = await fetch(`${API_URL}/api/scenarios/${user.restaurantId}?branchId=${branchParam}&activeOnly=true`, { headers: { Authorization: `Bearer ${token}` } });
         const json = await res.json();
         if (json.success) {
           setScenarios(json.data);
-          setSelectedScenarioId((prev) => prev ?? json.data[0]?.id ?? null);
-          setSelectedIds((prev) => (prev.length ? prev : json.data.map((s: any) => s.id)));
+          setSelectedScenarioId(json.data[0]?.id ?? null);
+          setSelectedIds(json.data.slice(0, MAX_COMPARISON_SCENARIOS).map((s: any) => s.id));
         }
       } catch {
         // fetch error — silently ignored
       }
     };
     fetchScenarios();
-  }, [user?.restaurantId, selectedBranch?.id]);
+  }, [user?.restaurantId, scopeBranchId]);
 
   // Restaurant-wide scenarios (used by "restaurant" and "branch" template picker).
   useEffect(() => {
@@ -217,6 +224,19 @@ export default function ReportsTab() {
             {REPORT_TYPES.map((r) => <option key={r.key} value={r.key}>{r.label}</option>)}
           </select>
 
+          {(reportType === "summary" || reportType === "comparison") && (
+            <select
+              value={scopeBranchId}
+              onChange={(e) => setScopeBranchId(e.target.value)}
+              className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-[12px] font-semibold text-gray-700 outline-none"
+            >
+              <option value="restaurant">Restaurant-wide (all branches)</option>
+              {(branches || []).map((b: any) => (
+                <option key={b.id} value={b.id}>{b.name}</option>
+              ))}
+            </select>
+          )}
+
           {(reportType === "summary" || reportType === "restaurant" || reportType === "branch") && (
             <select
               value={selectedScenarioId ?? ""}
@@ -230,16 +250,33 @@ export default function ReportsTab() {
           )}
 
           {reportType === "comparison" && (
-            <div className="flex flex-wrap gap-1.5">
-              {scenarios.map((s) => (
-                <button
-                  key={s.id} type="button"
-                  onClick={() => setSelectedIds((prev) => (prev.includes(s.id) ? prev.filter((x) => x !== s.id) : [...prev, s.id]))}
-                  className={`rounded-lg border px-2.5 py-1 text-[11px] font-semibold transition ${selectedIds.includes(s.id) ? "border-[#b10000] bg-red-50 text-[#b10000]" : "border-gray-200 bg-white text-gray-500"}`}
-                >
-                  {s.name}
-                </button>
-              ))}
+            <div className="flex flex-wrap items-center gap-1.5">
+              {scenarios.map((s) => {
+                const selected = selectedIds.includes(s.id);
+                const disabled = !selected && selectedIds.length >= MAX_COMPARISON_SCENARIOS;
+                return (
+                  <button
+                    key={s.id} type="button"
+                    disabled={disabled}
+                    title={disabled ? `Up to ${MAX_COMPARISON_SCENARIOS} scenarios can be compared at once — deselect one first` : undefined}
+                    onClick={() => setSelectedIds((prev) => {
+                      if (prev.includes(s.id)) return prev.filter((x) => x !== s.id);
+                      if (prev.length >= MAX_COMPARISON_SCENARIOS) return prev;
+                      return [...prev, s.id];
+                    })}
+                    className={`rounded-lg border px-2.5 py-1 text-[11px] font-semibold transition ${
+                      selected
+                        ? "border-[#b10000] bg-red-50 text-[#b10000]"
+                        : disabled
+                          ? "cursor-not-allowed border-gray-100 bg-gray-50 text-gray-300"
+                          : "border-gray-200 bg-white text-gray-500"
+                    }`}
+                  >
+                    {s.name}
+                  </button>
+                );
+              })}
+              <span className="text-[10px] font-semibold text-gray-400">{selectedIds.length}/{MAX_COMPARISON_SCENARIOS}</span>
             </div>
           )}
 

@@ -3,7 +3,9 @@ import { ClockIcon, UsersIcon } from "@heroicons/react/24/outline";
 import { BarChart, Bar, CartesianGrid, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import { useAppSelector } from "../../store";
 import { MetricCard } from "../../design";
-import { MODEL_OPTIONS, PERIOD_OPTIONS } from "./forecastCategories";
+import { CONFIDENCE_STYLES, MODEL_OPTIONS, PERIOD_OPTIONS } from "./forecastCategories";
+import { TrendIcon } from "../../utils/kpiDisplay";
+import { trendStyle } from "../../utils/kpiStyles";
 
 const TICK = { fontSize: 10, fill: "#6b7280" };
 const CHART_CARD = "overflow-hidden rounded-xl border border-gray-200 bg-white p-3 shadow-sm";
@@ -41,11 +43,16 @@ export default function PeakHourForecastTab() {
     fetchPeakHour();
   }, [user?.restaurantId, selectedBranch?.id, scope, period, model]);
 
-  const hourly = Array.isArray(data?.hourly) ? data.hourly : [];
-  const chartData = hourly.map((row: any, i: number) => ({
-    name: row?.label ?? row?.hour ?? `#${i + 1}`,
-    projectedOrders: row?.projectedOrders ?? 0,
-  }));
+  // perPeriod is the busiest hour's projected TOTAL order count, one entry
+  // per future week/month in the horizon — not an hour-of-day breakdown
+  // (the backend has no hour-of-day data to forecast with; see
+  // getPeakHourForecastService's own header comment). Labeled generically
+  // since the API doesn't return a date per entry, only the granularity.
+  const perPeriod: number[] = Array.isArray(data?.perPeriod) ? data.perPeriod : [];
+  const periodNoun = data?.granularity === "week" ? "Week" : "Month";
+  const chartData = perPeriod.map((value, i) => ({ name: `${periodNoun} ${i + 1}`, projectedOrders: Math.round(value) }));
+
+  const confidenceStyle = CONFIDENCE_STYLES[data?.confidence] || CONFIDENCE_STYLES.low;
 
   return (
     <div className="space-y-4">
@@ -74,6 +81,14 @@ export default function PeakHourForecastTab() {
             {MODEL_OPTIONS.map((m) => <option key={m.key} value={m.key}>{m.label}</option>)}
           </select>
         </div>
+
+        {data && (
+          <div className={`flex items-center gap-2 rounded-xl border ${confidenceStyle.border} ${confidenceStyle.bg} px-3 py-1.5`}>
+            <span className={`h-2 w-2 rounded-full ${confidenceStyle.dot}`} />
+            <span className={`text-[11px] font-bold capitalize ${confidenceStyle.text}`}>{data.confidence} Confidence</span>
+            <span className="text-[10px] text-gray-400">· {data.historicalPeriodsUsed} period(s) of history</span>
+          </div>
+        )}
       </div>
 
       {loading && <div className="flex h-24 items-center justify-center text-[12px] text-gray-400">Generating forecast…</div>}
@@ -86,14 +101,32 @@ export default function PeakHourForecastTab() {
 
       {!loading && data && (
         <>
+          {data.confidenceReasons?.length > 0 && (
+            <div className="rounded-xl border border-gray-200 bg-gray-50 px-4 py-2.5">
+              <p className="text-[11px] font-semibold text-gray-600">Why this confidence level:</p>
+              <ul className="mt-1 list-inside list-disc space-y-0.5 text-[11px] text-gray-500">
+                {data.confidenceReasons.map((r: string, i: number) => <li key={i}>{r}</li>)}
+              </ul>
+            </div>
+          )}
+
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-            <MetricCard
-              label="Projected Peak Hour"
-              value={data.projectedPeakHour?.label ?? data.projectedPeakHour?.hour ?? "—"}
-              sub={data.projectedPeakHour?.projectedOrders != null ? `${data.projectedPeakHour.projectedOrders} projected orders` : undefined}
-              icon={ClockIcon}
-              status="primary"
-            />
+            <div className="rounded-2xl border border-gray-200 bg-white p-3.5 shadow-sm">
+              <div className="flex items-center gap-2">
+                <ClockIcon className="h-4 w-4 text-gray-400" />
+                <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-gray-500">Projected Peak-Hour Orders</p>
+              </div>
+              <div className="mt-2 flex items-baseline gap-2">
+                <p className="text-[20px] font-extrabold tracking-tight text-gray-900">{data.predictedPeakHourOrders ?? "—"}</p>
+                {data.baselinePeakHourOrders != null && <p className="text-[11px] text-gray-400">was {data.baselinePeakHourOrders}</p>}
+              </div>
+              <div className="mt-2 flex items-center gap-1 text-[11px] font-semibold">
+                <span className={`flex items-center gap-1 ${trendStyle(data.trendDirection, true)}`}>
+                  <TrendIcon direction={data.trendDirection} />
+                  {data.variancePercentage != null ? `${data.variancePercentage > 0 ? "+" : ""}${data.variancePercentage.toFixed(1)}% vs last period` : "—"}
+                </span>
+              </div>
+            </div>
             <MetricCard
               label="Projected Staff Requirement"
               value={data.projectedStaffRequirement != null ? String(data.projectedStaffRequirement) : "—"}
@@ -103,13 +136,13 @@ export default function PeakHourForecastTab() {
             />
           </div>
 
-          {chartData.length > 0 && (
+          {chartData.length > 1 && (
             <div className={CHART_CARD}>
-              <p className="mb-2 text-[11px] font-bold text-gray-700">Projected Orders by Hour</p>
+              <p className="mb-2 text-[11px] font-bold text-gray-700">Projected Peak-Hour Orders by {periodNoun}</p>
               <ResponsiveContainer width="100%" height={260}>
                 <BarChart data={chartData} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                  <XAxis dataKey="name" tick={TICK} axisLine={false} tickLine={false} interval={0} angle={-30} textAnchor="end" height={50} />
+                  <XAxis dataKey="name" tick={TICK} axisLine={false} tickLine={false} />
                   <YAxis tick={TICK} axisLine={false} tickLine={false} />
                   <Tooltip />
                   <Bar dataKey="projectedOrders" name="Projected Orders" fill="#b10000" radius={[4, 4, 0, 0]} />

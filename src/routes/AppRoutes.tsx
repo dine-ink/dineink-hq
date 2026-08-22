@@ -50,6 +50,7 @@ const EquipmentList = lazy(() => import("@/pages/equipment/EquipmentList"));
 const ComplianceChecker = lazy(() => import("@/pages/compliance/ComplianceChecker"));
 const DuesTracker = lazy(() => import("@/pages/dues/DuesTracker"));
 const WhatsAppCenter = lazy(() => import("@/pages/whatsapp/WhatsAppCenter"));
+const LaborCapacity = lazy(() => import("@/pages/labor/LaborCapacity"));
 const CashFlowPredictor = lazy(() => import("@/pages/cashflow/CashFlowPredictor"));
 const AccountBankIntegration = lazy(() => import("@/pages/banking/AccountBankIntegration"));
 
@@ -131,6 +132,11 @@ export default function AppRoutes() {
           <Route path="procurement-intelligence" element={withSuspense(<ProcurementIntelligence />)}/>
           <Route path="daily-stock-audit" element={withSuspense(<DailyStockAudit />)}/>
           <Route path="equipment" element={<RequireRole roles={["OWNER", "MANAGER"]}>{withSuspense(<EquipmentList />)}</RequireRole>}/>
+          {/* OWNER/MANAGER only — the staffing plan surfaces individual salaries
+              (via its labor-cost figure) and per-employee capability ratings,
+              matching how equipment/dues/banking are gated. Mirrors the
+              requireRole("OWNER","MANAGER") guard on the backend's labor routes. */}
+          <Route path="labor-capacity" element={<RequireRole roles={["OWNER", "MANAGER"]}>{withSuspense(<LaborCapacity />)}</RequireRole>}/>
           <Route path="compliance" element={<RequireRole roles={["OWNER", "MANAGER"]}>{withSuspense(<ComplianceChecker />)}</RequireRole>}/>
           <Route path="dues" element={<RequireRole roles={["OWNER", "MANAGER"]}>{withSuspense(<DuesTracker />)}</RequireRole>}/>
           <Route path="whatsapp" element={<RequireRole roles={["OWNER", "MANAGER"]}>{withSuspense(<WhatsAppCenter />)}</RequireRole>}/>
