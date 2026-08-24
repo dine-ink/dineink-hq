@@ -4,6 +4,15 @@ import dayjs from "dayjs";
 import RestaurantSetupModal from "../../components/dashboard/RestaurantSetupModal";
 import StatsStrip from "@/components/StatsStrip";
 import CommonTable from "@/components/common/CommonTable";
+import { logoMarkClasses } from "@/components/common/logoTokens";
+import { skipToken } from "@reduxjs/toolkit/query";
+import {
+  useGetMyRestaurantQuery,
+  useGetDashboardOverviewQuery,
+  useGetReorderAlertsQuery,
+  useGetFinanceSummaryQuery,
+  useGetRatioReportQuery,
+} from "@/store/api/dashboardApi";
 import { useAppSelector } from "../../store";
 import {
   ResponsiveContainer,
@@ -26,24 +35,58 @@ const CHART_CARD =
   "overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm";
 
 export default function Dashboard() {
-  const API_URL = import.meta.env.VITE_API_URL;
   const navigate = useNavigate();
 
-  // Global state from Redux
+  // Global state from Redux. The API base URL and the bearer token are now
+  // supplied centrally by the RTK Query base query, not per request.
   const { from, to, preset } = useAppSelector((s) => s.dateRange);
   const { selectedBranch } = useAppSelector((s) => s.branch);
-  const { user, token } = useAppSelector((s) => s.auth);
+  const { user } = useAppSelector((s) => s.auth);
 
   const [showSetupModal, setShowSetupModal] = useState(false);
-  const [hasRestaurant, setHasRestaurant] = useState<boolean | null>(null);
-  const [analytics, setAnalytics] = useState<any>(null);
-  const [_insightsData, setInsightsData] = useState<any>(null);
-  const [_staffData, setStaffData] = useState<any[]>([]);
-  const [_restockHistory, setRestockHistory] = useState<any[]>([]);
-  const [_inventoryStockValue, setInventoryStockValue] = useState(0);
-  const [reorderAlerts, setReorderAlerts] = useState<any>(null);
-  const [financeSummary, setFinanceSummary] = useState<any>(null);
-  const [ratioReport, setRatioReport] = useState<any>(null);
+
+  // ── Data ────────────────────────────────────────────────────────────────
+  // Cached via RTK Query: revisiting this page with the same branch and date
+  // range serves from cache instead of refiring every request.
+  //
+  // Four requests were removed here rather than cached — /analytics/insights,
+  // /restaurant/staff, /inventory/get-restock-history and
+  // /inventory/menu-management all wrote into state nothing on this page ever
+  // read (`_insightsData`, `_staffData`, `_restockHistory`,
+  // `_inventoryStockValue`), so they were pure cost on every load.
+  const scope =
+    user?.restaurantId && selectedBranch?.id
+      ? { restaurantId: user.restaurantId, branchId: selectedBranch.id }
+      : null;
+
+  const { data: myRestaurant, isError: restaurantFailed } =
+    useGetMyRestaurantQuery();
+
+  const { data: analytics } = useGetDashboardOverviewQuery(
+    scope ? { ...scope, preset, from, to } : skipToken,
+  );
+
+  const { data: reorderAlerts } = useGetReorderAlertsQuery(
+    user?.restaurantId ? { restaurantId: user.restaurantId } : skipToken,
+  );
+
+  const { data: financeSummary } = useGetFinanceSummaryQuery(
+    scope && from && to ? { ...scope, from, to } : skipToken,
+  );
+
+  const { data: ratioReport } = useGetRatioReportQuery(scope ?? skipToken);
+
+  // `my-restaurant` decides whether to show the first-run setup modal.
+  const hasRestaurant: boolean | null = restaurantFailed
+    ? false
+    : myRestaurant === undefined
+      ? null
+      : !!myRestaurant?.data?.restaurant?.branches?.length;
+
+  useEffect(() => {
+    if (hasRestaurant === false) setShowSetupModal(true);
+    if (hasRestaurant === true) setShowSetupModal(false);
+  }, [hasRestaurant]);
 
   const isSingleDay = from === to;
 
@@ -103,203 +146,6 @@ export default function Dashboard() {
     ? Math.round((dineInRevenue / totalRevenue) * 100)
     : 0;
 
-  useEffect(() => {
-    const ctrl = new AbortController();
-    const { signal } = ctrl;
-
-    const fetchDashboard = async () => {
-      try {
-        const res = await fetch(`${API_URL}/api/restaurant/my-restaurant`, {
-          signal,
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        const data = await res.json();
-        if (data.success) {
-          if (data.data?.restaurant?.branches?.length) {
-            setHasRestaurant(true);
-            setShowSetupModal(false);
-          } else {
-            setHasRestaurant(false);
-            setShowSetupModal(true);
-          }
-        }
-      } catch (e) {
-        if (e instanceof DOMException) return;
-        setHasRestaurant(false);
-      }
-    };
-
-    const fetchAnalytics = async () => {
-      try {
-        if (!selectedBranch?.id || !user?.restaurantId) return;
-        const res = await fetch(
-          `${API_URL}/api/analytics/${user.restaurantId}/restaurantDashboardOverview?branchId=${selectedBranch.id}&range=${preset}&from=${from}&to=${to}`,
-          { signal, headers: { Authorization: `Bearer ${token}` } },
-        );
-        const data = await res.json();
-        if (data.success) setAnalytics(data.data);
-      } catch (e) {
-        if (e instanceof DOMException) return;
-      }
-    };
-
-    const fetchInsights = async () => {
-      try {
-        if (!selectedBranch?.id || !user?.restaurantId) return;
-        const res = await fetch(
-          `${API_URL}/api/analytics/insights/${user.restaurantId}/${selectedBranch.id}`,
-          { signal, headers: { Authorization: `Bearer ${token}` } },
-        );
-        const data = await res.json();
-        if (data.success && data.data) {
-          const normalized = Object.fromEntries(
-            Object.entries(data.data).map(([k, v]) => [k, v == null ? 0 : v]),
-          );
-          setInsightsData(normalized);
-        }
-      } catch (e) {
-        if (e instanceof DOMException) return;
-      }
-    };
-
-    const fetchStaff = async () => {
-      try {
-        if (!selectedBranch?.id || !user?.restaurantId) return;
-        const res = await fetch(
-          `${API_URL}/api/restaurant/staff/${user.restaurantId}/${selectedBranch.id}`,
-          { signal, headers: { Authorization: `Bearer ${token}` } },
-        );
-        const data = await res.json();
-        if (data.success) setStaffData(data.data || []);
-      } catch (e) {
-        if (e instanceof DOMException) return;
-      }
-    };
-
-    const fetchRestockHistory = async () => {
-      try {
-        if (!user?.restaurantId) return;
-        const res = await fetch(
-          `${API_URL}/api/inventory/${user.restaurantId}/get-restock-history`,
-          { signal, headers: { Authorization: `Bearer ${token}` } },
-        );
-        const data = await res.json();
-        if (data.success) {
-          const now = new Date();
-          const currentMonth = now.getMonth() + 1;
-          const currentYear = now.getFullYear();
-          const monthData = (data.data || []).find(
-            (item: any) =>
-              item.month === currentMonth && item.year === currentYear,
-          );
-          if (monthData) {
-            setRestockHistory(
-              monthData.data.map((item: any) => ({
-                MonthlyRMExpense: Number(
-                  item["Monthly RM Expense"] ||
-                    Number(item["Opening Stock Value"] || 0) +
-                      Number(item["Total Purchase Amount"] || 0) -
-                      Number(
-                        item["Week5 Closing Value"] ||
-                          item["Week4 Closing Value"] ||
-                          item["Week3 Closing Value"] ||
-                          item["Week2 Closing Value"] ||
-                          item["Week1 Closing Value"] ||
-                          0,
-                      ),
-                ),
-              })),
-            );
-          }
-        }
-      } catch (e) {
-        if (e instanceof DOMException) return;
-      }
-    };
-
-    const fetchInventoryStock = async () => {
-      try {
-        if (!selectedBranch?.id || !user?.restaurantId) return;
-        const res = await fetch(
-          `${API_URL}/api/inventory/${user.restaurantId}/menu-management?branchId=${selectedBranch.id}`,
-          { signal, headers: { Authorization: `Bearer ${token}` } },
-        );
-        const data = await res.json();
-        if (data.success) {
-          const total = (data.data?.ingredients || []).reduce(
-            (sum: number, ing: any) =>
-              sum + Number(ing.quantity || 0) * Number(ing.pricePerUnit || 0),
-            0,
-          );
-          setInventoryStockValue(total);
-        }
-      } catch (e) {
-        if (e instanceof DOMException) return;
-      }
-    };
-
-    const fetchReorderAlerts = async () => {
-      try {
-        if (!user?.restaurantId) return;
-        const res = await fetch(
-          `${API_URL}/api/ingredients/${user.restaurantId}/reorder-alerts`,
-          { signal, headers: { Authorization: `Bearer ${token}` } },
-        );
-        const data = await res.json();
-        if (data.success) setReorderAlerts(data.data);
-      } catch (e) {
-        if (e instanceof DOMException) return;
-      }
-    };
-
-    // The canonical EBITDA for whatever date range is currently selected —
-    // same finance.formulas.ts engine used by Insights, Branch Comparison,
-    // and the PDF/Excel exports. `period=custom` + explicit from/to always
-    // wins over the period key (see resolveDateRange), so this tracks
-    // whatever range the dashboard's date picker has selected.
-    const fetchFinanceSummary = async () => {
-      try {
-        if (!selectedBranch?.id || !user?.restaurantId || !from || !to) return;
-        const res = await fetch(
-          `${API_URL}/api/finance/${user.restaurantId}/${selectedBranch.id}/summary?period=custom&from=${from}&to=${to}`,
-          { signal, headers: { Authorization: `Bearer ${token}` } },
-        );
-        const data = await res.json();
-        if (data.success) setFinanceSummary(data.data);
-      } catch (e) {
-        if (e instanceof DOMException) return;
-      }
-    };
-
-    // The Ratio/Period Engine — Revenue and EBITDA cards use this for
-    // previous-month comparison, target, achievement %, and trend. Always
-    // month-scoped (not tied to the dashboard's own date-range picker) since
-    // "vs last month" is a fixed, calendar-anchored comparison.
-    const fetchRatioReport = async () => {
-      try {
-        if (!selectedBranch?.id || !user?.restaurantId) return;
-        const res = await fetch(
-          `${API_URL}/api/finance/${user.restaurantId}/${selectedBranch.id}/ratios`,
-          { signal, headers: { Authorization: `Bearer ${token}` } },
-        );
-        const data = await res.json();
-        if (data.success) setRatioReport(data.data);
-      } catch (e) {
-        if (e instanceof DOMException) return;
-      }
-    };
-
-    fetchDashboard();
-    fetchAnalytics();
-    fetchInsights();
-    fetchStaff();
-    fetchRestockHistory();
-    fetchInventoryStock();
-    fetchReorderAlerts();
-    fetchFinanceSummary();
-    fetchRatioReport();
-    return () => ctrl.abort();
-  }, [preset, from, to, selectedBranch?.id, token, user?.restaurantId]);
 
   const dashboardEbitda: number | null =
     financeSummary?.current?.ebitda ?? null;
@@ -310,7 +156,6 @@ export default function Dashboard() {
   // both tiles trace to the same computation.
   const dashboardRevenue: number | null =
     financeSummary?.current?.revenue ?? null;
-  console.log("dashboardRevenue", dashboardRevenue, financeSummary);
 
   if (hasRestaurant === null) {
     return (
@@ -417,8 +262,8 @@ export default function Dashboard() {
         <div className="relative overflow-hidden rounded-xl border border-gray-200 bg-white px-4 py-3 shadow-sm">
           <div className="absolute -right-8 -top-8 h-24 w-24 rounded-full bg-red-100/40 blur-3xl" />
           <div className="relative z-10 flex items-center gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#b10000] shadow-sm">
-              <span className="text-lg font-black text-white">D</span>
+            <div className={`${logoMarkClasses("onLight", "md")} shadow-sm`}>
+              D
             </div>
             <div>
               <div className="flex items-center gap-2">

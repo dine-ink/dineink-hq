@@ -55,7 +55,9 @@ export default function BulkSendPanel({ templates }: { templates: WhatsAppTempla
         // limit=5000 — the default (100) exists for the paginated Customers
         // table; a bulk-select list needs every customer to filter/select
         // from, not just the first page.
-        const res = await fetch(`${API_URL}/api/customers/${user.restaurantId}/customerByRestaurant?limit=5000`, {
+        // includeBills=false — this panel only segments on lastVisit/visits/
+        // spend, so the per-customer bill history is pure payload here.
+        const res = await fetch(`${API_URL}/api/customers/${user.restaurantId}/customerByRestaurant?limit=5000&includeBills=false`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         const json = await res.json();

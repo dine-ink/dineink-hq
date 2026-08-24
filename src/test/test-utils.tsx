@@ -6,14 +6,18 @@ import { render, RenderOptions } from "@testing-library/react";
 import authReducer from "../store/slices/authSlice";
 import branchReducer from "../store/slices/branchSlice";
 import dateRangeReducer from "../store/slices/dateRangeSlice";
+import { api } from "../store/api/apiSlice";
 
 // Mirrors src/store/index.ts's shape so components using useAppSelector
 // work unmodified under test, without pulling in the real store singleton
-// (which reads from localStorage at import time).
+// (which reads from localStorage at import time). The RTK Query reducer and
+// middleware are included for the same reason — pages using generated query
+// hooks throw without them.
 const rootReducer = combineReducers({
   auth: authReducer,
   branch: branchReducer,
   dateRange: dateRangeReducer,
+  [api.reducerPath]: api.reducer,
 });
 type TestRootState = ReturnType<typeof rootReducer>;
 
@@ -21,6 +25,8 @@ export function makeTestStore(preloadedState?: Partial<TestRootState>) {
   return configureStore({
     reducer: rootReducer,
     preloadedState,
+    middleware: (getDefaultMiddleware) =>
+      getDefaultMiddleware().concat(api.middleware),
   });
 }
 
