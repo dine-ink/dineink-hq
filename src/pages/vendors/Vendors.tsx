@@ -17,6 +17,7 @@ import {
 } from "@heroicons/react/24/outline";
 import { StatusChip } from "../../design";
 import ReorderDialog from "./ReorderDialog";
+import MobileTableCards from "../../components/common/MobileTableCards";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -545,6 +546,7 @@ export default function Vendors() {
             </div>
           ) : (
             <div className="overflow-x-auto">
+              <MobileTableCards>
               <table className="min-w-full text-[12px]">
                 <thead className="bg-gray-50 border-b border-gray-100">
                   <tr>
@@ -692,6 +694,7 @@ export default function Vendors() {
                   )}
                 </tbody>
               </table>
+              </MobileTableCards>
             </div>
           )}
         </div>
@@ -709,6 +712,7 @@ export default function Vendors() {
               </p>
             </div>
             <div className="overflow-x-auto">
+              <MobileTableCards>
               <table className="min-w-full text-[12px]">
                 <thead className="bg-gray-50 border-b border-gray-100">
                   <tr>
@@ -792,6 +796,7 @@ export default function Vendors() {
                     ))}
                 </tbody>
               </table>
+              </MobileTableCards>
             </div>
           </div>
         )}
@@ -800,7 +805,7 @@ export default function Vendors() {
       {/* Vendor Add/Edit Modal */}
       {vendorModal.open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl">
+          <div className="w-full max-w-sm max-h-[85dvh] overflow-y-auto rounded-2xl bg-white p-6 shadow-xl">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-[15px] font-black text-gray-900">
                 {vendorModal.editing ? "Edit Vendor" : "Add Vendor"}
@@ -869,7 +874,7 @@ export default function Vendors() {
       {/* Record Payment Modal */}
       {paymentModal.open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl">
+          <div className="w-full max-w-sm max-h-[85dvh] overflow-y-auto rounded-2xl bg-white p-6 shadow-xl">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-[15px] font-black text-gray-900">
                 Record Payment
@@ -975,7 +980,7 @@ export default function Vendors() {
       {/* Create Invoice Modal */}
       {invoiceModal.open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl">
+          <div className="w-full max-w-sm max-h-[85dvh] overflow-y-auto rounded-2xl bg-white p-6 shadow-xl">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-[15px] font-black text-gray-900">
                 Add Purchase Invoice
@@ -1214,6 +1219,7 @@ export default function Vendors() {
                 </p>
               ) : (
                 <div className="overflow-x-auto rounded-lg border border-gray-100">
+                  <MobileTableCards>
                   <table className="min-w-full text-[11px]">
                     <thead className="bg-gray-50">
                       <tr>
@@ -1259,6 +1265,7 @@ export default function Vendors() {
                       ))}
                     </tbody>
                   </table>
+                  </MobileTableCards>
                 </div>
               )}
             </div>
@@ -1308,6 +1315,7 @@ export default function Vendors() {
               </p>
             ) : (
               <div className="overflow-x-auto rounded-lg border border-gray-100">
+                <MobileTableCards>
                 <table className="min-w-full text-[12px]">
                   <thead className="bg-gray-50">
                     <tr>
@@ -1369,6 +1377,7 @@ export default function Vendors() {
                     ))}
                   </tbody>
                 </table>
+                </MobileTableCards>
               </div>
             )}
           </div>

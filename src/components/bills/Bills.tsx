@@ -8,6 +8,7 @@ import {
 } from "@heroicons/react/24/outline";
 import { IndianRupeeIcon, ShoppingBagIcon } from "lucide-react";
 import { SearchBar, Pagination } from "../../design";
+import MobileTableCards from "../../components/common/MobileTableCards";
 
 export default function Bills() {
   const API_URL = import.meta.env.VITE_API_URL;
@@ -298,6 +299,7 @@ export default function Bills() {
 
           {/* Table */}
           <div className="overflow-x-auto">
+            <MobileTableCards>
             <table className="min-w-full text-[12px]">
               <thead className="bg-gray-50">
                 <tr className="border-b border-gray-100">
@@ -436,6 +438,7 @@ export default function Bills() {
                 )}
               </tbody>
             </table>
+            </MobileTableCards>
           </div>
 
           <Pagination

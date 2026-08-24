@@ -4,6 +4,7 @@ import { Alert, Button, Dialog, FormField, Input, Select } from "../../design";
 import { useAppSelector } from "../../store";
 import { CHART_CARD } from "./laborCategories";
 import { useLaborQuery, useLaborScope } from "./useLaborApi";
+import MobileTableCards from "../../components/common/MobileTableCards";
 
 // Station setup: the stations themselves, their productive-time factor, their
 // throughput ceiling, and which equipment feeds each one. This is the table
@@ -256,6 +257,7 @@ export default function StationsTab() {
       {!loading && stations && stations.length > 0 && (
         <div className={CHART_CARD}>
           <div className="overflow-x-auto">
+            <MobileTableCards>
             <table className="min-w-full text-[12px]">
               <thead className="bg-gray-50">
                 <tr className="border-b border-gray-100">
@@ -345,6 +347,7 @@ export default function StationsTab() {
                 ))}
               </tbody>
             </table>
+            </MobileTableCards>
           </div>
         </div>
       )}
@@ -390,6 +393,7 @@ export default function StationsTab() {
       {equipment && equipment.length > 0 && (
         <div className={CHART_CARD}>
           <div className="overflow-x-auto">
+            <MobileTableCards>
             <table className="min-w-full text-[12px]">
               <thead className="bg-gray-50">
                 <tr className="border-b border-gray-100">
@@ -453,6 +457,7 @@ export default function StationsTab() {
                   ))}
               </tbody>
             </table>
+            </MobileTableCards>
           </div>
         </div>
       )}

@@ -31,6 +31,7 @@ import {
   type StationConstraint,
 } from "./laborCategories";
 import { useLaborQuery, useLaborScope } from "./useLaborApi";
+import MobileTableCards from "../../components/common/MobileTableCards";
 
 // The manager-facing output: required vs. rostered staff, who stands where,
 // when the peak actually lands, what the binding constraint is, and what to do
@@ -453,6 +454,7 @@ export default function StaffingPlanTab() {
               </p>
             </div>
             <div className="overflow-x-auto">
+              <MobileTableCards>
               <table className="min-w-full text-[12px]">
                 <thead className="bg-gray-50">
                   <tr className="border-b border-gray-100">
@@ -561,6 +563,7 @@ export default function StaffingPlanTab() {
                   )}
                 </tbody>
               </table>
+              </MobileTableCards>
             </div>
           </div>
 

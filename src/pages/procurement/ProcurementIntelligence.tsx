@@ -8,6 +8,7 @@ import {
   ArrowTopRightOnSquareIcon,
 } from "@heroicons/react/24/outline";
 import { useAppSelector } from "../../store";
+import MobileTableCards from "../../components/common/MobileTableCards";
 
 const API_URL = import.meta.env.VITE_API_URL;
 const EXTENSION_ID = import.meta.env.VITE_PROCUREMENT_EXTENSION_ID;
@@ -379,6 +380,7 @@ export default function ProcurementIntelligence() {
               </div>
             </div>
             <div className="overflow-x-auto">
+              <MobileTableCards>
               <table className="min-w-full text-[12px]">
                 <thead className="border-b border-gray-100 bg-gray-50">
                   <tr>
@@ -462,6 +464,7 @@ export default function ProcurementIntelligence() {
                   )}
                 </tbody>
               </table>
+              </MobileTableCards>
             </div>
           </div>
         )}

@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { Alert } from "../../design";
 import { CHART_CARD, PROFICIENCY_LABELS } from "./laborCategories";
 import { useLaborQuery, useLaborScope } from "./useLaborApi";
+import MobileTableCards from "../../components/common/MobileTableCards";
 
 // Who can work where, and how fast. This is what turns "how many people do I
 // need?" into "who should stand where?" — a 4.5-FTE grill gap plus a 1.8-FTE
@@ -145,6 +146,7 @@ export default function SkillMatrixTab() {
       {!loading && stations.length > 0 && (
         <div className={CHART_CARD}>
           <div className="max-h-[540px] overflow-auto">
+            <MobileTableCards>
             <table className="min-w-full text-[12px]">
               <thead className="sticky top-0 z-10 bg-gray-50">
                 <tr className="border-b border-gray-100">
@@ -233,6 +235,7 @@ export default function SkillMatrixTab() {
                 )}
               </tbody>
             </table>
+            </MobileTableCards>
           </div>
         </div>
       )}

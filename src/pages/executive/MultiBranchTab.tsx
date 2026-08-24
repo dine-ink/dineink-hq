@@ -3,6 +3,7 @@ import { Trophy, TrendingUp, AlertTriangle, ArrowDown } from "lucide-react";
 import { useAppSelector } from "../../store";
 import { fmtCategoryValue, PERIOD_OPTIONS, STATUS_STYLES } from "./executiveCategories";
 import { BranchRankingChart, InvestmentPerformanceChart } from "./ExecutiveCharts";
+import MobileTableCards from "../../components/common/MobileTableCards";
 
 export default function MultiBranchTab() {
   const { user, token } = useAppSelector((s) => s.auth);
@@ -66,6 +67,7 @@ export default function MultiBranchTab() {
 
       {/* RANKED TABLE */}
       <div className="overflow-x-auto rounded-xl border border-gray-200">
+        <MobileTableCards>
         <table className="w-full text-[12px]">
           <thead className="bg-gray-50 text-[10px] font-bold uppercase tracking-wide text-gray-500">
             <tr>
@@ -109,6 +111,7 @@ export default function MultiBranchTab() {
             })}
           </tbody>
         </table>
+        </MobileTableCards>
       </div>
 
       {/* CHARTS */}

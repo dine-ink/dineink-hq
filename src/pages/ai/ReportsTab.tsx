@@ -6,6 +6,7 @@ import { saveAs } from "file-saver";
 import { ArrowDownTrayIcon, PrinterIcon } from "@heroicons/react/24/outline";
 import { useAppSelector } from "../../store";
 import { PERIOD_OPTIONS } from "./aiCategories";
+import MobileTableCards from "../../components/common/MobileTableCards";
 
 const REPORT_TYPES = [
   { key: "executive", label: "AI Executive Report" },
@@ -156,6 +157,7 @@ export default function ReportsTab() {
           )}
           {rows.length > 0 && (
             <div className="overflow-x-auto rounded-xl border border-gray-200">
+              <MobileTableCards>
               <table className="w-full text-[12px]">
                 <thead className="bg-gray-50 text-[10px] font-bold uppercase tracking-wide text-gray-500">
                   <tr><th className="px-4 py-2 text-left">{rowLabel}</th>{columns.map((c) => <th key={c} className="px-3 py-2 text-left">{c}</th>)}</tr>
@@ -169,6 +171,7 @@ export default function ReportsTab() {
                   ))}
                 </tbody>
               </table>
+              </MobileTableCards>
             </div>
           )}
         </div>

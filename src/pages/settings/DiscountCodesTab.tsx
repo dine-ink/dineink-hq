@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useAppSelector } from "../../store";
 import { PlusIcon, TrashIcon, TagIcon } from "@heroicons/react/24/outline";
 import { ConfirmationDialog, useConfirmDialog } from "../../design";
+import MobileTableCards from "../../components/common/MobileTableCards";
 
 type DiscountCode = {
   id: number;
@@ -210,7 +211,9 @@ export default function DiscountCodesTab() {
             <p className="mt-2 text-sm font-bold text-gray-500">No discount codes yet</p>
           </div>
         ) : (
-          <table className="w-full border-collapse">
+          <div className="overflow-x-auto">
+          <MobileTableCards>
+          <table className="w-full border-collapse min-w-[40rem]">
             <thead className="bg-gray-50">
               <tr className="border-b border-gray-200">
                 {["Code", "Value", "Uses", "Status", ""].map((h) => (
@@ -252,6 +255,8 @@ export default function DiscountCodesTab() {
               ))}
             </tbody>
           </table>
+          </MobileTableCards>
+          </div>
         )}
       </div>
 

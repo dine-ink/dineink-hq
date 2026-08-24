@@ -12,6 +12,7 @@ import {
   getIndianCitiesForState,
   getIndianStates,
 } from "../../utils/indiaLocations";
+import MobileTableCards from "../../components/common/MobileTableCards";
 
 const INPUT_BASE =
   "w-full rounded-xl border bg-white px-3 py-2 text-sm outline-none transition-all";
@@ -625,6 +626,8 @@ export default function Shops() {
                     </p>
                   </div>
                 ) : (
+                  <div className="overflow-x-auto">
+                  <MobileTableCards>
                   <table className="min-w-full text-left">
                     <thead className="border-b border-gray-100 bg-gray-50">
                       <tr>
@@ -700,6 +703,8 @@ export default function Shops() {
                       ))}
                     </tbody>
                   </table>
+                  </MobileTableCards>
+                  </div>
                 )}
               </div>
             )}

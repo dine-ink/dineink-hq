@@ -1,4 +1,5 @@
 import React from "react";
+import MobileTableCards from "../../components/common/MobileTableCards";
 
 type Column = {
   header: string;
@@ -45,6 +46,7 @@ export default function CommonTable({
 
       {/* TABLE */}
       <div className="min-h-0 flex-1 overflow-auto">
+        <MobileTableCards>
         <table className="min-w-full text-left whitespace-nowrap">
           {/* HEADER */}
           <thead className="sticky top-0 z-10 border-b border-gray-100 bg-gray-50/90 backdrop-blur">
@@ -119,6 +121,7 @@ export default function CommonTable({
             )}
           </tbody>
         </table>
+        </MobileTableCards>
       </div>
 
       {/* PAGINATION */}

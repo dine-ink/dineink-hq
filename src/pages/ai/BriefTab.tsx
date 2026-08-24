@@ -3,6 +3,7 @@ import { HeartPulse, Trophy, ShieldAlert, ListChecks } from "lucide-react";
 import { useAppSelector } from "../../store";
 import { PERIOD_OPTIONS } from "./aiCategories";
 import InsightCard from "./InsightCard";
+import MobileTableCards from "../../components/common/MobileTableCards";
 
 const HEALTH_STYLE: Record<
   string,
@@ -186,6 +187,7 @@ export default function BriefTab() {
                 Branch Rankings
               </h4>
               <div className="overflow-x-auto rounded-xl border border-gray-200">
+                <MobileTableCards>
                 <table className="w-full text-[12px]">
                   <thead className="bg-gray-50 text-[10px] font-bold uppercase tracking-wide text-gray-500">
                     <tr>
@@ -206,6 +208,7 @@ export default function BriefTab() {
                     ))}
                   </tbody>
                 </table>
+                </MobileTableCards>
               </div>
             </div>
           )}

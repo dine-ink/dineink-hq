@@ -53,13 +53,20 @@ function mockFetchBills() {
   );
 }
 
+// The bill list renders twice — the table for md and up, and the mobile card
+// layer from MobileTableCards. Only CSS separates them, so both are in the DOM
+// under jsdom; scope list assertions to the table to keep them unambiguous.
+const inList = () => within(screen.getByRole("table"));
+
 describe("Bills page", () => {
   it("renders the bill list with correctly computed revenue KPIs", async () => {
     mockFetchBills();
     renderWithProviders(<Bills />, { preloadedState: authenticatedState() });
 
-    await waitFor(() => expect(screen.getByText("INV-001")).toBeInTheDocument());
-    expect(screen.getByText("INV-002")).toBeInTheDocument();
+    await waitFor(() =>
+      expect(inList().getByText("INV-001")).toBeInTheDocument(),
+    );
+    expect(inList().getByText("INV-002")).toBeInTheDocument();
 
     // Revenue = sum of PAID bills' totals (1000 + 500), Avg Bill = 1500 / 2.
     expect(screen.getByText("₹1,500")).toBeInTheDocument();
@@ -71,13 +78,15 @@ describe("Bills page", () => {
     const user = userEvent.setup();
     renderWithProviders(<Bills />, { preloadedState: authenticatedState() });
 
-    await waitFor(() => expect(screen.getByText("INV-001")).toBeInTheDocument());
+    await waitFor(() =>
+      expect(inList().getByText("INV-001")).toBeInTheDocument(),
+    );
 
     const searchInput = screen.getByPlaceholderText(/search/i);
     await user.type(searchInput, "Priya");
 
-    expect(screen.queryByText("INV-001")).not.toBeInTheDocument();
-    expect(screen.getByText("INV-002")).toBeInTheDocument();
+    expect(inList().queryByText("INV-001")).not.toBeInTheDocument();
+    expect(inList().getByText("INV-002")).toBeInTheDocument();
   });
 
   it("opening a bill shows its itemized lines and a correctly computed bill summary", async () => {
@@ -85,8 +94,10 @@ describe("Bills page", () => {
     const user = userEvent.setup();
     renderWithProviders(<Bills />, { preloadedState: authenticatedState() });
 
-    await waitFor(() => expect(screen.getByText("INV-001")).toBeInTheDocument());
-    await user.click(screen.getByText("INV-001"));
+    await waitFor(() =>
+      expect(inList().getByText("INV-001")).toBeInTheDocument(),
+    );
+    await user.click(inList().getByText("INV-001"));
 
     // Scope every remaining assertion to the detail drawer — the bill list
     // stays mounted behind it and shares some of the same rupee amounts.

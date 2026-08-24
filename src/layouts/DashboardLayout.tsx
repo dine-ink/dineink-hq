@@ -1,5 +1,7 @@
 import { Outlet, Link, NavLink, useNavigate } from "react-router-dom";
 import { useState } from "react";
+import Logo, { LogoWordmark } from "../components/common/Logo";
+import { logoMarkClasses } from "../components/common/logoTokens";
 import {
   Dialog,
   DialogBackdrop,
@@ -221,10 +223,11 @@ export default function DashboardLayout() {
               </button>
             </div>
             <div className="px-5 pb-4">
-              <h1 className="text-xl font-black text-white">DineInk</h1>
-              <p className="text-[10px] text-red-200">
-                Restaurant Intelligence
-              </p>
+              <Logo
+                tone="onColor"
+                size="md"
+                subtitle="Restaurant Intelligence"
+              />
             </div>
             <nav className="flex-1 space-y-1 overflow-y-auto px-3 no-scrollbar">
               {visibleNav.map((item) => (
@@ -253,18 +256,18 @@ export default function DashboardLayout() {
           <div className="relative flex h-12 shrink-0 items-center justify-between px-3">
             <button
               onClick={() => setCollapsed(!collapsed)}
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white/15 text-white backdrop-blur transition hover:bg-white/25"
+              aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+              className={`${logoMarkClasses("onColor", "sm")} transition hover:bg-white/30`}
             >
-              <span className="text-[15px] font-black">D</span>
+              D
             </button>
             {!collapsed && (
               <div className="ml-2 flex-1 overflow-hidden">
-                <p className="truncate text-[13px] font-black leading-none text-white">
-                  DineInk
-                </p>
-                <p className="mt-0.5 truncate text-[8px] leading-none text-red-200/70">
-                  Restaurant OS
-                </p>
+                <LogoWordmark
+                  tone="onColor"
+                  size="sm"
+                  subtitle="Restaurant OS"
+                />
               </div>
             )}
             {!collapsed && (
@@ -320,7 +323,7 @@ export default function DashboardLayout() {
 
       {/* ── MAIN AREA ──────────────────────────────────────── */}
       <div
-        className={`flex h-screen flex-col overflow-hidden transition-all duration-300 ${collapsed ? "lg:pl-[60px]" : "lg:pl-[192px]"}`}
+        className={`flex h-dvh flex-col overflow-hidden transition-all duration-300 ${collapsed ? "lg:pl-[60px]" : "lg:pl-[192px]"}`}
       >
         {/* TOP BAR */}
         <header className="relative z-20 shrink-0 bg-[#b10000] shadow-sm">
@@ -336,15 +339,19 @@ export default function DashboardLayout() {
           </div>
 
           {/* Top row: mobile menu + branch + notifications + profile */}
-          <div className="relative flex h-11 items-center justify-between px-4">
+          <div className="relative flex flex-wrap items-center gap-x-2 gap-y-1 px-3 py-1.5 lg:h-11 lg:flex-nowrap lg:justify-between lg:px-4 lg:py-0">
             <button
               onClick={() => setSidebarOpen(true)}
-              className="relative text-white lg:hidden"
+              aria-label="Open navigation menu"
+              className="relative -m-1.5 shrink-0 p-1.5 text-white lg:hidden"
             >
-              <Bars3Icon className="h-5 w-5" />
+              <Bars3Icon className="h-6 w-6" />
             </button>
+            <div className="lg:hidden">
+              <LogoWordmark tone="onColor" size="sm" />
+            </div>
             {/* ── GLOBAL DATE FILTER BAR ─────────────────────── */}
-            <div className="relative min-w-0 flex-1 overflow-x-auto border-t border-white/10 px-2 py-1.5 lg:px-4">
+            <div className="relative order-last w-full min-w-0 overflow-x-auto border-t border-white/10 px-0 py-1.5 lg:order-none lg:w-auto lg:flex-1 lg:border-t-0 lg:px-4">
               <div className="flex items-center gap-2 whitespace-nowrap">
                 <div className="flex items-center gap-0.5 rounded-xl border border-white/15 bg-white/10 p-0.5 backdrop-blur">
                   {PRESETS.map((p) => (
@@ -399,7 +406,7 @@ export default function DashboardLayout() {
                 )}
               </div>
             </div>
-            <div className="relative ml-auto flex items-center gap-2">
+            <div className="relative ml-auto flex shrink-0 items-center gap-1.5 lg:gap-2">
               {/* Branch selector */}
               {branches.length > 0 && (
                 <select
@@ -448,7 +455,10 @@ export default function DashboardLayout() {
                 </span>
               </button>
 
-              <button className="flex h-7 w-7 items-center justify-center rounded-xl bg-white/10 text-white transition hover:bg-white/20">
+              <button
+                aria-label="Notifications"
+                className="flex h-8 w-8 items-center justify-center rounded-xl bg-white/10 text-white transition hover:bg-white/20 lg:h-7 lg:w-7"
+              >
                 <BellIcon className="h-4 w-4" />
               </button>
               <Menu as="div" className="relative">
@@ -498,7 +508,7 @@ export default function DashboardLayout() {
         </header>
 
         {/* PAGE CONTENT */}
-        <main className="flex-1 overflow-y-auto bg-gray-100 px-4 py-3">
+        <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100 px-3 py-3 sm:px-4">
           <Outlet />
         </main>
       </div>

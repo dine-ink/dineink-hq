@@ -1,56 +1,72 @@
+import { Link } from "react-router-dom";
 import Navbar from "../../components/common/Navbar";
 import Footer from "../../components/common/Footer";
 import {
-  SparklesIcon,
-  BuildingStorefrontIcon,
-  BoltIcon,
-  ListBulletIcon,
-  ChartBarIcon,
-  LifebuoyIcon,
+  ScaleIcon,
+  EyeIcon,
+  BookOpenIcon,
+  CubeTransparentIcon,
+  MapPinIcon,
+  HandRaisedIcon,
 } from "@heroicons/react/24/outline";
 
-const stats = [
-  { label: "Restaurants onboarded", value: "500+" },
-  { label: "Orders processed monthly", value: "1M+" },
-  { label: "Menus managed", value: "15,000+" },
+const productScale = [
+  { label: "Dashboard modules", value: "29" },
+  { label: "Analytical views", value: "98" },
+  { label: "Tracked metrics", value: "675" },
 ];
 
-const values = [
+const principles = [
   {
-    name: "Simple to use",
+    name: "One definition, one place",
     description:
-      "DineInk is designed so restaurant owners and staff can manage billing, tables, menus and reports without complicated training.",
-    icon: SparklesIcon,
+      "Food cost means the same thing on every screen. Shared definitions live in a single place, so two reports can never quietly disagree about the same number.",
+    icon: BookOpenIcon,
   },
   {
-    name: "Built for restaurants",
+    name: "Blank is not zero",
     description:
-      "Whether you run a café, fine dining restaurant, food court outlet or takeaway counter, DineInk adapts to your workflow.",
-    icon: BuildingStorefrontIcon,
+      "A metric with no data shows as blank, never as ₹0. A missing number and a real zero lead to completely different decisions, so we refuse to blur them.",
+    icon: CubeTransparentIcon,
   },
   {
-    name: "Fast billing",
+    name: "We grade our own work",
     description:
-      "Create bills quickly for dine-in, takeaway and delivery orders with a clean and reliable billing flow.",
-    icon: BoltIcon,
+      "Forecast Accuracy scores every prediction we made against what actually happened. We are the only ones in this market who will show you how wrong our last forecast was.",
+    icon: EyeIcon,
   },
   {
-    name: "Smart menu management",
+    name: "No winner badges",
     description:
-      "Update categories, dishes, prices and availability in minutes without depending on developers.",
-    icon: ListBulletIcon,
+      "No “best seller” label that is really just the highest revenue row. If a ranking depends on an assumption, we name the assumption instead of decorating the result.",
+    icon: ScaleIcon,
   },
   {
-    name: "Useful business insights",
+    name: "Limitations, self-declared",
     description:
-      "Track sales, top-selling items, staff performance and daily business reports from one dashboard.",
-    icon: ChartBarIcon,
+      "Where a model is bounded or a metric is an estimate, the product says so on the screen. You should never have to reverse-engineer whether a number can be trusted.",
+    icon: HandRaisedIcon,
   },
   {
-    name: "Reliable support",
+    name: "Indian by design",
     description:
-      "Our team is focused on helping restaurant owners solve problems quickly and keep their operations running smoothly.",
-    icon: LifebuoyIcon,
+      "GST, CAM and chargeable area, aggregator commission, FSSAI renewals, UPI and WhatsApp are first-class concepts here — not settings bolted onto a product built somewhere else.",
+    icon: MapPinIcon,
+  },
+];
+
+const team = [
+  {
+    name: "Vikranth Venkateswar",
+    role: "Product and engineering",
+    detail: "Associate Consultant, Infosys",
+    education: "MTech, Data Engineering — IIT Jodhpur",
+  },
+  {
+    name: "Venkadesh V",
+    role: "Growth and operations",
+    detail: "South Regional Head, Taco Bell",
+    education: "MBA, Marketing Management",
   },
 ];
 
@@ -77,7 +93,12 @@ export default function About() {
                 <path d="M100 200V.5M.5 .5H200" fill="none" />
               </pattern>
             </defs>
-            <rect fill="url(#about-grid)" width="100%" height="100%" strokeWidth={0} />
+            <rect
+              fill="url(#about-grid)"
+              width="100%"
+              height="100%"
+              strokeWidth={0}
+            />
           </svg>
           <div className="mx-auto max-w-7xl px-6 pt-32 pb-24 lg:px-8">
             <div className="mx-auto grid max-w-7xl grid-cols-1 items-center gap-16 lg:grid-cols-2">
@@ -86,150 +107,193 @@ export default function About() {
                   About DineInk
                 </div>
                 <h1 className="mt-6 text-5xl font-bold tracking-tight text-slate-900 sm:text-6xl">
-                  Helping restaurants manage everything from one place
+                  Nobody sold the owner a finance system
                 </h1>
                 <p className="mt-6 text-lg leading-8 text-slate-600">
-                  DineInk is built to simplify restaurant management by bringing
-                  billing, menu management, table handling, staff operations and
-                  reporting into a single platform. Whether you own a café,
-                  restaurant, cloud kitchen or fine dining outlet, DineInk helps
-                  you run operations faster and smarter.
+                  They sold him four operational tools and left the arithmetic to
+                  him. A POS that counts orders. Middleware that counts
+                  aggregator orders. Tally, months later. Excel and a CA for
+                  everything else.
+                </p>
+                <p className="mt-6 text-lg leading-8 text-slate-600">
+                  That gap is the reason DineInk exists. We are building the one
+                  place where a restaurant owner can see what the business
+                  actually earned — without waiting for someone else to tell
+                  them.
                 </p>
                 <div className="mt-10 flex flex-wrap gap-4">
-                  <a
-                    href="/signup"
+                  <Link
+                    to="/signup"
                     className="rounded-xl bg-[#b10000] px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-red-200 transition hover:bg-[#8f0000]"
                   >
-                    Get Started
-                  </a>
-                  <a
-                    href="/contact"
+                    Start free
+                  </Link>
+                  <Link
+                    to="/contact"
                     className="rounded-xl border border-slate-300 px-6 py-3 text-sm font-semibold text-slate-700 transition hover:border-red-200 hover:bg-red-50 hover:text-[#b10000]"
                   >
-                    Contact Us
-                  </a>
+                    Contact us
+                  </Link>
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-6">
-                <img
-                  src="https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=800&q=80"
-                  alt="Restaurant interior"
-                  className="h-72 w-full rounded-3xl object-cover shadow-xl"
-                />
-                <img
-                  src="https://images.unsplash.com/photo-1556740749-887f6717d7e4?auto=format&fit=crop&w=800&q=80"
-                  alt="Restaurant billing"
-                  className="mt-12 h-72 w-full rounded-3xl object-cover shadow-xl"
-                />
-                <img
-                  src="https://images.unsplash.com/photo-1414235077428-338989a2e8c0?auto=format&fit=crop&w=800&q=80"
-                  alt="Dining table"
-                  className="h-72 w-full rounded-3xl object-cover shadow-xl"
-                />
-                <img
-                  src="https://images.unsplash.com/photo-1559339352-11d035aa65de?auto=format&fit=crop&w=800&q=80"
-                  alt="Restaurant staff"
-                  className="mt-12 h-72 w-full rounded-3xl object-cover shadow-xl"
-                />
+
+              <div className="rounded-[32px] border border-red-100 bg-white p-6 shadow-xl sm:p-10">
+                <p className="text-sm font-semibold tracking-widest text-[#b10000] uppercase">
+                  The question we started from
+                </p>
+                <blockquote className="mt-6 text-2xl font-semibold leading-relaxed tracking-tight text-slate-900">
+                  “Am I profitable this month?”
+                </blockquote>
+                <p className="mt-6 text-base leading-7 text-slate-600">
+                  Ask an Indian restaurant owner and the honest answer is usually
+                  “let me check with my CA” — and the reply arrives 30 to 45 days
+                  later, in a spreadsheet, from someone else. A business that
+                  turns over cash every single day should not have to wait a month
+                  and a half to find out how it is doing.
+                </p>
+                <div className="mt-10 grid grid-cols-3 gap-4 border-t border-slate-100 pt-8">
+                  {productScale.map((stat) => (
+                    <div key={stat.label}>
+                      <div className="text-3xl font-bold text-[#b10000]">
+                        {stat.value}
+                      </div>
+                      <div className="mt-1 text-xs leading-5 text-slate-500">
+                        {stat.label}
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Mission + Stats */}
-        <div className="mx-auto max-w-7xl px-6 py-24 lg:px-8">
+        {/* Mission */}
+        <section className="mx-auto max-w-7xl px-6 py-24 lg:px-8">
           <div className="mx-auto max-w-3xl text-center">
             <div className="inline-flex items-center rounded-full border border-red-100 bg-red-50 px-4 py-1 text-sm font-medium text-[#b10000]">
-              Our Mission
+              Our mission
             </div>
             <h2 className="mt-6 text-4xl font-bold tracking-tight text-slate-900 sm:text-5xl">
-              Making restaurant management simple
+              Put the finance layer inside the till
             </h2>
             <p className="mt-6 text-lg leading-8 text-slate-600">
-              We want to make restaurant management simple, fast and affordable.
-              DineInk helps owners reduce manual work, avoid billing confusion
-              and improve the customer experience with smarter operations.
+              Restaurant software has always stopped at the counter. We think the
+              interesting work starts after the bill is printed — in the cost of
+              what went into the dish, the margin the aggregator left behind, the
+              station that is actually capping your output, and whether next month
+              can carry a second branch. That is the product we are building, and
+              we are building it for every size of kitchen: a street cart on
+              DineInk DOT, and a twenty-outlet chain on Enterprise.
             </p>
           </div>
-          <div className="mt-16 grid grid-cols-1 gap-6 md:grid-cols-3">
-            {stats.map((stat) => (
-              <div
-                key={stat.label}
-                className="rounded-3xl border border-red-100 bg-white p-8 text-center shadow-sm"
-              >
-                <div className="text-4xl font-bold text-[#b10000]">
-                  {stat.value}
-                </div>
-                <div className="mt-3 text-sm font-medium text-slate-600">
-                  {stat.label}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
+        </section>
 
-        {/* Values */}
-        <div className="bg-white py-24">
+        {/* Principles */}
+        <section className="bg-white py-24">
           <div className="mx-auto max-w-7xl px-6 lg:px-8">
             <div className="mx-auto max-w-3xl text-center">
               <div className="inline-flex items-center rounded-full border border-red-100 bg-red-50 px-4 py-1 text-sm font-medium text-[#b10000]">
-                What makes us different
+                How we build
               </div>
               <h2 className="mt-6 text-4xl font-bold tracking-tight text-slate-900 sm:text-5xl">
-                What makes DineInk different
+                A number you cannot trust is worse than no number
               </h2>
               <p className="mt-6 text-lg leading-8 text-slate-600">
-                DineInk is designed specifically for restaurant owners who need
-                a simple yet powerful system to manage day-to-day operations.
+                Analytics are easy to make impressive and hard to make honest.
+                These are the rules we hold ourselves to — they are the reason the
+                finance layer is worth opening at all.
               </p>
             </div>
             <div className="mt-16 grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
-              {values.map((value) => (
+              {principles.map((principle) => (
                 <div
-                  key={value.name}
+                  key={principle.name}
                   className="rounded-3xl border border-slate-200 bg-white p-8 shadow-sm transition hover:-translate-y-1 hover:border-red-200 hover:shadow-lg"
                 >
                   <div className="mb-4 inline-flex rounded-2xl bg-red-50 p-3 text-[#b10000]">
-                    <value.icon aria-hidden="true" className="h-6 w-6" />
+                    <principle.icon aria-hidden="true" className="h-6 w-6" />
                   </div>
                   <h3 className="text-xl font-semibold text-slate-900">
-                    {value.name}
+                    {principle.name}
                   </h3>
                   <p className="mt-4 leading-7 text-slate-600">
-                    {value.description}
+                    {principle.description}
                   </p>
                 </div>
               ))}
             </div>
           </div>
-        </div>
+        </section>
+
+        {/* Team */}
+        <section className="mx-auto max-w-7xl px-6 py-24 lg:px-8">
+          <div className="mx-auto max-w-3xl text-center">
+            <div className="inline-flex items-center rounded-full border border-red-100 bg-red-50 px-4 py-1 text-sm font-medium text-[#b10000]">
+              The team
+            </div>
+            <h2 className="mt-6 text-4xl font-bold tracking-tight text-slate-900 sm:text-5xl">
+              Who is building this
+            </h2>
+            <p className="mt-6 text-lg leading-8 text-slate-600">
+              A data engineer and a restaurant operator. One of us has built the
+              systems, the other has run the outlets.
+            </p>
+          </div>
+          <div className="mx-auto mt-16 grid max-w-4xl grid-cols-1 gap-8 sm:grid-cols-2">
+            {team.map((member) => (
+              <div
+                key={member.name}
+                className="rounded-3xl border border-red-100 bg-white p-8 shadow-sm"
+              >
+                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#b10000] text-xl font-bold text-white">
+                  {member.name
+                    .split(" ")
+                    .map((part) => part[0])
+                    .join("")
+                    .slice(0, 2)}
+                </div>
+                <h3 className="mt-6 text-xl font-semibold text-slate-900">
+                  {member.name}
+                </h3>
+                <p className="mt-1 text-sm font-medium text-[#b10000]">
+                  {member.role}
+                </p>
+                <dl className="mt-6 space-y-2 text-sm text-slate-600">
+                  <div>{member.detail}</div>
+                  <div>{member.education}</div>
+                </dl>
+              </div>
+            ))}
+          </div>
+        </section>
 
         {/* CTA */}
-        <div className="mx-auto max-w-7xl px-6 py-24 lg:px-8">
+        <section className="mx-auto max-w-7xl px-6 pb-24 lg:px-8">
           <div className="rounded-[32px] bg-[#b10000] px-8 py-16 text-center shadow-2xl">
             <h2 className="text-4xl font-bold tracking-tight text-white sm:text-5xl">
-              Ready to simplify your restaurant?
+              Stop waiting 45 days for your own numbers
             </h2>
             <p className="mx-auto mt-6 max-w-2xl text-lg leading-8 text-red-100">
-              Join hundreds of restaurants already using DineInk to manage their
-              daily operations smarter and faster.
+              Start free, run a week of real billing through it, and see what the
+              finance layer tells you about your own restaurant.
             </p>
             <div className="mt-10 flex flex-wrap justify-center gap-4">
-              <a
-                href="/signup"
+              <Link
+                to="/signup"
                 className="rounded-xl bg-white px-6 py-3 text-sm font-semibold text-[#b10000] shadow-lg transition hover:bg-red-50"
               >
-                Get Started Free
-              </a>
-              <a
-                href="/contact"
+                Start free
+              </Link>
+              <Link
+                to="/features"
                 className="rounded-xl border border-white/20 bg-white/10 px-6 py-3 text-sm font-semibold text-white backdrop-blur-sm transition hover:bg-white/20"
               >
-                Talk to Us
-              </a>
+                See the product
+              </Link>
             </div>
           </div>
-        </div>
+        </section>
       </main>
       <Footer />
     </div>

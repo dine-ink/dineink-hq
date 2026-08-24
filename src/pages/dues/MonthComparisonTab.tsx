@@ -3,6 +3,7 @@ import { Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAx
 import { useAppSelector } from "../../store";
 import { Alert, EmptyState, LoadingOverlay, chartPalette } from "../../design";
 import { categoryLabel, formatCurrency, monthYearLabel, type MonthComparisonData } from "./duesShared";
+import MobileTableCards from "../../components/common/MobileTableCards";
 
 interface MonthComparisonTabProps {
   month: number;
@@ -99,8 +100,9 @@ export default function MonthComparisonTab({ month, year }: MonthComparisonTabPr
             </div>
           </div>
 
-          <div className="overflow-hidden rounded-xl border border-gray-200">
-            <table className="w-full text-[12px]">
+          <div className="overflow-x-auto rounded-xl border border-gray-200">
+            <MobileTableCards>
+            <table className="w-full text-[12px] min-w-[36rem]">
               <thead className="bg-gray-50 text-[10px] font-bold uppercase tracking-wide text-gray-500">
                 <tr>
                   <th className="px-4 py-2 text-left">Category</th>
@@ -131,6 +133,7 @@ export default function MonthComparisonTab({ month, year }: MonthComparisonTabPr
                 )}
               </tbody>
             </table>
+            </MobileTableCards>
           </div>
         </>
       )}

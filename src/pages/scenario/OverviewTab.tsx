@@ -5,6 +5,7 @@ import { fmtCategoryValue, OVERRIDE_FIELD_GROUPS, OVERRIDE_FIELDS, SCENARIO_KPIS
 import { TrendIcon } from "../../utils/kpiDisplay";
 import { trendStyle } from "../../utils/kpiStyles";
 import ScenarioCharts from "./ScenarioCharts";
+import MobileTableCards from "../../components/common/MobileTableCards";
 
 const PERIODS = [
   { key: "currentMonth", label: "Current Month" },
@@ -311,8 +312,9 @@ export default function OverviewTab() {
           <ScenarioCharts kpis={whatIf.kpis} />
 
           {/* FULL KPI TABLE */}
-          <div className="overflow-hidden rounded-xl border border-gray-200">
-            <table className="w-full text-[12px]">
+          <div className="overflow-x-auto rounded-xl border border-gray-200">
+            <MobileTableCards>
+            <table className="w-full text-[12px] min-w-[36rem]">
               <thead className="bg-gray-50 text-[10px] font-bold uppercase tracking-wide text-gray-500">
                 <tr>
                   <th className="px-4 py-2 text-left">KPI</th>
@@ -348,6 +350,7 @@ export default function OverviewTab() {
                 })}
               </tbody>
             </table>
+            </MobileTableCards>
           </div>
         </>
       )}

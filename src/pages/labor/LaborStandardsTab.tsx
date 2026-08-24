@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { Alert, Button, Dialog, FormField, Input } from "../../design";
 import { CHART_CARD } from "./laborCategories";
 import { useLaborQuery, useLaborScope } from "./useLaborApi";
+import MobileTableCards from "../../components/common/MobileTableCards";
 
 // The labor-standards matrix: menu item × station minutes. This is the data the
 // whole engine rests on — "don't only store total prep time, store
@@ -237,6 +238,7 @@ export default function LaborStandardsTab() {
       {!loading && stations.length > 0 && (
         <div className={CHART_CARD}>
           <div className="max-h-[540px] overflow-auto">
+            <MobileTableCards>
             <table className="min-w-full text-[12px]">
               <thead className="sticky top-0 z-10 bg-gray-50">
                 <tr className="border-b border-gray-100">
@@ -329,6 +331,7 @@ export default function LaborStandardsTab() {
                 )}
               </tbody>
             </table>
+            </MobileTableCards>
           </div>
         </div>
       )}

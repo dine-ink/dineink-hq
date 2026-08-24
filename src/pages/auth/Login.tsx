@@ -8,6 +8,7 @@ import {
   SparklesIcon,
   ShieldCheckIcon,
 } from "@heroicons/react/24/outline";
+import Logo from "../../components/common/Logo";
 import { useAppDispatch } from "../../store";
 import { setAuth } from "../../store/slices/authSlice";
 import { setBranches } from "../../store/slices/branchSlice";
@@ -53,7 +54,7 @@ export default function Login() {
   };
 
   return (
-    <div className="relative flex h-screen overflow-hidden bg-[#b10000]">
+    <div className="relative flex min-h-dvh bg-[#b10000] lg:h-dvh lg:overflow-hidden">
       {/* Subtle background blobs */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute -left-32 -top-32 h-64 w-64 rounded-full bg-white/5 blur-3xl" />
@@ -65,15 +66,7 @@ export default function Login() {
       <div className="relative hidden w-[48%] flex-col justify-between overflow-hidden px-8 py-6 lg:flex">
         {/* Logo */}
         <div className="relative z-10">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-white/20 bg-white/15 text-lg font-black text-white backdrop-blur-xl">
-              D
-            </div>
-            <div>
-              <h1 className="text-xl font-black tracking-tight text-white">DineInk</h1>
-              <p className="text-[10px] text-red-200">Restaurant Intelligence</p>
-            </div>
-          </div>
+          <Logo tone="onColor" size="md" subtitle="Restaurant Intelligence" />
 
           <div className="mt-8 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1.5 text-[10px] font-semibold text-white backdrop-blur-xl">
             <SparklesIcon className="h-3 w-3" />
@@ -158,14 +151,8 @@ export default function Login() {
       <div className="relative flex flex-1 items-center justify-center px-5 py-5">
         <div className="w-full max-w-[440px]">
           {/* Mobile logo */}
-          <div className="mb-6 flex items-center justify-center gap-3 lg:hidden">
-            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/15 text-lg font-black text-white border border-white/20">
-              D
-            </div>
-            <div>
-              <h1 className="text-xl font-black text-white">DineInk</h1>
-              <p className="text-xs text-red-200">Restaurant Intelligence</p>
-            </div>
+          <div className="mb-6 flex items-center justify-center lg:hidden">
+            <Logo tone="onColor" size="md" subtitle="Restaurant Intelligence" />
           </div>
 
           <div className="overflow-hidden rounded-3xl border border-white/20 bg-white shadow-2xl shadow-black/30">

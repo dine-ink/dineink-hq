@@ -48,7 +48,7 @@ export default function OverviewTab() {
           <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold capitalize ${style.text}`}>{risk} risk</span>
         </div>
         <p className="text-[10px] text-gray-500">{item.project.branch?.name || "Restaurant-wide"}</p>
-        <div className="mt-2 grid grid-cols-4 gap-2 text-center">
+        <div className="mt-2 grid grid-cols-2 gap-2 text-center sm:grid-cols-4">
           <div>
             <p className="text-[9px] font-semibold uppercase text-gray-400">ROI</p>
             <p className={`text-[12px] font-bold ${(item.metrics.roiPercentage ?? 0) >= 0 ? "text-emerald-700" : "text-red-600"}`}>

@@ -40,6 +40,7 @@ import {
   Rocket,
   PieChart,
   BadgePercent,
+  ChevronDown,
 } from "lucide-react";
 import React from "react";
 import {
@@ -55,6 +56,7 @@ import {
   CartesianGrid,
   ReferenceLine,
 } from "recharts";
+import MobileTableCards from "../../components/common/MobileTableCards";
 
 const tabs = ["Overview", "Insights Setup", "Financial Assumptions"];
 
@@ -139,6 +141,47 @@ const ASSUMPTION_FIELD_GROUPS: {
   },
 ];
 
+/**
+ * Label for a vertical ReferenceLine: short text on the chart, exact amount on
+ * hover. Recharts injects `viewBox` when `label` is given an element.
+ *
+ * `dy` staggers stacked labels — two lines whose values are close would print
+ * their labels on top of each other otherwise.
+ */
+function RefLineLabel({
+  viewBox,
+  text,
+  amount,
+  color,
+  dy = 0,
+}: {
+  viewBox?: { x?: number; y?: number };
+  text: string;
+  amount: string;
+  color: string;
+  dy?: number;
+}) {
+  const x = viewBox?.x ?? 0;
+  const y = (viewBox?.y ?? 0) + dy;
+  return (
+    <g style={{ cursor: "help" }}>
+      <title>{`${text}: ${amount}`}</title>
+      {/* Invisible, generous hover target — 10px text is a hard thing to hit. */}
+      <rect
+        x={x - 6}
+        y={y - 2}
+        width={84}
+        height={16}
+        fill="transparent"
+        pointerEvents="all"
+      />
+      <text x={x + 4} y={y + 10} fill={color} fontSize={10} fontWeight={700}>
+        {text}
+      </text>
+    </g>
+  );
+}
+
 export default function Insights() {
   const { selectedBranch } = useAppSelector((s) => s.branch);
   const { user, token } = useAppSelector((s) => s.auth);
@@ -147,6 +190,12 @@ export default function Insights() {
 
   const [activeTab, setActiveTab] = useState("Overview");
   const [staffData, setStaffData] = useState<any[]>([]);
+  // Which Financial Assumptions groups are expanded. The first opens by
+  // default so the tab is not a wall of six closed headers, and the rest stay
+  // shut so all six titles are visible at once.
+  const [openAssumptionGroups, setOpenAssumptionGroups] = useState<
+    Record<string, boolean>
+  >({ [ASSUMPTION_FIELD_GROUPS[0].title]: true });
   const [assumptionsMode, setAssumptionsMode] = useState<"defaults" | "branch">(
     "defaults",
   );
@@ -235,6 +284,55 @@ export default function Insights() {
   const targetGrossMargin = targets
     ? (targets.targetGrossMargin ?? 0)
     : n(insightsData["targetGrossMargin"]);
+  // Setup readiness — hoisted out of the sidebar's JSX because the compact
+  // mobile strip and the full desktop card both display it.
+  const setupCompletion = (() => {
+    const fields = [
+      insightsData.monthlyRent,
+      insightsData.loanEmi,
+      insightsData.internet,
+      insightsData.phoneBills,
+      insightsData.accounting,
+      insightsData.insurance,
+      insightsData.licenses,
+
+      insightsData.deliveryCharges,
+      insightsData.packaging,
+      insightsData.paymentGateway,
+      insightsData.aggregatorCommission,
+      insightsData.electricity,
+      insightsData.gas,
+      insightsData.maintenance,
+      insightsData.fuel,
+
+      targetEbitda,
+      targetFoodCost,
+      targetGrossMargin,
+      targetPrimeCost,
+      insightsData.monthlyRevenueGoal,
+      insightsData.monthlyProfitGoal,
+
+      insightsData.gstPercentage,
+      insightsData.monthlyLoanEmi,
+      insightsData.monthlyInterestPayments,
+      insightsData.caFees,
+      insightsData.insuranceCost,
+      insightsData.otherTaxes,
+
+      insightsData.expectedMonthlyGrowth,
+      insightsData.expectedDeliveryGrowth,
+      insightsData.seasonalImpact,
+      insightsData.weekendSalesIncrease,
+
+      insightsData.plannedExpansion,
+    ];
+    const filled = fields.filter(
+      (field) =>
+        field !== null && field !== undefined && field !== "" && field !== 0,
+    ).length;
+    return Math.round((filled / fields.length) * 100);
+  })();
+
   const localTotalFixedExpenses =
     n(insightsData.monthlyRent) +
     n(insightsData.loanEmi) +
@@ -1316,6 +1414,8 @@ export default function Insights() {
                       required: totalExpenses / (1 - target / 100),
                     }),
                   );
+                  const inr = (v: number) =>
+                    `₹${Math.round(v || 0).toLocaleString("en-IN")}`;
                   return (
                     <>
                       <div className="h-[260px] w-full">
@@ -1378,34 +1478,39 @@ export default function Insights() {
                               x={mtdRevenue}
                               stroke="#3b82f6"
                               strokeWidth={2}
-                              label={{
-                                value: "MTD",
-                                position: "top",
-                                fill: "#3b82f6",
-                                fontSize: 10,
-                                fontWeight: 700,
-                              }}
+                              label={
+                                <RefLineLabel
+                                  text="MTD"
+                                  amount={inr(mtdRevenue)}
+                                  color="#3b82f6"
+                                />
+                              }
                             />
                             <ReferenceLine
                               x={projectedMonthEndRevenue}
                               stroke="#b10000"
                               strokeDasharray="4 2"
                               strokeWidth={2}
-                              label={{
-                                value: "Projected",
-                                position: "top",
-                                fill: "#b10000",
-                                fontSize: 10,
-                                fontWeight: 700,
-                              }}
+                              label={
+                                // dy offsets it one line below MTD so the two
+                                // stay readable when the values sit close.
+                                <RefLineLabel
+                                  text="Projected"
+                                  amount={inr(projectedMonthEndRevenue)}
+                                  color="#b10000"
+                                  dy={14}
+                                />
+                              }
                             />
                           </ReBarChart>
                         </ResponsiveContainer>
                       </div>
                       <p className="mt-2 text-[11px] text-gray-500">
                         Bars show the revenue needed to hit each EBITDA target
-                        this month. Blue = revenue so far (MTD), red dashed =
-                        projected month-end revenue at the current daily pace.
+                        this month. Blue = revenue so far (MTD,{" "}
+                        {inr(mtdRevenue)}), red dashed = projected month-end
+                        revenue at the current daily pace (
+                        {inr(projectedMonthEndRevenue)}).
                       </p>
                     </>
                   );
@@ -2093,13 +2198,18 @@ export default function Insights() {
 
           {/* Insights Setup */}
           {activeTab === "Insights Setup" && (
-            <div className="flex h-full overflow-hidden bg-[#f6f7fb]">
+            <div className="flex flex-col bg-[#f6f7fb] lg:h-full lg:flex-row lg:overflow-hidden">
               {/* ================= SIDEBAR ================= */}
 
-              <div className="hide-scrollbar h-full w-[230px] overflow-y-auto border-r border-gray-200 bg-white p-4">
+              {/* On a phone this is not a sidebar but a slim sticky strip —
+                  readiness, Save, and a swipeable section picker — so the first
+                  form field is visible immediately instead of ~575px down. */}
+              <div className="hide-scrollbar sticky top-0 z-30 w-full shrink-0 space-y-2 border-b border-gray-200 bg-white px-3 py-2 lg:static lg:h-full lg:w-[230px] lg:space-y-0 lg:overflow-y-auto lg:border-r lg:border-b-0 lg:p-4">
                 {/* AI CARD */}
 
-                <div className="rounded-xl border border-red-100 bg-[#b10000] p-4 shadow-sm">
+                {/* Decorative on a phone — 155px of vertical space that pushes
+                    the actual form off-screen, so it is desktop-only. */}
+                <div className="hidden rounded-xl border border-red-100 bg-[#b10000] p-4 shadow-sm lg:block">
                   <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/15">
                     <Sparkles className="h-5 w-5 text-white" />
                   </div>
@@ -2119,92 +2229,63 @@ export default function Insights() {
 
                 {/* COMPLETION */}
 
-                <div className="mt-4 rounded-xl border border-gray-200 bg-white p-4">
-                  {(() => {
-                    const fields = [
-                      insightsData.monthlyRent,
-                      insightsData.loanEmi,
-                      insightsData.internet,
-                      insightsData.phoneBills,
-                      insightsData.accounting,
-                      insightsData.insurance,
-                      insightsData.licenses,
-
-                      insightsData.deliveryCharges,
-                      insightsData.packaging,
-                      insightsData.paymentGateway,
-                      insightsData.aggregatorCommission,
-                      insightsData.electricity,
-                      insightsData.gas,
-                      insightsData.maintenance,
-                      insightsData.fuel,
-
-                      targetEbitda,
-                      targetFoodCost,
-                      targetGrossMargin,
-                      targetPrimeCost,
-                      insightsData.monthlyRevenueGoal,
-                      insightsData.monthlyProfitGoal,
-
-                      insightsData.gstPercentage,
-                      insightsData.monthlyLoanEmi,
-                      insightsData.monthlyInterestPayments,
-                      insightsData.caFees,
-                      insightsData.insuranceCost,
-                      insightsData.otherTaxes,
-
-                      insightsData.expectedMonthlyGrowth,
-                      insightsData.expectedDeliveryGrowth,
-                      insightsData.seasonalImpact,
-                      insightsData.weekendSalesIncrease,
-
-                      insightsData.plannedExpansion,
-                    ];
-
-                    const filledFields = fields.filter(
-                      (field) =>
-                        field !== null &&
-                        field !== undefined &&
-                        field !== "" &&
-                        field !== 0,
-                    ).length;
-
-                    const completion = Math.round(
-                      (filledFields / fields.length) * 100,
-                    );
-
-                    return (
-                      <>
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <p className="text-sm font-semibold text-gray-900">
-                              Setup Readiness
-                            </p>
-
-                            <p className="mt-1 text-[11px] text-gray-500">
-                              AI configuration progress
-                            </p>
-                          </div>
-
-                          <p className="text-xl font-bold text-[#b10000]">
-                            {completion}%
-                          </p>
-                        </div>
-
-                        <div className="mt-4 h-2 overflow-hidden rounded-full bg-gray-100">
-                          <div
-                            className="h-full rounded-full bg-[#b10000] transition-all duration-500"
-                            style={{ width: `${completion}%` }}
-                          />
-                        </div>
-                      </>
-                    );
-                  })()}
+                {/* Mobile: one slim line inside the sticky strip, with Save
+                    alongside so it stays reachable down a long form. */}
+                <div className="flex items-center gap-3 lg:hidden">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-baseline justify-between gap-2">
+                      <span className="text-[11px] font-semibold text-gray-600">
+                        Setup readiness
+                      </span>
+                      <span className="text-[12px] font-bold text-[#b10000]">
+                        {setupCompletion}%
+                      </span>
+                    </div>
+                    <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-gray-100">
+                      <div
+                        className="h-full rounded-full bg-[#b10000] transition-all duration-500"
+                        style={{ width: `${setupCompletion}%` }}
+                      />
+                    </div>
+                  </div>
+                  {insightsSection !== "Labour" && (
+                    <button
+                      onClick={handleSaveInsights}
+                      className="flex shrink-0 items-center gap-1.5 rounded-xl bg-[#b10000] px-3 py-2 text-[12px] font-semibold text-white"
+                    >
+                      <Save className="h-3.5 w-3.5" />
+                      Save
+                    </button>
+                  )}
                 </div>
 
-                {/* NAVIGATION */}
+                {/* Desktop: the full readiness card. */}
+                <div className="mt-4 hidden rounded-xl border border-gray-200 bg-white p-4 lg:block">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-semibold text-gray-900">
+                        Setup Readiness
+                      </p>
+                      <p className="mt-1 text-[11px] text-gray-500">
+                        AI configuration progress
+                      </p>
+                    </div>
+                    <p className="text-xl font-bold text-[#b10000]">
+                      {setupCompletion}%
+                    </p>
+                  </div>
+                  <div className="mt-4 h-2 overflow-hidden rounded-full bg-gray-100">
+                    <div
+                      className="h-full rounded-full bg-[#b10000] transition-all duration-500"
+                      style={{ width: `${setupCompletion}%` }}
+                    />
+                  </div>
+                </div>
 
-                <div className="mt-4 space-y-1.5">
+                {/* NAVIGATION — swipeable pill strip on a phone, vertical list
+                    from lg up. */}
+
+                <div className="hide-scrollbar -mx-1 flex gap-2 overflow-x-auto px-1 pb-0.5 lg:mx-0 lg:mt-4 lg:flex-col lg:gap-0 lg:space-y-1.5 lg:overflow-x-visible lg:px-0 lg:pb-0">
                   {[
                     {
                       label: "Fixed Expenses",
@@ -2241,13 +2322,16 @@ export default function Insights() {
                       <button
                         key={item.label}
                         onClick={() => setInsightsSection(item.label)}
-                        className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium transition-all duration-200 ${
+                        aria-current={
+                          insightsSection === item.label ? "true" : undefined
+                        }
+                        className={`flex shrink-0 items-center gap-2 rounded-full border px-3 py-2 text-left text-[12px] font-semibold whitespace-nowrap transition-all duration-200 lg:w-full lg:gap-3 lg:rounded-xl lg:border-0 lg:px-3 lg:py-2.5 lg:text-sm lg:font-medium ${
                           insightsSection === item.label
-                            ? "bg-[#b10000] text-white shadow-sm"
-                            : "text-gray-700 hover:bg-gray-50"
+                            ? "border-[#b10000] bg-[#b10000] text-white shadow-sm"
+                            : "border-gray-200 text-gray-700 hover:bg-gray-50"
                         }`}
                       >
-                        <Icon className="h-4 w-4" />
+                        <Icon className="h-4 w-4 shrink-0" />
 
                         <span>{item.label}</span>
                       </button>
@@ -2262,7 +2346,10 @@ export default function Insights() {
                 <div className="mx-auto max-w-7xl space-y-4">
                   {/* TOP HEADER */}
 
-                  <div className="sticky top-0 z-20 rounded-xl border border-gray-200 bg-white px-4 py-3 shadow-sm">
+                  {/* Static on a phone — the sticky strip above already holds
+                      the section picker and Save, and two stacked sticky
+                      elements at top-0 would overlap. */}
+                  <div className="rounded-xl border border-gray-200 bg-white px-4 py-3 shadow-sm lg:sticky lg:top-0 lg:z-20">
                     <div className="flex flex-wrap items-center justify-between gap-4">
                       {/* LEFT */}
 
@@ -2291,7 +2378,7 @@ export default function Insights() {
                       {insightsSection !== "Labour" && (
                         <button
                           onClick={handleSaveInsights}
-                          className="flex items-center gap-2 rounded-xl bg-[#b10000] px-4 py-2 text-sm font-semibold text-white shadow-sm transition-all duration-200 hover:bg-[#950000]"
+                          className="hidden items-center gap-2 rounded-xl bg-[#b10000] px-4 py-2 text-sm font-semibold text-white shadow-sm transition-all duration-200 hover:bg-[#950000] lg:flex"
                         >
                           <Save className="h-4 w-4" />
                           Save Setup
@@ -2994,6 +3081,7 @@ export default function Insights() {
                         {/* TABLE */}
 
                         <div className="overflow-x-auto">
+                          <MobileTableCards>
                           <table className="min-w-full">
                             {/* HEAD */}
 
@@ -3105,6 +3193,7 @@ export default function Insights() {
                               ))}
                             </tbody>
                           </table>
+                          </MobileTableCards>
                         </div>
                       </div>
                     </div>
@@ -4093,15 +4182,80 @@ export default function Insights() {
                 </div>
               ) : (
                 <>
-                  {ASSUMPTION_FIELD_GROUPS.map((group) => (
+                  {(() => {
+                    const allOpen = ASSUMPTION_FIELD_GROUPS.every(
+                      (g) => openAssumptionGroups[g.title],
+                    );
+                    return (
+                      <div className="flex justify-end">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setOpenAssumptionGroups(
+                              allOpen
+                                ? {}
+                                : Object.fromEntries(
+                                    ASSUMPTION_FIELD_GROUPS.map((g) => [
+                                      g.title,
+                                      true,
+                                    ]),
+                                  ),
+                            )
+                          }
+                          className="text-[11px] font-semibold text-[#b10000] hover:underline"
+                        >
+                          {allOpen ? "Collapse all" : "Expand all"}
+                        </button>
+                      </div>
+                    );
+                  })()}
+
+                  {ASSUMPTION_FIELD_GROUPS.map((group) => {
+                    const isOpen = !!openAssumptionGroups[group.title];
+                    // Header summary — lets you see which groups still need
+                    // attention without opening every one of them.
+                    const setCount = group.fields.filter((f) => {
+                      const v = activeAssumptionValues[f.key];
+                      return v !== null && v !== undefined && v !== "";
+                    }).length;
+                    const overrideCount = group.fields.filter((f) =>
+                      overriddenFields.includes(f.key),
+                    ).length;
+
+                    return (
                     <div
                       key={group.title}
-                      className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm"
+                      className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm"
                     >
-                      <h4 className="mb-3 text-[13px] font-bold text-gray-900">
-                        {group.title}
-                      </h4>
-                      <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setOpenAssumptionGroups((prev) => ({
+                            ...prev,
+                            [group.title]: !prev[group.title],
+                          }))
+                        }
+                        aria-expanded={isOpen}
+                        className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left transition hover:bg-gray-50 active:bg-gray-50"
+                      >
+                        <span className="min-w-0">
+                          <span className="block text-[13px] font-bold text-gray-900">
+                            {group.title}
+                          </span>
+                          <span className="mt-0.5 block text-[11px] text-gray-400">
+                            {setCount} of {group.fields.length} set
+                            {assumptionsMode === "branch" && overrideCount > 0
+                              ? ` · ${overrideCount} override${overrideCount > 1 ? "s" : ""}`
+                              : ""}
+                          </span>
+                        </span>
+                        <ChevronDown
+                          className={`h-4 w-4 shrink-0 text-gray-400 transition-transform ${isOpen ? "rotate-180" : ""}`}
+                        />
+                      </button>
+
+                      {isOpen && (
+                      <div className="grid grid-cols-1 gap-3 border-t border-gray-100 p-4 md:grid-cols-2 xl:grid-cols-3">
                         {group.fields.map((field) => {
                           const isOverridden = overriddenFields.includes(
                             field.key,
@@ -4164,8 +4318,10 @@ export default function Insights() {
                           );
                         })}
                       </div>
+                      )}
                     </div>
-                  ))}
+                    );
+                  })}
 
                   <div className="flex items-center justify-end gap-3">
                     {assumptionsSavedAt && (

@@ -6,6 +6,7 @@ import { saveAs } from "file-saver";
 import { ArrowDownTrayIcon, PrinterIcon } from "@heroicons/react/24/outline";
 import { useAppSelector } from "../../store";
 import { fmtCategoryValue, SCENARIO_KPIS } from "./scenarioCategories";
+import MobileTableCards from "../../components/common/MobileTableCards";
 
 const REPORT_TYPES = [
   { key: "summary", label: "Scenario Summary" },
@@ -321,6 +322,7 @@ export default function ReportsTab() {
             <p className="text-[12px] text-gray-500">{reportSubtitle}</p>
           </div>
           <div className="overflow-x-auto rounded-xl border border-gray-200">
+            <MobileTableCards>
             <table className="w-full text-[12px]">
               <thead className="bg-gray-50 text-[10px] font-bold uppercase tracking-wide text-gray-500">
                 <tr>
@@ -339,6 +341,7 @@ export default function ReportsTab() {
                 ))}
               </tbody>
             </table>
+            </MobileTableCards>
           </div>
         </div>
       )}

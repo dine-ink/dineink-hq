@@ -9,6 +9,7 @@ import {
   PrinterIcon,
 } from "@heroicons/react/24/outline";
 import { useAppSelector } from "../../store";
+import MobileTableCards from "../../components/common/MobileTableCards";
 
 const STATEMENT_TYPES: { key: string; label: string }[] = [
   { key: "pnl", label: "Profit & Loss" },
@@ -270,6 +271,9 @@ export default function FinancialStatements() {
                   <div className="bg-gray-50 px-4 py-2 text-[13px] font-bold text-gray-900">
                     {section.title}
                   </div>
+                  {/* Two columns — label and value — so this fits any phone.
+                      No min-width and no scroll container: both would force a
+                      horizontal scroll for no reason. */}
                   <table className="w-full text-[13px]">
                     <tbody>
                       {section.rows.map((r: any, j: number) => (

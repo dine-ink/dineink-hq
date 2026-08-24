@@ -1,12 +1,11 @@
 import { Link } from "react-router-dom";
 import { HomeIcon } from "@heroicons/react/24/outline";
+import Logo from "../components/common/Logo";
 
 export default function NotFound() {
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-gray-50 px-4 text-center">
-      <div className="flex h-20 w-20 items-center justify-center rounded-3xl bg-[#b10000] shadow-xl">
-        <span className="text-3xl font-black text-white">D</span>
-      </div>
+      <Logo tone="onLight" size="lg" />
       <h1 className="mt-6 text-[5rem] font-black leading-none tracking-tight text-gray-900">
         404
       </h1>

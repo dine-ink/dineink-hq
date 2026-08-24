@@ -18,6 +18,7 @@ import {
   MapPinIcon,
 } from "@heroicons/react/24/outline";
 import { chartPalette } from "../../design";
+import MobileTableCards from "../../components/common/MobileTableCards";
 
 // The app's one shared qualitative chart palette (src/design/tokens/colors
 // .ts) — previously its own slightly-different copy of this same red/blue/
@@ -444,6 +445,7 @@ export default function BranchComparison() {
                 </p>
               </div>
               <div className="overflow-x-auto">
+                <MobileTableCards>
                 <table className="min-w-full text-[12px]">
                   <thead className="bg-gray-50">
                     <tr className="border-b border-gray-100">
@@ -514,6 +516,7 @@ export default function BranchComparison() {
                     })}
                   </tbody>
                 </table>
+                </MobileTableCards>
               </div>
             </div>
 

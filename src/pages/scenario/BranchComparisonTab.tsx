@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Trophy } from "lucide-react";
 import { useAppSelector } from "../../store";
 import { fmtCategoryValue } from "./scenarioCategories";
+import MobileTableCards from "../../components/common/MobileTableCards";
 
 // "Apply a scenario across every branch" (spec section 10) reuses the
 // existing per-scenario what-if endpoint — no new backend aggregation route.
@@ -149,6 +150,7 @@ export default function BranchComparisonTab() {
         <div className="flex h-40 items-center justify-center text-[12px] text-gray-400">Loading…</div>
       ) : (
         <div className="overflow-x-auto rounded-xl border border-gray-200">
+          <MobileTableCards>
           <table className="w-full text-[12px]">
             <thead className="bg-gray-50 text-[10px] font-bold uppercase tracking-wide text-gray-500">
               <tr>
@@ -184,6 +186,7 @@ export default function BranchComparisonTab() {
               ))}
             </tbody>
           </table>
+          </MobileTableCards>
         </div>
       )}
     </div>

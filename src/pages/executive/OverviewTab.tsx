@@ -4,6 +4,7 @@ import { useAppSelector } from "../../store";
 import { ALL_KPI_LABELS, fmtCategoryValue, PERIOD_OPTIONS, STATUS_STYLES, WIDGET_KPIS } from "./executiveCategories";
 import { AlertIcon, TrendIcon } from "../../utils/kpiDisplay";
 import { ALERT_STYLES, trendStyle } from "../../utils/kpiStyles";
+import MobileTableCards from "../../components/common/MobileTableCards";
 
 export default function OverviewTab() {
   const { selectedBranch } = useAppSelector((s) => s.branch);
@@ -230,6 +231,7 @@ export default function OverviewTab() {
 
           {/* FULL KPI TABLE */}
           <div className="overflow-x-auto rounded-xl border border-gray-200">
+            <MobileTableCards>
             <table className="w-full text-[12px]">
               <thead className="bg-gray-50 text-[10px] font-bold uppercase tracking-wide text-gray-500">
                 <tr>
@@ -263,6 +265,7 @@ export default function OverviewTab() {
                 })}
               </tbody>
             </table>
+            </MobileTableCards>
           </div>
         </>
       )}

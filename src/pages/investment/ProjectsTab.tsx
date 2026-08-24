@@ -5,6 +5,7 @@ import {
 } from "recharts";
 import { useAppSelector } from "../../store";
 import { ASSUMPTION_FIELDS, fmtCategoryValue, INVESTMENT_STATUSES, INVESTMENT_TYPES, riskLevelFor, RISK_STYLES, STATUS_STYLES } from "./investmentCategories";
+import MobileTableCards from "../../components/common/MobileTableCards";
 
 const SCENARIO_TYPE_LABEL: Record<string, string> = { CONSERVATIVE: "Conservative", EXPECTED: "Expected", OPTIMISTIC: "Optimistic" };
 
@@ -175,8 +176,9 @@ export default function ProjectsTab() {
             No investment projects yet — create one to evaluate before committing capital.
           </div>
         ) : (
-          <div className="overflow-hidden rounded-xl border border-gray-200">
-            <table className="w-full text-[12px]">
+          <div className="overflow-x-auto rounded-xl border border-gray-200">
+            <MobileTableCards>
+            <table className="w-full text-[12px] min-w-[36rem]">
               <thead className="bg-gray-50 text-[10px] font-bold uppercase tracking-wide text-gray-500">
                 <tr>
                   <th className="px-4 py-2 text-left">Name</th>
@@ -206,6 +208,7 @@ export default function ProjectsTab() {
                 ))}
               </tbody>
             </table>
+            </MobileTableCards>
           </div>
         )}
       </div>
@@ -359,7 +362,9 @@ export default function ProjectsTab() {
       {forecastComparison && (
         <div className="overflow-hidden rounded-xl border border-gray-200">
           <div className="bg-gray-50 px-4 py-2 text-[11px] font-bold text-gray-900">Forecast: With vs Without This Investment (Next Year)</div>
-          <table className="w-full text-[12px]">
+          <div className="overflow-x-auto">
+          <MobileTableCards>
+          <table className="w-full text-[12px] min-w-[36rem]">
             <thead className="text-[10px] font-bold uppercase tracking-wide text-gray-500">
               <tr>
                 <th className="px-4 py-2 text-left">KPI</th>
@@ -379,6 +384,8 @@ export default function ProjectsTab() {
               ))}
             </tbody>
           </table>
+          </MobileTableCards>
+          </div>
         </div>
       )}
 

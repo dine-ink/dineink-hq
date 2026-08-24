@@ -7,6 +7,7 @@ import {
   EyeIcon,
   EyeSlashIcon,
 } from "@heroicons/react/24/outline";
+import Logo from "../../components/common/Logo";
 
 export default function ForgotPassword() {
   const navigate = useNavigate();
@@ -119,21 +120,15 @@ export default function ForgotPassword() {
   };
 
   return (
-    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-gradient-to-b from-red-600 via-red-500 to-rose-600 px-4">
+    <div className="relative flex min-h-dvh items-center justify-center bg-gradient-to-b from-red-600 via-red-500 to-rose-600 px-4 py-8">
       <div className="absolute inset-0 overflow-hidden">
         <div className="absolute left-[-120px] top-[-120px] h-[220px] w-[220px] rounded-full bg-red-300/20 blur-3xl" />
         <div className="absolute bottom-[-120px] right-[-120px] h-[220px] w-[220px] rounded-full bg-rose-300/20 blur-3xl" />
       </div>
 
       <div className="relative w-full max-w-[420px]">
-        <div className="mb-6 flex items-center justify-center gap-3">
-          <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/15 text-lg font-black text-white backdrop-blur-2xl">
-            D
-          </div>
-          <div>
-            <h1 className="text-xl font-black text-white">DineInk</h1>
-            <p className="text-[10px] text-red-100">Restaurant Intelligence</p>
-          </div>
+        <div className="mb-6 flex items-center justify-center">
+          <Logo tone="onColor" size="md" subtitle="Restaurant Intelligence" />
         </div>
 
         <div className="overflow-hidden rounded-[28px] border border-white/60 bg-white">

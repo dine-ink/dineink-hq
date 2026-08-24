@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useAppSelector } from "../../store";
 import { fmtCategoryValue, GRANULARITY_OPTIONS } from "./executiveCategories";
 import { BudgetAchievementChart, ForecastVsActualChart, RevenueHeatMap, TrendChart } from "./ExecutiveCharts";
+import MobileTableCards from "../../components/common/MobileTableCards";
 
 const INVESTMENT_STATUS_LABEL: Record<string, string> = { PLANNED: "Planned", IN_PROGRESS: "In Progress", COMPLETED: "Completed", CANCELLED: "Cancelled" };
 
@@ -70,7 +71,9 @@ export default function TimelineTab() {
             {timeline.investmentTimeline.length === 0 ? (
               <div className="p-4 text-center text-[11px] text-gray-400">No investment projects yet.</div>
             ) : (
-              <table className="w-full text-[12px]">
+              <div className="overflow-x-auto">
+              <MobileTableCards>
+              <table className="w-full text-[12px] min-w-[36rem]">
                 <thead className="text-[10px] font-bold uppercase tracking-wide text-gray-500">
                   <tr>
                     <th className="px-4 py-2 text-left">Project</th>
@@ -92,6 +95,8 @@ export default function TimelineTab() {
                   ))}
                 </tbody>
               </table>
+              </MobileTableCards>
+              </div>
             )}
           </div>
         </>

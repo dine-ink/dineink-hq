@@ -22,25 +22,34 @@ import {
 } from "recharts";
 import dayjs from "dayjs";
 import { chartPalette } from "../../design";
+import MobileTableCards from "../../components/common/MobileTableCards";
 
 // The app's one shared qualitative chart palette — see BranchComparison.tsx
 // for the full duplication history this replaces.
 const COLORS = chartPalette;
 
-const reportTabs = [
-  "P&L Statement",
-  "Tax Report",
-  "Expense Tracker",
-  "Sales Analytics",
-  "Discount Analysis",
-  "Menu Engineering",
-  "Table Analytics",
-  "Waste Report",
-  "Stock Lifecycle",
-  "Hourly Heatmap",
-  "Day Analysis",
-  "Revenue Forecast",
+// Grouped for the mobile picker; the desktop pill row is the flattened list.
+// Twelve pills wrap to six rows on a 375px screen — ~268px of navigation before
+// any report — so phones get a single grouped <select> instead.
+const REPORT_TAB_GROUPS = [
+  { label: "Financial", tabs: ["P&L Statement", "Tax Report", "Expense Tracker"] },
+  {
+    label: "Sales & Menu",
+    tabs: [
+      "Sales Analytics",
+      "Discount Analysis",
+      "Menu Engineering",
+      "Table Analytics",
+    ],
+  },
+  { label: "Operations", tabs: ["Waste Report", "Stock Lifecycle"] },
+  {
+    label: "Timing & Forecast",
+    tabs: ["Hourly Heatmap", "Day Analysis", "Revenue Forecast"],
+  },
 ];
+
+const reportTabs = REPORT_TAB_GROUPS.flatMap((group) => group.tabs);
 
 export default function Report() {
   const API_URL = import.meta.env.VITE_API_URL;
@@ -416,21 +425,50 @@ export default function Report() {
           <div className="absolute -right-8 -top-8 h-24 w-24 rounded-full bg-red-100/40 blur-3xl" />
           <div className="relative z-10 flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
             <div>
-              <h1 className="text-xl font-black tracking-tight text-gray-900">
+              <h1 className="text-lg font-black tracking-tight text-gray-900 sm:text-xl">
                 Financial Reports
               </h1>
-              <p className="mt-0.5 text-[13px] text-gray-500">
+              {/* The strap line and date both repeat below on mobile — the
+                  picker bar already shows the range. */}
+              <p className="mt-0.5 hidden text-[13px] text-gray-500 sm:block">
                 P&L, tax, expenses and sales analytics
               </p>
             </div>
-            <p className="text-[11px] text-gray-400">
+            <p className="hidden text-[11px] text-gray-400 sm:block">
               {from} → {to}
             </p>
           </div>
         </div>
 
-        {/* TABS */}
-        <div className="flex flex-wrap gap-2">
+        {/* TABS — mobile: one sticky grouped picker. Desktop: the pill row. */}
+        <div className="sticky top-0 z-30 -mx-3 flex items-center gap-2 border-b border-gray-200 bg-white/95 px-3 py-2 backdrop-blur lg:hidden">
+          <label htmlFor="report-picker" className="sr-only">
+            Choose a report
+          </label>
+          <select
+            id="report-picker"
+            value={activeTab}
+            onChange={(e) => setActiveTab(e.target.value)}
+            className="h-10 min-w-0 flex-1 rounded-xl border border-gray-200 bg-white px-3 font-semibold text-gray-900 outline-none focus:border-red-300 focus:ring-2 focus:ring-red-100"
+          >
+            {REPORT_TAB_GROUPS.map((group) => (
+              <optgroup key={group.label} label={group.label}>
+                {group.tabs.map((tab) => (
+                  <option key={tab} value={tab}>
+                    {tab}
+                  </option>
+                ))}
+              </optgroup>
+            ))}
+          </select>
+          <span className="shrink-0 text-[10px] leading-tight text-gray-400">
+            {from}
+            <br />
+            {to}
+          </span>
+        </div>
+
+        <div className="hidden flex-wrap gap-2 lg:flex">
           {reportTabs.map((tab) => (
             <button
               key={tab}
@@ -511,6 +549,7 @@ export default function Report() {
                 </p>
               </div>
               <div className="p-4">
+                <MobileTableCards>
                 <table className="w-full text-sm">
                   <tbody>
                     <tr className="border-b border-gray-100">
@@ -671,6 +710,7 @@ export default function Report() {
                     </tr>
                   </tbody>
                 </table>
+                </MobileTableCards>
               </div>
             </div>
 
@@ -850,6 +890,7 @@ export default function Report() {
                 </button>
               </div>
               <div className="overflow-x-auto">
+                <MobileTableCards>
                 <table className="min-w-full text-[12px]">
                   <thead className="bg-gray-50">
                     <tr className="border-b border-gray-100">
@@ -960,6 +1001,7 @@ export default function Report() {
                     </tfoot>
                   )}
                 </table>
+                </MobileTableCards>
               </div>
             </div>
           </div>
@@ -1278,6 +1320,7 @@ export default function Report() {
                 </div>
               </div>
               <div className="overflow-x-auto">
+                <MobileTableCards>
                 <table className="min-w-full text-[12px]">
                   <thead className="bg-gray-50">
                     <tr className="border-b border-gray-100">
@@ -1359,6 +1402,7 @@ export default function Report() {
                     )}
                   </tbody>
                 </table>
+                </MobileTableCards>
               </div>
             </div>
           </div>
@@ -1422,6 +1466,7 @@ export default function Report() {
                 </p>
               </div>
               <div className="overflow-x-auto">
+                <MobileTableCards>
                 <table className="min-w-full text-[12px]">
                   <thead className="bg-gray-50">
                     <tr className="border-b border-gray-100">
@@ -1506,6 +1551,7 @@ export default function Report() {
                     )}
                   </tbody>
                 </table>
+                </MobileTableCards>
               </div>
             </div>
           </div>
@@ -1700,6 +1746,7 @@ export default function Report() {
                     </p>
                   </div>
                   <div className="overflow-x-auto">
+                    <MobileTableCards>
                     <table className="min-w-full text-[12px]">
                       <thead className="bg-gray-50/70">
                         <tr className="border-b border-gray-100">
@@ -1773,6 +1820,7 @@ export default function Report() {
                         )}
                       </tbody>
                     </table>
+                    </MobileTableCards>
                   </div>
                 </div>
 
@@ -1873,6 +1921,7 @@ export default function Report() {
                       </div>
                       {dishA && dishB ? (
                         <div className="overflow-x-auto border-t border-gray-100">
+                          <MobileTableCards>
                           <table className="min-w-full text-[12px]">
                             <thead className="bg-gray-50/70">
                               <tr className="border-b border-gray-100">
@@ -1906,6 +1955,7 @@ export default function Report() {
                               ))}
                             </tbody>
                           </table>
+                          </MobileTableCards>
                         </div>
                       ) : (
                         <p className="px-4 pb-4 text-[12px] text-gray-400">
@@ -1936,6 +1986,7 @@ export default function Report() {
                           </p>
                         </div>
                         <div className="overflow-x-auto">
+                          <MobileTableCards>
                           <table className="min-w-full text-[12px]">
                             <thead className="bg-gray-50/70">
                               <tr className="border-b border-gray-100">
@@ -1973,6 +2024,7 @@ export default function Report() {
                               ))}
                             </tbody>
                           </table>
+                          </MobileTableCards>
                         </div>
                       </div>
 
@@ -1986,6 +2038,7 @@ export default function Report() {
                           </p>
                         </div>
                         <div className="overflow-x-auto">
+                          <MobileTableCards>
                           <table className="min-w-full text-[12px]">
                             <thead className="bg-gray-50/70">
                               <tr className="border-b border-gray-100">
@@ -2023,6 +2076,7 @@ export default function Report() {
                               ))}
                             </tbody>
                           </table>
+                          </MobileTableCards>
                         </div>
                       </div>
                     </div>
@@ -2041,6 +2095,7 @@ export default function Report() {
                       </p>
                     </div>
                     <div className="overflow-x-auto">
+                      <MobileTableCards>
                       <table className="min-w-full text-[12px]">
                         <thead className="bg-gray-50/70">
                           <tr className="border-b border-gray-100">
@@ -2092,6 +2147,7 @@ export default function Report() {
                           )}
                         </tbody>
                       </table>
+                      </MobileTableCards>
                     </div>
                   </div>
 
@@ -2106,6 +2162,7 @@ export default function Report() {
                       </p>
                     </div>
                     <div className="overflow-x-auto">
+                      <MobileTableCards>
                       <table className="min-w-full text-[12px]">
                         <thead className="bg-gray-50/70">
                           <tr className="border-b border-gray-100">
@@ -2164,6 +2221,7 @@ export default function Report() {
                           )}
                         </tbody>
                       </table>
+                      </MobileTableCards>
                     </div>
                   </div>
                 </div>
@@ -2247,6 +2305,7 @@ export default function Report() {
                             </div>
                           </div>
                           <div className="overflow-x-auto">
+                            <MobileTableCards>
                             <table className="min-w-full text-[12px]">
                               <thead className="bg-white/60">
                                 <tr className="border-b border-white/60">
@@ -2315,6 +2374,7 @@ export default function Report() {
                                 )}
                               </tbody>
                             </table>
+                            </MobileTableCards>
                           </div>
                         </div>
                       );
@@ -2538,6 +2598,7 @@ export default function Report() {
                     </h3>
                   </div>
                   <div className="overflow-x-auto">
+                    <MobileTableCards>
                     <table className="min-w-full text-[12px]">
                       <thead className="bg-gray-50">
                         <tr className="border-b border-gray-100">
@@ -2607,6 +2668,7 @@ export default function Report() {
                         )}
                       </tbody>
                     </table>
+                    </MobileTableCards>
                   </div>
                 </div>
               </div>
@@ -2812,6 +2874,7 @@ export default function Report() {
                     </p>
                   </div>
                   <div className="overflow-x-auto">
+                    <MobileTableCards>
                     <table className="min-w-full text-[12px]">
                       <thead className="bg-gray-50">
                         <tr className="border-b border-gray-100">
@@ -2892,6 +2955,7 @@ export default function Report() {
                         )}
                       </tbody>
                     </table>
+                    </MobileTableCards>
                   </div>
                 </div>
               </div>
@@ -3826,6 +3890,7 @@ export default function Report() {
                 </p>
               </div>
               <div className="overflow-x-auto">
+                <MobileTableCards>
                 <table className="min-w-full text-[12px]">
                   <thead className="bg-gray-50">
                     <tr className="border-b border-gray-100">
@@ -3928,6 +3993,7 @@ export default function Report() {
                     )}
                   </tbody>
                 </table>
+                </MobileTableCards>
               </div>
             </div>
           </div>

@@ -4,6 +4,7 @@ import { useAppSelector } from "../../store";
 import { fmtCategoryValue } from "./budgetCategories";
 import { TrendIcon } from "../../utils/kpiDisplay";
 import BudgetCharts from "./BudgetCharts";
+import MobileTableCards from "../../components/common/MobileTableCards";
 
 const WIDGET_CATEGORIES = ["revenue", "foodCost", "labour", "ebitda", "netProfit"];
 
@@ -215,8 +216,9 @@ export default function OverviewTab() {
           <BudgetCharts budget={budgets.find((b) => b.id === selectedBudgetId)} />
 
           {/* FULL VARIANCE TABLE */}
-          <div className="overflow-hidden rounded-xl border border-gray-200">
-            <table className="w-full text-[12px]">
+          <div className="overflow-x-auto rounded-xl border border-gray-200">
+            <MobileTableCards>
+            <table className="w-full text-[12px] min-w-[36rem]">
               <thead className="bg-gray-50 text-[10px] font-bold uppercase tracking-wide text-gray-500">
                 <tr>
                   <th className="px-4 py-2 text-left">Category</th>
@@ -246,6 +248,7 @@ export default function OverviewTab() {
                 ))}
               </tbody>
             </table>
+            </MobileTableCards>
           </div>
         </>
       )}

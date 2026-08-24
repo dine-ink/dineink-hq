@@ -5,6 +5,7 @@ import { CONFIDENCE_STYLES, fmtCategoryValue, FORECAST_KPIS, MODEL_OPTIONS, PERI
 import { AlertIcon, TrendIcon } from "../../utils/kpiDisplay";
 import { ALERT_STYLES, trendStyle } from "../../utils/kpiStyles";
 import ForecastCharts from "./ForecastCharts";
+import MobileTableCards from "../../components/common/MobileTableCards";
 
 export default function OverviewTab() {
   const { selectedBranch } = useAppSelector((s) => s.branch);
@@ -147,8 +148,9 @@ export default function OverviewTab() {
           <ForecastCharts kpis={forecast.kpis} />
 
           {/* FULL KPI TABLE */}
-          <div className="overflow-hidden rounded-xl border border-gray-200">
-            <table className="w-full text-[12px]">
+          <div className="overflow-x-auto rounded-xl border border-gray-200">
+            <MobileTableCards>
+            <table className="w-full text-[12px] min-w-[36rem]">
               <thead className="bg-gray-50 text-[10px] font-bold uppercase tracking-wide text-gray-500">
                 <tr>
                   <th className="px-4 py-2 text-left">KPI</th>
@@ -182,6 +184,7 @@ export default function OverviewTab() {
                 })}
               </tbody>
             </table>
+            </MobileTableCards>
           </div>
         </>
       )}

@@ -13,7 +13,64 @@ import {
   CalendarClockIcon,
 } from "lucide-react";
 import SendWhatsAppDialog from "../../components/common/SendWhatsAppDialog";
+import ResponsiveTable, {
+  type ResponsiveColumn,
+} from "../../components/common/ResponsiveTable";
 import { getCustomerSegment } from "../../utils/customerSegments";
+
+const AVATAR_GRADIENTS = [
+  "from-red-500 to-pink-500",
+  "from-blue-500 to-indigo-500",
+  "from-emerald-500 to-teal-500",
+  "from-orange-500 to-amber-500",
+  "from-violet-500 to-purple-500",
+];
+
+const avatarGradient = (name?: string) =>
+  AVATAR_GRADIENTS[(name?.charCodeAt(0) || 0) % AVATAR_GRADIENTS.length];
+
+const avgBillOf = (c: any) => (c.visits ? Math.round(c.spend / c.visits) : 0);
+
+const segmentOf = (c: any) =>
+  c.spend > 5000 ? "VIP" : c.visits > 3 ? "Regular" : "New";
+
+const RFM_SEGMENT_COLORS: Record<string, string> = {
+  Champion: "bg-emerald-50 text-emerald-700",
+  Loyal: "bg-blue-50 text-blue-700",
+  Potential: "bg-violet-50 text-violet-700",
+  "At Risk": "bg-orange-50 text-orange-700",
+  Lost: "bg-red-100 text-red-700",
+};
+
+/** A single R, F or M score, coloured by band. */
+function RfmScore({ value }: { value: number }) {
+  return (
+    <span
+      className={`inline-flex h-6 w-6 items-center justify-center rounded-full text-[11px] font-bold ${value >= 4 ? "bg-emerald-100 text-emerald-700" : value === 3 ? "bg-yellow-100 text-yellow-700" : "bg-red-100 text-red-700"}`}
+    >
+      {value}
+    </span>
+  );
+}
+
+/** Name + phone + avatar — the cell that identifies a customer row. */
+function CustomerIdentity({ customer }: { customer: any }) {
+  return (
+    <div className="flex items-center gap-2">
+      <div
+        className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-gradient-to-br ${avatarGradient(customer.name)} text-[10px] font-bold text-white`}
+      >
+        {customer.name?.charAt(0)}
+      </div>
+      <div className="min-w-0">
+        <p className="truncate text-[12px] font-semibold text-gray-900">
+          {customer.name}
+        </p>
+        <p className="text-[9px] text-gray-400">{customer.phone}</p>
+      </div>
+    </div>
+  );
+}
 
 export default function Customers() {
   const { selectedBranch } = useAppSelector((s) => s.branch);
@@ -210,38 +267,260 @@ export default function Customers() {
     );
   }
 
+  const customerColumns: ResponsiveColumn<any>[] = [
+    {
+      header: "Customer",
+      primary: true,
+      render: (c) => <CustomerIdentity customer={c} />,
+    },
+    {
+      header: "Visits",
+      render: (c) => (
+        <span className="inline-flex rounded-full bg-blue-50 px-1.5 py-[2px] text-[9px] font-semibold text-blue-600">
+          {c.visits} Visits
+        </span>
+      ),
+    },
+    {
+      header: "Avg Bill",
+      render: (c) => (
+        <p className="text-[12px] font-semibold text-gray-800">
+          ₹{avgBillOf(c)}
+        </p>
+      ),
+    },
+    {
+      header: "Spend",
+      render: (c) => (
+        <p className="text-[12px] font-bold text-emerald-600">₹{c.spend}</p>
+      ),
+    },
+    {
+      header: "Preferred",
+      render: (c) => {
+        const preferred = c.preferredOrderType || "-";
+        return (
+          <span
+            className={`inline-flex rounded-full px-1.5 py-[2px] text-[9px] font-semibold ${
+              preferred === "DINE_IN"
+                ? "bg-blue-50 text-blue-600"
+                : "bg-orange-50 text-orange-600"
+            }`}
+          >
+            {preferred.replace("_", " ")}
+          </span>
+        );
+      },
+    },
+    {
+      header: "Last Visit",
+      render: (c) => (
+        <div className="text-[11px] text-gray-500">
+          {c.lastVisit ? new Date(c.lastVisit).toLocaleDateString() : "-"}
+        </div>
+      ),
+    },
+    {
+      header: "Segment",
+      badge: true,
+      render: (c) => {
+        const segment = segmentOf(c);
+        return (
+          <span
+            className={`inline-flex rounded-full px-1.5 py-[2px] text-[9px] font-semibold ${
+              segment === "VIP"
+                ? "bg-purple-50 text-purple-600"
+                : segment === "Regular"
+                  ? "bg-blue-50 text-blue-600"
+                  : "bg-gray-100 text-gray-600"
+            }`}
+          >
+            {segment}
+          </span>
+        );
+      },
+    },
+    {
+      header: "Action",
+      footer: true,
+      render: (c) => (
+        <div className="flex items-center gap-1.5">
+          <button
+            onClick={() => setSelectedCustomer(c)}
+            title="View customer"
+            className="flex h-8 w-8 items-center justify-center rounded-md bg-gray-100 transition hover:bg-[#b10000] md:h-7 md:w-7"
+          >
+            <EyeIcon className="h-3.5 w-3.5 text-gray-600 hover:text-red-600" />
+          </button>
+          <button
+            onClick={() => setMessageCustomer(c)}
+            title="Send WhatsApp message"
+            className="flex h-8 w-8 items-center justify-center rounded-md bg-gray-100 transition hover:bg-[#b10000] md:h-7 md:w-7"
+          >
+            <ChatBubbleLeftRightIcon className="h-3.5 w-3.5 text-gray-600 hover:text-red-600" />
+          </button>
+        </div>
+      ),
+    },
+  ];
+
+  const churnedColumns: ResponsiveColumn<any>[] = [
+    {
+      header: "Customer",
+      primary: true,
+      render: (c) => (
+        <div className="flex items-center gap-2">
+          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-red-100 text-[10px] font-bold text-red-600">
+            {c.name?.charAt(0)}
+          </div>
+          <p className="truncate font-semibold text-gray-900">{c.name}</p>
+        </div>
+      ),
+    },
+    {
+      header: "Days Since",
+      badge: true,
+      render: (c) => {
+        const daysSince = c.lastVisit
+          ? Math.floor(
+              (Date.now() - new Date(c.lastVisit).getTime()) / DAY_MS,
+            )
+          : null;
+        return (
+          <span className="rounded-full bg-red-50 px-2 py-0.5 text-[10px] font-bold text-red-700">
+            {daysSince ? `${daysSince}d` : "—"}
+          </span>
+        );
+      },
+    },
+    {
+      header: "Phone",
+      render: (c) => <span className="text-gray-500">{c.phone}</span>,
+    },
+    {
+      header: "Total Visits",
+      render: (c) => <span className="text-gray-700">{c.visits}</span>,
+    },
+    {
+      header: "Total Spend",
+      render: (c) => (
+        <span className="font-semibold text-gray-900">
+          ₹{Number(c.spend || 0).toLocaleString("en-IN")}
+        </span>
+      ),
+    },
+    {
+      header: "Last Visit",
+      render: (c) => (
+        <span className="text-gray-500">
+          {c.lastVisit ? new Date(c.lastVisit).toLocaleDateString() : "Never"}
+        </span>
+      ),
+    },
+    {
+      header: "Avg Bill",
+      render: (c) => (
+        <span className="text-gray-600">
+          ₹{c.visits ? Math.round(c.spend / c.visits) : 0}
+        </span>
+      ),
+    },
+  ];
+
+  const rfmColumns: ResponsiveColumn<any>[] = [
+    {
+      header: "Customer",
+      primary: true,
+      render: (c) => (
+        <div className="min-w-0">
+          <p className="truncate font-semibold text-gray-900">{c.name}</p>
+          <p className="text-[10px] text-gray-400">{c.phone}</p>
+        </div>
+      ),
+    },
+    {
+      header: "Segment",
+      badge: true,
+      render: (c) => (
+        <span
+          className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold ${RFM_SEGMENT_COLORS[c.segment] || "bg-gray-100 text-gray-600"}`}
+        >
+          {c.segment}
+        </span>
+      ),
+    },
+    { header: "R Score", render: (c) => <RfmScore value={c.R} /> },
+    { header: "F Score", render: (c) => <RfmScore value={c.F} /> },
+    { header: "M Score", render: (c) => <RfmScore value={c.M} /> },
+    {
+      header: "Total",
+      render: (c) => (
+        <>
+          <span className="text-[14px] font-black text-gray-900">{c.rfm}</span>
+          <span className="text-[10px] text-gray-400">/15</span>
+        </>
+      ),
+    },
+    {
+      header: "Last Visit",
+      render: (c) => (
+        <span className="text-gray-500">{c.recencyDays}d ago</span>
+      ),
+    },
+    {
+      header: "Visits",
+      render: (c) => <span className="text-gray-700">{c.frequency}</span>,
+    },
+    {
+      header: "Spend",
+      render: (c) => (
+        <span className="font-bold text-emerald-600">
+          ₹{c.monetary.toLocaleString("en-IN")}
+        </span>
+      ),
+    },
+  ];
+
   return (
     <main className="h-full flex-1 overflow-auto rounded-xl border border-gray-200 bg-[#f8fafc]">
       <div className="mx-auto flex w-full  flex-col gap-2.5">
         <div className="relative overflow-hidden rounded-2xl border border-gray-100 bg-white px-5 py-4 shadow-sm transition-all duration-200 hover:shadow-md">
           <div className="absolute -right-10 -top-10 h-24 w-24 rounded-full bg-red-100/50 blur-3xl" />
           <div className="relative z-10 flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#b10000] shadow-sm">
-                <UsersIcon className="h-4 w-4 text-white" />
+            {/* Title and tabs share a row from sm up; on a phone the tabs get
+                their own full-width row instead of being crushed beside the
+                heading. */}
+            <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#b10000] shadow-sm">
+                  <UsersIcon className="h-4 w-4 text-white" />
+                </div>
+                <div className="min-w-0">
+                  <h1 className="text-[18px] font-bold leading-none tracking-tight text-gray-900">
+                    Customers
+                  </h1>
+                  <p className="mt-1 text-[11px] text-gray-500">
+                    Customer analytics, retention and churn intelligence
+                  </p>
+                </div>
               </div>
-              <div>
-                <h1 className="text-[18px] font-bold leading-none tracking-tight text-gray-900">
-                  Customers
-                </h1>
-                <p className="mt-1 text-[11px] text-gray-500">
-                  Customer analytics, retention and churn intelligence
-                </p>
-              </div>
-              <div className="ml-2 flex overflow-hidden rounded-lg border border-gray-200 bg-white">
-                {(["overview", "churn", "rfm"] as const).map((t) => (
-                  <button
-                    key={t}
-                    onClick={() => setActiveTab(t)}
-                    className={`px-3 py-1.5 text-[11px] font-semibold transition ${activeTab === t ? "bg-[#b10000] text-white" : "text-gray-600 hover:bg-gray-50"}`}
-                  >
-                    {t === "overview"
-                      ? "Overview"
-                      : t === "churn"
-                        ? "Churn Analysis"
-                        : "RFM Score"}
-                  </button>
-                ))}
+
+              <div className="-mx-1 overflow-x-auto px-1 sm:mx-0 sm:ml-2 sm:px-0">
+                <div className="inline-flex overflow-hidden rounded-lg border border-gray-200 bg-white">
+                  {(["overview", "churn", "rfm"] as const).map((t) => (
+                    <button
+                      key={t}
+                      onClick={() => setActiveTab(t)}
+                      className={`shrink-0 px-3 py-2 text-[11px] font-semibold whitespace-nowrap transition sm:py-1.5 ${activeTab === t ? "bg-[#b10000] text-white" : "text-gray-600 hover:bg-gray-50"}`}
+                    >
+                      {t === "overview"
+                        ? "Overview"
+                        : t === "churn"
+                          ? "Churn Analysis"
+                          : "RFM Score"}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
 
@@ -364,170 +643,14 @@ export default function Customers() {
 
             {/* TABLE */}
 
-            <div className="overflow-x-auto">
-              <table className="min-w-full text-[12px]">
-                {/* HEAD */}
-
-                <thead className="bg-gray-50">
-                  <tr className="border-b border-gray-100">
-                    {[
-                      "Customer",
-                      "Visits",
-                      "Avg Bill",
-                      "Spend",
-                      "Preferred",
-                      "Last Visit",
-                      "Segment",
-                      "Action",
-                    ].map((header) => (
-                      <th
-                        key={header}
-                        className="px-4 py-2 text-left text-[9px] font-bold uppercase tracking-[0.16em] text-gray-400"
-                      >
-                        {header}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-
-                {/* BODY */}
-
-                <tbody>
-                  {paginatedCustomers.map((c: any) => {
-                    const avgBill = c.visits
-                      ? Math.round(c.spend / c.visits)
-                      : 0;
-
-                    const preferred = c.preferredOrderType || "-";
-
-                    const segment =
-                      c.spend > 5000 ? "VIP" : c.visits > 3 ? "Regular" : "New";
-
-                    const avatarGradients = [
-                      "from-red-500 to-pink-500",
-                      "from-blue-500 to-indigo-500",
-                      "from-emerald-500 to-teal-500",
-                      "from-orange-500 to-amber-500",
-                      "from-violet-500 to-purple-500",
-                    ];
-                    const gradientIndex =
-                      (c.name?.charCodeAt(0) || 0) % avatarGradients.length;
-
-                    return (
-                      <tr
-                        key={c.id}
-                        className="border-b border-gray-100 transition-all hover:bg-gray-50/60"
-                      >
-                        {/* CUSTOMER */}
-
-                        <td className="px-4 py-1.5">
-                          <div className="flex items-center gap-2">
-                            <div
-                              className={`flex h-7 w-7 items-center justify-center rounded-md bg-gradient-to-br ${avatarGradients[gradientIndex]} text-[10px] font-bold text-white`}
-                            >
-                              {c.name?.charAt(0)}
-                            </div>
-
-                            <div>
-                              <p className="text-[12px] font-semibold text-gray-900">
-                                {c.name}
-                              </p>
-
-                              <p className="text-[9px] text-gray-400">
-                                {c.phone}
-                              </p>
-                            </div>
-                          </div>
-                        </td>
-
-                        {/* VISITS */}
-
-                        <td className="px-4 py-1.5">
-                          <span className="inline-flex rounded-full bg-blue-50 px-1.5 py-[2px] text-[9px] font-semibold text-blue-600">
-                            {c.visits} Visits
-                          </span>
-                        </td>
-
-                        {/* AVG */}
-
-                        <td className="px-4 py-1.5">
-                          <p className="text-[12px] font-semibold text-gray-800">
-                            ₹{avgBill}
-                          </p>
-                        </td>
-
-                        {/* SPEND */}
-
-                        <td className="px-4 py-1.5">
-                          <p className="text-[12px] font-bold text-emerald-600">
-                            ₹{c.spend}
-                          </p>
-                        </td>
-
-                        {/* PREFERRED */}
-
-                        <td className="px-4 py-1.5">
-                          <span
-                            className={`inline-flex rounded-full px-1.5 py-[2px] text-[9px] font-semibold ${
-                              preferred === "DINE_IN"
-                                ? "bg-blue-50 text-blue-600"
-                                : "bg-orange-50 text-orange-600"
-                            }`}
-                          >
-                            {preferred.replace("_", " ")}
-                          </span>
-                        </td>
-
-                        {/* LAST VISIT */}
-
-                        <td className="px-4 py-1.5">
-                          <div className="text-[11px] text-gray-500">
-                            {c.lastVisit
-                              ? new Date(c.lastVisit).toLocaleDateString()
-                              : "-"}
-                          </div>
-                        </td>
-
-                        {/* SEGMENT */}
-
-                        <td className="px-4 py-1.5">
-                          <span
-                            className={`inline-flex rounded-full px-1.5 py-[2px] text-[9px] font-semibold ${
-                              segment === "VIP"
-                                ? "bg-purple-50 text-purple-600"
-                                : segment === "Regular"
-                                  ? "bg-blue-50 text-blue-600"
-                                  : "bg-gray-100 text-gray-600"
-                            }`}
-                          >
-                            {segment}
-                          </span>
-                        </td>
-
-                        {/* ACTION */}
-
-                        <td className="px-4 py-1.5">
-                          <div className="flex items-center gap-1.5">
-                            <button
-                              onClick={() => setSelectedCustomer(c)}
-                              className="flex h-7 w-7 items-center justify-center rounded-md bg-gray-100 transition hover:bg-[#b10000]"
-                            >
-                              <EyeIcon className="h-3.5 w-3.5 text-gray-600 hover:text-red-600" />
-                            </button>
-                            <button
-                              onClick={() => setMessageCustomer(c)}
-                              title="Send WhatsApp message"
-                              className="flex h-7 w-7 items-center justify-center rounded-md bg-gray-100 transition hover:bg-[#b10000]"
-                            >
-                              <ChatBubbleLeftRightIcon className="h-3.5 w-3.5 text-gray-600 hover:text-red-600" />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+            <div className="px-3 pb-3 md:px-0 md:pb-0">
+              <ResponsiveTable
+                columns={customerColumns}
+                data={paginatedCustomers}
+                rowKey={(c) => c.id}
+                minWidth="48rem"
+                emptyMessage="No customers yet"
+              />
             </div>
 
             {/* FOOTER */}
@@ -783,88 +906,14 @@ export default function Customers() {
                   {churned.length} churned
                 </span>
               </div>
-              <div className="overflow-x-auto">
-                <table className="min-w-full text-[12px]">
-                  <thead className="bg-gray-50">
-                    <tr className="border-b border-gray-100">
-                      {[
-                        "Customer",
-                        "Phone",
-                        "Total Visits",
-                        "Total Spend",
-                        "Last Visit",
-                        "Days Since",
-                        "Avg Bill",
-                      ].map((h) => (
-                        <th
-                          key={h}
-                          className="px-4 py-2 text-left text-[10px] font-bold uppercase tracking-wide text-gray-400"
-                        >
-                          {h}
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {churned.slice(0, 20).map((c: any) => {
-                      const daysSince = c.lastVisit
-                        ? Math.floor(
-                            (Date.now() - new Date(c.lastVisit).getTime()) /
-                              (1000 * 60 * 60 * 24),
-                          )
-                        : null;
-                      return (
-                        <tr
-                          key={c.id}
-                          className="border-b border-gray-50 hover:bg-gray-50/60"
-                        >
-                          <td className="px-4 py-2.5">
-                            <div className="flex items-center gap-2">
-                              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-red-100 text-[10px] font-bold text-red-600">
-                                {c.name?.charAt(0)}
-                              </div>
-                              <p className="font-semibold text-gray-900">
-                                {c.name}
-                              </p>
-                            </div>
-                          </td>
-                          <td className="px-4 py-2.5 text-gray-500">
-                            {c.phone}
-                          </td>
-                          <td className="px-4 py-2.5 text-gray-700">
-                            {c.visits}
-                          </td>
-                          <td className="px-4 py-2.5 font-semibold text-gray-900">
-                            ₹{Number(c.spend || 0).toLocaleString("en-IN")}
-                          </td>
-                          <td className="px-4 py-2.5 text-gray-500">
-                            {c.lastVisit
-                              ? new Date(c.lastVisit).toLocaleDateString()
-                              : "Never"}
-                          </td>
-                          <td className="px-4 py-2.5">
-                            <span className="rounded-full bg-red-50 px-2 py-0.5 text-[10px] font-bold text-red-700">
-                              {daysSince ? `${daysSince}d` : "—"}
-                            </span>
-                          </td>
-                          <td className="px-4 py-2.5 text-gray-600">
-                            ₹{c.visits ? Math.round(c.spend / c.visits) : 0}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                    {churned.length === 0 && (
-                      <tr>
-                        <td
-                          colSpan={7}
-                          className="py-10 text-center text-[12px] text-gray-400"
-                        >
-                          No churned customers — excellent retention!
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
+              <div className="px-3 pb-3 md:px-0 md:pb-0">
+                <ResponsiveTable
+                  columns={churnedColumns}
+                  data={churned.slice(0, 20)}
+                  rowKey={(c) => c.id}
+                  minWidth="44rem"
+                  emptyMessage="No churned customers — excellent retention!"
+                />
               </div>
             </div>
           </div>
@@ -975,109 +1024,14 @@ export default function Customers() {
                       total (best first)
                     </p>
                   </div>
-                  <div className="overflow-x-auto">
-                    <table className="min-w-full text-[12px]">
-                      <thead className="bg-gray-50">
-                        <tr className="border-b border-gray-100">
-                          {[
-                            "Customer",
-                            "Segment",
-                            "R Score",
-                            "F Score",
-                            "M Score",
-                            "Total",
-                            "Last Visit",
-                            "Visits",
-                            "Spend",
-                          ].map((h) => (
-                            <th
-                              key={h}
-                              className="px-4 py-2.5 text-left text-[10px] font-bold uppercase tracking-wide text-gray-400"
-                            >
-                              {h}
-                            </th>
-                          ))}
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {(rfmData?.customers || [])
-                          .slice(0, 50)
-                          .map((c: any) => {
-                            const segColor: Record<string, string> = {
-                              Champion: "bg-emerald-50 text-emerald-700",
-                              Loyal: "bg-blue-50 text-blue-700",
-                              Potential: "bg-violet-50 text-violet-700",
-                              "At Risk": "bg-orange-50 text-orange-700",
-                              Lost: "bg-red-100 text-red-700",
-                            };
-                            const ScoreCell = ({ v }: { v: number }) => (
-                              <span
-                                className={`inline-flex h-6 w-6 items-center justify-center rounded-full text-[11px] font-bold ${v >= 4 ? "bg-emerald-100 text-emerald-700" : v === 3 ? "bg-yellow-100 text-yellow-700" : "bg-red-100 text-red-700"}`}
-                              >
-                                {v}
-                              </span>
-                            );
-                            return (
-                              <tr
-                                key={c.id}
-                                className="border-b border-gray-50 hover:bg-gray-50/60"
-                              >
-                                <td className="px-4 py-2.5">
-                                  <p className="font-semibold text-gray-900">
-                                    {c.name}
-                                  </p>
-                                  <p className="text-[10px] text-gray-400">
-                                    {c.phone}
-                                  </p>
-                                </td>
-                                <td className="px-4 py-2.5">
-                                  <span
-                                    className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold ${segColor[c.segment] || "bg-gray-100 text-gray-600"}`}
-                                  >
-                                    {c.segment}
-                                  </span>
-                                </td>
-                                <td className="px-4 py-2.5">
-                                  <ScoreCell v={c.R} />
-                                </td>
-                                <td className="px-4 py-2.5">
-                                  <ScoreCell v={c.F} />
-                                </td>
-                                <td className="px-4 py-2.5">
-                                  <ScoreCell v={c.M} />
-                                </td>
-                                <td className="px-4 py-2.5">
-                                  <span className="text-[14px] font-black text-gray-900">
-                                    {c.rfm}
-                                  </span>
-                                  <span className="text-[10px] text-gray-400">
-                                    /15
-                                  </span>
-                                </td>
-                                <td className="px-4 py-2.5 text-gray-500">
-                                  {c.recencyDays}d ago
-                                </td>
-                                <td className="px-4 py-2.5 text-gray-700">
-                                  {c.frequency}
-                                </td>
-                                <td className="px-4 py-2.5 font-bold text-emerald-600">
-                                  ₹{c.monetary.toLocaleString("en-IN")}
-                                </td>
-                              </tr>
-                            );
-                          })}
-                        {!rfmData?.customers?.length && (
-                          <tr>
-                            <td
-                              colSpan={9}
-                              className="py-12 text-center text-[12px] text-gray-400"
-                            >
-                              No customer data available for RFM scoring
-                            </td>
-                          </tr>
-                        )}
-                      </tbody>
-                    </table>
+                  <div className="px-3 pb-3 md:px-0 md:pb-0">
+                    <ResponsiveTable
+                      columns={rfmColumns}
+                      data={(rfmData?.customers || []).slice(0, 50)}
+                      rowKey={(c) => c.id}
+                      minWidth="52rem"
+                      emptyMessage="No customer data available for RFM scoring"
+                    />
                   </div>
                 </div>
               </>

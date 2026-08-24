@@ -15,6 +15,7 @@ import {
 import SendWhatsAppDialog from "../../components/common/SendWhatsAppDialog";
 import TemplatesPanel, { type WhatsAppTemplate } from "./TemplatesPanel";
 import BulkSendPanel from "./BulkSendPanel";
+import TabStrip from "../../components/common/TabStrip";
 
 const TABS = ["Bulk Send", "Templates", "Message Log"] as const;
 type Tab = (typeof TABS)[number];
@@ -180,25 +181,7 @@ export default function WhatsAppCenter() {
         title="WhatsApp Center"
         subtitle="Demo mode — messages sent here are logged for records only, not actually delivered over WhatsApp yet"
         actions={
-          <div className="flex flex-wrap items-center gap-1.5">
-            {TABS.map((tab) => (
-              <button
-                key={tab}
-                type="button"
-                onClick={() => setActiveTab(tab)}
-                className={`rounded-button px-3.5 py-2 text-[12px] font-semibold transition ${
-                  activeTab === tab
-                    ? "bg-primary-600 text-white shadow-sm"
-                    : "border border-gray-200 bg-white text-gray-600 hover:bg-gray-50"
-                }`}
-              >
-                {tab}
-              </button>
-            ))}
-            <Button onClick={() => setSendOpen(true)} size="sm" variant="outline">
-              Send Single Message
-            </Button>
-          </div>
+          <TabStrip tabs={TABS} value={activeTab} onChange={setActiveTab} />
         }
       />
 

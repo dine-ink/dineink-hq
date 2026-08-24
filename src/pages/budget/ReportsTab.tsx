@@ -6,6 +6,7 @@ import { saveAs } from "file-saver";
 import { ArrowDownTrayIcon, PrinterIcon } from "@heroicons/react/24/outline";
 import { useAppSelector } from "../../store";
 import { fmtCategoryValue } from "./budgetCategories";
+import MobileTableCards from "../../components/common/MobileTableCards";
 
 // Monthly/Quarterly/Yearly/Variance Report are all the same underlying
 // Budget vs Actual data at a different period granularity — one flexible
@@ -223,8 +224,9 @@ export default function ReportsTab() {
             <h3 className="text-[16px] font-bold text-gray-900">{reportTitle}</h3>
             <p className="text-[12px] text-gray-500">{reportSubtitle}</p>
           </div>
-          <div className="overflow-hidden rounded-xl border border-gray-200">
-            <table className="w-full text-[12px]">
+          <div className="overflow-x-auto rounded-xl border border-gray-200">
+            <MobileTableCards>
+            <table className="w-full text-[12px] min-w-[36rem]">
               <thead className="bg-gray-50 text-[10px] font-bold uppercase tracking-wide text-gray-500">
                 <tr>
                   <th className="px-4 py-2 text-left">Category</th>
@@ -250,6 +252,7 @@ export default function ReportsTab() {
                 ))}
               </tbody>
             </table>
+            </MobileTableCards>
           </div>
         </div>
       )}

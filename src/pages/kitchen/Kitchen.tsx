@@ -16,6 +16,7 @@ import {
 } from "recharts";
 import { FireIcon } from "@heroicons/react/24/outline";
 import { PageContainer, PageHeader, MetricCard, LoadingOverlay, Alert, type MetricStatus } from "../../design";
+import MobileTableCards from "../../components/common/MobileTableCards";
 
 const TICK = { fontSize: 10, fill: "#6b7280" };
 
@@ -644,6 +645,7 @@ export default function Kitchen() {
             )}
           </div>
           <div className="overflow-x-auto">
+            <MobileTableCards>
             <table className="min-w-full text-[12px]">
               <thead className="bg-gray-50">
                 <tr className="border-b border-gray-100">
@@ -716,6 +718,7 @@ export default function Kitchen() {
                 )}
               </tbody>
             </table>
+            </MobileTableCards>
           </div>
         </div>
     </PageContainer>

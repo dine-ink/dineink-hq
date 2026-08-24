@@ -13,6 +13,7 @@ import {
   Tooltip,
   ReferenceLine,
 } from "recharts";
+import MobileTableCards from "../../components/common/MobileTableCards";
 
 export default function CashSessions() {
   const API_URL = import.meta.env.VITE_API_URL;
@@ -329,6 +330,7 @@ export default function CashSessions() {
             </p>
           </div>
           <div className="overflow-x-auto">
+            <MobileTableCards>
             <table className="min-w-full text-[12px]">
               <thead className="bg-gray-50">
                 <tr className="border-b border-gray-100">
@@ -473,6 +475,7 @@ export default function CashSessions() {
                 </tfoot>
               )}
             </table>
+            </MobileTableCards>
           </div>
         </div>
       </div>

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Alert, Button, MetricCard } from "../../design";
 import { CHART_CARD } from "./laborCategories";
 import { useLaborQuery, useLaborScope } from "./useLaborApi";
+import MobileTableCards from "../../components/common/MobileTableCards";
 
 // Calibration: comparing the labor standards an owner entered against what the
 // kitchen actually did. The honesty of this tab matters more than its numbers —
@@ -186,6 +187,7 @@ export default function CalibrationTab() {
                 </p>
               </div>
               <div className="overflow-x-auto">
+                <MobileTableCards>
                 <table className="min-w-full text-[12px]">
                   <thead className="bg-gray-50">
                     <tr className="border-b border-gray-100">
@@ -248,6 +250,7 @@ export default function CalibrationTab() {
                     })}
                   </tbody>
                 </table>
+                </MobileTableCards>
               </div>
             </div>
           )}
@@ -262,6 +265,7 @@ export default function CalibrationTab() {
                 </p>
               </div>
               <div className="overflow-x-auto">
+                <MobileTableCards>
                 <table className="min-w-full text-[12px]">
                   <thead className="bg-gray-50">
                     <tr className="border-b border-gray-100">
@@ -294,6 +298,7 @@ export default function CalibrationTab() {
                     ))}
                   </tbody>
                 </table>
+                </MobileTableCards>
               </div>
               <div className="border-t border-gray-100 bg-amber-50/50 px-4 py-3">
                 <p className="text-[11px] font-semibold text-amber-800">Not an individual speed rating</p>

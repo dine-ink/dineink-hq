@@ -3,11 +3,26 @@
 
 /* Scrollable containers that should still scroll but never show a visible
    scrollbar track (e.g. the dashboard sidebar nav) — cross-browser. */
-.no-scrollbar {
+.no-scrollbar,
+.hide-scrollbar {
   scrollbar-width: none;
   -ms-overflow-style: none;
 }
-.no-scrollbar::-webkit-scrollbar {
+.no-scrollbar::-webkit-scrollbar,
+.hide-scrollbar::-webkit-scrollbar {
   display: none;
+}
+
+/* iOS Safari zooms the whole page in whenever a focused form control has a
+   font-size below 16px — and most of this app's inputs are 12–13px, so every
+   field tap caused a disorienting zoom-and-reflow. Lifting them to 16px on
+   phones only is the standard fix; desktop density is untouched.
+   `md` here matches Tailwind's 48rem breakpoint. */
+@media (max-width: 47.999rem) {
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+  select,
+  textarea {
+    font-size: 16px;
+  }
 }
 

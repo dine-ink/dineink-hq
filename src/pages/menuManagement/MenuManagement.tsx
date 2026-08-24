@@ -31,6 +31,10 @@ import {
   CubeTransparentIcon,
 } from "@heroicons/react/24/solid";
 import {
+  MagnifyingGlassIcon,
+  ChevronDownIcon,
+} from "@heroicons/react/24/outline";
+import {
   MdRestaurant,
   MdLocalCafe,
   MdLocalBar,
@@ -100,6 +104,7 @@ import {
   CartesianGrid,
   ReferenceLine,
 } from "recharts";
+import MobileTableCards from "../../components/common/MobileTableCards";
 
 // Keys match the display names stored in category.icon field in the DB
 const iconMap: any = {
@@ -331,6 +336,11 @@ export default function MenuManagement() {
   const [itemTypeFilter, setItemTypeFilter] = useState("");
   const [itemPriceSort, setItemPriceSort] = useState("");
   const [itemAvailFilter, setItemAvailFilter] = useState("");
+  // Mobile menu list only — which category accordions are open. Collapsed by
+  // default so a long menu is a short list of categories to begin with.
+  const [openItemCategories, setOpenItemCategories] = useState<
+    Record<string, boolean>
+  >({});
   const [showAddItemForm, setShowAddItemForm] = useState(false);
   const [editingItem, setEditingItem] = useState<any>(null);
   const blankItemForm = {
@@ -484,6 +494,35 @@ export default function MenuManagement() {
       if (itemPriceSort === "desc") return b.price - a.price;
       return 0;
     });
+
+  // The same filtered items grouped by category, for the mobile accordion.
+  // Order follows `categories` so the phone list matches the category tab, with
+  // any uncategorised items last.
+  const mobileItemGroups = (() => {
+    const groups = new Map<string, any[]>();
+    for (const item of filteredMenuItems) {
+      const name = item.category?.name || "Uncategorised";
+      const bucket = groups.get(name);
+      if (bucket) bucket.push(item);
+      else groups.set(name, [item]);
+    }
+    const order = categories.map((c: any) => c.name);
+    return [...groups.entries()]
+      .sort(([a], [b]) => {
+        const ai = order.indexOf(a);
+        const bi = order.indexOf(b);
+        // Unknown categories sort to the end, then alphabetically.
+        if (ai === -1 && bi === -1) return a.localeCompare(b);
+        if (ai === -1) return 1;
+        if (bi === -1) return -1;
+        return ai - bi;
+      })
+      .map(([name, items]) => ({
+        name,
+        items,
+        unavailable: items.filter((i: any) => !i.isAvailable).length,
+      }));
+  })();
 
   const fetchBills = async () => {
     try {
@@ -2428,7 +2467,10 @@ export default function MenuManagement() {
               {/* ================= TABLE ================= */}
 
               <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
-                <div className="overflow-x-auto">
+                {/* The filter widgets on this table live in its header row, so
+                    it cannot become generic cards — phones get the purpose-built
+                    accordion below instead. */}
+                <div className="hidden overflow-x-auto md:block">
                   <table className="min-w-full">
                     {/* HEADER */}
 
@@ -2778,6 +2820,239 @@ export default function MenuManagement() {
                     </tbody>
                   </table>
                 </div>
+
+                {/* ===== MOBILE: SEARCH, FILTERS, CATEGORY ACCORDION ===== */}
+                <div className="md:hidden">
+                  <div className="space-y-2 border-b border-gray-100 bg-gray-50/70 p-3">
+                    <div className="relative">
+                      <MagnifyingGlassIcon className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                      <input
+                        placeholder="Search item..."
+                        value={itemSearch}
+                        onChange={(e) => setItemSearch(e.target.value)}
+                        className="h-10 w-full rounded-xl border border-gray-200 bg-white pr-3 pl-9 text-[13px] font-medium text-gray-700 outline-none placeholder:text-gray-400 focus:border-red-300 focus:ring-2 focus:ring-red-100"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2">
+                      <select
+                        value={itemCatFilter}
+                        onChange={(e) => setItemCatFilter(e.target.value)}
+                        aria-label="Filter by category"
+                        className="h-10 w-full rounded-xl border border-gray-200 bg-white px-2 text-[12px] font-medium text-gray-700 outline-none focus:border-red-300"
+                      >
+                        <option value="">All Categories</option>
+                        {categories.map((cat: any) => (
+                          <option key={cat.id} value={String(cat.id)}>
+                            {cat.name}
+                          </option>
+                        ))}
+                      </select>
+                      <select
+                        value={itemTypeFilter}
+                        onChange={(e) => setItemTypeFilter(e.target.value)}
+                        aria-label="Filter by food type"
+                        className="h-10 w-full rounded-xl border border-gray-200 bg-white px-2 text-[12px] font-medium text-gray-700 outline-none focus:border-red-300"
+                      >
+                        <option value="">All Types</option>
+                        <option value="VEG">Veg</option>
+                        <option value="NON_VEG">Non Veg</option>
+                      </select>
+                      <select
+                        value={itemAvailFilter}
+                        onChange={(e) => setItemAvailFilter(e.target.value)}
+                        aria-label="Filter by availability"
+                        className="h-10 w-full rounded-xl border border-gray-200 bg-white px-2 text-[12px] font-medium text-gray-700 outline-none focus:border-red-300"
+                      >
+                        <option value="">All Status</option>
+                        <option value="Available">Available</option>
+                        <option value="Unavailable">Unavailable</option>
+                      </select>
+                      <select
+                        value={itemPriceSort}
+                        onChange={(e) => setItemPriceSort(e.target.value)}
+                        aria-label="Sort by price"
+                        className="h-10 w-full rounded-xl border border-gray-200 bg-white px-2 text-[12px] font-medium text-gray-700 outline-none focus:border-red-300"
+                      >
+                        <option value="">Sort Price</option>
+                        <option value="asc">Low to High</option>
+                        <option value="desc">High to Low</option>
+                      </select>
+                    </div>
+
+                    <div className="flex items-center justify-between px-0.5">
+                      <p className="text-[11px] text-gray-500">
+                        {filteredMenuItems.length}{" "}
+                        {filteredMenuItems.length === 1 ? "item" : "items"}
+                      </p>
+                      {(itemSearch ||
+                        itemCatFilter ||
+                        itemTypeFilter ||
+                        itemAvailFilter ||
+                        itemPriceSort) && (
+                        <button
+                          onClick={() => {
+                            setItemSearch("");
+                            setItemCatFilter("");
+                            setItemTypeFilter("");
+                            setItemAvailFilter("");
+                            setItemPriceSort("");
+                          }}
+                          className="text-[11px] font-semibold text-[#b10000]"
+                        >
+                          Clear filters
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {filteredMenuItems.length === 0 ? (
+                    <p className="px-4 py-12 text-center text-[13px] text-gray-400">
+                      {itemSearch ||
+                      itemCatFilter ||
+                      itemTypeFilter ||
+                      itemAvailFilter
+                        ? "No items match your filters"
+                        : "No menu items yet — tap + Add Item to get started"}
+                    </p>
+                  ) : (
+                    <div className="divide-y divide-gray-100">
+                      {mobileItemGroups.map((group) => {
+                        // While searching, every group stays open so matches
+                        // show without tapping through categories.
+                        const isOpen =
+                          !!itemSearch || !!openItemCategories[group.name];
+                        return (
+                          <div key={group.name}>
+                            <button
+                              onClick={() =>
+                                setOpenItemCategories((prev) => ({
+                                  ...prev,
+                                  [group.name]: !prev[group.name],
+                                }))
+                              }
+                              aria-expanded={isOpen}
+                              className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left transition active:bg-gray-50"
+                            >
+                              <span className="min-w-0 flex-1">
+                                <span className="block truncate text-[14px] font-semibold text-gray-900">
+                                  {group.name}
+                                </span>
+                                <span className="text-[11px] text-gray-400">
+                                  {group.items.length}
+                                  {group.items.length === 1 ? " item" : " items"}
+                                  {group.unavailable > 0
+                                    ? ` · ${group.unavailable} off`
+                                    : ""}
+                                </span>
+                              </span>
+                              <ChevronDownIcon
+                                className={`h-4 w-4 shrink-0 text-gray-400 transition-transform ${isOpen ? "rotate-180" : ""}`}
+                              />
+                            </button>
+
+                            {isOpen && (
+                              <div className="space-y-2 bg-gray-50/60 px-3 pt-1 pb-3">
+                                {group.items.map((item: any) => (
+                                  <div
+                                    key={item.id}
+                                    className="rounded-xl border border-gray-200 bg-white p-3"
+                                  >
+                                    <div className="flex items-start gap-3">
+                                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#b10000] text-[13px] font-bold text-white">
+                                        {item.name?.charAt(0)}
+                                      </div>
+                                      <div className="min-w-0 flex-1">
+                                        <p className="truncate text-[14px] font-semibold text-gray-900">
+                                          {item.name}
+                                        </p>
+                                        <p className="mt-0.5 text-[10px] text-gray-400">
+                                          Item ID #{item.id}
+                                        </p>
+                                      </div>
+                                      <p className="shrink-0 text-[15px] font-black text-gray-900">
+                                        ₹{item.price}
+                                      </p>
+                                    </div>
+
+                                    <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
+                                      <span
+                                        className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                                          isVegType(item.type)
+                                            ? "bg-emerald-50 text-emerald-600"
+                                            : "bg-red-50 text-red-700"
+                                        }`}
+                                      >
+                                        {isVegType(item.type) ? "Veg" : "Non Veg"}
+                                      </span>
+                                      <span
+                                        className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                                          item.isAvailable
+                                            ? "bg-emerald-50 text-emerald-600"
+                                            : "bg-gray-100 text-gray-500"
+                                        }`}
+                                      >
+                                        {item.isAvailable
+                                          ? "Available"
+                                          : "Unavailable"}
+                                      </span>
+                                    </div>
+
+                                    <div className="mt-3 grid grid-cols-2 gap-2 border-t border-gray-100 pt-3">
+                                      <button
+                                        onClick={() =>
+                                          handleToggleAvailability(item)
+                                        }
+                                        className={`h-9 rounded-xl border text-[12px] font-semibold transition ${item.isAvailable ? "border-orange-200 bg-orange-50 text-orange-700" : "border-emerald-200 bg-emerald-50 text-emerald-700"}`}
+                                      >
+                                        {item.isAvailable ? "Mark Off" : "Mark On"}
+                                      </button>
+                                      <button
+                                        onClick={() => openAttachModal(item)}
+                                        className="h-9 rounded-xl border border-violet-200 bg-violet-50 text-[12px] font-semibold text-violet-700"
+                                      >
+                                        Add-Ons
+                                      </button>
+                                      <button
+                                        onClick={() => {
+                                          setEditingItem(item);
+                                          setItemForm({
+                                            name: item.name,
+                                            categoryId: String(
+                                              item.categoryId || "",
+                                            ),
+                                            type: item.type || "VEG",
+                                            price: String(item.price),
+                                            prepTime: String(item.prepTime || ""),
+                                            description: item.description || "",
+                                            isAvailable: item.isAvailable,
+                                          });
+                                          setShowAddItemForm(true);
+                                        }}
+                                        className="h-9 rounded-xl border border-gray-200 text-[12px] font-semibold text-gray-700"
+                                      >
+                                        Edit
+                                      </button>
+                                      <button
+                                        onClick={() =>
+                                          handleDeleteMenuItem(item.id)
+                                        }
+                                        className="h-9 rounded-xl border border-red-200 bg-red-50 text-[12px] font-semibold text-red-700"
+                                      >
+                                        Delete
+                                      </button>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+
               </div>
             </div>
           )}
@@ -3217,6 +3492,7 @@ export default function MenuManagement() {
                           {/* TABLE */}
 
                           <div className="overflow-x-auto">
+                            <MobileTableCards>
                             <table className="min-w-full">
                               {/* HEAD */}
 
@@ -3544,6 +3820,7 @@ export default function MenuManagement() {
                                 )}
                               </tbody>
                             </table>
+                            </MobileTableCards>
                           </div>
                         </div>
                       );
@@ -3846,6 +4123,7 @@ export default function MenuManagement() {
                 {/* ================= TABLE ================= */}
 
                 <div className="overflow-auto">
+                  <MobileTableCards>
                   <table className="min-w-full text-sm">
                     {/* HEADER */}
 
@@ -3980,6 +4258,7 @@ export default function MenuManagement() {
                       )}
                     </tbody>
                   </table>
+                  </MobileTableCards>
                 </div>
               </div>
             </div>
@@ -4313,6 +4592,7 @@ export default function MenuManagement() {
                   {/* TABLE */}
 
                   <div className="overflow-auto">
+                    <MobileTableCards>
                     <table className="min-w-full">
                       <thead className="border-b border-gray-100 bg-gray-50">
                         <tr>
@@ -4535,6 +4815,7 @@ export default function MenuManagement() {
                         ))}
                       </tbody>
                     </table>
+                    </MobileTableCards>
 
                     {/* FOOTER */}
 
@@ -4870,7 +5151,8 @@ export default function MenuManagement() {
                           {/* ================= TABLE VIEW ================= */}
 
                           {viewMode === "table" && (
-                            <div className="mt-4 overflow-hidden rounded-2xl border border-gray-100">
+                            <div className="mt-4 overflow-x-auto rounded-2xl border border-gray-100">
+                              <MobileTableCards>
                               <table className="min-w-full">
                                 {/* HEAD */}
 
@@ -4943,6 +5225,7 @@ export default function MenuManagement() {
                                   ))}
                                 </tbody>
                               </table>
+                              </MobileTableCards>
                             </div>
                           )}
                         </>
@@ -5120,6 +5403,7 @@ export default function MenuManagement() {
               {/* TABLE */}
 
               {/* <div className="overflow-auto">
+                  <MobileTableCards>
                   <table className="min-w-full">
 
                     <thead className="sticky top-0 z-10 border-b border-gray-100 bg-gray-50">
@@ -5202,6 +5486,7 @@ export default function MenuManagement() {
                       ))}
                     </tbody>
                   </table>
+                  </MobileTableCards>
                 </div> */}
               {/* </div> */}
             </div>
@@ -5389,6 +5674,7 @@ export default function MenuManagement() {
                       </h3>
                     </div>
                     <div className="overflow-x-auto">
+                      <MobileTableCards>
                       <table className="min-w-full text-[12px]">
                         <thead className="bg-gray-50 border-b border-gray-100">
                           <tr>
@@ -5472,6 +5758,7 @@ export default function MenuManagement() {
                             ))}
                         </tbody>
                       </table>
+                      </MobileTableCards>
                     </div>
                   </div>
 

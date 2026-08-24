@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Trophy } from "lucide-react";
 import { useAppSelector } from "../../store";
 import { fmtCategoryValue } from "./budgetCategories";
+import MobileTableCards from "../../components/common/MobileTableCards";
 
 // Reuses the existing per-budget variance endpoint (no new backend
 // aggregation route) — one call per branch-scoped budget, then ranked
@@ -108,8 +109,9 @@ export default function BranchComparisonTab() {
       {loading ? (
         <div className="flex h-40 items-center justify-center text-[12px] text-gray-400">Loading…</div>
       ) : (
-        <div className="overflow-hidden rounded-xl border border-gray-200">
-          <table className="w-full text-[12px]">
+        <div className="overflow-x-auto rounded-xl border border-gray-200">
+          <MobileTableCards>
+          <table className="w-full text-[12px] min-w-[36rem]">
             <thead className="bg-gray-50 text-[10px] font-bold uppercase tracking-wide text-gray-500">
               <tr>
                 <th className="px-4 py-2 text-left">Rank</th>
@@ -142,6 +144,7 @@ export default function BranchComparisonTab() {
               ))}
             </tbody>
           </table>
+          </MobileTableCards>
         </div>
       )}
     </div>

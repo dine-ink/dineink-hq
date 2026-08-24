@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Plus, Copy, Save, ArrowLeft, Trash2, RotateCcw, Archive, CheckCircle2 } from "lucide-react";
 import { useAppSelector } from "../../store";
 import { OVERRIDE_FIELD_GROUPS, OVERRIDE_FIELDS, SCENARIO_TYPE_STYLES } from "./scenarioCategories";
+import MobileTableCards from "../../components/common/MobileTableCards";
 
 export default function ScenariosTab() {
   const { branches } = useAppSelector((s) => s.branch);
@@ -238,8 +239,9 @@ export default function ScenariosTab() {
         {loading ? (
           <div className="flex h-40 items-center justify-center text-[12px] text-gray-400">Loading…</div>
         ) : (
-          <div className="overflow-hidden rounded-xl border border-gray-200">
-            <table className="w-full text-[12px]">
+          <div className="overflow-x-auto rounded-xl border border-gray-200">
+            <MobileTableCards>
+            <table className="w-full text-[12px] min-w-[36rem]">
               <thead className="bg-gray-50 text-[10px] font-bold uppercase tracking-wide text-gray-500">
                 <tr>
                   <th className="px-4 py-2 text-left">Name</th>
@@ -287,6 +289,7 @@ export default function ScenariosTab() {
                 ))}
               </tbody>
             </table>
+            </MobileTableCards>
           </div>
         )}
       </div>

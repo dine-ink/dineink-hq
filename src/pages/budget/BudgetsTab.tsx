@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Plus, Copy, Save, ArrowLeft, Archive, CheckCircle2, Trash2 } from "lucide-react";
 import { useAppSelector } from "../../store";
 import { BUDGET_CATEGORIES, BUDGET_CATEGORY_GROUPS, MONTH_NAMES, fyMonths } from "./budgetCategories";
+import MobileTableCards from "../../components/common/MobileTableCards";
 
 const currentFyStartYear = () => {
   const now = new Date();
@@ -281,8 +282,9 @@ export default function BudgetsTab() {
             No budgets yet — create one to get started.
           </div>
         ) : (
-          <div className="overflow-hidden rounded-xl border border-gray-200">
-            <table className="w-full text-[12px]">
+          <div className="overflow-x-auto rounded-xl border border-gray-200">
+            <MobileTableCards>
+            <table className="w-full text-[12px] min-w-[36rem]">
               <thead className="bg-gray-50 text-[10px] font-bold uppercase tracking-wide text-gray-500">
                 <tr>
                   <th className="px-4 py-2 text-left">Name</th>
@@ -325,6 +327,7 @@ export default function BudgetsTab() {
                 ))}
               </tbody>
             </table>
+            </MobileTableCards>
           </div>
         )}
       </div>
@@ -489,6 +492,7 @@ export default function BudgetsTab() {
         <div key={group} className="overflow-hidden rounded-xl border border-gray-200">
           <div className="bg-gray-50 px-4 py-2 text-[12px] font-bold text-gray-900">{group}</div>
           <div className="overflow-x-auto">
+            <MobileTableCards>
             <table className="w-full text-[11px]">
               <thead>
                 <tr className="border-t border-gray-100 text-[10px] font-bold uppercase tracking-wide text-gray-500">
@@ -524,6 +528,7 @@ export default function BudgetsTab() {
                 ))}
               </tbody>
             </table>
+            </MobileTableCards>
           </div>
         </div>
       ))}

@@ -1,140 +1,122 @@
 import { Link } from "react-router-dom";
+import Logo from "./Logo";
+
+const productLinks = [
+  { name: "Features", to: "/features" },
+  { name: "Pricing", to: "/pricing" },
+  { name: "Owner dashboard", to: "/login" },
+  { name: "Start free", to: "/signup" },
+];
+
+const companyLinks = [
+  { name: "About", to: "/about" },
+  { name: "Contact", to: "/contact" },
+];
+
+const legalLinks = [{ name: "Privacy Policy", to: "/privacy-policy" }];
+
+const products = [
+  {
+    name: "DineInk Professional",
+    detail: "One restaurant — POS, kitchen, inventory and the full finance suite.",
+  },
+  {
+    name: "DineInk Enterprise",
+    detail: "Chains and franchises — priced per outlet, branch comparison built in.",
+  },
+  {
+    name: "DineInk DOT",
+    detail: "A mobile app for street vendors and single counters.",
+  },
+];
 
 export default function Footer() {
   return (
-    <footer className="mx-auto mt-32 max-w-7xl px-6 lg:px-8">
-      <div className="border-t border-gray-200 pt-16 pb-8">
-        <div className="xl:grid xl:grid-cols-3 xl:gap-8">
-          <div className="space-y-6">
-            <div className="text-3xl font-bold text-red-700">DineInk</div>
+    <footer className="mt-32 bg-white">
+      <div className="mx-auto max-w-7xl px-6 lg:px-8">
+        <div className="border-t border-slate-200 pt-16 pb-8">
+          <div className="grid grid-cols-1 gap-12 lg:grid-cols-3 lg:gap-8">
+            <div className="space-y-6">
+              <Logo tone="onLight" size="lg" subtitle="Restaurant OS" />
+              <p className="max-w-sm text-sm leading-6 text-slate-600">
+                Every other POS tells you what you sold. DineInk tells you what
+                you earned — billing, kitchen, inventory and a real finance
+                layer in one platform built for Indian restaurants.
+              </p>
+              <div className="space-y-3">
+                {products.map((product) => (
+                  <div key={product.name} className="text-sm">
+                    <div className="font-semibold text-slate-900">
+                      {product.name}
+                    </div>
+                    <div className="text-slate-500">{product.detail}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
 
-            <p className="max-w-md text-sm leading-6 text-gray-600">
-              DineInk helps restaurants manage billing, menu, tables, kitchen staff,
-              reports and customer flow in one simple platform.
+            <div className="grid grid-cols-2 gap-8 lg:col-span-2 lg:grid-cols-3">
+              <div>
+                <h3 className="text-sm font-semibold text-slate-900">
+                  Product
+                </h3>
+                <ul className="mt-6 space-y-4">
+                  {productLinks.map((link) => (
+                    <li key={link.name}>
+                      <Link
+                        to={link.to}
+                        className="text-sm text-slate-600 transition hover:text-[#b10000]"
+                      >
+                        {link.name}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              <div>
+                <h3 className="text-sm font-semibold text-slate-900">
+                  Company
+                </h3>
+                <ul className="mt-6 space-y-4">
+                  {companyLinks.map((link) => (
+                    <li key={link.name}>
+                      <Link
+                        to={link.to}
+                        className="text-sm text-slate-600 transition hover:text-[#b10000]"
+                      >
+                        {link.name}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              <div>
+                <h3 className="text-sm font-semibold text-slate-900">Legal</h3>
+                <ul className="mt-6 space-y-4">
+                  {legalLinks.map((link) => (
+                    <li key={link.name}>
+                      <Link
+                        to={link.to}
+                        className="text-sm text-slate-600 transition hover:text-[#b10000]"
+                      >
+                        {link.name}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-16 border-t border-slate-200 pt-8 sm:flex sm:items-center sm:justify-between">
+            <p className="text-sm text-slate-500">
+              © {new Date().getFullYear()} DineInk. All rights reserved.
             </p>
-          </div>
-
-          <div className="mt-16 grid grid-cols-2 gap-8 xl:col-span-2 xl:mt-0">
-            <div className="md:grid md:grid-cols-2 md:gap-8">
-              <div>
-                <h3 className="text-sm font-semibold text-gray-900">Product</h3>
-                <ul className="mt-6 space-y-4">
-                  <li>
-                    <a href="#" className="text-sm text-gray-600 hover:text-red-700">
-                      Features
-                    </a>
-                  </li>
-                  <li>
-                    <a href="#" className="text-sm text-gray-600 hover:text-red-700">
-                      Pricing
-                    </a>
-                  </li>
-                  <li>
-                    <a href="#" className="text-sm text-gray-600 hover:text-red-700">
-                      How It Works
-                    </a>
-                  </li>
-                  <li>
-                    <a href="#" className="text-sm text-gray-600 hover:text-red-700">
-                      Free Trial
-                    </a>
-                  </li>
-                </ul>
-              </div>
-
-              <div className="mt-10 md:mt-0">
-                <h3 className="text-sm font-semibold text-gray-900">Restaurant Types</h3>
-                <ul className="mt-6 space-y-4">
-                  <li>
-                    <a href="#" className="text-sm text-gray-600 hover:text-red-700">
-                      Fine Dining
-                    </a>
-                  </li>
-                  <li>
-                    <a href="#" className="text-sm text-gray-600 hover:text-red-700">
-                      Cafes
-                    </a>
-                  </li>
-                  <li>
-                    <a href="#" className="text-sm text-gray-600 hover:text-red-700">
-                      Quick Service
-                    </a>
-                  </li>
-                  <li>
-                    <a href="#" className="text-sm text-gray-600 hover:text-red-700">
-                      Cloud Kitchens
-                    </a>
-                  </li>
-                </ul>
-              </div>
-            </div>
-
-            <div className="md:grid md:grid-cols-2 md:gap-8">
-              <div>
-                <h3 className="text-sm font-semibold text-gray-900">Company</h3>
-                <ul className="mt-6 space-y-4">
-                  <li>
-                    <a href="#" className="text-sm text-gray-600 hover:text-red-700">
-                      About
-                    </a>
-                  </li>
-                  <li>
-                    <a href="#" className="text-sm text-gray-600 hover:text-red-700">
-                      Contact
-                    </a>
-                  </li>
-                  <li>
-                    <a href="#" className="text-sm text-gray-600 hover:text-red-700">
-                      Careers
-                    </a>
-                  </li>
-                  <li>
-                    <a href="#" className="text-sm text-gray-600 hover:text-red-700">
-                      Support
-                    </a>
-                  </li>
-                </ul>
-              </div>
-
-              <div className="mt-10 md:mt-0">
-                <h3 className="text-sm font-semibold text-gray-900">Legal</h3>
-                <ul className="mt-6 space-y-4">
-                  <li>
-                    <Link to="/privacy-policy" className="text-sm text-gray-600 hover:text-red-700">
-                      Privacy Policy
-                    </Link>
-                  </li>
-                  <li>
-                    <a href="#" className="text-sm text-gray-600 hover:text-red-700">
-                      Terms of Service
-                    </a>
-                  </li>
-                  <li>
-                    <a href="#" className="text-sm text-gray-600 hover:text-red-700">
-                      Refund Policy
-                    </a>
-                  </li>
-                </ul>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="mt-16 border-t border-gray-200 pt-8 sm:flex sm:items-center sm:justify-between">
-          <p className="text-sm text-gray-500">
-            © 2026 DineInk. All rights reserved.
-          </p>
-
-          <div className="mt-6 flex space-x-6 sm:mt-0">
-            <a href="#" className="text-gray-400 hover:text-red-700">
-              Facebook
-            </a>
-            <a href="#" className="text-gray-400 hover:text-red-700">
-              Instagram
-            </a>
-            <a href="#" className="text-gray-400 hover:text-red-700">
-              LinkedIn
-            </a>
+            <p className="mt-4 text-sm text-slate-500 sm:mt-0">
+              Built in India, for Indian restaurants.
+            </p>
           </div>
         </div>
       </div>

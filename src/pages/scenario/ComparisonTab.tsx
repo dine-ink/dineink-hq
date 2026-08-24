@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useAppSelector } from "../../store";
 import { fmtCategoryValue, SCENARIO_KPIS } from "./scenarioCategories";
+import MobileTableCards from "../../components/common/MobileTableCards";
 
 const PERIODS = [
   { key: "currentMonth", label: "Current Month" },
@@ -197,6 +198,7 @@ export default function ComparisonTab() {
         </div>
       ) : (
         <div className="overflow-x-auto rounded-xl border border-gray-200">
+          <MobileTableCards>
           <table className="w-full text-[12px]">
             <thead className="bg-gray-50 text-[10px] font-bold uppercase tracking-wide text-gray-500">
               <tr>
@@ -234,6 +236,7 @@ export default function ComparisonTab() {
               })}
             </tbody>
           </table>
+          </MobileTableCards>
         </div>
       )}
     </div>

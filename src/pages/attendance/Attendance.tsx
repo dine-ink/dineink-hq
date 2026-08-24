@@ -22,6 +22,7 @@ import {
 } from "@heroicons/react/24/outline";
 import LeaveManagementTab from "./LeaveManagementTab";
 import PayrollProcessingTab from "./PayrollProcessingTab";
+import MobileTableCards from "../../components/common/MobileTableCards";
 
 // Effective hours for payroll/display purposes: an owner-entered override
 // takes precedence over whatever the POS clock-in/out computed.
@@ -675,6 +676,7 @@ export default function Attendance() {
                 </div>
               </div>
               <div className="overflow-x-auto">
+                <MobileTableCards>
                 <table className="min-w-full text-[12px]">
                   <thead className="bg-gray-50">
                     <tr className="border-b border-gray-100">
@@ -829,6 +831,7 @@ export default function Attendance() {
                     )}
                   </tbody>
                 </table>
+                </MobileTableCards>
               </div>
             </div>
           </>
@@ -1014,6 +1017,7 @@ export default function Attendance() {
                   </p>
                 </div>
                 <div className="overflow-x-auto">
+                  <MobileTableCards>
                   <table className="min-w-full text-[12px]">
                     <thead className="bg-gray-50">
                       <tr className="border-b border-gray-100">
@@ -1102,6 +1106,7 @@ export default function Attendance() {
                       )}
                     </tbody>
                   </table>
+                  </MobileTableCards>
                 </div>
               </div>
             </div>

@@ -15,6 +15,7 @@ import {
 import { Alert, MetricCard } from "../../design";
 import { CHART_CARD, TICK, fmtFte, fmtMinutes } from "./laborCategories";
 import { useLaborQuery, useLaborScope } from "./useLaborApi";
+import MobileTableCards from "../../components/common/MobileTableCards";
 
 // The whole trading day at a glance: required staff per hour, which station is
 // busiest, and which hours are equipment-bound. Answers "WHEN does the kitchen
@@ -241,6 +242,7 @@ export default function CapacitySweepTab() {
               <h3 className="text-[15px] font-bold text-gray-900">Hour Detail</h3>
             </div>
             <div className="overflow-x-auto">
+              <MobileTableCards>
               <table className="min-w-full text-[12px]">
                 <thead className="bg-gray-50">
                   <tr className="border-b border-gray-100">
@@ -284,6 +286,7 @@ export default function CapacitySweepTab() {
                   ))}
                 </tbody>
               </table>
+              </MobileTableCards>
             </div>
           </div>
 

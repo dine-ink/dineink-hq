@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useAppSelector } from "../../store";
 import { fmtCategoryValue } from "./forecastCategories";
+import MobileTableCards from "../../components/common/MobileTableCards";
 
 const localDateStr = (iso: string) => {
   const d = new Date(iso);
@@ -138,7 +139,9 @@ export default function AccuracyTab() {
                         {comparison.isComplete ? "Completed" : "In Progress"}
                       </span>
                     </div>
-                    <table className="w-full text-[12px]">
+                    <div className="overflow-x-auto">
+                    <MobileTableCards>
+                    <table className="w-full text-[12px] min-w-[36rem]">
                       <thead className="text-[10px] font-bold uppercase tracking-wide text-gray-500">
                         <tr>
                           <th className="px-4 py-2 text-left">KPI</th>
@@ -160,6 +163,8 @@ export default function AccuracyTab() {
                         ))}
                       </tbody>
                     </table>
+                    </MobileTableCards>
+                    </div>
                   </div>
                 )}
               </div>

@@ -7,6 +7,7 @@ import ReportsTab from "./ReportsTab";
 import PeakHourForecastTab from "./PeakHourForecastTab";
 import DemandForecastTab from "./DemandForecastTab";
 import InventoryForecastTab from "./InventoryForecastTab";
+import TabStrip from "../../components/common/TabStrip";
 
 const TABS = ["Overview", "Branch Comparison", "Peak Hour", "Demand", "Inventory", "Accuracy", "Reports"];
 
@@ -33,21 +34,7 @@ export default function Forecasting() {
               </div>
             </div>
 
-            <div className="flex flex-wrap items-center gap-2">
-              {TABS.map((tab) => (
-                <button
-                  key={tab}
-                  onClick={() => setActiveTab(tab)}
-                  className={`rounded-xl px-3.5 py-2 text-[12px] font-semibold transition-all duration-200 ${
-                    activeTab === tab
-                      ? "bg-[#b10000] text-white shadow-sm"
-                      : "border border-gray-200 bg-white text-gray-600 hover:bg-gray-50"
-                  }`}
-                >
-                  {tab}
-                </button>
-              ))}
-            </div>
+            <TabStrip tabs={TABS} value={activeTab} onChange={setActiveTab} />
           </div>
         </div>
 

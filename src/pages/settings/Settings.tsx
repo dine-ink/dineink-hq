@@ -18,6 +18,7 @@ import {
   TagIcon,
 } from "@heroicons/react/24/outline";
 import DiscountCodesTab from "./DiscountCodesTab";
+import TabStrip from "../../components/common/TabStrip";
 
 const TABS = [
   { id: "General", label: "Restaurant", icon: BuildingStorefrontIcon },
@@ -384,25 +385,7 @@ export default function Settings() {
                 </p>
               </div>
             </div>
-            <div className="hide-scrollbar flex gap-1.5 overflow-x-auto">
-              {TABS.map((tab) => {
-                const Icon = tab.icon;
-                return (
-                  <button
-                    key={tab.id}
-                    onClick={() => setActiveTab(tab.id)}
-                    className={`flex shrink-0 items-center gap-2 rounded-xl px-4 py-2 text-[12px] font-semibold transition-all ${
-                      activeTab === tab.id
-                        ? "bg-[#b10000] text-white shadow-sm"
-                        : "border border-gray-200 bg-white text-gray-600 hover:bg-gray-50"
-                    }`}
-                  >
-                    <Icon className="h-3.5 w-3.5" />
-                    {tab.label}
-                  </button>
-                );
-              })}
-            </div>
+            <TabStrip tabs={TABS} value={activeTab} onChange={setActiveTab} />
           </div>
         </div>
 
