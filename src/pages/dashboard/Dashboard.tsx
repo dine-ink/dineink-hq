@@ -77,11 +77,13 @@ export default function Dashboard() {
   const { data: ratioReport } = useGetRatioReportQuery(scope ?? skipToken);
 
   // `my-restaurant` decides whether to show the first-run setup modal.
+  // Endpoints unwrap their `{ success, data }` envelope in dashboardApi, so
+  // this reads the payload directly; `undefined` still means "in flight".
   const hasRestaurant: boolean | null = restaurantFailed
     ? false
     : myRestaurant === undefined
       ? null
-      : !!myRestaurant?.data?.restaurant?.branches?.length;
+      : !!myRestaurant?.restaurant?.branches?.length;
 
   useEffect(() => {
     if (hasRestaurant === false) setShowSetupModal(true);
