@@ -1,4 +1,8 @@
-import { Clock3, Repeat, PieChart } from "lucide-react";
+import {
+  ArrowPathRoundedSquareIcon,
+  ChartPieIcon,
+  ClockIcon,
+} from "@heroicons/react/24/outline";
 
 type Props = {
   analytics?: any;
@@ -30,7 +34,7 @@ export default function BusinessStats({ analytics }: Props) {
       name: "Peak Hours",
       value: analytics?.peakHours || "N/A",
       sub: "Best performance time",
-      icon: Clock3,
+      icon: ClockIcon,
       gradient: "from-orange-500 to-amber-500",
       glow: "bg-orange-200/50",
       badge: "Peak Traffic",
@@ -39,7 +43,7 @@ export default function BusinessStats({ analytics }: Props) {
       name: "Repeat Customers",
       value: `${repeatCustomers}%`,
       sub: "Returning users",
-      icon: Repeat,
+      icon: ArrowPathRoundedSquareIcon,
       gradient: "from-emerald-500 to-teal-500",
       glow: "bg-emerald-200/50",
       badge: "Customer Loyalty",
@@ -48,7 +52,7 @@ export default function BusinessStats({ analytics }: Props) {
       name: "Order Split",
       value: `Online ${onlinePercent}%`,
       sub: `Dine-in ${dineInPercent}%`,
-      icon: PieChart,
+      icon: ChartPieIcon,
       gradient: "from-red-500 to-rose-500",
       glow: "bg-red-200/50",
       badge: "Sales Channels",

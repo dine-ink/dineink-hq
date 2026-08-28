@@ -1,8 +1,12 @@
 import { useEffect, useState } from "react";
-import { TrendingUp, AlertTriangle, Trophy } from "lucide-react";
 import { useAppSelector } from "../../store";
 import { fmtCategoryValue, riskLevelFor, RISK_STYLES } from "./investmentCategories";
 import InvestmentCharts from "./InvestmentCharts";
+import {
+  ArrowTrendingUpIcon,
+  ExclamationTriangleIcon,
+  TrophyIcon,
+} from "@heroicons/react/24/outline";
 
 export default function OverviewTab() {
   const { user, token } = useAppSelector((s) => s.auth);
@@ -104,7 +108,7 @@ export default function OverviewTab() {
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
         <div>
           <h4 className="mb-2 flex items-center gap-1.5 text-[13px] font-bold text-gray-900">
-            <Trophy className="h-4 w-4 text-amber-500" /> Top Performing Projects
+            <TrophyIcon className="h-4 w-4 text-amber-500" /> Top Performing Projects
           </h4>
           <div className="space-y-2">
             {portfolio.topPerforming.length > 0 ? (
@@ -116,14 +120,14 @@ export default function OverviewTab() {
         </div>
         <div>
           <h4 className="mb-2 flex items-center gap-1.5 text-[13px] font-bold text-gray-900">
-            <AlertTriangle className="h-4 w-4 text-red-500" /> Projects Requiring Attention
+            <ExclamationTriangleIcon className="h-4 w-4 text-red-500" /> Projects Requiring Attention
           </h4>
           <div className="space-y-2">
             {portfolio.needsAttention.length > 0 ? (
               portfolio.needsAttention.map((item: any) => <ProjectRow key={item.project.id} item={item} highlight="bad" />)
             ) : (
               <div className="rounded-xl border border-dashed border-emerald-200 bg-emerald-50 p-3 text-center text-[11px] text-emerald-700">
-                <TrendingUp className="mx-auto mb-1 h-4 w-4" /> Every project has a positive NPV and a viable payback.
+                <ArrowTrendingUpIcon className="mx-auto mb-1 h-4 w-4" /> Every project has a positive NPV and a viable payback.
               </div>
             )}
           </div>

@@ -1,7 +1,11 @@
 import { useEffect, useState } from "react";
-import { TrendingUp, ShieldAlert, Lightbulb } from "lucide-react";
 import { useAppSelector } from "../../store";
 import { PERIOD_OPTIONS } from "./aiCategories";
+import {
+  ArrowTrendingUpIcon,
+  LightBulbIcon,
+  ShieldExclamationIcon,
+} from "@heroicons/react/24/outline";
 
 const scoreStyle = (score: number) => (score >= 70 ? "text-emerald-700 border-emerald-200 bg-emerald-50" : score >= 50 ? "text-amber-700 border-amber-200 bg-amber-50" : "text-red-700 border-red-200 bg-red-50");
 
@@ -56,7 +60,7 @@ export default function BranchNarrativesTab() {
 
               {n.strengths.length > 0 && (
                 <div className="mt-3">
-                  <p className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide text-emerald-600"><TrendingUp className="h-3 w-3" /> Strengths</p>
+                  <p className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide text-emerald-600"><ArrowTrendingUpIcon className="h-3 w-3" /> Strengths</p>
                   <ul className="mt-1 list-inside list-disc space-y-0.5 text-[11px] text-gray-600">
                     {n.strengths.map((s: string, i: number) => <li key={i}>{s}</li>)}
                   </ul>
@@ -64,7 +68,7 @@ export default function BranchNarrativesTab() {
               )}
               {n.risks.length > 0 && (
                 <div className="mt-3">
-                  <p className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide text-red-600"><ShieldAlert className="h-3 w-3" /> Risks</p>
+                  <p className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide text-red-600"><ShieldExclamationIcon className="h-3 w-3" /> Risks</p>
                   <ul className="mt-1 list-inside list-disc space-y-0.5 text-[11px] text-gray-600">
                     {n.risks.map((r: string, i: number) => <li key={i}>{r}</li>)}
                   </ul>
@@ -72,7 +76,7 @@ export default function BranchNarrativesTab() {
               )}
               {n.opportunities.length > 0 && (
                 <div className="mt-3">
-                  <p className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide text-blue-600"><Lightbulb className="h-3 w-3" /> Opportunities</p>
+                  <p className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide text-blue-600"><LightBulbIcon className="h-3 w-3" /> Opportunities</p>
                   <ul className="mt-1 list-inside list-disc space-y-0.5 text-[11px] text-gray-600">
                     {n.opportunities.map((o: string, i: number) => <li key={i}>{o}</li>)}
                   </ul>

@@ -1,13 +1,19 @@
-import { AlertTriangle, AlertCircle, Lightbulb, TrendingUp, Sparkles } from "lucide-react";
 import { CATEGORY_BADGE_STYLES, CATEGORY_LABELS, CONFIDENCE_STYLES, fmtCategoryValue, SEVERITY_STYLES } from "./aiCategories";
+import {
+  ArrowTrendingUpIcon,
+  ExclamationCircleIcon,
+  ExclamationTriangleIcon,
+  LightBulbIcon,
+  SparklesIcon,
+} from "@heroicons/react/24/outline";
 
 const CATEGORY_ICON: Record<string, any> = {
-  insight: Lightbulb, risk: AlertCircle, opportunity: TrendingUp, recommendation: Sparkles, anomaly: AlertTriangle,
+  insight: LightBulbIcon, risk: ExclamationCircleIcon, opportunity: ArrowTrendingUpIcon, recommendation: SparklesIcon, anomaly: ExclamationTriangleIcon,
 };
 
 export default function InsightCard({ insight }: { insight: any }) {
   const style = SEVERITY_STYLES[insight.severity] || SEVERITY_STYLES.info;
-  const Icon = CATEGORY_ICON[insight.category] || Lightbulb;
+  const Icon = CATEGORY_ICON[insight.category] || LightBulbIcon;
 
   return (
     <div className={`rounded-2xl border ${style.border} ${style.bg} p-4 shadow-sm`}>

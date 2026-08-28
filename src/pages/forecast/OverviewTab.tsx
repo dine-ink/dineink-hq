@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
-import { CheckCircle2 } from "lucide-react";
 import { useAppSelector } from "../../store";
 import { CONFIDENCE_STYLES, fmtCategoryValue, FORECAST_KPIS, MODEL_OPTIONS, PERIOD_OPTIONS, WIDGET_KPIS } from "./forecastCategories";
 import { AlertIcon, TrendIcon } from "../../utils/kpiDisplay";
 import { ALERT_STYLES, trendStyle } from "../../utils/kpiStyles";
 import ForecastCharts from "./ForecastCharts";
 import MobileTableCards from "../../components/common/MobileTableCards";
+import { CheckCircleIcon } from "@heroicons/react/24/outline";
 
 export default function OverviewTab() {
   const { selectedBranch } = useAppSelector((s) => s.branch);
@@ -114,7 +114,7 @@ export default function OverviewTab() {
             </div>
           ) : (
             <div className="flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-[12px] font-semibold text-emerald-700">
-              <CheckCircle2 className="h-4 w-4" /> No risks detected for {periodLabel?.toLowerCase()}.
+              <CheckCircleIcon className="h-4 w-4" /> No risks detected for {periodLabel?.toLowerCase()}.
             </div>
           )}
 

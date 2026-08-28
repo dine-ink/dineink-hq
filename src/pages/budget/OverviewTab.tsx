@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
-import { AlertTriangle, CheckCircle2 } from "lucide-react";
 import { useAppSelector } from "../../store";
 import { fmtCategoryValue } from "./budgetCategories";
 import { TrendIcon } from "../../utils/kpiDisplay";
 import BudgetCharts from "./BudgetCharts";
 import MobileTableCards from "../../components/common/MobileTableCards";
+import { CheckCircleIcon, ExclamationTriangleIcon } from "@heroicons/react/24/outline";
 
 const WIDGET_CATEGORIES = ["revenue", "foodCost", "labour", "ebitda", "netProfit"];
 
@@ -186,7 +186,7 @@ export default function OverviewTab() {
           {alerts.length > 0 && (
             <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
               <h4 className="mb-3 flex items-center gap-2 text-[13px] font-bold text-gray-900">
-                <AlertTriangle className="h-4 w-4 text-amber-500" /> Attention Needed
+                <ExclamationTriangleIcon className="h-4 w-4 text-amber-500" /> Attention Needed
               </h4>
               <div className="space-y-2">
                 {alerts.map((r: any) => (
@@ -208,7 +208,7 @@ export default function OverviewTab() {
           )}
           {alerts.length === 0 && (
             <div className="flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-[12px] font-semibold text-emerald-700">
-              <CheckCircle2 className="h-4 w-4" /> All tracked categories are on track for this period.
+              <CheckCircleIcon className="h-4 w-4" /> All tracked categories are on track for this period.
             </div>
           )}
 

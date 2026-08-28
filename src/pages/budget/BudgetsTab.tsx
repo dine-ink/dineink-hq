@@ -1,8 +1,16 @@
 import { useEffect, useState } from "react";
-import { Plus, Copy, Save, ArrowLeft, Archive, CheckCircle2, Trash2 } from "lucide-react";
 import { useAppSelector } from "../../store";
 import { BUDGET_CATEGORIES, BUDGET_CATEGORY_GROUPS, MONTH_NAMES, fyMonths } from "./budgetCategories";
 import MobileTableCards from "../../components/common/MobileTableCards";
+import {
+  ArchiveBoxIcon,
+  ArrowLeftIcon,
+  CheckCircleIcon,
+  CheckIcon,
+  DocumentDuplicateIcon,
+  PlusIcon,
+  TrashIcon,
+} from "@heroicons/react/24/outline";
 
 const currentFyStartYear = () => {
   const now = new Date();
@@ -271,7 +279,7 @@ export default function BudgetsTab() {
             onClick={openCreate}
             className="flex items-center gap-1.5 rounded-xl bg-[#b10000] px-4 py-2 text-[12px] font-semibold text-white shadow-sm transition hover:bg-[#950000]"
           >
-            <Plus className="h-3.5 w-3.5" /> Create Budget
+            <PlusIcon className="h-3.5 w-3.5" /> Create Budget
           </button>
         </div>
 
@@ -312,14 +320,14 @@ export default function BudgetsTab() {
                           onClick={() => handleDuplicate(b.id)}
                           className="inline-flex items-center gap-1 rounded-lg border border-gray-200 px-2 py-1 text-[10px] font-semibold text-gray-600 hover:bg-gray-50"
                         >
-                          <Copy className="h-3 w-3" /> Duplicate
+                          <DocumentDuplicateIcon className="h-3 w-3" /> Duplicate
                         </button>
                         <button
                           type="button"
                           onClick={() => handleDeleteBudget(b)}
                           className="inline-flex items-center gap-1 rounded-lg border border-red-200 px-2 py-1 text-[10px] font-semibold text-red-600 hover:bg-red-50"
                         >
-                          <Trash2 className="h-3 w-3" /> Delete
+                          <TrashIcon className="h-3 w-3" /> Delete
                         </button>
                       </div>
                     </td>
@@ -339,7 +347,7 @@ export default function BudgetsTab() {
     return (
       <div className="space-y-4">
         <button type="button" onClick={() => setView("list")} className="flex items-center gap-1 text-[12px] font-semibold text-gray-500 hover:text-gray-700">
-          <ArrowLeft className="h-3.5 w-3.5" /> Back to Budgets
+          <ArrowLeftIcon className="h-3.5 w-3.5" /> Back to Budgets
         </button>
 
         <div className="rounded-xl border border-gray-200 bg-white p-4">
@@ -433,7 +441,7 @@ export default function BudgetsTab() {
   return (
     <div className="space-y-4">
       <button type="button" onClick={() => setView("list")} className="flex items-center gap-1 text-[12px] font-semibold text-gray-500 hover:text-gray-700">
-        <ArrowLeft className="h-3.5 w-3.5" /> Back to Budgets
+        <ArrowLeftIcon className="h-3.5 w-3.5" /> Back to Budgets
       </button>
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -450,7 +458,7 @@ export default function BudgetsTab() {
             onClick={() => handleCopyToNextYear(selectedBudget)}
             className="flex items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3 py-2 text-[12px] font-semibold text-gray-700 shadow-sm transition hover:bg-gray-50"
           >
-            <Copy className="h-3.5 w-3.5" /> Copy to Next Year
+            <DocumentDuplicateIcon className="h-3.5 w-3.5" /> Copy to Next Year
           </button>
           {selectedBudget?.status !== "PUBLISHED" && (
             <button
@@ -458,7 +466,7 @@ export default function BudgetsTab() {
               onClick={() => handleSetStatus("PUBLISHED")}
               className="flex items-center gap-1.5 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-[12px] font-semibold text-emerald-700 shadow-sm transition hover:bg-emerald-100"
             >
-              <CheckCircle2 className="h-3.5 w-3.5" /> Publish
+              <CheckCircleIcon className="h-3.5 w-3.5" /> Publish
             </button>
           )}
           {selectedBudget?.status !== "ARCHIVED" && (
@@ -467,7 +475,7 @@ export default function BudgetsTab() {
               onClick={() => handleSetStatus("ARCHIVED")}
               className="flex items-center gap-1.5 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-[12px] font-semibold text-amber-700 shadow-sm transition hover:bg-amber-100"
             >
-              <Archive className="h-3.5 w-3.5" /> Archive
+              <ArchiveBoxIcon className="h-3.5 w-3.5" /> Archive
             </button>
           )}
           <button
@@ -476,14 +484,14 @@ export default function BudgetsTab() {
             disabled={saving}
             className="flex items-center gap-1.5 rounded-xl bg-[#b10000] px-3 py-2 text-[12px] font-semibold text-white shadow-sm transition hover:bg-[#950000] disabled:opacity-50"
           >
-            <Save className="h-3.5 w-3.5" /> {saving ? "Saving…" : "Save Changes"}
+            <CheckIcon className="h-3.5 w-3.5" /> {saving ? "Saving…" : "Save Changes"}
           </button>
           <button
             type="button"
             onClick={() => handleDeleteBudget(selectedBudget)}
             className="flex items-center gap-1.5 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-[12px] font-semibold text-red-600 shadow-sm transition hover:bg-red-100"
           >
-            <Trash2 className="h-3.5 w-3.5" /> Delete
+            <TrashIcon className="h-3.5 w-3.5" /> Delete
           </button>
         </div>
       </div>

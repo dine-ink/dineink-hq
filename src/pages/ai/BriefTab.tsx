@@ -1,9 +1,14 @@
 import { useEffect, useState } from "react";
-import { HeartPulse, Trophy, ShieldAlert, ListChecks } from "lucide-react";
 import { useAppSelector } from "../../store";
 import { PERIOD_OPTIONS } from "./aiCategories";
 import InsightCard from "./InsightCard";
 import MobileTableCards from "../../components/common/MobileTableCards";
+import {
+  ClipboardDocumentCheckIcon,
+  HeartIcon,
+  ShieldExclamationIcon,
+  TrophyIcon,
+} from "@heroicons/react/24/outline";
 
 const HEALTH_STYLE: Record<
   string,
@@ -121,7 +126,7 @@ export default function BriefTab() {
               <div
                 className={`flex h-14 w-14 items-center justify-center rounded-full border-4 ${healthStyle.border} bg-white`}
               >
-                <HeartPulse className={`h-6 w-6 ${healthStyle.text}`} />
+                <HeartIcon className={`h-6 w-6 ${healthStyle.text}`} />
               </div>
               <div>
                 <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-500">
@@ -166,7 +171,7 @@ export default function BriefTab() {
 
           <div>
             <h4 className="mb-2 flex items-center gap-1.5 text-[13px] font-bold text-gray-900">
-              <ListChecks className="h-4 w-4 text-[#b10000]" /> Immediate
+              <ClipboardDocumentCheckIcon className="h-4 w-4 text-[#b10000]" /> Immediate
               Priorities
             </h4>
             <ul className="space-y-1.5">
@@ -216,7 +221,7 @@ export default function BriefTab() {
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
             <div>
               <h4 className="mb-2 flex items-center gap-1.5 text-[13px] font-bold text-gray-900">
-                <Trophy className="h-4 w-4 text-emerald-600" /> Biggest Wins
+                <TrophyIcon className="h-4 w-4 text-emerald-600" /> Biggest Wins
               </h4>
               {brief.biggestWins.length === 0 ? (
                 <p className="text-[12px] text-gray-400">
@@ -232,7 +237,7 @@ export default function BriefTab() {
             </div>
             <div>
               <h4 className="mb-2 flex items-center gap-1.5 text-[13px] font-bold text-gray-900">
-                <ShieldAlert className="h-4 w-4 text-red-600" /> Biggest Risks
+                <ShieldExclamationIcon className="h-4 w-4 text-red-600" /> Biggest Risks
               </h4>
               {brief.biggestRisks.length === 0 ? (
                 <p className="text-[12px] text-gray-400">

@@ -1,7 +1,10 @@
 import { useState } from "react";
-import { MessageCircleQuestion, Send } from "lucide-react";
 import { useAppSelector } from "../../store";
 import { ASK_QUESTIONS, fmtCategoryValue, PERIOD_OPTIONS } from "./aiCategories";
+import {
+  ChatBubbleLeftEllipsisIcon,
+  PaperAirplaneIcon,
+} from "@heroicons/react/24/outline";
 
 export default function AskTab() {
   const { selectedBranch } = useAppSelector((s) => s.branch);
@@ -51,8 +54,8 @@ export default function AskTab() {
             disabled={loading === q.key}
             className="flex items-center justify-between gap-2 rounded-xl border border-gray-200 bg-white px-3.5 py-2.5 text-left text-[12px] font-semibold text-gray-700 shadow-sm transition hover:bg-gray-50 disabled:opacity-50"
           >
-            <span className="flex items-center gap-2"><MessageCircleQuestion className="h-3.5 w-3.5 text-[#b10000]" /> {q.label.replace("X", String(percentage))}</span>
-            <Send className="h-3.5 w-3.5 text-gray-400" />
+            <span className="flex items-center gap-2"><ChatBubbleLeftEllipsisIcon className="h-3.5 w-3.5 text-[#b10000]" /> {q.label.replace("X", String(percentage))}</span>
+            <PaperAirplaneIcon className="h-3.5 w-3.5 text-gray-400" />
           </button>
         ))}
       </div>

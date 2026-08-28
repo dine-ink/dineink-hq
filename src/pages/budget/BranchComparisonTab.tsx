@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
-import { Trophy } from "lucide-react";
 import { useAppSelector } from "../../store";
 import { fmtCategoryValue } from "./budgetCategories";
 import MobileTableCards from "../../components/common/MobileTableCards";
+import { TrophyIcon } from "@heroicons/react/24/outline";
 
 // Reuses the existing per-budget variance endpoint (no new backend
 // aggregation route) — one call per branch-scoped budget, then ranked
@@ -128,7 +128,7 @@ export default function BranchComparisonTab() {
                 <tr key={row.budget.id} className="border-t border-gray-100">
                   <td className="px-4 py-2.5">
                     <span className={`flex h-6 w-6 items-center justify-center rounded-full text-[11px] font-bold ${rankBadge(i)}`}>
-                      {i === 0 ? <Trophy className="h-3.5 w-3.5" /> : i + 1}
+                      {i === 0 ? <TrophyIcon className="h-3.5 w-3.5" /> : i + 1}
                     </span>
                   </td>
                   <td className="px-4 py-2.5 font-semibold text-gray-900">{row.budget.branch?.name}</td>

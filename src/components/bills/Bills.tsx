@@ -1,12 +1,13 @@
 import { useState, useEffect } from "react";
 import { useAppSelector } from "../../store";
 import {
-  ReceiptPercentIcon,
-  ChartBarIcon,
   CalendarDaysIcon,
+  ChartBarIcon,
+  CurrencyRupeeIcon,
+  ReceiptPercentIcon,
+  ShoppingBagIcon,
   XMarkIcon,
 } from "@heroicons/react/24/outline";
-import { IndianRupeeIcon, ShoppingBagIcon } from "lucide-react";
 import { SearchBar, Pagination } from "../../design";
 import MobileTableCards from "../../components/common/MobileTableCards";
 
@@ -154,7 +155,7 @@ export default function Bills() {
                 {
                   label: "Revenue",
                   value: `₹${totalSales.toLocaleString("en-IN")}`,
-                  icon: IndianRupeeIcon,
+                  icon: CurrencyRupeeIcon,
                   cls: "border-emerald-100 bg-emerald-50",
                   val: "text-emerald-700",
                   icon_bg: "bg-emerald-100",

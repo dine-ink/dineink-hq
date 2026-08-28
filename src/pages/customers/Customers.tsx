@@ -1,17 +1,15 @@
 import { useState, useEffect } from "react";
 import { useAppSelector } from "../../store";
 import {
-  EyeIcon,
-  UsersIcon,
-  MagnifyingGlassIcon,
+  ArrowPathRoundedSquareIcon,
+  CalendarDaysIcon,
+  ChartBarIcon,
   ChatBubbleLeftRightIcon,
+  CurrencyRupeeIcon,
+  EyeIcon,
+  MagnifyingGlassIcon,
+  UsersIcon,
 } from "@heroicons/react/24/outline";
-import {
-  BarChart3Icon,
-  IndianRupeeIcon,
-  RepeatIcon,
-  CalendarClockIcon,
-} from "lucide-react";
 import SendWhatsAppDialog from "../../components/common/SendWhatsAppDialog";
 import ResponsiveTable, {
   type ResponsiveColumn,
@@ -539,7 +537,7 @@ export default function Customers() {
                 {
                   label: "Repeat",
                   value: repeat,
-                  Icon: RepeatIcon,
+                  Icon: ArrowPathRoundedSquareIcon,
                   cls: "border-emerald-100 bg-emerald-50",
                   ibg: "bg-emerald-100",
                   ico: "text-emerald-600",
@@ -549,7 +547,7 @@ export default function Customers() {
                 {
                   label: "Avg Spend",
                   value: `₹${avg}`,
-                  Icon: IndianRupeeIcon,
+                  Icon: CurrencyRupeeIcon,
                   cls: "border-orange-100 bg-orange-50",
                   ibg: "bg-orange-100",
                   ico: "text-orange-600",
@@ -559,7 +557,7 @@ export default function Customers() {
                 {
                   label: "Revenue",
                   value: `₹${revenue.toLocaleString("en-IN")}`,
-                  Icon: BarChart3Icon,
+                  Icon: ChartBarIcon,
                   cls: "border-red-100 bg-red-50",
                   ibg: "bg-red-100",
                   ico: "text-red-600",
@@ -569,7 +567,7 @@ export default function Customers() {
                 {
                   label: "Visit Frequency",
                   value: `${avgVisitFrequency.toFixed(1)}/yr`,
-                  Icon: CalendarClockIcon,
+                  Icon: CalendarDaysIcon,
                   cls: "border-violet-100 bg-violet-50",
                   ibg: "bg-violet-100",
                   ico: "text-violet-600",

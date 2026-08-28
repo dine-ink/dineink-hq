@@ -1,47 +1,5 @@
 import { useState, useEffect } from "react";
 import { useAppSelector } from "../../store";
-import {
-  TrendingUp,
-  Target,
-  Boxes,
-  ShoppingCart,
-  Sparkles,
-  BarChart3,
-  Landmark,
-  Users,
-  Wallet,
-  Package,
-  Percent,
-  RefreshCcw,
-  UtensilsCrossed,
-  FolderTree,
-  Plus,
-  Save,
-  Search,
-  Download,
-  TrendingDown,
-  Upload,
-  Warehouse,
-  Building2,
-  Bike,
-  CreditCard,
-  Flame,
-  Fuel,
-  Wrench,
-  Zap,
-  Activity,
-  ClipboardList,
-  BadgeIndianRupee,
-  UserCheck,
-  IndianRupee,
-  CalendarRange,
-  Receipt,
-  ShieldCheck,
-  Rocket,
-  PieChart,
-  BadgePercent,
-  ChevronDown,
-} from "lucide-react";
 import React from "react";
 import {
   ResponsiveContainer,
@@ -57,6 +15,48 @@ import {
   ReferenceLine,
 } from "recharts";
 import MobileTableCards from "../../components/common/MobileTableCards";
+import {
+  ArrowDownTrayIcon,
+  ArrowPathIcon,
+  ArrowTrendingDownIcon,
+  ArrowTrendingUpIcon,
+  ArrowUpTrayIcon,
+  BanknotesIcon,
+  BeakerIcon,
+  BoltIcon,
+  BuildingLibraryIcon,
+  BuildingOffice2Icon,
+  BuildingStorefrontIcon,
+  CakeIcon,
+  CalendarDateRangeIcon,
+  ChartBarIcon,
+  ChartPieIcon,
+  CheckBadgeIcon,
+  CheckIcon,
+  ChevronDownIcon,
+  ClipboardDocumentListIcon,
+  CreditCardIcon,
+  CubeIcon,
+  CubeTransparentIcon,
+  CurrencyRupeeIcon,
+  DocumentTextIcon,
+  FireIcon,
+  FolderIcon,
+  MagnifyingGlassIcon,
+  PercentBadgeIcon,
+  PlusIcon,
+  PresentationChartLineIcon,
+  ReceiptPercentIcon,
+  RocketLaunchIcon,
+  ShieldCheckIcon,
+  ShoppingCartIcon,
+  SparklesIcon,
+  TruckIcon,
+  UsersIcon,
+  ViewfinderCircleIcon,
+  WalletIcon,
+  WrenchIcon,
+} from "@heroicons/react/24/outline";
 
 const tabs = ["Overview", "Insights Setup", "Financial Assumptions"];
 
@@ -1018,7 +1018,7 @@ export default function Insights() {
               {/* ICON */}
 
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#b10000] shadow-sm">
-                <BarChart3 className="h-4 w-4 text-white" />
+                <ChartBarIcon className="h-4 w-4 text-white" />
               </div>
 
               {/* CONTENT */}
@@ -1085,7 +1085,7 @@ export default function Insights() {
                       maximumFractionDigits: 2,
                     }),
                     sub: "Monthly earnings",
-                    icon: IndianRupee,
+                    icon: CurrencyRupeeIcon,
                     color: "emerald",
                   },
 
@@ -1093,7 +1093,7 @@ export default function Insights() {
                     label: "Net Profit",
                     value: `₹${isNaN(netProfit) ? 0 : Math.round(netProfit).toLocaleString("en-IN")}`,
                     sub: "EBITDA − finance cost",
-                    icon: TrendingUp,
+                    icon: ArrowTrendingUpIcon,
                     color: "blue",
                   },
 
@@ -1101,7 +1101,7 @@ export default function Insights() {
                     label: "EBITDA",
                     value: `${ebitdaPercentage}%`,
                     sub: "Profitability",
-                    icon: BarChart3,
+                    icon: ChartBarIcon,
                     color: "violet",
                   },
 
@@ -1109,7 +1109,7 @@ export default function Insights() {
                     label: "Prime Cost",
                     value: `${primeCostPercentage}%`,
                     sub: "Food + labour",
-                    icon: PieChart,
+                    icon: ChartPieIcon,
                     color: "orange",
                   },
                 ].map((item) => {
@@ -1179,28 +1179,28 @@ export default function Insights() {
                     label: "Gross Profit",
                     value: `₹${Math.round(grossProfit).toLocaleString("en-IN")}`,
                     sub: "Revenue − food cost",
-                    icon: IndianRupee,
+                    icon: CurrencyRupeeIcon,
                     color: "emerald",
                   },
                   {
                     label: "Gross Margin",
                     value: `${grossProfitMarginPercentage}%`,
                     sub: "Gross profit ÷ revenue",
-                    icon: TrendingUp,
+                    icon: ArrowTrendingUpIcon,
                     color: "blue",
                   },
                   {
                     label: "Labour Cost",
                     value: `${labourCostPercentage}%`,
                     sub: "Of revenue",
-                    icon: Users,
+                    icon: UsersIcon,
                     color: "violet",
                   },
                   {
                     label: "Contribution Margin",
                     value: `${(contributionMarginPercentage * 100).toFixed(1)}%`,
                     sub: "Revenue after variable costs",
-                    icon: PieChart,
+                    icon: ChartPieIcon,
                     color: "orange",
                   },
                 ].map((item) => {
@@ -1269,7 +1269,7 @@ export default function Insights() {
 
                   <div className="flex items-start gap-3">
                     <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-violet-50">
-                      <TrendingUp className="h-4 w-4 text-violet-600" />
+                      <ArrowTrendingUpIcon className="h-4 w-4 text-violet-600" />
                     </div>
 
                     <div>
@@ -1383,7 +1383,7 @@ export default function Insights() {
 
                   <div className="flex items-start gap-3">
                     <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#b10000]">
-                      <Target className="h-4 w-4 text-white" />
+                      <ViewfinderCircleIcon className="h-4 w-4 text-white" />
                     </div>
 
                     <div>
@@ -1523,7 +1523,7 @@ export default function Insights() {
                 <div className="mb-4 flex items-center justify-between">
                   <div className="flex items-start gap-3">
                     <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gray-100">
-                      <PieChart className="h-4 w-4 text-gray-700" />
+                      <ChartPieIcon className="h-4 w-4 text-gray-700" />
                     </div>
                     <div>
                       <h3 className="text-[18px] font-bold tracking-tight text-gray-900">
@@ -1544,31 +1544,31 @@ export default function Insights() {
                     {
                       label: "Fixed",
                       value: totalFixedExpenses,
-                      icon: Wallet,
+                      icon: WalletIcon,
                       color: "#3b82f6",
                     },
                     {
                       label: "Variable",
                       value: totalVariableExpenses,
-                      icon: BarChart3,
+                      icon: ChartBarIcon,
                       color: "#f97316",
                     },
                     {
                       label: "Labour",
                       value: totalLabourCost,
-                      icon: Users,
+                      icon: UsersIcon,
                       color: "#10b981",
                     },
                     {
                       label: "Tax",
                       value: totalFinanceCost,
-                      icon: Landmark,
+                      icon: BuildingLibraryIcon,
                       color: "#8b5cf6",
                     },
                     {
                       label: "Raw Material",
                       value: effectiveFoodCost,
-                      icon: ShoppingCart,
+                      icon: ShoppingCartIcon,
                       color: "#ef4444",
                     },
                   ].filter((d) => d.value > 0);
@@ -1659,7 +1659,7 @@ export default function Insights() {
                 <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
                   <div className="flex items-start gap-3">
                     <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-50">
-                      <Rocket className="h-4 w-4 text-emerald-600" />
+                      <RocketLaunchIcon className="h-4 w-4 text-emerald-600" />
                     </div>
                     <div>
                       <h3 className="text-[18px] font-bold tracking-tight text-gray-900">
@@ -1788,7 +1788,7 @@ export default function Insights() {
                 <div className="mb-4 flex items-center justify-between">
                   <div className="flex items-start gap-3">
                     <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-orange-50">
-                      <Bike className="h-4 w-4 text-orange-600" />
+                      <TruckIcon className="h-4 w-4 text-orange-600" />
                     </div>
                     <div>
                       <h3 className="text-[18px] font-bold tracking-tight text-gray-900">
@@ -1886,7 +1886,7 @@ export default function Insights() {
               <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
                 <div className="mb-4 flex items-start gap-3">
                   <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-violet-50">
-                    <Target className="h-4 w-4 text-violet-600" />
+                    <ViewfinderCircleIcon className="h-4 w-4 text-violet-600" />
                   </div>
                   <div>
                     <h3 className="text-[18px] font-bold tracking-tight text-gray-900">
@@ -1977,7 +1977,7 @@ export default function Insights() {
               <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
                 <div className="mb-4 flex items-start gap-3">
                   <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-teal-50">
-                    <UtensilsCrossed className="h-4 w-4 text-teal-600" />
+                    <CakeIcon className="h-4 w-4 text-teal-600" />
                   </div>
                   <div>
                     <h3 className="text-[18px] font-bold tracking-tight text-gray-900">
@@ -2097,7 +2097,7 @@ export default function Insights() {
               <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
                 <div className="mb-4 flex items-start gap-3">
                   <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-50">
-                    <Warehouse className="h-4 w-4 text-amber-600" />
+                    <BuildingStorefrontIcon className="h-4 w-4 text-amber-600" />
                   </div>
                   <div>
                     <h3 className="text-[18px] font-bold tracking-tight text-gray-900">
@@ -2211,7 +2211,7 @@ export default function Insights() {
                     the actual form off-screen, so it is desktop-only. */}
                 <div className="hidden rounded-xl border border-red-100 bg-[#b10000] p-4 shadow-sm lg:block">
                   <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/15">
-                    <Sparkles className="h-5 w-5 text-white" />
+                    <SparklesIcon className="h-5 w-5 text-white" />
                   </div>
 
                   <h2 className="mt-4 text-[18px] font-bold text-white">
@@ -2253,7 +2253,7 @@ export default function Insights() {
                       onClick={handleSaveInsights}
                       className="flex shrink-0 items-center gap-1.5 rounded-xl bg-[#b10000] px-3 py-2 text-[12px] font-semibold text-white"
                     >
-                      <Save className="h-3.5 w-3.5" />
+                      <CheckIcon className="h-3.5 w-3.5" />
                       Save
                     </button>
                   )}
@@ -2289,31 +2289,31 @@ export default function Insights() {
                   {[
                     {
                       label: "Fixed Expenses",
-                      icon: Building2,
+                      icon: BuildingOffice2Icon,
                     },
                     {
                       label: "Variable Expenses",
-                      icon: Activity,
+                      icon: PresentationChartLineIcon,
                     },
                     {
                       label: "Raw Material Cost",
-                      icon: ShoppingCart,
+                      icon: ShoppingCartIcon,
                     },
                     {
                       label: "Labour",
-                      icon: Users,
+                      icon: UsersIcon,
                     },
                     {
                       label: "Financial Targets",
-                      icon: Target,
+                      icon: ViewfinderCircleIcon,
                     },
                     {
                       label: "Tax & Finance",
-                      icon: Landmark,
+                      icon: BuildingLibraryIcon,
                     },
                     {
                       label: "Business Assumptions",
-                      icon: TrendingUp,
+                      icon: ArrowTrendingUpIcon,
                     },
                   ].map((item) => {
                     const Icon = item.icon;
@@ -2355,7 +2355,7 @@ export default function Insights() {
 
                       <div className="flex items-center gap-3">
                         <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#b10000]">
-                          <Sparkles className="h-4 w-4 text-white" />
+                          <SparklesIcon className="h-4 w-4 text-white" />
                         </div>
 
                         <div>
@@ -2380,7 +2380,7 @@ export default function Insights() {
                           onClick={handleSaveInsights}
                           className="hidden items-center gap-2 rounded-xl bg-[#b10000] px-4 py-2 text-sm font-semibold text-white shadow-sm transition-all duration-200 hover:bg-[#950000] lg:flex"
                         >
-                          <Save className="h-4 w-4" />
+                          <CheckIcon className="h-4 w-4" />
                           Save Setup
                         </button>
                       )}
@@ -2439,7 +2439,7 @@ export default function Insights() {
 
                         <div className="rounded-xl border border-blue-100 bg-blue-50 p-4">
                           <div className="flex items-start gap-3">
-                            <Sparkles className="mt-0.5 h-4 w-4 text-blue-600" />
+                            <SparklesIcon className="mt-0.5 h-4 w-4 text-blue-600" />
 
                             <p className="text-sm leading-6 text-blue-900">
                               Fixed cost ratio is currently within healthy
@@ -2673,7 +2673,7 @@ export default function Insights() {
 
                         <div className="rounded-xl border border-orange-100 bg-orange-50 p-4">
                           <div className="flex items-start gap-3">
-                            <Sparkles className="mt-0.5 h-4 w-4 text-orange-600" />
+                            <SparklesIcon className="mt-0.5 h-4 w-4 text-orange-600" />
 
                             <p className="text-sm leading-6 text-orange-900">
                               Electricity and aggregator charges are
@@ -2803,7 +2803,7 @@ export default function Insights() {
                         </div>
                         <div className="rounded-xl border border-blue-100 bg-blue-50 p-4">
                           <div className="flex items-start gap-3">
-                            <Sparkles className="mt-0.5 h-4 w-4 text-blue-600" />
+                            <SparklesIcon className="mt-0.5 h-4 w-4 text-blue-600" />
                             <p className="text-sm leading-6 text-blue-900">
                               {manualFoodCostSet
                                 ? "Using your manually entered raw material cost for EBITDA calculation."
@@ -2881,7 +2881,7 @@ export default function Insights() {
                             </div>
 
                             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50">
-                              <Users className="h-4 w-4 text-blue-600" />
+                              <UsersIcon className="h-4 w-4 text-blue-600" />
                             </div>
                           </div>
                         </div>
@@ -2912,7 +2912,7 @@ export default function Insights() {
                             </div>
 
                             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#b10000]">
-                              <Wallet className="h-4 w-4 text-white" />
+                              <WalletIcon className="h-4 w-4 text-white" />
                             </div>
                           </div>
                         </div>
@@ -2945,7 +2945,7 @@ export default function Insights() {
                             </div>
 
                             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-50">
-                              <BadgeIndianRupee className="h-4 w-4 text-violet-600" />
+                              <BanknotesIcon className="h-4 w-4 text-violet-600" />
                             </div>
                           </div>
                         </div>
@@ -2971,7 +2971,7 @@ export default function Insights() {
                             </div>
 
                             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50">
-                              <UserCheck className="h-4 w-4 text-emerald-600" />
+                              <CheckBadgeIcon className="h-4 w-4 text-emerald-600" />
                             </div>
                           </div>
                         </div>
@@ -2984,7 +2984,7 @@ export default function Insights() {
 
                         <div className="mb-5 flex items-center gap-3">
                           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-50">
-                            <Building2 className="h-4 w-4 text-indigo-600" />
+                            <BuildingOffice2Icon className="h-4 w-4 text-indigo-600" />
                           </div>
 
                           <div>
@@ -3042,7 +3042,7 @@ export default function Insights() {
                                   </div>
 
                                   <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#b10000]">
-                                    <Users className="h-4 w-4 text-white" />
+                                    <UsersIcon className="h-4 w-4 text-white" />
                                   </div>
                                 </div>
                               </div>
@@ -3059,7 +3059,7 @@ export default function Insights() {
                         <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3">
                           <div className="flex items-center gap-3">
                             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#b10000]">
-                              <ClipboardList className="h-4 w-4 text-white" />
+                              <ClipboardDocumentListIcon className="h-4 w-4 text-white" />
                             </div>
 
                             <div>
@@ -3224,7 +3224,7 @@ export default function Insights() {
                             </div>
 
                             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-50">
-                              <TrendingUp className="h-4 w-4 text-violet-600" />
+                              <ArrowTrendingUpIcon className="h-4 w-4 text-violet-600" />
                             </div>
                           </div>
                         </div>
@@ -3248,7 +3248,7 @@ export default function Insights() {
                             </div>
 
                             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-orange-50">
-                              <UtensilsCrossed className="h-4 w-4 text-orange-600" />
+                              <CakeIcon className="h-4 w-4 text-orange-600" />
                             </div>
                           </div>
                         </div>
@@ -3272,7 +3272,7 @@ export default function Insights() {
                             </div>
 
                             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50">
-                              <BarChart3 className="h-4 w-4 text-emerald-600" />
+                              <ChartBarIcon className="h-4 w-4 text-emerald-600" />
                             </div>
                           </div>
                         </div>
@@ -3296,7 +3296,7 @@ export default function Insights() {
                             </div>
 
                             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#b10000]">
-                              <PieChart className="h-4 w-4 text-white" />
+                              <ChartPieIcon className="h-4 w-4 text-white" />
                             </div>
                           </div>
                         </div>
@@ -3309,7 +3309,7 @@ export default function Insights() {
 
                         <div className="mb-5 flex items-center gap-3">
                           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#b10000]">
-                            <Target className="h-4 w-4 text-white" />
+                            <ViewfinderCircleIcon className="h-4 w-4 text-white" />
                           </div>
 
                           <div>
@@ -3420,7 +3420,7 @@ export default function Insights() {
 
                         <div className="rounded-xl border border-violet-100 bg-violet-50 p-4">
                           <div className="flex items-start gap-3">
-                            <TrendingUp className="mt-0.5 h-4 w-4 text-violet-600" />
+                            <ArrowTrendingUpIcon className="mt-0.5 h-4 w-4 text-violet-600" />
 
                             <div>
                               <p className="text-sm font-semibold text-violet-900">
@@ -3439,7 +3439,7 @@ export default function Insights() {
 
                         <div className="rounded-xl border border-orange-100 bg-orange-50 p-4">
                           <div className="flex items-start gap-3">
-                            <UtensilsCrossed className="mt-0.5 h-4 w-4 text-orange-600" />
+                            <CakeIcon className="mt-0.5 h-4 w-4 text-orange-600" />
 
                             <div>
                               <p className="text-sm font-semibold text-orange-900">
@@ -3458,7 +3458,7 @@ export default function Insights() {
 
                         <div className="rounded-xl border border-[#b10000]/20 bg-red-50 p-4">
                           <div className="flex items-start gap-3">
-                            <PieChart className="mt-0.5 h-4 w-4 text-[#b10000]" />
+                            <ChartPieIcon className="mt-0.5 h-4 w-4 text-[#b10000]" />
 
                             <div>
                               <p className="text-sm font-semibold text-[#b10000]">
@@ -3502,7 +3502,7 @@ export default function Insights() {
                             </div>
 
                             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50">
-                              <Receipt className="h-4 w-4 text-blue-600" />
+                              <DocumentTextIcon className="h-4 w-4 text-blue-600" />
                             </div>
                           </div>
                         </div>
@@ -3529,7 +3529,7 @@ export default function Insights() {
                             </div>
 
                             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#b10000]">
-                              <Wallet className="h-4 w-4 text-white" />
+                              <WalletIcon className="h-4 w-4 text-white" />
                             </div>
                           </div>
                         </div>
@@ -3556,7 +3556,7 @@ export default function Insights() {
                             </div>
 
                             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-orange-50">
-                              <BadgePercent className="h-4 w-4 text-orange-600" />
+                              <PercentBadgeIcon className="h-4 w-4 text-orange-600" />
                             </div>
                           </div>
                         </div>
@@ -3587,7 +3587,7 @@ export default function Insights() {
                             </div>
 
                             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-50">
-                              <Landmark className="h-4 w-4 text-violet-600" />
+                              <BuildingLibraryIcon className="h-4 w-4 text-violet-600" />
                             </div>
                           </div>
                         </div>
@@ -3600,7 +3600,7 @@ export default function Insights() {
 
                         <div className="mb-5 flex items-center gap-3">
                           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-50">
-                            <Landmark className="h-4 w-4 text-violet-600" />
+                            <BuildingLibraryIcon className="h-4 w-4 text-violet-600" />
                           </div>
 
                           <div>
@@ -3716,7 +3716,7 @@ export default function Insights() {
 
                         <div className="rounded-xl border border-blue-100 bg-blue-50 p-4">
                           <div className="flex items-start gap-3">
-                            <Receipt className="mt-0.5 h-4 w-4 text-blue-600" />
+                            <DocumentTextIcon className="mt-0.5 h-4 w-4 text-blue-600" />
 
                             <div>
                               <p className="text-sm font-semibold text-blue-900">
@@ -3736,7 +3736,7 @@ export default function Insights() {
 
                         <div className="rounded-xl border border-orange-100 bg-orange-50 p-4">
                           <div className="flex items-start gap-3">
-                            <Wallet className="mt-0.5 h-4 w-4 text-orange-600" />
+                            <WalletIcon className="mt-0.5 h-4 w-4 text-orange-600" />
 
                             <div>
                               <p className="text-sm font-semibold text-orange-900">
@@ -3755,7 +3755,7 @@ export default function Insights() {
 
                         <div className="rounded-xl border border-violet-100 bg-violet-50 p-4">
                           <div className="flex items-start gap-3">
-                            <ShieldCheck className="mt-0.5 h-4 w-4 text-violet-600" />
+                            <ShieldCheckIcon className="mt-0.5 h-4 w-4 text-violet-600" />
 
                             <div>
                               <p className="text-sm font-semibold text-violet-900">
@@ -3799,7 +3799,7 @@ export default function Insights() {
                             </div>
 
                             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50">
-                              <TrendingUp className="h-4 w-4 text-emerald-600" />
+                              <ArrowTrendingUpIcon className="h-4 w-4 text-emerald-600" />
                             </div>
                           </div>
                         </div>
@@ -3823,7 +3823,7 @@ export default function Insights() {
                             </div>
 
                             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50">
-                              <Bike className="h-4 w-4 text-blue-600" />
+                              <TruckIcon className="h-4 w-4 text-blue-600" />
                             </div>
                           </div>
                         </div>
@@ -3847,7 +3847,7 @@ export default function Insights() {
                             </div>
 
                             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-50">
-                              <Rocket className="h-4 w-4 text-violet-600" />
+                              <RocketLaunchIcon className="h-4 w-4 text-violet-600" />
                             </div>
                           </div>
                         </div>
@@ -3871,7 +3871,7 @@ export default function Insights() {
                             </div>
 
                             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-pink-50">
-                              <CalendarRange className="h-4 w-4 text-pink-500" />
+                              <CalendarDateRangeIcon className="h-4 w-4 text-pink-500" />
                             </div>
                           </div>
                         </div>
@@ -3885,7 +3885,7 @@ export default function Insights() {
                         <div className="mb-5 flex items-center justify-between">
                           <div className="flex items-center gap-3">
                             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#b10000]">
-                              <Sparkles className="h-4 w-4 text-white" />
+                              <SparklesIcon className="h-4 w-4 text-white" />
                             </div>
 
                             <div>
@@ -3912,7 +3912,7 @@ export default function Insights() {
                               label: "Expected Monthly Growth %",
                               key: "expectedMonthlyGrowth",
                               placeholder: "10",
-                              icon: TrendingUp,
+                              icon: ArrowTrendingUpIcon,
                               color: "emerald",
                             },
 
@@ -3920,7 +3920,7 @@ export default function Insights() {
                               label: "Expected Delivery Growth %",
                               key: "expectedDeliveryGrowth",
                               placeholder: "15",
-                              icon: Bike,
+                              icon: TruckIcon,
                               color: "blue",
                             },
 
@@ -3928,7 +3928,7 @@ export default function Insights() {
                               label: "Seasonal Impact %",
                               key: "seasonalImpact",
                               placeholder: "20",
-                              icon: CalendarRange,
+                              icon: CalendarDateRangeIcon,
                               color: "pink",
                             },
 
@@ -3936,7 +3936,7 @@ export default function Insights() {
                               label: "Weekend Sales Increase %",
                               key: "weekendSalesIncrease",
                               placeholder: "25",
-                              icon: Rocket,
+                              icon: RocketLaunchIcon,
                               color: "violet",
                             },
                           ].map((field) => {
@@ -4045,7 +4045,7 @@ export default function Insights() {
                           <div className="rounded-xl border border-gray-200 bg-white p-3 md:col-span-2 xl:col-span-1">
                             <div className="mb-3 flex items-center gap-3">
                               <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#b10000]">
-                                <Building2 className="h-4 w-4 text-white" />
+                                <BuildingOffice2Icon className="h-4 w-4 text-white" />
                               </div>
 
                               <div>
@@ -4106,7 +4106,7 @@ export default function Insights() {
                       <div className="rounded-xl border border-emerald-100 bg-emerald-50 p-4">
                         <div className="flex items-start gap-3">
                           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500">
-                            <Sparkles className="h-4 w-4 text-white" />
+                            <SparklesIcon className="h-4 w-4 text-white" />
                           </div>
 
                           <div>
@@ -4249,7 +4249,7 @@ export default function Insights() {
                               : ""}
                           </span>
                         </span>
-                        <ChevronDown
+                        <ChevronDownIcon
                           className={`h-4 w-4 shrink-0 text-gray-400 transition-transform ${isOpen ? "rotate-180" : ""}`}
                         />
                       </button>
@@ -4335,7 +4335,7 @@ export default function Insights() {
                       disabled={assumptionsSaving}
                       className="flex items-center gap-1.5 rounded-xl bg-[#b10000] px-4 py-2 text-[12px] font-semibold text-white shadow-sm transition hover:bg-[#950000] disabled:opacity-50"
                     >
-                      <Save className="h-3.5 w-3.5" />
+                      <CheckIcon className="h-3.5 w-3.5" />
                       {assumptionsSaving
                         ? "Saving…"
                         : assumptionsMode === "defaults"

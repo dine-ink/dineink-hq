@@ -10,9 +10,10 @@ import {
 } from "@headlessui/react";
 import {
   BuildingStorefrontIcon,
-  QueueListIcon,
-  Squares2X2Icon,
   CreditCardIcon,
+  QueueListIcon,
+  SparklesIcon,
+  Squares2X2Icon,
   UsersIcon,
   XMarkIcon,
 } from "@heroicons/react/24/outline";
@@ -68,7 +69,6 @@ import {
   FaCheese,
   FaFish,
 } from "react-icons/fa";
-import { SparklesIcon } from "lucide-react";
 import { getIndianCitiesForState, getIndianStates } from "../../utils/indiaLocations";
 
 const tabs = [

@@ -1,10 +1,15 @@
 import { useEffect, useState } from "react";
-import { Settings2, GripVertical, Eye, EyeOff } from "lucide-react";
 import { useAppSelector } from "../../store";
 import { ALL_KPI_LABELS, fmtCategoryValue, PERIOD_OPTIONS, STATUS_STYLES, WIDGET_KPIS } from "./executiveCategories";
 import { AlertIcon, TrendIcon } from "../../utils/kpiDisplay";
 import { ALERT_STYLES, trendStyle } from "../../utils/kpiStyles";
 import MobileTableCards from "../../components/common/MobileTableCards";
+import {
+  Cog6ToothIcon,
+  EllipsisVerticalIcon,
+  EyeIcon,
+  EyeSlashIcon,
+} from "@heroicons/react/24/outline";
 
 export default function OverviewTab() {
   const { selectedBranch } = useAppSelector((s) => s.branch);
@@ -113,7 +118,7 @@ export default function OverviewTab() {
           </select>
         </div>
         <button type="button" onClick={() => setShowCustomize((v) => !v)} className="flex items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3 py-2 text-[12px] font-semibold text-gray-700 shadow-sm transition hover:bg-gray-50">
-          <Settings2 className="h-3.5 w-3.5" /> Customize
+          <Cog6ToothIcon className="h-3.5 w-3.5" /> Customize
         </button>
       </div>
 
@@ -124,11 +129,11 @@ export default function OverviewTab() {
           <div className="space-y-1.5">
             {pinnedKpis.map((key, i) => (
               <div key={key} className="flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-2 py-1.5">
-                <GripVertical className="h-3.5 w-3.5 text-gray-300" />
+                <EllipsisVerticalIcon className="h-3.5 w-3.5 text-gray-300" />
                 <span className="flex-1 text-[12px] font-medium text-gray-700">{ALL_KPI_LABELS[key] || key}</span>
                 <button type="button" onClick={() => moveKpi(i, -1)} className="rounded px-1.5 py-0.5 text-[11px] text-gray-500 hover:bg-gray-100">↑</button>
                 <button type="button" onClick={() => moveKpi(i, 1)} className="rounded px-1.5 py-0.5 text-[11px] text-gray-500 hover:bg-gray-100">↓</button>
-                <button type="button" onClick={() => togglePin(key)} className="rounded px-1.5 py-0.5 text-red-500 hover:bg-red-50"><EyeOff className="h-3.5 w-3.5" /></button>
+                <button type="button" onClick={() => togglePin(key)} className="rounded px-1.5 py-0.5 text-red-500 hover:bg-red-50"><EyeSlashIcon className="h-3.5 w-3.5" /></button>
               </div>
             ))}
           </div>
@@ -136,7 +141,7 @@ export default function OverviewTab() {
           <div className="flex flex-wrap gap-1.5">
             {Object.keys(ALL_KPI_LABELS).filter((k) => !pinnedKpis.includes(k)).map((k) => (
               <button key={k} type="button" onClick={() => togglePin(k)} className="flex items-center gap-1 rounded-lg border border-gray-200 bg-white px-2 py-1 text-[11px] text-gray-600 hover:bg-gray-50">
-                <Eye className="h-3 w-3" /> {ALL_KPI_LABELS[k]}
+                <EyeIcon className="h-3 w-3" /> {ALL_KPI_LABELS[k]}
               </button>
             ))}
           </div>

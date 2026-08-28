@@ -1,13 +1,13 @@
 import {
-  IndianRupee,
-  ShoppingBag,
-  BarChart3,
-  Users,
-  Clock3,
-  TrendingUp,
-  TrendingDown,
-  Minus,
-} from "lucide-react";
+  ArrowTrendingDownIcon,
+  ArrowTrendingUpIcon,
+  ChartBarIcon,
+  ClockIcon,
+  CurrencyRupeeIcon,
+  MinusIcon,
+  ShoppingBagIcon,
+  UsersIcon,
+} from "@heroicons/react/24/outline";
 
 type RatioRow = {
   key: string;
@@ -37,9 +37,9 @@ const TrendIcon = ({
 }: {
   direction: "up" | "down" | "flat" | null;
 }) => {
-  if (direction === "up") return <TrendingUp className="h-3 w-3" />;
-  if (direction === "down") return <TrendingDown className="h-3 w-3" />;
-  return <Minus className="h-3 w-3" />;
+  if (direction === "up") return <ArrowTrendingUpIcon className="h-3 w-3" />;
+  if (direction === "down") return <ArrowTrendingDownIcon className="h-3 w-3" />;
+  return <MinusIcon className="h-3 w-3" />;
 };
 
 export default function AnalyticsOverview({
@@ -67,7 +67,7 @@ export default function AnalyticsOverview({
     {
       name: "Revenue",
       value: `₹${Math.round(revenue ?? analytics?.totalRevenue ?? 0).toLocaleString("en-IN")}`,
-      icon: IndianRupee,
+      icon: CurrencyRupeeIcon,
       accent: "bg-red-500",
       iconBg: "bg-red-50",
       iconColor: "text-primary-600",
@@ -79,7 +79,7 @@ export default function AnalyticsOverview({
     {
       name: "Orders",
       value: analytics?.totalOrders || 0,
-      icon: ShoppingBag,
+      icon: ShoppingBagIcon,
       accent: "bg-blue-500",
       iconBg: "bg-blue-50",
       iconColor: "text-blue-500",
@@ -88,7 +88,7 @@ export default function AnalyticsOverview({
     {
       name: "Avg Order",
       value: `₹${Math.round(analytics?.avgOrderValue || 0)}`,
-      icon: BarChart3,
+      icon: ChartBarIcon,
       accent: "bg-orange-500",
       iconBg: "bg-orange-50",
       iconColor: "text-orange-500",
@@ -97,7 +97,7 @@ export default function AnalyticsOverview({
     {
       name: "Customers",
       value: analytics?.totalCustomers || 0,
-      icon: Users,
+      icon: UsersIcon,
       accent: "bg-emerald-500",
       iconBg: "bg-emerald-50",
       iconColor: "text-emerald-500",
@@ -106,7 +106,7 @@ export default function AnalyticsOverview({
     {
       name: "Peak Hours",
       value: analytics?.peakHours || "N/A",
-      icon: Clock3,
+      icon: ClockIcon,
       accent: "bg-violet-500",
       iconBg: "bg-violet-50",
       iconColor: "text-violet-500",
@@ -116,7 +116,7 @@ export default function AnalyticsOverview({
       name: "EBITDA",
       value:
         ebitda == null ? "—" : `₹${Math.round(ebitda).toLocaleString("en-IN")}`,
-      icon: TrendingUp,
+      icon: ArrowTrendingUpIcon,
       accent: ebitdaPositive ? "bg-emerald-500" : "bg-red-500",
       iconBg: ebitdaPositive ? "bg-emerald-50" : "bg-red-50",
       iconColor: ebitdaPositive ? "text-emerald-500" : "text-red-500",

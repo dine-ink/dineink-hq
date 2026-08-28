@@ -1,11 +1,16 @@
 import { useEffect, useState } from "react";
-import { Plus, ArrowLeft, Trash2, Save } from "lucide-react";
 import {
   ResponsiveContainer, BarChart, Bar, CartesianGrid, XAxis, YAxis, Tooltip, Cell,
 } from "recharts";
 import { useAppSelector } from "../../store";
 import { ASSUMPTION_FIELDS, fmtCategoryValue, INVESTMENT_STATUSES, INVESTMENT_TYPES, riskLevelFor, RISK_STYLES, STATUS_STYLES } from "./investmentCategories";
 import MobileTableCards from "../../components/common/MobileTableCards";
+import {
+  ArrowLeftIcon,
+  CheckIcon,
+  PlusIcon,
+  TrashIcon,
+} from "@heroicons/react/24/outline";
 
 const SCENARIO_TYPE_LABEL: Record<string, string> = { CONSERVATIVE: "Conservative", EXPECTED: "Expected", OPTIMISTIC: "Optimistic" };
 
@@ -165,7 +170,7 @@ export default function ProjectsTab() {
         <div className="flex items-center justify-between">
           <h3 className="text-[16px] font-bold text-gray-900">Investment Projects</h3>
           <button type="button" onClick={openCreate} className="flex items-center gap-1.5 rounded-xl bg-[#b10000] px-4 py-2 text-[12px] font-semibold text-white shadow-sm transition hover:bg-[#950000]">
-            <Plus className="h-3.5 w-3.5" /> New Investment
+            <PlusIcon className="h-3.5 w-3.5" /> New Investment
           </button>
         </div>
 
@@ -201,7 +206,7 @@ export default function ProjectsTab() {
                     <td className="px-4 py-2.5">{statusBadge(p.status)}</td>
                     <td className="px-4 py-2.5 text-right">
                       <button type="button" onClick={() => handleDelete(p)} className="inline-flex items-center gap-1 rounded-lg border border-red-200 px-2 py-1 text-[10px] font-semibold text-red-600 hover:bg-red-50">
-                        <Trash2 className="h-3 w-3" /> Delete
+                        <TrashIcon className="h-3 w-3" /> Delete
                       </button>
                     </td>
                   </tr>
@@ -220,7 +225,7 @@ export default function ProjectsTab() {
     return (
       <div className="space-y-4">
         <button type="button" onClick={() => setView("list")} className="flex items-center gap-1 text-[12px] font-semibold text-gray-500 hover:text-gray-700">
-          <ArrowLeft className="h-3.5 w-3.5" /> Back to Projects
+          <ArrowLeftIcon className="h-3.5 w-3.5" /> Back to Projects
         </button>
         <div className="rounded-xl border border-gray-200 bg-white p-4">
           <h3 className="mb-4 text-[15px] font-bold text-gray-900">New Investment Project</h3>
@@ -284,7 +289,7 @@ export default function ProjectsTab() {
   return (
     <div className="space-y-4">
       <button type="button" onClick={() => setView("list")} className="flex items-center gap-1 text-[12px] font-semibold text-gray-500 hover:text-gray-700">
-        <ArrowLeft className="h-3.5 w-3.5" /> Back to Projects
+        <ArrowLeftIcon className="h-3.5 w-3.5" /> Back to Projects
       </button>
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -298,7 +303,7 @@ export default function ProjectsTab() {
             {INVESTMENT_STATUSES.map((s) => <option key={s.key} value={s.key}>{s.label}</option>)}
           </select>
           <button type="button" onClick={handleSave} disabled={saving} className="flex items-center gap-1.5 rounded-xl bg-[#b10000] px-3 py-2 text-[12px] font-semibold text-white shadow-sm transition hover:bg-[#950000] disabled:opacity-50">
-            <Save className="h-3.5 w-3.5" /> {saving ? "Saving…" : "Save Changes"}
+            <CheckIcon className="h-3.5 w-3.5" /> {saving ? "Saving…" : "Save Changes"}
           </button>
         </div>
       </div>

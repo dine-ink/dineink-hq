@@ -1,9 +1,14 @@
 import { useEffect, useState } from "react";
-import { Trophy, TrendingUp, AlertTriangle, ArrowDown } from "lucide-react";
 import { useAppSelector } from "../../store";
 import { fmtCategoryValue, PERIOD_OPTIONS, STATUS_STYLES } from "./executiveCategories";
 import { BranchRankingChart, InvestmentPerformanceChart } from "./ExecutiveCharts";
 import MobileTableCards from "../../components/common/MobileTableCards";
+import {
+  ArrowDownIcon,
+  ArrowTrendingUpIcon,
+  ExclamationTriangleIcon,
+  TrophyIcon,
+} from "@heroicons/react/24/outline";
 
 export default function MultiBranchTab() {
   const { user, token } = useAppSelector((s) => s.auth);
@@ -59,10 +64,10 @@ export default function MultiBranchTab() {
 
       {/* HIGHLIGHTS */}
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-        <HighlightCard icon={<Trophy className="h-3.5 w-3.5" />} label="Best Performing" item={multiBranch.bestPerforming} tone="border-emerald-200 bg-emerald-50 text-emerald-800" />
-        <HighlightCard icon={<TrendingUp className="h-3.5 w-3.5" />} label="Most Improved" item={multiBranch.mostImproved} tone="border-blue-200 bg-blue-50 text-blue-800" />
-        <HighlightCard icon={<AlertTriangle className="h-3.5 w-3.5" />} label="Highest Risk" item={multiBranch.highestRisk} tone="border-red-200 bg-red-50 text-red-800" />
-        <HighlightCard icon={<ArrowDown className="h-3.5 w-3.5" />} label="Lowest Performing" item={multiBranch.lowestPerforming} tone="border-gray-200 bg-gray-50 text-gray-700" />
+        <HighlightCard icon={<TrophyIcon className="h-3.5 w-3.5" />} label="Best Performing" item={multiBranch.bestPerforming} tone="border-emerald-200 bg-emerald-50 text-emerald-800" />
+        <HighlightCard icon={<ArrowTrendingUpIcon className="h-3.5 w-3.5" />} label="Most Improved" item={multiBranch.mostImproved} tone="border-blue-200 bg-blue-50 text-blue-800" />
+        <HighlightCard icon={<ExclamationTriangleIcon className="h-3.5 w-3.5" />} label="Highest Risk" item={multiBranch.highestRisk} tone="border-red-200 bg-red-50 text-red-800" />
+        <HighlightCard icon={<ArrowDownIcon className="h-3.5 w-3.5" />} label="Lowest Performing" item={multiBranch.lowestPerforming} tone="border-gray-200 bg-gray-50 text-gray-700" />
       </div>
 
       {/* RANKED TABLE */}
@@ -91,7 +96,7 @@ export default function MultiBranchTab() {
                 <tr key={row.branch.id} className="border-t border-gray-100">
                   <td className="px-4 py-2.5">
                     <span className={`flex h-6 w-6 items-center justify-center rounded-full text-[11px] font-bold ${i === 0 ? "bg-amber-100 text-amber-700" : "bg-gray-100 text-gray-500"}`}>
-                      {i === 0 ? <Trophy className="h-3.5 w-3.5" /> : i + 1}
+                      {i === 0 ? <TrophyIcon className="h-3.5 w-3.5" /> : i + 1}
                     </span>
                   </td>
                   <td className="px-4 py-2.5 font-semibold text-gray-900">{row.branch.name}</td>

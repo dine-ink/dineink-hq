@@ -3,25 +3,31 @@ import { useNavigate } from "react-router-dom";
 import { useAppSelector } from "../../store";
 import { formatQty } from "../../utils/units";
 import { chartPalette } from "../../design";
-import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
 import ExcelJS from "exceljs";
+import { loadWorkbook, sheetToJson } from "../../utils/readExcel";
 import {
-  ClipboardDocumentListIcon,
-  CubeIcon,
   ArrowPathRoundedSquareIcon,
-  Squares2X2Icon,
-  ChartBarIcon,
-  CloudArrowUpIcon,
-  FolderIcon,
-  PlusIcon,
-  SparklesIcon,
-  ChartPieIcon,
   BanknotesIcon,
+  CakeIcon,
+  ChartBarIcon,
+  ChartPieIcon,
+  ChevronDownIcon,
+  ClipboardDocumentCheckIcon,
+  ClipboardDocumentListIcon,
+  CloudArrowUpIcon,
+  CubeIcon,
+  CurrencyRupeeIcon,
+  ExclamationTriangleIcon,
   FireIcon,
-  XMarkIcon,
+  FolderIcon,
+  MagnifyingGlassIcon,
   PencilSquareIcon,
+  PlusIcon,
   PuzzlePieceIcon,
+  SparklesIcon,
+  Squares2X2Icon,
+  XMarkIcon,
 } from "@heroicons/react/24/outline";
 import React from "react";
 import {
@@ -30,10 +36,6 @@ import {
   ArchiveBoxIcon,
   CubeTransparentIcon,
 } from "@heroicons/react/24/solid";
-import {
-  MagnifyingGlassIcon,
-  ChevronDownIcon,
-} from "@heroicons/react/24/outline";
 import {
   MdRestaurant,
   MdLocalCafe,
@@ -64,9 +66,6 @@ import {
   MdFlatware,
   MdLunchDining,
   MdBreakfastDining,
-  MdWarningAmber,
-  MdChecklist,
-  MdCurrencyRupee,
 } from "react-icons/md";
 import {
   GiNoodles,
@@ -89,7 +88,6 @@ import {
   FaCheese,
   FaFish,
 } from "react-icons/fa";
-import { BarChart3, Search, UtensilsCrossed } from "lucide-react";
 import {
   Cell,
   Pie,
@@ -245,14 +243,14 @@ const tabs = [
   {
     id: "engineering",
     name: "Menu Engineering",
-    icon: BarChart3,
+    icon: ChartBarIcon,
     description: "Classify dishes by popularity and profit margin",
   },
 
   {
     id: "operations",
     name: "Operations",
-    icon: MdChecklist,
+    icon: ClipboardDocumentCheckIcon,
     description: "SOP checklists for prep, portioning and hygiene",
   },
 ];
@@ -1381,18 +1379,12 @@ export default function MenuManagement() {
     reader.onload = async (evt: any) => {
       const data = new Uint8Array(evt.target.result);
 
-      const workbook = XLSX.read(data, {
-        type: "array",
-      });
+      const workbook = await loadWorkbook(data);
 
       const allWeeks: any = {};
 
-      workbook.SheetNames.forEach((sheetName, index) => {
-        const worksheet = workbook.Sheets[sheetName];
-
-        const jsonData = XLSX.utils.sheet_to_json(worksheet);
-
-        allWeeks[`week${index + 1}`] = jsonData;
+      workbook.worksheets.forEach((worksheet, index) => {
+        allWeeks[`week${index + 1}`] = sheetToJson(worksheet);
       });
 
       setRestockHistory(allWeeks);
@@ -1507,15 +1499,11 @@ export default function MenuManagement() {
         try {
           const data = new Uint8Array(evt.target.result);
 
-          const workbook = XLSX.read(data, {
-            type: "array",
-          });
+          const workbook = await loadWorkbook(data);
 
-          const sheetName = workbook.SheetNames[0];
+          const worksheet = workbook.worksheets[0];
 
-          const worksheet = workbook.Sheets[sheetName];
-
-          const jsonData: any = XLSX.utils.sheet_to_json(worksheet);
+          const jsonData: any = sheetToJson(worksheet);
 
           const res = await fetch(
             `${API_URL}/api/ingredients/uploadVendorData`,
@@ -2294,7 +2282,7 @@ export default function MenuManagement() {
             <div className="flex items-center gap-3">
               {/* ICON */}
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#b10000] shadow-sm">
-                <UtensilsCrossed className="h-4 w-4 text-white" />
+                <CakeIcon className="h-4 w-4 text-white" />
               </div>
 
               {/* CONTENT */}
@@ -4310,7 +4298,7 @@ export default function MenuManagement() {
                     {/* MAPPED */}
 
                     <div className="flex items-center gap-2 rounded-xl border border-emerald-100 bg-emerald-50 px-3 py-2">
-                      <MdChecklist className="text-emerald-600" />
+                      <ClipboardDocumentCheckIcon className="h-4 w-4 text-emerald-600" />
 
                       <div className="leading-none">
                         <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-emerald-400">
@@ -4326,7 +4314,7 @@ export default function MenuManagement() {
                     {/* UNMAPPED */}
 
                     <div className="flex items-center gap-2 rounded-xl border border-red-100 bg-red-50 px-3 py-2">
-                      <MdWarningAmber className="text-red-600" />
+                      <ExclamationTriangleIcon className="h-4 w-4 text-red-600" />
 
                       <div className="leading-none">
                         <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-red-400">
@@ -4342,7 +4330,7 @@ export default function MenuManagement() {
                     {/* COST */}
 
                     <div className="flex items-center gap-2 rounded-xl border border-orange-100 bg-orange-50 px-3 py-2">
-                      <MdCurrencyRupee className="text-orange-600" />
+                      <CurrencyRupeeIcon className="h-4 w-4 text-orange-600" />
 
                       <div className="leading-none">
                         <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-orange-400">
@@ -4399,7 +4387,7 @@ export default function MenuManagement() {
 
                   <div className="border-b border-gray-100 p-3">
                     <div className="relative">
-                      <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                      <MagnifyingGlassIcon className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
 
                       <input
                         placeholder="Search menu items..."
@@ -4862,7 +4850,7 @@ export default function MenuManagement() {
 
                   <div className="flex items-start gap-4">
                     <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-500 shadow-sm">
-                      <BarChart3 className="h-5 w-5 text-white" />
+                      <ChartBarIcon className="h-5 w-5 text-white" />
                     </div>
 
                     <div>
@@ -5499,7 +5487,7 @@ export default function MenuManagement() {
                 <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
                   <div className="flex items-start gap-4">
                     <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-500 shadow-sm">
-                      <BarChart3 className="h-5 w-5 text-white" />
+                      <ChartBarIcon className="h-5 w-5 text-white" />
                     </div>
                     <div>
                       <h2 className="text-[24px] font-black tracking-tight text-gray-900">
@@ -5999,7 +5987,7 @@ export default function MenuManagement() {
               {sopChecklists.length === 0 ? (
                 <div className="flex min-h-[200px] items-center justify-center rounded-2xl border border-dashed border-gray-200 bg-white p-10 text-center">
                   <div>
-                    <MdChecklist className="mx-auto h-8 w-8 text-gray-300" />
+                    <ClipboardDocumentCheckIcon className="mx-auto h-8 w-8 text-gray-300" />
                     <p className="mt-3 text-[13px] font-semibold text-gray-600">
                       No SOP checklists yet
                     </p>

@@ -1,5 +1,9 @@
 import type { ComponentType, ReactNode } from "react";
-import { TrendingUp, TrendingDown, Minus } from "lucide-react";
+import {
+  ArrowTrendingDownIcon,
+  ArrowTrendingUpIcon,
+  MinusIcon,
+} from "@heroicons/react/24/outline";
 
 export type MetricStatus = "primary" | "secondary" | "success" | "warning" | "danger" | "info" | "neutral";
 
@@ -28,7 +32,7 @@ const statusClasses: Record<MetricStatus, { border: string; bg: string; text: st
 const TrendIndicator = ({ direction, higherIsBetter = true }: { direction: "up" | "down" | "flat"; higherIsBetter?: boolean }) => {
   const isGood = direction === "flat" ? null : higherIsBetter ? direction === "up" : direction === "down";
   const color = isGood === null ? "text-gray-400" : isGood ? "text-success-600" : "text-danger-600";
-  const Icon = direction === "up" ? TrendingUp : direction === "down" ? TrendingDown : Minus;
+  const Icon = direction === "up" ? ArrowTrendingUpIcon : direction === "down" ? ArrowTrendingDownIcon : MinusIcon;
   return <Icon className={`h-3 w-3 ${color}`} aria-hidden="true" />;
 };
 

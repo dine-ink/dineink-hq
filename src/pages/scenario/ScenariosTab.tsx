@@ -1,8 +1,17 @@
 import { useEffect, useState } from "react";
-import { Plus, Copy, Save, ArrowLeft, Trash2, RotateCcw, Archive, CheckCircle2 } from "lucide-react";
 import { useAppSelector } from "../../store";
 import { OVERRIDE_FIELD_GROUPS, OVERRIDE_FIELDS, SCENARIO_TYPE_STYLES } from "./scenarioCategories";
 import MobileTableCards from "../../components/common/MobileTableCards";
+import {
+  ArchiveBoxIcon,
+  ArrowLeftIcon,
+  ArrowUturnLeftIcon,
+  CheckCircleIcon,
+  CheckIcon,
+  DocumentDuplicateIcon,
+  PlusIcon,
+  TrashIcon,
+} from "@heroicons/react/24/outline";
 
 export default function ScenariosTab() {
   const { branches } = useAppSelector((s) => s.branch);
@@ -231,7 +240,7 @@ export default function ScenariosTab() {
               onClick={openCreate}
               className="flex items-center gap-1.5 rounded-xl bg-[#b10000] px-4 py-2 text-[12px] font-semibold text-white shadow-sm transition hover:bg-[#950000]"
             >
-              <Plus className="h-3.5 w-3.5" /> Create Scenario
+              <PlusIcon className="h-3.5 w-3.5" /> Create Scenario
             </button>
           </div>
         </div>
@@ -272,7 +281,7 @@ export default function ScenariosTab() {
                           onClick={() => handleClone(s.id)}
                           className="inline-flex items-center gap-1 rounded-lg border border-gray-200 px-2 py-1 text-[10px] font-semibold text-gray-600 hover:bg-gray-50"
                         >
-                          <Copy className="h-3 w-3" /> Clone
+                          <DocumentDuplicateIcon className="h-3 w-3" /> Clone
                         </button>
                         {s.type === "CUSTOM" && (
                           <button
@@ -280,7 +289,7 @@ export default function ScenariosTab() {
                             onClick={() => handleDelete(s)}
                             className="inline-flex items-center gap-1 rounded-lg border border-red-200 px-2 py-1 text-[10px] font-semibold text-red-600 hover:bg-red-50"
                           >
-                            <Trash2 className="h-3 w-3" /> Delete
+                            <TrashIcon className="h-3 w-3" /> Delete
                           </button>
                         )}
                       </div>
@@ -301,7 +310,7 @@ export default function ScenariosTab() {
     return (
       <div className="space-y-4">
         <button type="button" onClick={() => setView("list")} className="flex items-center gap-1 text-[12px] font-semibold text-gray-500 hover:text-gray-700">
-          <ArrowLeft className="h-3.5 w-3.5" /> Back to Scenarios
+          <ArrowLeftIcon className="h-3.5 w-3.5" /> Back to Scenarios
         </button>
 
         <div className="rounded-xl border border-gray-200 bg-white p-4">
@@ -390,7 +399,7 @@ export default function ScenariosTab() {
   return (
     <div className="space-y-4">
       <button type="button" onClick={() => setView("list")} className="flex items-center gap-1 text-[12px] font-semibold text-gray-500 hover:text-gray-700">
-        <ArrowLeft className="h-3.5 w-3.5" /> Back to Scenarios
+        <ArrowLeftIcon className="h-3.5 w-3.5" /> Back to Scenarios
       </button>
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -408,7 +417,7 @@ export default function ScenariosTab() {
               onClick={handleResetAll}
               className="flex items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3 py-2 text-[12px] font-semibold text-gray-700 shadow-sm transition hover:bg-gray-50"
             >
-              <RotateCcw className="h-3.5 w-3.5" /> Reset All
+              <ArrowUturnLeftIcon className="h-3.5 w-3.5" /> Reset All
             </button>
           )}
           {!isCustom && (
@@ -417,7 +426,7 @@ export default function ScenariosTab() {
               onClick={() => handleClone(selectedScenario.id)}
               className="flex items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3 py-2 text-[12px] font-semibold text-gray-700 shadow-sm transition hover:bg-gray-50"
             >
-              <Copy className="h-3.5 w-3.5" /> Clone to Customize
+              <DocumentDuplicateIcon className="h-3.5 w-3.5" /> Clone to Customize
             </button>
           )}
           <button
@@ -427,7 +436,7 @@ export default function ScenariosTab() {
               selectedScenario?.isActive ? "border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100" : "border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
             }`}
           >
-            {selectedScenario?.isActive ? <Archive className="h-3.5 w-3.5" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
+            {selectedScenario?.isActive ? <ArchiveBoxIcon className="h-3.5 w-3.5" /> : <CheckCircleIcon className="h-3.5 w-3.5" />}
             {selectedScenario?.isActive ? "Archive" : "Reactivate"}
           </button>
           {isCustom && (
@@ -437,7 +446,7 @@ export default function ScenariosTab() {
               disabled={saving}
               className="flex items-center gap-1.5 rounded-xl bg-[#b10000] px-3 py-2 text-[12px] font-semibold text-white shadow-sm transition hover:bg-[#950000] disabled:opacity-50"
             >
-              <Save className="h-3.5 w-3.5" /> {saving ? "Saving…" : "Save Changes"}
+              <CheckIcon className="h-3.5 w-3.5" /> {saving ? "Saving…" : "Save Changes"}
             </button>
           )}
         </div>

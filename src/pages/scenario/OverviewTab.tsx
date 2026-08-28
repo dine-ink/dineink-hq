@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
-import { Save, RefreshCw } from "lucide-react";
 import { useAppSelector } from "../../store";
 import { fmtCategoryValue, OVERRIDE_FIELD_GROUPS, OVERRIDE_FIELDS, SCENARIO_KPIS, WIDGET_KPIS } from "./scenarioCategories";
 import { TrendIcon } from "../../utils/kpiDisplay";
 import { trendStyle } from "../../utils/kpiStyles";
 import ScenarioCharts from "./ScenarioCharts";
 import MobileTableCards from "../../components/common/MobileTableCards";
+import { ArrowPathIcon, CheckIcon } from "@heroicons/react/24/outline";
 
 const PERIODS = [
   { key: "currentMonth", label: "Current Month" },
@@ -213,10 +213,10 @@ export default function OverviewTab() {
           <div className="flex items-center gap-2">
             <span className="text-[11px] font-semibold text-amber-600">Unsaved slider changes — not yet applied to the scenario</span>
             <button type="button" onClick={handleRevert} className="flex items-center gap-1 rounded-xl border border-gray-200 bg-white px-3 py-1.5 text-[11px] font-semibold text-gray-600 hover:bg-gray-50">
-              <RefreshCw className="h-3 w-3" /> Revert
+              <ArrowPathIcon className="h-3 w-3" /> Revert
             </button>
             <button type="button" onClick={handleSaveToScenario} disabled={saving} className="flex items-center gap-1 rounded-xl bg-[#b10000] px-3 py-1.5 text-[11px] font-semibold text-white hover:bg-[#950000] disabled:opacity-50">
-              <Save className="h-3 w-3" /> {saving ? "Saving…" : "Save to Scenario"}
+              <CheckIcon className="h-3 w-3" /> {saving ? "Saving…" : "Save to Scenario"}
             </button>
           </div>
         )}
