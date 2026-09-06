@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useAppSelector } from "@/store";
 import { useGetScenariosQuery, useGetWhatIfBatchQuery } from "@/store/api/scenariosApi";
+import { useGetBudgetsQuery, useGetBudgetVarianceQuery } from "@/store/api/budgetsApi";
 import { fmtCategoryValue, SCENARIO_KPIS } from "./scenarioCategories";
 import MobileTableCards from "@/components/common/MobileTableCards";
 
@@ -32,7 +33,6 @@ export default function ComparisonTab() {
   const [scopeBranchId, setScopeBranchId] = useState<string>("restaurant");
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [period, setPeriod] = useState("currentMonth");
-  const [budgetColumn, setBudgetColumn] = useState<Record<string, number | null> | null>(null);
 
   const restaurantId = user?.restaurantId as number;
 
@@ -59,46 +59,32 @@ export default function ComparisonTab() {
     setSelectedIds(scenarios.slice(0, MAX_SELECTED_SCENARIOS).map((s) => s.id));
   }, [scenarios]);
 
-  // The Budget column still uses fetch: it belongs to the budgets module, not
-  // this one, and moves when that module is migrated. Migrating by API module
-  // means a screen can legitimately be on the new pattern for one and the old
-  // pattern for another.
-  useEffect(() => {
-    const fetchBudgetColumn = async () => {
-      if (selectedIds.length === 0 || !user?.restaurantId) {
-        setBudgetColumn(null);
-        return;
-      }
-      try {
-        // Optional Budget column — reuses the Budget module's own variance
-        // endpoint rather than re-deriving budget figures; skipped silently
-        // if no published budget exists for this scope.
-        const budgetBranchId = scopeBranchId === "restaurant" ? null : Number(scopeBranchId);
-        const branchParam = budgetBranchId ? `?branchId=${budgetBranchId}&status=PUBLISHED` : "?status=PUBLISHED";
-        const budgetListRes = await fetch(`${API_URL}/api/budgets/${user.restaurantId}${branchParam}`, { headers: { Authorization: `Bearer ${token}` } });
-        const budgetListJson = await budgetListRes.json();
-        const budget = budgetBranchId
-          ? budgetListJson.data?.find((b: any) => b.branchId === budgetBranchId)
-          : budgetListJson.data?.find((b: any) => b.branchId === null) || budgetListJson.data?.[0];
-        if (budget) {
-          const varianceRes = await fetch(`${API_URL}/api/budgets/${user.restaurantId}/${budget.id}/variance?period=${period}`, { headers: { Authorization: `Bearer ${token}` } });
-          const varianceJson = await varianceRes.json();
-          const byCategory: Record<string, number | null> = {};
-          (varianceJson.data?.rows || []).forEach((r: any) => { byCategory[r.category] = r.budget; });
-          setBudgetColumn(byCategory);
-        } else {
-          setBudgetColumn(null);
-        }
-      } catch {
-        // A missing budget is an expected state (no published budget for this
-        // scope), and the column simply does not render — so this stays quiet
-        // rather than reporting a failure the person cannot act on.
-        setBudgetColumn(null);
-      }
-    };
-    fetchBudgetColumn();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedIds, period, user?.restaurantId, scopeBranchId]);
+  // The optional Budget column, now on the budgets slice — this was the call
+  // deliberately left on fetch when the scenarios module was migrated, because
+  // it belongs to a different module.
+  const budgetBranchId = scopeBranchId === "restaurant" ? null : Number(scopeBranchId);
+  const { data: publishedBudgets = [] } = useGetBudgetsQuery(
+    { restaurantId, branchId: budgetBranchId, status: "PUBLISHED" },
+    { skip: !user?.restaurantId || selectedIds.length === 0 },
+  );
+
+  const budget = budgetBranchId
+    ? publishedBudgets.find((b) => b.branchId === budgetBranchId)
+    : publishedBudgets.find((b) => b.branchId === null) || publishedBudgets[0];
+
+  const { data: budgetVariance } = useGetBudgetVarianceQuery(
+    { restaurantId, budgetId: budget?.id as number, period },
+    { skip: !budget?.id },
+  );
+
+  // No published budget for this scope is an ordinary state, not a failure —
+  // the column simply does not render.
+  const budgetColumn = useMemo(() => {
+    if (!budgetVariance?.rows) return null;
+    const byCategory: Record<string, number | null> = {};
+    budgetVariance.rows.forEach((r) => { byCategory[r.category] = r.budget; });
+    return byCategory;
+  }, [budgetVariance]);
 
   const toggleScenario = (id: number) => {
     setSelectedIds((prev) => {

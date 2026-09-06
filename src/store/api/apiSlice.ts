@@ -42,6 +42,8 @@ export const api = createApi({
     "ComplianceSummary",
     "Scenario",
     "ScenarioProjection",
+    "Budget",
+    "BudgetVariance",
   ],
   endpoints: () => ({}),
 });

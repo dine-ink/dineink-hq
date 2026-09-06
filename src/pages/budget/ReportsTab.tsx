@@ -5,6 +5,7 @@ import ExcelJS from "exceljs";
 import { saveAs } from "file-saver";
 import { ArrowDownTrayIcon, PrinterIcon } from "@heroicons/react/24/outline";
 import { useAppSelector } from "@/store";
+import { useGetBudgetsQuery, useGetBudgetVarianceQuery } from "@/store/api/budgetsApi";
 import { fmtCategoryValue } from "./budgetCategories";
 import MobileTableCards from "@/components/common/MobileTableCards";
 
@@ -28,65 +29,33 @@ const localDateStr = (iso: string) => {
 };
 
 export default function ReportsTab() {
-  const { user, token } = useAppSelector((s) => s.auth);
-  const API_URL = import.meta.env.VITE_API_URL;
+  const { user } = useAppSelector((s) => s.auth);
+  const restaurantId = user?.restaurantId as number;
 
-  const [budgets, setBudgets] = useState<any[]>([]);
   const [selectedBudgetId, setSelectedBudgetId] = useState<number | null>(null);
   const [reportType, setReportType] = useState("currentMonth");
   const [customFrom, setCustomFrom] = useState("");
   const [customTo, setCustomTo] = useState("");
-  const [variance, setVariance] = useState<any>(null);
-  const [loading, setLoading] = useState(false);
+
+  const { data: budgets = [] } = useGetBudgetsQuery(
+    { restaurantId },
+    { skip: !user?.restaurantId },
+  );
+
+  const rangeReady = reportType !== "custom" || Boolean(customFrom && customTo);
+  const { data: variance, isFetching: loading } = useGetBudgetVarianceQuery(
+    { restaurantId, budgetId: selectedBudgetId as number, period: reportType, from: customFrom, to: customTo },
+    { skip: !selectedBudgetId || !user?.restaurantId || !rangeReady },
+  );
 
   useEffect(() => {
-    const fetchBudgets = async () => {
-      if (!user?.restaurantId) return;
-      try {
-        const res = await fetch(`${API_URL}/api/budgets/${user.restaurantId}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        const json = await res.json();
-        if (json.success) {
-          setBudgets(json.data);
-          setSelectedBudgetId(json.data[0]?.id ?? null);
-        }
-      } catch {
-        // fetch error — silently ignored
-      }
-    };
-    fetchBudgets();
-  }, [user?.restaurantId]);
-
-  useEffect(() => {
-    const fetchVariance = async () => {
-      if (!selectedBudgetId) {
-        setVariance(null);
-        return;
-      }
-      if (reportType === "custom" && (!customFrom || !customTo)) return;
-      setLoading(true);
-      try {
-        const rangeParams = reportType === "custom" ? `&from=${customFrom}&to=${customTo}` : "";
-        const res = await fetch(
-          `${API_URL}/api/budgets/${user.restaurantId}/${selectedBudgetId}/variance?period=${reportType}${rangeParams}`,
-          { headers: { Authorization: `Bearer ${token}` } },
-        );
-        const json = await res.json();
-        if (json.success) setVariance(json.data);
-      } catch {
-        // fetch error — silently ignored
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchVariance();
-  }, [selectedBudgetId, reportType, customFrom, customTo]);
+    setSelectedBudgetId(budgets[0]?.id ?? null);
+  }, [budgets]);
 
   const selectedBudget = budgets.find((b) => b.id === selectedBudgetId);
   const reportTitle = REPORT_TYPES.find((r) => r.key === reportType)?.label || "Budget Report";
   const reportSubtitle = selectedBudget
-    ? `${selectedBudget.name} · ${selectedBudget.branch?.name || "Restaurant-wide"} · ${variance ? `${localDateStr(variance.startDate)} to ${localDateStr(variance.endDate)}` : ""}`
+    ? `${selectedBudget.name} · ${selectedBudget.branch?.name || "Restaurant-wide"} · ${variance ? `${localDateStr(variance.startDate ?? "")} to ${localDateStr(variance.endDate ?? "")}` : ""}`
     : "";
 
   const handleExportPDF = () => {
@@ -102,7 +71,7 @@ export default function ReportsTab() {
     autoTable(doc, {
       startY: 28,
       head: [["Category", "Budget", "Actual", "Variance", "Variance %", "Achievement %", "Status"]],
-      body: variance.rows.map((r: any) => [
+      body: (variance.rows ?? []).map((r: any) => [
         r.label,
         fmtCategoryValue(r.budget, r.unit),
         fmtCategoryValue(r.actual, r.unit),
@@ -117,7 +86,7 @@ export default function ReportsTab() {
       margin: { left: 14, right: 14 },
     });
 
-    doc.save(`budget-report-${selectedBudgetId}-${localDateStr(variance.startDate)}.pdf`);
+    doc.save(`budget-report-${selectedBudgetId}-${localDateStr(variance.startDate ?? "")}.pdf`);
   };
 
   const handleExportExcel = async () => {
@@ -130,7 +99,7 @@ export default function ReportsTab() {
     ws.addRow([]);
     const header = ws.addRow(["Category", "Budget", "Actual", "Variance", "Variance %", "Achievement %", "Status"]);
     header.font = { bold: true };
-    variance.rows.forEach((r: any) => {
+    (variance.rows ?? []).forEach((r: any) => {
       ws.addRow([
         r.label,
         fmtCategoryValue(r.budget, r.unit),
@@ -143,13 +112,13 @@ export default function ReportsTab() {
     });
     const buffer = await workbook.xlsx.writeBuffer();
     const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
-    saveAs(blob, `budget-report-${selectedBudgetId}-${localDateStr(variance.startDate)}.xlsx`);
+    saveAs(blob, `budget-report-${selectedBudgetId}-${localDateStr(variance.startDate ?? "")}.xlsx`);
   };
 
   const handleExportCSV = () => {
     if (!variance) return;
     const lines: string[] = [reportTitle, reportSubtitle, "", "Category,Budget,Actual,Variance,Variance %,Achievement %,Status"];
-    variance.rows.forEach((r: any) => {
+    (variance.rows ?? []).forEach((r: any) => {
       lines.push(
         [
           `"${r.label}"`,
@@ -163,7 +132,7 @@ export default function ReportsTab() {
       );
     });
     const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8;" });
-    saveAs(blob, `budget-report-${selectedBudgetId}-${localDateStr(variance.startDate)}.csv`);
+    saveAs(blob, `budget-report-${selectedBudgetId}-${localDateStr(variance.startDate ?? "")}.csv`);
   };
 
   const handlePrint = () => window.print();
@@ -239,7 +208,7 @@ export default function ReportsTab() {
                 </tr>
               </thead>
               <tbody>
-                {variance.rows.map((r: any) => (
+                {(variance.rows ?? []).map((r: any) => (
                   <tr key={r.category} className="border-t border-gray-100">
                     <td className="px-4 py-2 font-medium text-gray-700">{r.label}</td>
                     <td className="px-3 py-2 text-right text-gray-600">{fmtCategoryValue(r.budget, r.unit)}</td>

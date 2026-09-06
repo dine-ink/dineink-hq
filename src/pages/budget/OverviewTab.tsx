@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useAppSelector } from "@/store";
+import { useGetBudgetsQuery, useGetBudgetVarianceQuery } from "@/store/api/budgetsApi";
 import { fmtCategoryValue } from "./budgetCategories";
 import { TrendIcon } from "@/utils/kpiDisplay";
 import BudgetCharts from "./BudgetCharts";
@@ -24,65 +25,36 @@ const statusStyles: Record<string, { border: string; bg: string; text: string }>
 
 export default function OverviewTab() {
   const { selectedBranch } = useAppSelector((s) => s.branch);
-  const { user, token } = useAppSelector((s) => s.auth);
-  const API_URL = import.meta.env.VITE_API_URL;
+  const { user } = useAppSelector((s) => s.auth);
+  const restaurantId = user?.restaurantId as number;
 
-  const [budgets, setBudgets] = useState<any[]>([]);
   const [selectedBudgetId, setSelectedBudgetId] = useState<number | null>(null);
   const [period, setPeriod] = useState("currentMonth");
   const [customFrom, setCustomFrom] = useState("");
   const [customTo, setCustomTo] = useState("");
-  const [variance, setVariance] = useState<any>(null);
-  const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    const fetchBudgets = async () => {
-      if (!user?.restaurantId) return;
-      try {
-        const res = await fetch(`${API_URL}/api/budgets/${user.restaurantId}?status=PUBLISHED`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        const json = await res.json();
-        if (json.success) {
-          setBudgets(json.data);
-          // Prefer a published budget matching the currently selected branch, else restaurant-wide, else the first.
-          const preferred =
-            json.data.find((b: any) => b.branchId === selectedBranch?.id) ||
-            json.data.find((b: any) => b.branchId === null) ||
-            json.data[0];
-          setSelectedBudgetId(preferred?.id ?? null);
-        }
-      } catch {
-        // fetch error — silently ignored
-      }
-    };
-    fetchBudgets();
-  }, [user?.restaurantId, selectedBranch?.id]);
+  const { data: budgets = [] } = useGetBudgetsQuery(
+    { restaurantId, status: "PUBLISHED" },
+    { skip: !user?.restaurantId },
+  );
 
+  const rangeReady = period !== "custom" || Boolean(customFrom && customTo);
+  const { data: variance, isFetching: loading } = useGetBudgetVarianceQuery(
+    { restaurantId, budgetId: selectedBudgetId as number, period, from: customFrom, to: customTo },
+    { skip: !selectedBudgetId || !user?.restaurantId || !rangeReady },
+  );
+
+  // Prefer a published budget matching the currently selected branch, else
+  // restaurant-wide, else the first.
   useEffect(() => {
-    const fetchVariance = async () => {
-      if (!selectedBudgetId || !user?.restaurantId) {
-        setVariance(null);
-        return;
-      }
-      if (period === "custom" && (!customFrom || !customTo)) return;
-      setLoading(true);
-      try {
-        const rangeParams = period === "custom" ? `&from=${customFrom}&to=${customTo}` : "";
-        const res = await fetch(
-          `${API_URL}/api/budgets/${user.restaurantId}/${selectedBudgetId}/variance?period=${period}${rangeParams}`,
-          { headers: { Authorization: `Bearer ${token}` } },
-        );
-        const json = await res.json();
-        if (json.success) setVariance(json.data);
-      } catch {
-        // fetch error — silently ignored
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchVariance();
-  }, [selectedBudgetId, period, customFrom, customTo]);
+    const preferred =
+      budgets.find((b) => b.branchId === selectedBranch?.id) ||
+      budgets.find((b) => b.branchId === null) ||
+      budgets[0];
+    setSelectedBudgetId(preferred?.id ?? null);
+  }, [budgets, selectedBranch?.id]);
+
+
 
   const rowsByCategory = useMemo(() => {
     const map = new Map<string, any>();
