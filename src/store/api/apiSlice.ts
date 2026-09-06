@@ -38,6 +38,8 @@ export const api = createApi({
     "Finance",
     "Discount",
     "Due",
+    "Compliance",
+    "ComplianceSummary",
   ],
   endpoints: () => ({}),
 });

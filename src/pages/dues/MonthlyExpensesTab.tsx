@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { PencilSquareIcon, PlusIcon, TrashIcon } from "@heroicons/react/24/outline";
 import { useAppSelector } from "@/store";
+import { errorMessage as messageFrom } from "@/utils/apiRequest";
 import {
   useCreateMonthlyDueMutation,
   useDeleteMonthlyDueMutation,
@@ -41,12 +42,6 @@ interface MergedRow {
   label: string;
   due: MonthlyDue | null;
 }
-
-/** Whatever RTK Query threw, as a sentence — its error is a union of shapes. */
-const messageFrom = (error: unknown, fallback: string): string => {
-  const data = (error as { data?: { message?: string } } | undefined)?.data;
-  return data?.message || fallback;
-};
 
 export default function MonthlyExpensesTab({ month, year }: MonthlyExpensesTabProps) {
   // No API_URL and no token here any more: fetchBaseQuery holds the base URL,

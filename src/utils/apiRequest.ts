@@ -83,11 +83,23 @@ export const apiSend = async <T = unknown>(url: string, init?: RequestInit): Pro
 /**
  * A message safe to show a person, from anything that was thrown.
  *
+ * Handles both failure shapes in the app, because screens are migrating
+ * between them one at a time and several use each:
+ *
+ *   - `apiSend` above throws an `ApiRequestError`.
+ *   - A rejected RTK Query mutation (`.unwrap()`) throws
+ *     `{ status, data: { message } }` — not an Error at all, so
+ *     `err instanceof Error` is false and `err.message` is undefined.
+ *
  * Never returns an empty string: a blank alert is indistinguishable from the
  * silent failure this exists to replace.
  */
-export const errorMessage = (error: unknown): string => {
+export const errorMessage = (error: unknown, fallback?: string): string => {
   if (error instanceof ApiRequestError) return error.message;
+
+  const data = (error as { data?: { message?: string } } | undefined)?.data;
+  if (data?.message) return data.message;
+
   if (error instanceof Error && error.message) return error.message;
-  return "Something went wrong. Please try again.";
+  return fallback || "Something went wrong. Please try again.";
 };

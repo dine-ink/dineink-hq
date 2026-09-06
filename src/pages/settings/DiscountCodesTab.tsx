@@ -3,6 +3,7 @@ import { useAppSelector } from "@/store";
 import { PlusIcon, TrashIcon, TagIcon } from "@heroicons/react/24/outline";
 import { ConfirmationDialog, useConfirmDialog } from "@/design";
 import MobileTableCards from "@/components/common/MobileTableCards";
+import { errorMessage as messageFrom } from "@/utils/apiRequest";
 import {
   useCreateDiscountCodeMutation,
   useDeleteDiscountCodeMutation,
@@ -16,12 +17,6 @@ const blankForm: { code: string; type: "PERCENTAGE" | "FIXED"; value: string; ma
   type: "PERCENTAGE",
   value: "",
   maxUses: "",
-};
-
-/** Whatever RTK Query threw, as a sentence — its error is a union of shapes. */
-const messageFrom = (error: unknown, fallback: string): string => {
-  const data = (error as { data?: { message?: string } } | undefined)?.data;
-  return data?.message || fallback;
 };
 
 export default function DiscountCodesTab() {

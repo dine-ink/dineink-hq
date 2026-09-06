@@ -1,5 +1,18 @@
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { useAppSelector } from "@/store";
+import { errorMessage as messageFrom } from "@/utils/apiRequest";
+import {
+  useCreateComplianceRecordMutation,
+  useDeleteComplianceRecordMutation,
+  useGetComplianceRecordsQuery,
+  useGetComplianceSummaryQuery,
+  useUpdateComplianceRecordMutation,
+  useUploadComplianceDocumentMutation,
+  type ComplianceRecord,
+  type ComplianceStatus,
+  type ComplianceSummary,
+  type ComplianceType,
+} from "@/store/api/complianceApi";
 import {
   ShieldCheckIcon,
   FireIcon,
@@ -36,33 +49,9 @@ import {
 
 const API_URL = import.meta.env.VITE_API_URL;
 
-type ComplianceType = "FSSAI" | "FIRE_SAFETY" | "PEST_CONTROL" | "GST_FILING";
-type ComplianceStatus = "VALID" | "EXPIRING_SOON" | "EXPIRED" | "DUE";
-
-interface ComplianceRecord {
-  id: number;
-  restaurantId: number;
-  branchId: number;
-  type: ComplianceType;
-  licenseNumber: string | null;
-  issueDate: string | null;
-  expiryDate: string | null;
-  nextDueDate: string | null;
-  status: ComplianceStatus;
-  documentUrl: string | null;
-  lastRenewedDate: string | null;
-  notes: string | null;
-  createdAt: string;
-  updatedAt: string;
-}
-
-interface ComplianceSummary {
-  valid: number;
-  expiringSoon: number;
-  expired: number;
-  due: number;
-  total: number;
-}
+// The record/summary types now live with the endpoints that return them, in
+// store/api/complianceApi — the same place the backend's own module boundary
+// puts them.
 
 const TYPE_META: Record<
   ComplianceType,
@@ -151,13 +140,35 @@ function blankForm(type: ComplianceType): RecordFormState {
 }
 
 export default function ComplianceChecker() {
-  const { user, token } = useAppSelector((s) => s.auth);
+  const { user } = useAppSelector((s) => s.auth);
   const { selectedBranch } = useAppSelector((s) => s.branch);
 
-  const [records, setRecords] = useState<ComplianceRecord[]>([]);
-  const [summary, setSummary] = useState<ComplianceSummary | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const scope = {
+    restaurantId: user?.restaurantId as number,
+    branchId: selectedBranch?.id as number,
+  };
+  const canQuery = Boolean(user?.restaurantId && selectedBranch?.id);
+
+  const recordsQuery = useGetComplianceRecordsQuery(scope, { skip: !canQuery });
+  const summaryQuery = useGetComplianceSummaryQuery(scope, { skip: !canQuery });
+
+  const records = recordsQuery.data ?? [];
+  const summary = summaryQuery.data ?? null;
+  const loading = recordsQuery.isFetching || summaryQuery.isFetching;
+
+  const [createRecord] = useCreateComplianceRecordMutation();
+  const [updateRecord] = useUpdateComplianceRecordMutation();
+  const [deleteRecord] = useDeleteComplianceRecordMutation();
+  const [uploadDocument] = useUploadComplianceDocumentMutation();
+
+  // Load failures come from the queries; write failures are set here. Kept as
+  // one banner because they render in the same place and only one is ever
+  // relevant at a time.
+  const [writeError, setWriteError] = useState("");
+  const error =
+    writeError ||
+    (recordsQuery.isError || summaryQuery.isError ? "Failed to load compliance data" : "");
+  const setError = setWriteError;
 
   const [formModal, setFormModal] = useState<{ open: boolean; editing: ComplianceRecord | null; type: ComplianceType }>({
     open: false,
@@ -173,37 +184,6 @@ export default function ComplianceChecker() {
   const [renewingId, setRenewingId] = useState<number | null>(null);
   const [uploadingId, setUploadingId] = useState<number | null>(null);
   const fileInputs = useRef<Record<number, HTMLInputElement | null>>({});
-
-  const headers = { Authorization: `Bearer ${token}` };
-  const jsonHeaders = { ...headers, "Content-Type": "application/json" };
-
-  const fetchAll = async () => {
-    if (!user?.restaurantId || !selectedBranch?.id) return;
-    try {
-      setLoading(true);
-      setError("");
-      const [recRes, sumRes] = await Promise.all([
-        fetch(`${API_URL}/api/compliance/${user.restaurantId}/${selectedBranch.id}`, { headers }),
-        fetch(`${API_URL}/api/compliance/${user.restaurantId}/${selectedBranch.id}/summary`, { headers }),
-      ]);
-      const [recJson, sumJson] = await Promise.all([recRes.json(), sumRes.json()]);
-      if (recJson.success) setRecords(recJson.data || []);
-      if (sumJson.success) setSummary(sumJson.data || null);
-      if (!recJson.success || !sumJson.success) {
-        setError("Failed to load compliance data");
-      }
-    } catch {
-      setError("Failed to load compliance data");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchAll();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.restaurantId, selectedBranch?.id]);
-
   const recordsByType = (type: ComplianceType) => records.filter((r) => r.type === type);
 
   const openAddModal = (type: ComplianceType) => {
@@ -244,18 +224,17 @@ export default function ComplianceChecker() {
         nextDueDate: form.nextDueDate || null,
         notes: form.notes.trim() || null,
       };
-      const url = formModal.editing ? `${API_URL}/api/compliance/${formModal.editing.id}` : `${API_URL}/api/compliance`;
-      const method = formModal.editing ? "PUT" : "POST";
-      const res = await fetch(url, { method, headers: jsonHeaders, body: JSON.stringify(body) });
-      const json = await res.json();
-      if (!json.success) {
-        setFormError(json.message || "Failed to save record");
-        return;
+      if (formModal.editing) {
+        await updateRecord({ id: formModal.editing.id, ...body }).unwrap();
+      } else {
+        await createRecord(body).unwrap();
       }
+      // No fetchAll(): the mutation invalidates both the record list and the
+      // summary, and the counts at the top of the page are derived from exactly
+      // the rows this just changed.
       setFormModal({ open: false, editing: null, type: "FSSAI" });
-      await fetchAll();
-    } catch {
-      setFormError("Failed to save record");
+    } catch (err) {
+      setFormError(messageFrom(err, "Failed to save record"));
     } finally {
       setSaving(false);
     }
@@ -263,17 +242,11 @@ export default function ComplianceChecker() {
 
   const markRenewed = async (record: ComplianceRecord) => {
     setRenewingId(record.id);
+    setError("");
     try {
-      const res = await fetch(`${API_URL}/api/compliance/${record.id}`, {
-        method: "PUT",
-        headers: jsonHeaders,
-        body: JSON.stringify({ lastRenewedDate: new Date().toISOString() }),
-      });
-      const json = await res.json();
-      if (json.success) await fetchAll();
-      else setError(json.message || "Failed to record that renewal");
-    } catch {
-      setError("Failed to record that renewal");
+      await updateRecord({ id: record.id, lastRenewedDate: new Date().toISOString() }).unwrap();
+    } catch (err) {
+      setError(messageFrom(err, "Failed to record that renewal"));
     } finally {
       setRenewingId(null);
     }
@@ -281,49 +254,38 @@ export default function ComplianceChecker() {
 
   const confirmDelete = async () => {
     if (!deleteTarget) return;
+    setError("");
     try {
-      const res = await fetch(`${API_URL}/api/compliance/${deleteTarget.id}`, { method: "DELETE", headers });
-      const json = await res.json();
-      if (json.success) {
-        setDeleteTarget(null);
-        await fetchAll();
-      } else {
-        setError(json.message || "Failed to delete that compliance record");
-      }
-    } catch {
-      setError("Failed to delete that compliance record");
+      await deleteRecord({ id: deleteTarget.id }).unwrap();
+      setDeleteTarget(null);
+    } catch (err) {
+      setError(messageFrom(err, "Failed to delete that compliance record"));
     }
   };
 
   const handleUpload = async (record: ComplianceRecord, file: File) => {
     setUploadingId(record.id);
+    setError("");
+    const fd = new FormData();
+    fd.append("document", file);
+
+    // Kept as two steps rather than one combined mutation, because they fail
+    // for different reasons and the remedies differ: a failed upload is worth
+    // retrying, a failed attach is not — the file is already stored.
+    let uploaded: { documentUrl: string } | null;
     try {
-      const fd = new FormData();
-      fd.append("document", file);
-      const uploadRes = await fetch(`${API_URL}/api/compliance/upload`, {
-        method: "POST",
-        headers,
-        body: fd,
-      });
-      const uploadJson = await uploadRes.json();
-      // A bare `return` here meant a rejected upload ended the handler with no
-      // trace — the spinner stopped and the document simply wasn't attached.
-      if (!uploadJson.success) {
-        setError(uploadJson.message || "Failed to upload that document");
-        return;
-      }
-      const patchRes = await fetch(`${API_URL}/api/compliance/${record.id}`, {
-        method: "PUT",
-        headers: jsonHeaders,
-        body: JSON.stringify({ documentUrl: uploadJson.data.documentUrl }),
-      });
-      const patchJson = await patchRes.json();
-      if (patchJson.success) await fetchAll();
-      // The file uploaded but the record didn't get its link — worth saying so
-      // distinctly, because retrying the upload is not what fixes it.
-      else setError(patchJson.message || "Uploaded, but couldn't attach it to this record");
-    } catch {
-      setError("Failed to upload that document");
+      uploaded = await uploadDocument(fd).unwrap();
+    } catch (err) {
+      setError(messageFrom(err, "Failed to upload that document"));
+      setUploadingId(null);
+      return;
+    }
+
+    try {
+      if (!uploaded?.documentUrl) throw new Error("The upload returned no file location");
+      await updateRecord({ id: record.id, documentUrl: uploaded.documentUrl }).unwrap();
+    } catch (err) {
+      setError(messageFrom(err, "Uploaded, but couldn't attach it to this record"));
     } finally {
       setUploadingId(null);
     }
