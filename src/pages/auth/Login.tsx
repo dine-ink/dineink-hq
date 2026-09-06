@@ -21,11 +21,17 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  // A rejected sign-in belongs next to the form, not in an alert() the browser
+  // strips of context. `locked` is the one case that needs more than a message:
+  // the password will not work again until it has been reset, so the banner has
+  // to carry the way out.
+  const [error, setError] = useState<{ message: string; locked: boolean } | null>(null);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
       setLoading(true);
+      setError(null);
       const response = await fetch(`${API_URL}/api/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -44,10 +50,25 @@ export default function Login() {
         dispatch(setBranches(data.branches || []));
         navigate("/dashboard");
       } else {
-        alert(data.message);
+        // ACCOUNT_LOCKED comes back as a 429 after 20 failed attempts inside an
+        // hour. The account cannot be opened by password again until an
+        // email-verified reset, so retrying is pointless and the banner links
+        // straight to it.
+        setError({
+          message: data.message ?? "Sign-in failed. Check your details and try again.",
+          locked: data.code === "ACCOUNT_LOCKED",
+        });
       }
-    } catch {
-      alert("Login failed");
+    } catch (error) {
+      // A throw here means the request never reached the API (dev server not
+      // running, wrong VITE_API_URL, CORS, offline) — not a rejected password,
+      // which comes back as a 200 with `success: false`. Log the real cause;
+      // "Login failed" on its own sends you hunting for the wrong bug.
+      console.error(`Login request to ${API_URL} failed:`, error);
+      setError({
+        message: `Could not reach the server at ${API_URL}. Check that the API is running, then try again.`,
+        locked: false,
+      });
     } finally {
       setLoading(false);
     }
@@ -172,6 +193,25 @@ export default function Login() {
             {/* Form */}
             <div className="px-7 py-6">
               <form onSubmit={handleLogin} className="space-y-4">
+                {error && (
+                  <div
+                    role="alert"
+                    aria-live="assertive"
+                    className="rounded-xl border border-red-200 bg-red-50 px-4 py-3"
+                  >
+                    <p className="text-sm font-medium leading-5 text-[#8f0000]">
+                      {error.message}
+                    </p>
+                    {error.locked && (
+                      <Link
+                        to="/forgot-password"
+                        className="mt-2 inline-block text-sm font-bold text-[#b10000] underline underline-offset-2 hover:text-[#8f0000]"
+                      >
+                        Reset your password
+                      </Link>
+                    )}
+                  </div>
+                )}
                 <div>
                   <label className="mb-1.5 block text-sm font-semibold text-slate-700">
                     Email or Phone
