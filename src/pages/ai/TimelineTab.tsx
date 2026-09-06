@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useAppSelector } from "@/store";
+import { useGetExecutiveTimelineQuery } from "@/store/api/executiveApi";
 import { TrendChart } from "@/pages/executive/ExecutiveCharts";
 import { CATEGORY_BADGE_STYLES, CATEGORY_LABELS, SEVERITY_STYLES } from "./aiCategories";
 
@@ -9,29 +10,42 @@ export default function TimelineTab() {
   const API_URL = import.meta.env.VITE_API_URL;
 
   const [logs, setLogs] = useState<any[]>([]);
-  const [trendPoints, setTrendPoints] = useState<any[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [logsLoading, setLogsLoading] = useState(false);
+
+  // The trend series comes from the executive module and is now on its slice;
+  // the AI insight log below is still /api/ai and moves when that module does.
+  const { data: timeline, isFetching: timelineLoading } = useGetExecutiveTimelineQuery(
+    {
+      restaurantId: user?.restaurantId as number,
+      branchId: selectedBranch?.id ?? null,
+      granularity: "monthly",
+    },
+    { skip: !user?.restaurantId },
+  );
+  const trendPoints = timeline?.points ?? [];
+  const loading = logsLoading || timelineLoading;
 
   useEffect(() => {
-    const run = async () => {
+    const fetchLogs = async () => {
       if (!user?.restaurantId) return;
-      setLoading(true);
+      setLogsLoading(true);
       try {
         const branchParam = selectedBranch?.id ? `&branchId=${selectedBranch.id}` : "";
-        const [logsRes, timelineRes] = await Promise.all([
-          fetch(`${API_URL}/api/ai/${user.restaurantId}/insight-timeline?limit=50${branchParam}`, { headers: { Authorization: `Bearer ${token}` } }),
-          fetch(`${API_URL}/api/executive/${user.restaurantId}/timeline?granularity=monthly${branchParam}`, { headers: { Authorization: `Bearer ${token}` } }),
-        ]);
-        const [logsJson, timelineJson] = await Promise.all([logsRes.json(), timelineRes.json()]);
-        if (logsJson.success) setLogs(logsJson.data);
-        if (timelineJson.success) setTrendPoints(timelineJson.data.points || []);
+        const res = await fetch(
+          `${API_URL}/api/ai/${user.restaurantId}/insight-timeline?limit=50${branchParam}`,
+          { headers: { Authorization: `Bearer ${token}` } },
+        );
+        const json = await res.json();
+        if (json.success) setLogs(json.data);
       } catch {
-        // fetch error — silently ignored
+        // The log list simply stays empty; the trend chart above is unaffected.
+        setLogs([]);
       } finally {
-        setLoading(false);
+        setLogsLoading(false);
       }
     };
-    run();
+    fetchLogs();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.restaurantId, selectedBranch?.id]);
 
   return (

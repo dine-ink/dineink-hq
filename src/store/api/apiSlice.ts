@@ -44,6 +44,8 @@ export const api = createApi({
     "ScenarioProjection",
     "Budget",
     "BudgetVariance",
+    "Executive",
+    "ExecutivePreferences",
   ],
   endpoints: () => ({}),
 });

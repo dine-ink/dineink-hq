@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useAppSelector } from "@/store";
+import { useGetExecutiveTimelineQuery } from "@/store/api/executiveApi";
 import { fmtCategoryValue, GRANULARITY_OPTIONS } from "./executiveCategories";
 import { BudgetAchievementChart, ForecastVsActualChart, RevenueHeatMap, TrendChart } from "./ExecutiveCharts";
 import MobileTableCards from "@/components/common/MobileTableCards";
@@ -8,31 +9,21 @@ const INVESTMENT_STATUS_LABEL: Record<string, string> = { PLANNED: "Planned", IN
 
 export default function TimelineTab() {
   const { selectedBranch } = useAppSelector((s) => s.branch);
-  const { user, token } = useAppSelector((s) => s.auth);
+  const { user } = useAppSelector((s) => s.auth);
   const API_URL = import.meta.env.VITE_API_URL;
 
   const [scope, setScope] = useState<"branch" | "restaurant">("branch");
   const [granularity, setGranularity] = useState("monthly");
-  const [timeline, setTimeline] = useState<any>(null);
-  const [loading, setLoading] = useState(false);
+  const { data: timeline, isFetching: loading } = useGetExecutiveTimelineQuery(
+    {
+      restaurantId: user?.restaurantId as number,
+      branchId: scope === "branch" ? selectedBranch?.id : null,
+      granularity,
+    },
+    { skip: !user?.restaurantId },
+  );
 
-  useEffect(() => {
-    const fetchTimeline = async () => {
-      if (!user?.restaurantId) return;
-      setLoading(true);
-      try {
-        const branchParam = scope === "branch" && selectedBranch?.id ? `&branchId=${selectedBranch.id}` : "";
-        const res = await fetch(`${API_URL}/api/executive/${user.restaurantId}/timeline?granularity=${granularity}${branchParam}`, { headers: { Authorization: `Bearer ${token}` } });
-        const json = await res.json();
-        if (json.success) setTimeline(json.data);
-      } catch {
-        // fetch error — silently ignored
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchTimeline();
-  }, [user?.restaurantId, selectedBranch?.id, scope, granularity]);
+
 
   return (
     <div className="space-y-4">

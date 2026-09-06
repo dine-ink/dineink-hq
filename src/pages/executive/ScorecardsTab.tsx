@@ -1,36 +1,27 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useAppSelector } from "@/store";
+import { useGetScorecardsQuery } from "@/store/api/executiveApi";
 import { fmtCategoryValue, PERIOD_OPTIONS, STATUS_STYLES } from "./executiveCategories";
 import { TrendIcon } from "@/utils/kpiDisplay";
 import { trendStyle } from "@/utils/kpiStyles";
 
 export default function ScorecardsTab() {
   const { selectedBranch } = useAppSelector((s) => s.branch);
-  const { user, token } = useAppSelector((s) => s.auth);
-  const API_URL = import.meta.env.VITE_API_URL;
+  const { user } = useAppSelector((s) => s.auth);
 
   const [scope, setScope] = useState<"branch" | "restaurant">("branch");
   const [period, setPeriod] = useState("currentMonth");
-  const [rows, setRows] = useState<any[]>([]);
-  const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    const fetchScorecards = async () => {
-      if (!user?.restaurantId) return;
-      setLoading(true);
-      try {
-        const branchParam = scope === "branch" && selectedBranch?.id ? `&branchId=${selectedBranch.id}` : "";
-        const res = await fetch(`${API_URL}/api/executive/${user.restaurantId}/scorecards?period=${period}${branchParam}`, { headers: { Authorization: `Bearer ${token}` } });
-        const json = await res.json();
-        if (json.success) setRows(json.data);
-      } catch {
-        // fetch error — silently ignored
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchScorecards();
-  }, [user?.restaurantId, selectedBranch?.id, scope, period]);
+  const { data: rows = [], isFetching: loading } = useGetScorecardsQuery(
+    {
+      restaurantId: user?.restaurantId as number,
+      branchId: scope === "branch" ? selectedBranch?.id : null,
+      period,
+    },
+    { skip: !user?.restaurantId },
+  );
+
+
 
   return (
     <div className="space-y-4">
