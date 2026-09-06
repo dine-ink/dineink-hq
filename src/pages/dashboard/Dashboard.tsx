@@ -168,7 +168,6 @@ export default function Dashboard() {
     ? Math.round((dineInRevenue / totalRevenue) * 100)
     : 0;
 
-
   const dashboardEbitda: number | null =
     financeSummary?.current?.ebitda ?? null;
   // Same Finance Engine call as dashboardEbitda above — StatsStrip's Revenue
@@ -199,11 +198,11 @@ export default function Dashboard() {
             setOpen={setShowSetupModal}
           />
         )}
-        <div className="relative overflow-hidden rounded-2xl border border-white/40 bg-gradient-to-br from-white to-red-50/60 shadow-sm">
+        <div className="relative overflow-hidden rounded-xl border border-white/40 bg-gradient-to-br from-white to-red-50/60 shadow-sm">
           <div className="pointer-events-none absolute left-[-80px] top-[-80px] h-[220px] w-[220px] rounded-full bg-red-200/30 blur-3xl" />
           <div className="pointer-events-none absolute bottom-[-80px] right-[-60px] h-[220px] w-[220px] rounded-full bg-pink-200/30 blur-3xl" />
           <div className="relative z-10 w-full overflow-hidden rounded-2xl border border-white/60 bg-white/80 shadow-xl backdrop-blur-2xl">
-            <div className="relative overflow-hidden bg-gradient-to-r from-red-500 to-rose-500 px-10 py-8">
+            <div className="relative overflow-hidden bg-gradient-to-r from-[#b10000] to-[#8f0000] px-10 py-8">
               <div className="pointer-events-none absolute right-[-60px] top-[-60px] h-[180px] w-[180px] rounded-full bg-white/10 blur-3xl" />
               <div className="relative z-10 flex flex-col items-center text-center">
                 <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-white/20 bg-white/15 shadow-lg backdrop-blur">
@@ -230,7 +229,7 @@ export default function Dashboard() {
                 </p>
                 <button
                   onClick={() => setShowSetupModal(true)}
-                  className="mt-5 rounded-2xl bg-white px-8 py-3 text-sm font-bold text-red-600 shadow-xl transition hover:scale-[1.02]"
+                  className="mt-5 rounded-2xl bg-white px-8 py-3 text-sm font-bold text-[#b10000] shadow-xl transition hover:scale-[1.02]"
                 >
                   Setup Your Restaurant →
                 </button>
