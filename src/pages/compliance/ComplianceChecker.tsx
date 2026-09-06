@@ -271,8 +271,9 @@ export default function ComplianceChecker() {
       });
       const json = await res.json();
       if (json.success) await fetchAll();
+      else setError(json.message || "Failed to record that renewal");
     } catch {
-      /* silent */
+      setError("Failed to record that renewal");
     } finally {
       setRenewingId(null);
     }
@@ -286,9 +287,11 @@ export default function ComplianceChecker() {
       if (json.success) {
         setDeleteTarget(null);
         await fetchAll();
+      } else {
+        setError(json.message || "Failed to delete that compliance record");
       }
     } catch {
-      /* silent */
+      setError("Failed to delete that compliance record");
     }
   };
 
@@ -303,7 +306,12 @@ export default function ComplianceChecker() {
         body: fd,
       });
       const uploadJson = await uploadRes.json();
-      if (!uploadJson.success) return;
+      // A bare `return` here meant a rejected upload ended the handler with no
+      // trace — the spinner stopped and the document simply wasn't attached.
+      if (!uploadJson.success) {
+        setError(uploadJson.message || "Failed to upload that document");
+        return;
+      }
       const patchRes = await fetch(`${API_URL}/api/compliance/${record.id}`, {
         method: "PUT",
         headers: jsonHeaders,
@@ -311,8 +319,11 @@ export default function ComplianceChecker() {
       });
       const patchJson = await patchRes.json();
       if (patchJson.success) await fetchAll();
+      // The file uploaded but the record didn't get its link — worth saying so
+      // distinctly, because retrying the upload is not what fixes it.
+      else setError(patchJson.message || "Uploaded, but couldn't attach it to this record");
     } catch {
-      /* silent */
+      setError("Failed to upload that document");
     } finally {
       setUploadingId(null);
     }

@@ -66,36 +66,59 @@ export default function OverviewTab() {
     fetchAll();
   }, [user?.restaurantId, selectedBranch?.id, scope, period]);
 
-  const savePreferences = async (next: { pinnedKpis?: string[]; defaultPeriod?: string }) => {
+  /**
+   * These saves are optimistic — the pin or reorder is applied on screen first
+   * and persisted after. When the save failed, nothing happened at all: the new
+   * layout stayed on screen and quietly reverted on the next page load, which
+   * reads as the app forgetting the setting rather than as a failure.
+   *
+   * `rollback` puts the UI back instead. An alert on every pin click would be
+   * disproportionate for a layout preference; the pin visibly snapping back is
+   * the feedback, and the real reason goes to the console for diagnosis. The
+   * response is also checked now — this only awaited the request, so a 400 was
+   * as invisible as a thrown error.
+   */
+  const savePreferences = async (
+    next: { pinnedKpis?: string[]; defaultPeriod?: string },
+    rollback?: () => void,
+  ) => {
     if (!user?.restaurantId) return;
     try {
-      await fetch(`${API_URL}/api/executive/${user.restaurantId}/preferences`, {
+      const res = await fetch(`${API_URL}/api/executive/${user.restaurantId}/preferences`, {
         method: "PUT", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({ restaurantId: user.restaurantId, ...next }),
       });
-    } catch {
-      // save error — silently ignored
+      const json = await res.json().catch(() => null);
+      if (!res.ok || json?.success === false) {
+        throw new Error(json?.message || `Request failed (${res.status})`);
+      }
+    } catch (error) {
+      console.error("[executive] could not save dashboard preferences:", error);
+      rollback?.();
     }
   };
 
   const togglePin = (key: string) => {
+    const previous = pinnedKpis;
     const next = pinnedKpis.includes(key) ? pinnedKpis.filter((k) => k !== key) : [...pinnedKpis, key];
     setPinnedKpis(next);
-    savePreferences({ pinnedKpis: next });
+    savePreferences({ pinnedKpis: next }, () => setPinnedKpis(previous));
   };
 
   const moveKpi = (index: number, direction: -1 | 1) => {
+    const previous = pinnedKpis;
     const next = [...pinnedKpis];
     const target = index + direction;
     if (target < 0 || target >= next.length) return;
     [next[index], next[target]] = [next[target], next[index]];
     setPinnedKpis(next);
-    savePreferences({ pinnedKpis: next });
+    savePreferences({ pinnedKpis: next }, () => setPinnedKpis(previous));
   };
 
   const handlePeriodChange = (value: string) => {
+    const previous = period;
     setPeriod(value);
-    savePreferences({ defaultPeriod: value });
+    savePreferences({ defaultPeriod: value }, () => setPeriod(previous));
   };
 
   const kpisByKey = overview ? Object.fromEntries(overview.kpis.map((k: any) => [k.key, k])) : {};

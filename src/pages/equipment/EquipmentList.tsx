@@ -294,11 +294,19 @@ export default function EquipmentList() {
     if (!deleteTarget) return;
     const id = deleteTarget.id;
     try {
-      await fetch(`${API_URL}/api/equipment/${id}`, { method: "DELETE", headers });
+      const res = await fetch(`${API_URL}/api/equipment/${id}`, { method: "DELETE", headers });
+      const json = await res.json().catch(() => null);
+      if (!res.ok || json?.success === false) {
+        throw new Error(json?.message || `Request failed (${res.status})`);
+      }
+      // Rows are dropped only once the server has confirmed. Previously the
+      // response was never even read, and the filters ran unconditionally — so
+      // a failed delete removed the item from the screen while it still existed
+      // in the database, and it reappeared on the next load.
       setEquipment((prev) => prev.filter((e) => e.id !== id));
       setMaintenanceDue((prev) => prev.filter((e) => e.id !== id));
-    } catch {
-      /* silent */
+    } catch (error) {
+      alert(error instanceof Error ? error.message : "Failed to delete this equipment item");
     } finally {
       setDeleteTarget(null);
     }

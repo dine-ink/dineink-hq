@@ -195,9 +195,15 @@ export default function BudgetsTab() {
       if (json.success) {
         setSelectedBudget(json.data);
         await fetchBudgets();
+      } else {
+        // Both halves were silent: a rejected response fell through this `if`
+        // with no else, and a thrown one was swallowed below. Publishing or
+        // archiving a budget looked like it worked either way, and the status
+        // only corrected itself on some later refetch.
+        alert(json.message || "Failed to change the budget's status");
       }
     } catch {
-      // save error — silently ignored
+      alert("Failed to change the budget's status");
     }
   };
 
@@ -231,9 +237,11 @@ export default function BudgetsTab() {
       if (json.success) {
         await fetchBudgets();
         openDetail(json.data);
+      } else {
+        alert(json.message || "Failed to duplicate this budget");
       }
     } catch {
-      // duplicate error — silently ignored
+      alert("Failed to duplicate this budget");
     }
   };
 
@@ -249,9 +257,11 @@ export default function BudgetsTab() {
       if (json.success) {
         await fetchBudgets();
         openDetail(json.data);
+      } else {
+        alert(json.message || "Failed to copy this budget to next year");
       }
     } catch {
-      // copy error — silently ignored
+      alert("Failed to copy this budget to next year");
     }
   };
 

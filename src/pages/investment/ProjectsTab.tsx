@@ -135,8 +135,12 @@ export default function ProjectsTab() {
       });
       const json = await res.json();
       if (json.success) { setSelected(json.data); await fetchProjects(); await loadMetrics(selected.id, scenarioId); }
+      // handleCreate a few lines up already alerts on failure; this one — the
+      // edit path, where the assumptions driving IRR and payback are changed —
+      // said nothing at all.
+      else alert(json.message || "Failed to save these investment assumptions");
     } catch {
-      // save error — silently ignored
+      alert("Failed to save these investment assumptions");
     } finally {
       setSaving(false);
     }

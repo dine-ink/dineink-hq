@@ -139,9 +139,14 @@ export default function OverviewTab() {
       if (json.success) {
         setScenarios((prev) => prev.map((s) => (s.id === json.data.id ? json.data : s)));
         setDirty(false);
+      } else {
+        // `dirty` deliberately stays true on failure: it is what keeps the Save
+        // button live and the unsaved values on screen. Clearing it — or saying
+        // nothing, as this did — presents unsaved overrides as saved.
+        alert(json.message || "Failed to save these scenario overrides");
       }
     } catch {
-      // save error — silently ignored
+      alert("Failed to save these scenario overrides");
     } finally {
       setSaving(false);
     }

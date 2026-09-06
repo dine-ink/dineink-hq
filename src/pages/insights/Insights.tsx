@@ -872,9 +872,14 @@ export default function Insights() {
         }),
       });
 
-      await res.json();
+      // The parsed body used to be discarded outright, so neither a rejected
+      // save nor a thrown one reached the person who pressed Save.
+      const json = await res.json().catch(() => null);
+      if (!res.ok || json?.success === false) {
+        alert(json?.message || "Failed to save these insights");
+      }
     } catch {
-      // save error — silently ignore
+      alert("Failed to save these insights");
     }
   };
 

@@ -153,9 +153,11 @@ export default function ScenariosTab() {
       if (json.success) {
         openDetail(json.data);
         await fetchScenarios();
+      } else {
+        alert(json.message || "Failed to reset the overrides on this scenario");
       }
     } catch {
-      // reset error — silently ignored
+      alert("Failed to reset the overrides on this scenario");
     }
   };
 
@@ -171,9 +173,13 @@ export default function ScenariosTab() {
       if (json.success) {
         setSelectedScenario(json.data);
         await fetchScenarios();
+      } else {
+        // A failed toggle left the switch showing its old state, which reads
+        // as "the click didn't land" rather than "that was rejected".
+        alert(json.message || "Failed to change whether this scenario is active");
       }
     } catch {
-      // toggle error — silently ignored
+      alert("Failed to change whether this scenario is active");
     }
   };
 
@@ -188,9 +194,11 @@ export default function ScenariosTab() {
       if (json.success) {
         await fetchScenarios();
         openDetail(json.data);
+      } else {
+        alert(json.message || "Failed to clone this scenario");
       }
     } catch {
-      // clone error — silently ignored
+      alert("Failed to clone this scenario");
     }
   };
 
