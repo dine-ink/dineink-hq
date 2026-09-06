@@ -2,6 +2,7 @@ import {
   ResponsiveContainer, LineChart, Line, BarChart, Bar, AreaChart, Area,
   CartesianGrid, XAxis, YAxis, Tooltip, Legend, Cell,
 } from "recharts";
+import { tooltipFormatter } from "../../utils/chartFormatters";
 import { fmtCategoryValue } from "./executiveCategories";
 
 const TICK = { fontSize: 10, fill: "#6b7280" };
@@ -18,7 +19,7 @@ export function TrendChart({ points }: { points: { label: string; revenue: numbe
           <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
           <XAxis dataKey="label" tick={TICK} axisLine={false} tickLine={false} />
           <YAxis tick={TICK} axisLine={false} tickLine={false} tickFormatter={tickFormatter} />
-          <Tooltip formatter={(v: number) => fmtCategoryValue(v, "currency")} />
+          <Tooltip formatter={tooltipFormatter((v) => fmtCategoryValue(v, "currency"))} />
           <Legend wrapperStyle={{ fontSize: 10 }} />
           <Line type="monotone" dataKey="revenue" name="Revenue" stroke="#b10000" strokeWidth={2} dot={false} />
           <Line type="monotone" dataKey="netProfit" name="Net Profit" stroke="#2563eb" strokeWidth={2} dot={false} />
@@ -40,7 +41,7 @@ export function BudgetAchievementChart({ data }: { data: { label: string; achiev
           <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
           <XAxis dataKey="label" tick={TICK} axisLine={false} tickLine={false} />
           <YAxis tick={TICK} axisLine={false} tickLine={false} tickFormatter={(v) => `${v}%`} />
-          <Tooltip formatter={(v: number) => (v != null ? `${v.toFixed(0)}%` : "—")} />
+          <Tooltip formatter={tooltipFormatter((v) => (v != null ? `${v.toFixed(0)}%` : "—"))} />
           <Bar dataKey="achievementPercentage" name="Achievement %" radius={[4, 4, 0, 0]}>
             {data.map((d, i) => <Cell key={i} fill={(d.achievementPercentage ?? 0) >= 100 ? "#10b981" : (d.achievementPercentage ?? 0) >= 90 ? "#f59e0b" : "#ef4444"} />)}
           </Bar>
@@ -82,7 +83,7 @@ export function InvestmentPerformanceChart({ projects }: { projects: { project: 
           <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
           <XAxis dataKey="name" tick={TICK} axisLine={false} tickLine={false} interval={0} angle={-20} textAnchor="end" height={60} />
           <YAxis tick={TICK} axisLine={false} tickLine={false} tickFormatter={tickFormatter} />
-          <Tooltip formatter={(v: number) => fmtCategoryValue(v, "currency")} />
+          <Tooltip formatter={tooltipFormatter((v) => fmtCategoryValue(v, "currency"))} />
           <Bar dataKey="npv" name="NPV" radius={[4, 4, 0, 0]}>
             {data.map((d, i) => <Cell key={i} fill={d.npv >= 0 ? "#10b981" : "#ef4444"} />)}
           </Bar>
@@ -107,7 +108,7 @@ export function ForecastVsActualChart({ snapshots }: { snapshots: any[] }) {
           <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
           <XAxis dataKey="label" tick={TICK} axisLine={false} tickLine={false} />
           <YAxis tick={TICK} axisLine={false} tickLine={false} tickFormatter={tickFormatter} />
-          <Tooltip formatter={(v: number) => fmtCategoryValue(v, "currency")} />
+          <Tooltip formatter={tooltipFormatter((v) => fmtCategoryValue(v, "currency"))} />
           <Area type="monotone" dataKey="forecast" name="Forecasted Revenue" stroke="#8b5cf6" fill="#8b5cf6" fillOpacity={0.2} />
         </AreaChart>
       </ResponsiveContainer>

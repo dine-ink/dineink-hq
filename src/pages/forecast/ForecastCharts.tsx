@@ -14,6 +14,7 @@ import {
   Legend,
   Cell,
 } from "recharts";
+import { tooltipFormatter } from "../../utils/chartFormatters";
 import { fmtCategoryValue } from "./forecastCategories";
 
 const TICK = { fontSize: 10, fill: "#6b7280" };
@@ -48,7 +49,7 @@ function LastPeriodVsForecastChart({ mode, baseline, predicted, unit, color }: {
           <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
           <XAxis dataKey="name" tick={TICK} axisLine={false} tickLine={false} />
           <YAxis tick={TICK} axisLine={false} tickLine={false} tickFormatter={tickFormatter} />
-          <Tooltip formatter={(v: number) => fmtCategoryValue(v, unit as any)} />
+          <Tooltip formatter={tooltipFormatter((v) => fmtCategoryValue(v, unit as any))} />
           <Line type="monotone" dataKey="value" stroke={color} strokeWidth={2} dot={{ r: 4 }} strokeDasharray={undefined} />
         </LineChart>
       ) : mode === "area" ? (
@@ -56,7 +57,7 @@ function LastPeriodVsForecastChart({ mode, baseline, predicted, unit, color }: {
           <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
           <XAxis dataKey="name" tick={TICK} axisLine={false} tickLine={false} />
           <YAxis tick={TICK} axisLine={false} tickLine={false} tickFormatter={tickFormatter} />
-          <Tooltip formatter={(v: number) => fmtCategoryValue(v, unit as any)} />
+          <Tooltip formatter={tooltipFormatter((v) => fmtCategoryValue(v, unit as any))} />
           <Area type="monotone" dataKey="value" stroke={color} fill={color} fillOpacity={0.2} />
         </AreaChart>
       ) : (
@@ -64,7 +65,7 @@ function LastPeriodVsForecastChart({ mode, baseline, predicted, unit, color }: {
           <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
           <XAxis dataKey="name" tick={TICK} axisLine={false} tickLine={false} />
           <YAxis tick={TICK} axisLine={false} tickLine={false} tickFormatter={tickFormatter} />
-          <Tooltip formatter={(v: number) => fmtCategoryValue(v, unit as any)} />
+          <Tooltip formatter={tooltipFormatter((v) => fmtCategoryValue(v, unit as any))} />
           <Bar dataKey="value" radius={[4, 4, 0, 0]}>
             <Cell fill="#9ca3af" />
             <Cell fill={color} />
@@ -110,7 +111,7 @@ export default function ForecastCharts({ kpis }: { kpis: any[] }) {
             <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
             <XAxis dataKey="name" tick={TICK} axisLine={false} tickLine={false} interval={0} angle={-20} textAnchor="end" height={50} />
             <YAxis tick={TICK} axisLine={false} tickLine={false} tickFormatter={(v) => `${v}%`} />
-            <Tooltip formatter={(v: number) => `${v.toFixed(1)}%`} />
+            <Tooltip formatter={tooltipFormatter((v) => `${v.toFixed(1)}%`)} />
             <Legend wrapperStyle={{ fontSize: 10 }} />
             <Bar dataKey="variancePercentage" name="Variance %" radius={[4, 4, 0, 0]}>
               {variancePctData.map((d, i) => (

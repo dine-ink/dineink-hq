@@ -14,6 +14,7 @@ import {
   Legend,
   Cell,
 } from "recharts";
+import { tooltipFormatter } from "../../utils/chartFormatters";
 import { useAppSelector } from "../../store";
 import { fyMonths, MONTH_NAMES } from "./budgetCategories";
 
@@ -143,7 +144,7 @@ export default function BudgetCharts({ budget }: { budget: any }) {
                 <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
                 <XAxis dataKey="month" tick={TICK} axisLine={false} tickLine={false} />
                 <YAxis tick={TICK} axisLine={false} tickLine={false} tickFormatter={(v) => `${v}%`} />
-                <Tooltip formatter={(v: number) => `${v.toFixed(1)}%`} />
+                <Tooltip formatter={tooltipFormatter((v) => `${v.toFixed(1)}%`)} />
                 <Bar dataKey="revenueVariancePercentage" name="Variance %" radius={[4, 4, 0, 0]}>
                   {monthly.map((d, i) => (
                     <Cell key={i} fill={d.revenueVariancePercentage >= 0 ? "#10b981" : "#ef4444"} />

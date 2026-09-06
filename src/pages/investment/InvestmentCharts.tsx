@@ -11,6 +11,7 @@ import {
   Legend,
   Cell,
 } from "recharts";
+import { tooltipFormatter } from "../../utils/chartFormatters";
 import { fmtCategoryValue } from "./investmentCategories";
 
 const TICK = { fontSize: 10, fill: "#6b7280" };
@@ -60,7 +61,7 @@ export default function InvestmentCharts({ projects }: { projects: { project: an
             <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
             <XAxis dataKey="year" tick={TICK} axisLine={false} tickLine={false} />
             <YAxis tick={TICK} axisLine={false} tickLine={false} tickFormatter={tickFormatter} />
-            <Tooltip formatter={(v: number) => fmtCategoryValue(v, "currency")} />
+            <Tooltip formatter={tooltipFormatter((v) => fmtCategoryValue(v, "currency"))} />
             <Legend wrapperStyle={{ fontSize: 10 }} />
             {timelineProjects.map((p, i) => (
               <Line key={p.project.id} type="monotone" dataKey={p.project.name} stroke={PALETTE[i % PALETTE.length]} strokeWidth={2} dot={{ r: 3 }} connectNulls />
@@ -77,7 +78,7 @@ export default function InvestmentCharts({ projects }: { projects: { project: an
               <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
               <XAxis dataKey="name" tick={TICK} axisLine={false} tickLine={false} interval={0} angle={-20} textAnchor="end" height={60} tickFormatter={truncateLabel(16)} />
               <YAxis tick={TICK} axisLine={false} tickLine={false} tickFormatter={(v) => `${v}%`} />
-              <Tooltip formatter={(v: number) => `${v.toFixed(1)}%`} />
+              <Tooltip formatter={tooltipFormatter((v) => `${v.toFixed(1)}%`)} />
               <Bar dataKey="roi" name="ROI %" radius={[4, 4, 0, 0]}>
                 {roiData.map((d, i) => <Cell key={i} fill={d.roi >= 0 ? "#10b981" : "#ef4444"} />)}
               </Bar>
@@ -92,7 +93,7 @@ export default function InvestmentCharts({ projects }: { projects: { project: an
               <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
               <XAxis dataKey="name" tick={TICK} axisLine={false} tickLine={false} interval={0} angle={-20} textAnchor="end" height={60} tickFormatter={truncateLabel(16)} />
               <YAxis tick={TICK} axisLine={false} tickLine={false} tickFormatter={tickFormatter} />
-              <Tooltip formatter={(v: number) => fmtCategoryValue(v, "currency")} />
+              <Tooltip formatter={tooltipFormatter((v) => fmtCategoryValue(v, "currency"))} />
               <Bar dataKey="npv" name="NPV" radius={[4, 4, 0, 0]}>
                 {npvData.map((d, i) => <Cell key={i} fill={d.npv >= 0 ? "#10b981" : "#ef4444"} />)}
               </Bar>
@@ -107,7 +108,7 @@ export default function InvestmentCharts({ projects }: { projects: { project: an
               <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
               <XAxis dataKey="name" tick={TICK} axisLine={false} tickLine={false} interval={0} angle={-20} textAnchor="end" height={60} tickFormatter={truncateLabel(16)} />
               <YAxis tick={TICK} axisLine={false} tickLine={false} tickFormatter={tickFormatter} />
-              <Tooltip formatter={(v: number) => fmtCategoryValue(v, "currency")} />
+              <Tooltip formatter={tooltipFormatter((v) => fmtCategoryValue(v, "currency"))} />
               <Legend wrapperStyle={{ fontSize: 10 }} />
               <Bar dataKey="investment" name="Initial Investment" fill="#9ca3af" radius={[4, 4, 0, 0]} />
               <Bar dataKey="totalReturn" name="Total Cash Flow" fill="#b10000" radius={[4, 4, 0, 0]} />
@@ -125,7 +126,7 @@ export default function InvestmentCharts({ projects }: { projects: { project: an
               <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
               <XAxis type="number" tick={TICK} axisLine={false} tickLine={false} tickFormatter={(v) => `${v}y`} />
               <YAxis type="category" dataKey="name" tick={TICK} axisLine={false} tickLine={false} width={130} tickFormatter={truncateLabel(18)} />
-              <Tooltip formatter={(v: number) => `${v.toFixed(2)} years`} />
+              <Tooltip formatter={tooltipFormatter((v) => `${v.toFixed(2)} years`)} />
               <Bar dataKey="years" name="Payback" fill="#2563eb" radius={[0, 4, 4, 0]} />
             </BarChart>
           </ResponsiveContainer>

@@ -126,6 +126,26 @@ export default function Dashboard() {
     return data;
   })();
 
+  /**
+   * The two series above are the same chart over different X axes: a single day
+   * is plotted by hour under `label`, a range by day under `date`, which is why
+   * the XAxis `dataKey` switches alongside the data. Their inferred types
+   * therefore differ, and Recharts' `data` prop is homogeneous — it takes
+   * `ChartData<T>`, not a union of two array types.
+   *
+   * Declaring the row shape once, with both X keys optional, collapses the
+   * union at the point of choice rather than casting at the point of use.
+   */
+  type DashboardChartRow = {
+    label?: string;
+    date?: string;
+    revenue: number;
+    orders: number;
+  };
+  const activeChartData: DashboardChartRow[] = isSingleDay
+    ? hourlyChartData
+    : chartData;
+
   const hasRevenueData = isSingleDay
     ? hourlyChartData.some((h) => h.revenue > 0)
     : chartData.some((d) => d.revenue > 0);
@@ -456,7 +476,7 @@ export default function Dashboard() {
                 </div>
               ) : (
                 <ResponsiveContainer width="100%" height={200}>
-                  <BarChart data={isSingleDay ? hourlyChartData : chartData}>
+                  <BarChart data={activeChartData}>
                     <CartesianGrid
                       strokeDasharray="3 3"
                       vertical={false}

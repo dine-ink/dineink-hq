@@ -305,7 +305,13 @@ export async function downloadReport(params: ReportParams): Promise<void> {
   });
 
   // Also use analytics.topItems if available
-  const topItemsData =
+  //
+  // Annotated rather than inferred: the two branches produce structurally
+  // identical rows, but their inferred types are distinct, so `topItemsData`
+  // came out as a union of two array types — and `forEach` on a union cannot
+  // infer its callback parameters, which is what made `item` and `i` implicitly
+  // `any`. Naming the row type collapses the union at the source.
+  const topItemsData: { name: string; qty: number; revenue: number }[] =
     Object.entries(itemMap).length > 0
       ? Object.entries(itemMap)
           .map(([name, d]) => ({ name, ...d }))

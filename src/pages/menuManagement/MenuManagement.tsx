@@ -102,6 +102,7 @@ import {
   CartesianGrid,
   ReferenceLine,
 } from "recharts";
+import { tooltipFormatter } from "../../utils/chartFormatters";
 import MobileTableCards from "../../components/common/MobileTableCards";
 
 // Keys match the display names stored in category.icon field in the DB
@@ -748,6 +749,13 @@ export default function MenuManagement() {
   };
 
   const handleSave = async () => {
+    // Nothing checked this before, so saving with no branch selected threw
+    // while building the request body — the ingredients were silently not
+    // saved and the swallowed catch below meant no error was shown either.
+    if (!selectedBranch?.id) {
+      alert("Please select a branch");
+      return;
+    }
     try {
       const restaurantId = user.restaurantId;
       const res = await fetch(`${API_URL}/api/ingredients/saveIngredients`, {
@@ -5596,13 +5604,13 @@ export default function MenuManagement() {
                           />
                           <Tooltip
                             cursor={{ strokeDasharray: "3 3" }}
-                            formatter={(value: any, name: string) =>
+                            formatter={tooltipFormatter((value, name) =>
                               name === "Popularity"
                                 ? [`${value}%`, "Popularity share"]
                                 : name === "Margin"
                                   ? [`₹${value}`, "Margin/unit"]
-                                  : [value, name]
-                            }
+                                  : [value, name],
+                            )}
                             labelFormatter={() => ""}
                             content={({ active, payload }) => {
                               if (!active || !payload?.length) return null;

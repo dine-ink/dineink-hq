@@ -12,6 +12,7 @@ import {
   CartesianGrid,
   Tooltip,
 } from "recharts";
+import { tooltipFormatter } from "../../utils/chartFormatters";
 import { useAppSelector } from "../../store";
 import {
   PageContainer,
@@ -269,7 +270,7 @@ export default function CashFlowPredictor() {
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={colors.neutral[100]} />
               <XAxis dataKey="name" tick={TICK} axisLine={false} tickLine={false} />
               <YAxis tick={TICK} axisLine={false} tickLine={false} />
-              <Tooltip formatter={(v: number) => formatCurrency(v)} />
+              <Tooltip formatter={tooltipFormatter((v) => formatCurrency(v))} />
               <Bar dataKey="value" name="Amount" radius={[4, 4, 0, 0]}>
                 {comparisonData.map((entry) => (
                   <Cell key={entry.name} fill={entry.fill} />
@@ -289,7 +290,7 @@ export default function CashFlowPredictor() {
                 <XAxis dataKey="date" tick={TICK} axisLine={false} tickLine={false} interval={4} />
                 <YAxis tick={TICK} axisLine={false} tickLine={false} />
                 <Tooltip
-                  formatter={(v: number, name: string) => (name === "Revenue" ? formatCurrency(v) : v)}
+                  formatter={tooltipFormatter((v, name) => (name === "Revenue" ? formatCurrency(v) : v))}
                   labelFormatter={(v) => formatDate(v as string)}
                 />
                 <Line

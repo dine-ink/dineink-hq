@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import {
   ResponsiveContainer, BarChart, Bar, CartesianGrid, XAxis, YAxis, Tooltip, Cell,
 } from "recharts";
+import { tooltipFormatter } from "../../utils/chartFormatters";
 import { useAppSelector } from "../../store";
 import { ASSUMPTION_FIELDS, fmtCategoryValue, INVESTMENT_STATUSES, INVESTMENT_TYPES, riskLevelFor, RISK_STYLES, STATUS_STYLES } from "./investmentCategories";
 import MobileTableCards from "../../components/common/MobileTableCards";
@@ -354,7 +355,7 @@ export default function ProjectsTab() {
               <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
               <XAxis dataKey="year" tick={{ fontSize: 10, fill: "#6b7280" }} axisLine={false} tickLine={false} />
               <YAxis tick={{ fontSize: 10, fill: "#6b7280" }} axisLine={false} tickLine={false} />
-              <Tooltip formatter={(v: number) => fmtCategoryValue(v, "currency")} />
+              <Tooltip formatter={tooltipFormatter((v) => fmtCategoryValue(v, "currency"))} />
               <Bar dataKey="value" radius={[4, 4, 0, 0]}>
                 {cashFlowChartData.map((d: any, i: number) => <Cell key={i} fill={d.value >= 0 ? "#10b981" : "#ef4444"} />)}
               </Bar>

@@ -88,6 +88,13 @@ uses the RTK Query layer that already exists in `store/api/`. New screens should
 add an endpoint to `store/api/` rather than calling `fetch`. `internal-web` is
 the reference — it does this for all 14 of its API groups.
 
-**TypeScript is not yet strict.** `tsconfig.json` has `"strict": false`. Write
-new code as if it were on (no implicit `any`, handle nulls); turning it on is a
-known, scoped piece of work.
+**TypeScript is strict**, and stays that way — `tsc --noEmit` is clean. Don't
+reach for `any` or a cast to get past a type error; the two most common ones
+here have shared helpers already:
+
+- Recharts tooltip/axis formatters: wrap the callback in `tooltipFormatter` /
+  `tickFormatter` from `utils/chartFormatters`, which converts Recharts'
+  `ValueType` to a number. A cast compiles but still throws when a value arrives
+  as a string.
+- A value that may be null: guard it (`if (!selectedBranch?.id) return;`) rather
+  than asserting with `!`. Turning strict on found two real crashes that way.

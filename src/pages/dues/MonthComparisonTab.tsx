@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { tooltipFormatter } from "../../utils/chartFormatters";
 import { useAppSelector } from "../../store";
 import { Alert, EmptyState, LoadingOverlay, chartPalette } from "../../design";
 import { categoryLabel, formatCurrency, monthYearLabel, type MonthComparisonData } from "./duesShared";
@@ -91,7 +92,7 @@ export default function MonthComparisonTab({ month, year }: MonthComparisonTabPr
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                   <XAxis dataKey="categoryDisplay" tick={TICK} axisLine={false} tickLine={false} interval={0} angle={-15} textAnchor="end" height={50} />
                   <YAxis tick={TICK} axisLine={false} tickLine={false} tickFormatter={(v) => `₹${Math.round(v / 1000)}k`} />
-                  <Tooltip formatter={(v: number) => formatCurrency(v)} />
+                  <Tooltip formatter={tooltipFormatter((v) => formatCurrency(v))} />
                   <Legend wrapperStyle={{ fontSize: 11 }} />
                   <Bar dataKey="currentAmount" name={monthYearLabel(month, year)} fill={CURRENT_COLOR} radius={[4, 4, 0, 0]} />
                   <Bar dataKey="previousAmount" name={monthYearLabel(prev.month, prev.year)} fill={PREVIOUS_COLOR} radius={[4, 4, 0, 0]} />

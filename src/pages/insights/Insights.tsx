@@ -14,6 +14,7 @@ import {
   CartesianGrid,
   ReferenceLine,
 } from "recharts";
+import { tooltipFormatter } from "../../utils/chartFormatters";
 import MobileTableCards from "../../components/common/MobileTableCards";
 import {
   ArrowDownTrayIcon,
@@ -931,7 +932,13 @@ export default function Insights() {
 
   const handleSaveAssumptions = async () => {
     if (!user?.restaurantId) return;
-    if (assumptionsMode === "branch" && !selectedBranch?.id) {
+    // Hoisted so the two URLs below read one value. `assumptionsMode` is
+    // "defaults" | "branch", so this guard already proves branchId is set on
+    // every path that uses it — TypeScript just can't correlate a check on one
+    // variable with a branch on another, and a template literal accepts the
+    // undefined case anyway.
+    const branchId = selectedBranch?.id;
+    if (assumptionsMode === "branch" && !branchId) {
       alert("Please select a branch");
       return;
     }
@@ -940,7 +947,7 @@ export default function Insights() {
       const url =
         assumptionsMode === "defaults"
           ? `${API_URL}/api/finance-assumptions/${user.restaurantId}`
-          : `${API_URL}/api/finance-assumptions/${user.restaurantId}/${selectedBranch.id}`;
+          : `${API_URL}/api/finance-assumptions/${user.restaurantId}/${branchId}`;
       const payload: any = {};
       ASSUMPTION_FIELD_GROUPS.flatMap((g) => g.fields).forEach(({ key }) => {
         payload[key] = activeAssumptionValues[key] ?? null;
@@ -963,7 +970,7 @@ export default function Insights() {
           // default" badges reflect the save immediately, not just after
           // the next branch-change/tab-reopen refetch.
           const branchRes = await fetch(
-            `${API_URL}/api/finance-assumptions/${user.restaurantId}/${selectedBranch.id}`,
+            `${API_URL}/api/finance-assumptions/${user.restaurantId}/${branchId}`,
             { headers: { Authorization: `Bearer ${token}` } },
           );
           const branchJson = await branchRes.json();
@@ -984,7 +991,7 @@ export default function Insights() {
     const fetchStaff = async () => {
       try {
         const res = await fetch(
-          `${API_URL}/api/restaurant/staff/${currentUser.restaurantId}/${selectedBranch.id}`,
+          `${API_URL}/api/restaurant/staff/${currentUser.restaurantId}/${selectedBranch?.id}`,
           {
             headers: {
               Authorization: `Bearer ${token}`,
@@ -999,7 +1006,11 @@ export default function Insights() {
         // fetch error
       }
     };
-    if (currentUser?.restaurantId) {
+    // selectedBranch was missing from this guard, so with no branch selected
+    // the effect ran and dereferenced null building the URL. Requiring the id
+    // here is what makes the optional chain above unreachable rather than a
+    // request for ".../staff/12/undefined".
+    if (currentUser?.restaurantId && selectedBranch?.id) {
       fetchStaff();
     }
   }, [selectedBranch]);
@@ -1450,10 +1461,10 @@ export default function Insights() {
                               width={44}
                             />
                             <ReTooltip
-                              formatter={(v: number) => [
+                              formatter={tooltipFormatter((v) => [
                                 `₹${Math.round(v).toLocaleString("en-IN")}`,
                                 "Revenue Required",
-                              ]}
+                              ])}
                               labelFormatter={(l) => `${l} EBITDA target`}
                             />
                             <Bar
@@ -1602,9 +1613,9 @@ export default function Insights() {
                               ))}
                             </Pie>
                             <ReTooltip
-                              formatter={(v: number) =>
-                                `₹${Math.round(v).toLocaleString("en-IN")}`
-                              }
+                              formatter={tooltipFormatter(
+                                (v) => `₹${Math.round(v).toLocaleString("en-IN")}`,
+                              )}
                             />
                           </RePieChart>
                         </ResponsiveContainer>
