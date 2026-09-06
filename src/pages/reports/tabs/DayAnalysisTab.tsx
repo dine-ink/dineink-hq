@@ -10,11 +10,10 @@ import MobileTableCards from "@/components/common/MobileTableCards";
  */
 
 interface DayAnalysisTabProps {
-  dailyData: any;
   heatmapData: any;
 }
 
-export default function DayAnalysisTab({ dailyData, heatmapData }: DayAnalysisTabProps) {
+export default function DayAnalysisTab({ heatmapData }: DayAnalysisTabProps) {
   return (
           <div className="space-y-3">
             <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">

@@ -29,7 +29,6 @@ import {
 interface HourlyHeatmapTabProps {
   heatmapData: any;
   setHeatmapData: (data: any) => void;
-  dailyData: any;
   menuItems: any;
   from: string;
   to: string;
@@ -38,7 +37,6 @@ interface HourlyHeatmapTabProps {
 export default function HourlyHeatmapTab({
   heatmapData,
   setHeatmapData,
-  dailyData,
   menuItems,
   from,
   to,
