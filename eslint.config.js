@@ -60,6 +60,26 @@ export default defineConfig([
       'react-hooks/static-components': 'off',
       'react-hooks/immutability': 'off',
       'react-hooks/purity': 'off',
+      // Reaching out of a folder is what the "@/" alias is for. Without this
+      // rule the codebase drifts straight back: it was 263 relative imports
+      // against 8 aliased ones before a codemod flipped it, precisely because
+      // nothing stopped the next `../../../store` from being written.
+      //
+      // Same-directory "./x" is deliberately still allowed — it is
+      // unambiguous, and it survives a folder being moved as a unit, which is
+      // exactly what you want inside a feature folder.
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['../*'],
+              message:
+                "Use the '@/' alias instead of reaching out of the folder (e.g. '@/store', not '../../store'). Same-folder './x' imports are fine.",
+            },
+          ],
+        },
+      ],
     },
   },
   {

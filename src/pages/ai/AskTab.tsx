@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useAppSelector } from "../../store";
+import { useAppSelector } from "@/store";
 import { ASK_QUESTIONS, fmtCategoryValue, PERIOD_OPTIONS } from "./aiCategories";
 import {
   ChatBubbleLeftEllipsisIcon,

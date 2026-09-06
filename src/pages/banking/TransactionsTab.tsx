@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import dayjs from "dayjs";
-import { useAppSelector } from "../../store";
+import { useAppSelector } from "@/store";
 import {
   Button,
   Dialog,
@@ -14,7 +14,7 @@ import {
   Alert,
   EmptyState,
   useDisclosure,
-} from "../../design";
+} from "@/design";
 import { PlusIcon, ArrowPathIcon } from "@heroicons/react/24/outline";
 import type { BankTransactionEntry, ReconcileResult, TransactionType } from "./types";
 

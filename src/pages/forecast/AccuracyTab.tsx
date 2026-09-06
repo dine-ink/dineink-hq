@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
-import { useAppSelector } from "../../store";
+import { useAppSelector } from "@/store";
 import { fmtCategoryValue } from "./forecastCategories";
-import MobileTableCards from "../../components/common/MobileTableCards";
+import MobileTableCards from "@/components/common/MobileTableCards";
 
 const localDateStr = (iso: string) => {
   const d = new Date(iso);

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
-import { useAppSelector } from "../../store";
+import { useAppSelector } from "@/store";
 import { fmtCategoryValue, SCENARIO_KPIS } from "./scenarioCategories";
-import MobileTableCards from "../../components/common/MobileTableCards";
+import MobileTableCards from "@/components/common/MobileTableCards";
 
 const PERIODS = [
   { key: "currentMonth", label: "Current Month" },

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useAppSelector } from "../../store";
+import { useAppSelector } from "@/store";
 import {
   WrenchScrewdriverIcon,
   PlusIcon,
@@ -26,7 +26,7 @@ import {
   Alert,
   type DataTableColumn,
   type ChipStatus,
-} from "../../design";
+} from "@/design";
 
 const API_URL = import.meta.env.VITE_API_URL;
 

@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAppSelector, useAppDispatch } from "../../store";
-import { setBranches } from "../../store/slices/branchSlice";
-import { clearAuth } from "../../store/slices/authSlice";
-import { getIndianCitiesForState, getIndianStates } from "../../utils/indiaLocations";
+import { useAppSelector, useAppDispatch } from "@/store";
+import { setBranches } from "@/store/slices/branchSlice";
+import { clearAuth } from "@/store/slices/authSlice";
+import { getIndianCitiesForState, getIndianStates } from "@/utils/indiaLocations";
 import {
   BuildingStorefrontIcon,
   LockClosedIcon,
@@ -18,7 +18,7 @@ import {
   TagIcon,
 } from "@heroicons/react/24/outline";
 import DiscountCodesTab from "./DiscountCodesTab";
-import TabStrip from "../../components/common/TabStrip";
+import TabStrip from "@/components/common/TabStrip";
 
 const TABS = [
   { id: "General", label: "Restaurant", icon: BuildingStorefrontIcon },

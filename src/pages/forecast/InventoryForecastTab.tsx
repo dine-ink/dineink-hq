@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { useAppSelector } from "../../store";
-import { DataTable, StatusChip, type DataTableColumn } from "../../design";
+import { useAppSelector } from "@/store";
+import { DataTable, StatusChip, type DataTableColumn } from "@/design";
 import { MODEL_OPTIONS } from "./forecastCategories";
 
 interface InventoryItem {

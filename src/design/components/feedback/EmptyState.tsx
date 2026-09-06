@@ -1,6 +1,6 @@
 import type { ComponentType, ReactNode } from "react";
 import { InboxIcon, MagnifyingGlassIcon, ExclamationCircleIcon } from "@heroicons/react/24/outline";
-import { Button } from "../buttons/Button";
+import { Button } from "@/design/components/buttons/Button";
 
 export interface EmptyStateProps {
   icon?: ComponentType<{ className?: string }>;

@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
-import { useAppSelector } from "../../store";
+import { useAppSelector } from "@/store";
 import { ALL_KPI_LABELS, fmtCategoryValue, PERIOD_OPTIONS, STATUS_STYLES, WIDGET_KPIS } from "./executiveCategories";
-import { AlertIcon, TrendIcon } from "../../utils/kpiDisplay";
-import { ALERT_STYLES, trendStyle } from "../../utils/kpiStyles";
-import MobileTableCards from "../../components/common/MobileTableCards";
+import { AlertIcon, TrendIcon } from "@/utils/kpiDisplay";
+import { ALERT_STYLES, trendStyle } from "@/utils/kpiStyles";
+import MobileTableCards from "@/components/common/MobileTableCards";
 import {
   Cog6ToothIcon,
   EllipsisVerticalIcon,

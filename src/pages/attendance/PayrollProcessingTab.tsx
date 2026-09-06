@@ -5,7 +5,7 @@ import {
   BanknotesIcon,
   PlusIcon,
 } from "@heroicons/react/24/outline";
-import { useAppSelector } from "../../store";
+import { useAppSelector } from "@/store";
 import {
   Alert,
   Button,
@@ -24,7 +24,7 @@ import {
   Td,
   Textarea,
   Th,
-} from "../../design";
+} from "@/design";
 import {
   exportPayrollRunToExcel,
   exportPayrollRunToPDF,

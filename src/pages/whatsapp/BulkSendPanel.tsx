@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { MagnifyingGlassIcon, PaperAirplaneIcon } from "@heroicons/react/24/outline";
-import { useAppSelector } from "../../store";
-import { Button, Select, Alert, EmptyState } from "../../design";
-import { getCustomerSegment, SEGMENT_LABELS, SEGMENT_STYLES, type CustomerSegment } from "../../utils/customerSegments";
+import { useAppSelector } from "@/store";
+import { Button, Select, Alert, EmptyState } from "@/design";
+import { getCustomerSegment, SEGMENT_LABELS, SEGMENT_STYLES, type CustomerSegment } from "@/utils/customerSegments";
 import type { WhatsAppTemplate } from "./TemplatesPanel";
 
 interface Customer {

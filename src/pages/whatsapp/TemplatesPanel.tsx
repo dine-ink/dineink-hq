@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { PlusIcon, TrashIcon, PencilSquareIcon } from "@heroicons/react/24/outline";
-import { useAppSelector } from "../../store";
-import { Button, Dialog, DeleteDialog, FormField, FormSection, Input, Textarea, Alert, EmptyState } from "../../design";
+import { useAppSelector } from "@/store";
+import { Button, Dialog, DeleteDialog, FormField, FormSection, Input, Textarea, Alert, EmptyState } from "@/design";
 
 export interface WhatsAppTemplate {
   id: number;

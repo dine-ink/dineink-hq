@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
-import { useAppSelector } from "../../store";
+import { useAppSelector } from "@/store";
 import { CONFIDENCE_STYLES, fmtCategoryValue, MODEL_OPTIONS, PERIOD_OPTIONS } from "./forecastCategories";
-import MobileTableCards from "../../components/common/MobileTableCards";
+import MobileTableCards from "@/components/common/MobileTableCards";
 import { TrophyIcon } from "@heroicons/react/24/outline";
 
 export default function BranchComparisonTab() {

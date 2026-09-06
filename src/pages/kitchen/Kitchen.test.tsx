@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { screen, waitFor } from "@testing-library/react";
 import Kitchen from "./Kitchen";
-import { authenticatedState, renderWithProviders } from "../../test/test-utils";
+import { authenticatedState, renderWithProviders } from "@/test/test-utils";
 
 describe("Kitchen analytics page", () => {
   it("shows a loading indicator before data arrives", () => {

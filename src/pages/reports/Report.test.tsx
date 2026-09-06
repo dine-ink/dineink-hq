@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { screen, waitFor, within } from "@testing-library/react";
 import Report from "./Report";
-import { authenticatedState, renderWithProviders } from "../../test/test-utils";
+import { authenticatedState, renderWithProviders } from "@/test/test-utils";
 
 const mockBills = [
   { id: 1, status: "PAID", total: 1000, discount: 0, cgst: 50, sgst: 50 },

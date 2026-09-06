@@ -7,7 +7,7 @@
 // tabs drift apart in how they treat a failed request.
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useAppSelector } from "../../store";
+import { useAppSelector } from "@/store";
 
 export const useLaborScope = () => {
   const { selectedBranch } = useAppSelector((s) => s.branch);

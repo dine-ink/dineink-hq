@@ -1,11 +1,11 @@
 import { useState } from "react";
 import { BuildingLibraryIcon } from "@heroicons/react/24/outline";
-import { PageContainer, PageHeader } from "../../design";
+import { PageContainer, PageHeader } from "@/design";
 import BankAccountsTab from "./BankAccountsTab";
 import UpiTab from "./UpiTab";
 import TransactionsTab from "./TransactionsTab";
 import PaymentAnalyticsTab from "./PaymentAnalyticsTab";
-import TabStrip from "../../components/common/TabStrip";
+import TabStrip from "@/components/common/TabStrip";
 
 const TABS = ["Bank Accounts", "UPI", "Transactions", "Payment Analytics"] as const;
 type Tab = (typeof TABS)[number];

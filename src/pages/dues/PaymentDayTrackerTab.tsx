@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { useAppSelector } from "../../store";
-import { Alert, EmptyState, LoadingOverlay, StatusChip } from "../../design";
+import { useAppSelector } from "@/store";
+import { Alert, EmptyState, LoadingOverlay, StatusChip } from "@/design";
 import {
   SOURCE_CHIP,
   SOURCE_LABEL,

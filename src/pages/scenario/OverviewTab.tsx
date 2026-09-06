@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
-import { useAppSelector } from "../../store";
+import { useAppSelector } from "@/store";
 import { fmtCategoryValue, OVERRIDE_FIELD_GROUPS, OVERRIDE_FIELDS, SCENARIO_KPIS, WIDGET_KPIS } from "./scenarioCategories";
-import { TrendIcon } from "../../utils/kpiDisplay";
-import { trendStyle } from "../../utils/kpiStyles";
+import { TrendIcon } from "@/utils/kpiDisplay";
+import { trendStyle } from "@/utils/kpiStyles";
 import ScenarioCharts from "./ScenarioCharts";
-import MobileTableCards from "../../components/common/MobileTableCards";
+import MobileTableCards from "@/components/common/MobileTableCards";
 import { ArrowPathIcon, CheckIcon } from "@heroicons/react/24/outline";
 
 const PERIODS = [

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import dayjs from "dayjs";
-import RestaurantSetupModal from "../../components/dashboard/RestaurantSetupModal";
+import RestaurantSetupModal from "@/components/dashboard/RestaurantSetupModal";
 import StatsStrip from "@/components/StatsStrip";
 import CommonTable from "@/components/common/CommonTable";
 import { logoMarkClasses } from "@/components/common/logoTokens";
@@ -13,7 +13,7 @@ import {
   useGetFinanceSummaryQuery,
   useGetRatioReportQuery,
 } from "@/store/api/dashboardApi";
-import { useAppSelector } from "../../store";
+import { useAppSelector } from "@/store";
 import {
   ResponsiveContainer,
   AreaChart,

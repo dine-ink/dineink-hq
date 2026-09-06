@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { useAppSelector } from "../../store";
-import { DataTable, type DataTableColumn } from "../../design";
+import { useAppSelector } from "@/store";
+import { DataTable, type DataTableColumn } from "@/design";
 import { MODEL_OPTIONS, PERIOD_OPTIONS } from "./forecastCategories";
 
 interface DemandItem {

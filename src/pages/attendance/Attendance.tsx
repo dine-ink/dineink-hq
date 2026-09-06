@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import dayjs from "dayjs";
-import { useAppSelector } from "../../store";
+import { useAppSelector } from "@/store";
 import {
   BarChart,
   Bar,
@@ -22,7 +22,7 @@ import {
 } from "@heroicons/react/24/outline";
 import LeaveManagementTab from "./LeaveManagementTab";
 import PayrollProcessingTab from "./PayrollProcessingTab";
-import MobileTableCards from "../../components/common/MobileTableCards";
+import MobileTableCards from "@/components/common/MobileTableCards";
 
 // Effective hours for payroll/display purposes: an owner-entered override
 // takes precedence over whatever the POS clock-in/out computed.

@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
-import { useAppSelector } from "../../store";
+import { useAppSelector } from "@/store";
 import { fmtCategoryValue, GRANULARITY_OPTIONS } from "./executiveCategories";
 import { BudgetAchievementChart, ForecastVsActualChart, RevenueHeatMap, TrendChart } from "./ExecutiveCharts";
-import MobileTableCards from "../../components/common/MobileTableCards";
+import MobileTableCards from "@/components/common/MobileTableCards";
 
 const INVESTMENT_STATUS_LABEL: Record<string, string> = { PLANNED: "Planned", IN_PROGRESS: "In Progress", COMPLETED: "Completed", CANCELLED: "Cancelled" };
 

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useAppSelector } from "../../store";
+import { useAppSelector } from "@/store";
 import {
   BarChart,
   Bar,
@@ -17,8 +17,8 @@ import {
   BuildingStorefrontIcon,
   MapPinIcon,
 } from "@heroicons/react/24/outline";
-import { chartPalette } from "../../design";
-import MobileTableCards from "../../components/common/MobileTableCards";
+import { chartPalette } from "@/design";
+import MobileTableCards from "@/components/common/MobileTableCards";
 
 // The app's one shared qualitative chart palette (src/design/tokens/colors
 // .ts) — previously its own slightly-different copy of this same red/blue/

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useAppSelector } from "../../store";
+import { useAppSelector } from "@/store";
 import { fmtCategoryValue, riskLevelFor, RISK_STYLES } from "./investmentCategories";
 import InvestmentCharts from "./InvestmentCharts";
 import {

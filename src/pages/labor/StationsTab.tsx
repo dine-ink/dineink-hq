@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { PlusIcon, TrashIcon } from "@heroicons/react/24/outline";
-import { Alert, Button, Dialog, FormField, Input, Select } from "../../design";
-import { useAppSelector } from "../../store";
+import { Alert, Button, Dialog, FormField, Input, Select } from "@/design";
+import { useAppSelector } from "@/store";
 import { CHART_CARD } from "./laborCategories";
 import { useLaborQuery, useLaborScope } from "./useLaborApi";
-import MobileTableCards from "../../components/common/MobileTableCards";
+import MobileTableCards from "@/components/common/MobileTableCards";
 
 // Station setup: the stations themselves, their productive-time factor, their
 // throughput ceiling, and which equipment feeds each one. This is the table

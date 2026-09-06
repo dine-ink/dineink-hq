@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAppSelector } from "../../store";
-import { Button, LoadingOverlay, EmptyState } from "../../design";
+import { useAppSelector } from "@/store";
+import { Button, LoadingOverlay, EmptyState } from "@/design";
 import { ChartBarIcon, ArrowRightIcon } from "@heroicons/react/24/outline";
 
 const API_URL = import.meta.env.VITE_API_URL;

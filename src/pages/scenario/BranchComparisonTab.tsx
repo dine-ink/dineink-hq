@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
-import { useAppSelector } from "../../store";
+import { useAppSelector } from "@/store";
 import { fmtCategoryValue } from "./scenarioCategories";
-import MobileTableCards from "../../components/common/MobileTableCards";
+import MobileTableCards from "@/components/common/MobileTableCards";
 import { TrophyIcon } from "@heroicons/react/24/outline";
 
 // "Apply a scenario across every branch" (spec section 10) reuses the

@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import userEvent from "@testing-library/user-event";
 import { screen, waitFor, within } from "@testing-library/react";
 import Bills from "./Bills";
-import { authenticatedState, renderWithProviders } from "../../test/test-utils";
+import { authenticatedState, renderWithProviders } from "@/test/test-utils";
 
 const mockBills = [
   {

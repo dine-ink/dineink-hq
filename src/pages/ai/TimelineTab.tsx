@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { useAppSelector } from "../../store";
-import { TrendChart } from "../executive/ExecutiveCharts";
+import { useAppSelector } from "@/store";
+import { TrendChart } from "@/pages/executive/ExecutiveCharts";
 import { CATEGORY_BADGE_STYLES, CATEGORY_LABELS, SEVERITY_STYLES } from "./aiCategories";
 
 export default function TimelineTab() {

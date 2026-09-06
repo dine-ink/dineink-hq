@@ -1,7 +1,7 @@
 import { useState } from "react";
 import type { ReactNode } from "react";
 import { Dialog } from "./Dialog";
-import { Button } from "../buttons/Button";
+import { Button } from "@/design/components/buttons/Button";
 
 export interface ConfirmationDialogProps {
   open: boolean;

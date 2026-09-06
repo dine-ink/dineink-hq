@@ -14,8 +14,8 @@ import {
   Legend,
   Cell,
 } from "recharts";
-import { tooltipFormatter } from "../../utils/chartFormatters";
-import { useAppSelector } from "../../store";
+import { tooltipFormatter } from "@/utils/chartFormatters";
+import { useAppSelector } from "@/store";
 import { fyMonths, MONTH_NAMES } from "./budgetCategories";
 
 const TICK = { fontSize: 10, fill: "#6b7280" };

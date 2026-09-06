@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { PencilSquareIcon, PlusIcon, TrashIcon } from "@heroicons/react/24/outline";
-import { useAppSelector } from "../../store";
+import { useAppSelector } from "@/store";
 import {
   Alert,
   Button,
@@ -14,7 +14,7 @@ import {
   Select,
   StatusChip,
   Textarea,
-} from "../../design";
+} from "@/design";
 import {
   DUE_CATEGORIES,
   STATUS_TO_CHIP,

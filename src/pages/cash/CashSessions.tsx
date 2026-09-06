@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import dayjs from "dayjs";
-import { useAppSelector } from "../../store";
+import { useAppSelector } from "@/store";
 import {
   LineChart,
   Line,
@@ -13,7 +13,7 @@ import {
   Tooltip,
   ReferenceLine,
 } from "recharts";
-import MobileTableCards from "../../components/common/MobileTableCards";
+import MobileTableCards from "@/components/common/MobileTableCards";
 
 export default function CashSessions() {
   const API_URL = import.meta.env.VITE_API_URL;

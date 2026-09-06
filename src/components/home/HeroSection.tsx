@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 
-import mobileAppScreen from "../../assets/images/Mobile-App-Screen.png";
+import mobileAppScreen from "@/assets/images/Mobile-App-Screen.png";
 
 const proofPoints = [
   "Free to start",

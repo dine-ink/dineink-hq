@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
-import { useAppSelector } from "../../store";
+import { useAppSelector } from "@/store";
 import { PERIOD_OPTIONS } from "./aiCategories";
 import InsightCard from "./InsightCard";
-import MobileTableCards from "../../components/common/MobileTableCards";
+import MobileTableCards from "@/components/common/MobileTableCards";
 import {
   ClipboardDocumentCheckIcon,
   HeartIcon,

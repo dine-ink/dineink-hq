@@ -3,10 +3,10 @@ import { combineReducers, configureStore } from "@reduxjs/toolkit";
 import { Provider } from "react-redux";
 import { MemoryRouter } from "react-router-dom";
 import { render, RenderOptions } from "@testing-library/react";
-import authReducer from "../store/slices/authSlice";
-import branchReducer from "../store/slices/branchSlice";
-import dateRangeReducer from "../store/slices/dateRangeSlice";
-import { api } from "../store/api/apiSlice";
+import authReducer from "@/store/slices/authSlice";
+import branchReducer from "@/store/slices/branchSlice";
+import dateRangeReducer from "@/store/slices/dateRangeSlice";
+import { api } from "@/store/api/apiSlice";
 
 // Mirrors src/store/index.ts's shape so components using useAppSelector
 // work unmodified under test, without pulling in the real store singleton

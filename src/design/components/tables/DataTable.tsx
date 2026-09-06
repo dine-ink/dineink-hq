@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { Table, TableHead, Th, TableBody, TableRow, Td, TableContainer } from "./Table";
-import { LoadingSkeleton } from "../feedback/LoadingSkeleton";
-import { EmptyState, ErrorState } from "../feedback/EmptyState";
+import { LoadingSkeleton } from "@/design/components/feedback/LoadingSkeleton";
+import { EmptyState, ErrorState } from "@/design/components/feedback/EmptyState";
 
 export interface DataTableColumn<T> {
   key: string;

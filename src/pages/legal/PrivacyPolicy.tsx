@@ -1,5 +1,5 @@
-import Navbar from "../../components/common/Navbar";
-import Footer from "../../components/common/Footer";
+import Navbar from "@/components/common/Navbar";
+import Footer from "@/components/common/Footer";
 import { ShieldCheckIcon } from "@heroicons/react/24/outline";
 
 const LAST_UPDATED = "July 25, 2026";

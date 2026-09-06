@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useAppSelector } from "../../store";
+import { useAppSelector } from "@/store";
 import {
   ArrowPathRoundedSquareIcon,
   CalendarDaysIcon,
@@ -10,11 +10,11 @@ import {
   MagnifyingGlassIcon,
   UsersIcon,
 } from "@heroicons/react/24/outline";
-import SendWhatsAppDialog from "../../components/common/SendWhatsAppDialog";
+import SendWhatsAppDialog from "@/components/common/SendWhatsAppDialog";
 import ResponsiveTable, {
   type ResponsiveColumn,
-} from "../../components/common/ResponsiveTable";
-import { getCustomerSegment } from "../../utils/customerSegments";
+} from "@/components/common/ResponsiveTable";
+import { getCustomerSegment } from "@/utils/customerSegments";
 
 const AVATAR_GRADIENTS = [
   "from-red-500 to-pink-500",

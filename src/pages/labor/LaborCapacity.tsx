@@ -1,13 +1,13 @@
 import { useState } from "react";
 import { UserGroupIcon } from "@heroicons/react/24/outline";
-import { useAppSelector } from "../../store";
+import { useAppSelector } from "@/store";
 import StaffingPlanTab from "./StaffingPlanTab";
 import CapacitySweepTab from "./CapacitySweepTab";
 import StationsTab from "./StationsTab";
 import LaborStandardsTab from "./LaborStandardsTab";
 import SkillMatrixTab from "./SkillMatrixTab";
 import CalibrationTab from "./CalibrationTab";
-import TabStrip from "../../components/common/TabStrip";
+import TabStrip from "@/components/common/TabStrip";
 
 // Tab shell copied in structure from Forecasting.tsx so the two pages navigate
 // identically — same header block, same pill tabs, same scrolling content card.

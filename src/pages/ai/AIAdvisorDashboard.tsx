@@ -6,7 +6,7 @@ import BranchNarrativesTab from "./BranchNarrativesTab";
 import AskTab from "./AskTab";
 import TimelineTab from "./TimelineTab";
 import ReportsTab from "./ReportsTab";
-import TabStrip from "../../components/common/TabStrip";
+import TabStrip from "@/components/common/TabStrip";
 
 const TABS = ["Executive Brief", "Insights", "Branch Narratives", "Ask AI", "Timeline", "Reports"];
 

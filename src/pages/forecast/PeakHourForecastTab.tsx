@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
 import { ClockIcon, UsersIcon } from "@heroicons/react/24/outline";
 import { BarChart, Bar, CartesianGrid, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
-import { useAppSelector } from "../../store";
-import { MetricCard } from "../../design";
+import { useAppSelector } from "@/store";
+import { MetricCard } from "@/design";
 import { CONFIDENCE_STYLES, MODEL_OPTIONS, PERIOD_OPTIONS } from "./forecastCategories";
-import { TrendIcon } from "../../utils/kpiDisplay";
-import { trendStyle } from "../../utils/kpiStyles";
+import { TrendIcon } from "@/utils/kpiDisplay";
+import { trendStyle } from "@/utils/kpiStyles";
 
 const TICK = { fontSize: 10, fill: "#6b7280" };
 const CHART_CARD = "overflow-hidden rounded-xl border border-gray-200 bg-white p-3 shadow-sm";

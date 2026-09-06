@@ -2,10 +2,10 @@ import { useEffect, useState } from "react";
 import {
   ResponsiveContainer, BarChart, Bar, CartesianGrid, XAxis, YAxis, Tooltip, Cell,
 } from "recharts";
-import { tooltipFormatter } from "../../utils/chartFormatters";
-import { useAppSelector } from "../../store";
+import { tooltipFormatter } from "@/utils/chartFormatters";
+import { useAppSelector } from "@/store";
 import { ASSUMPTION_FIELDS, fmtCategoryValue, INVESTMENT_STATUSES, INVESTMENT_TYPES, riskLevelFor, RISK_STYLES, STATUS_STYLES } from "./investmentCategories";
-import MobileTableCards from "../../components/common/MobileTableCards";
+import MobileTableCards from "@/components/common/MobileTableCards";
 import {
   ArrowLeftIcon,
   CheckIcon,

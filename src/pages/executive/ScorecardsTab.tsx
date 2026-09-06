@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
-import { useAppSelector } from "../../store";
+import { useAppSelector } from "@/store";
 import { fmtCategoryValue, PERIOD_OPTIONS, STATUS_STYLES } from "./executiveCategories";
-import { TrendIcon } from "../../utils/kpiDisplay";
-import { trendStyle } from "../../utils/kpiStyles";
+import { TrendIcon } from "@/utils/kpiDisplay";
+import { trendStyle } from "@/utils/kpiStyles";
 
 export default function ScorecardsTab() {
   const { selectedBranch } = useAppSelector((s) => s.branch);

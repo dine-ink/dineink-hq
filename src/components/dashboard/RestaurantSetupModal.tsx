@@ -1,7 +1,7 @@
 import { Fragment, useEffect, useState } from "react";
-import { useAppDispatch, useAppSelector } from "../../store";
-import { setAuth } from "../../store/slices/authSlice";
-import { setBranches as setBranchesInStore } from "../../store/slices/branchSlice";
+import { useAppDispatch, useAppSelector } from "@/store";
+import { setAuth } from "@/store/slices/authSlice";
+import { setBranches as setBranchesInStore } from "@/store/slices/branchSlice";
 import {
   Dialog,
   DialogPanel,
@@ -69,7 +69,7 @@ import {
   FaCheese,
   FaFish,
 } from "react-icons/fa";
-import { getIndianCitiesForState, getIndianStates } from "../../utils/indiaLocations";
+import { getIndianCitiesForState, getIndianStates } from "@/utils/indiaLocations";
 
 const tabs = [
   {

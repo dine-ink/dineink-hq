@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useAppSelector } from "../../store";
+import { useAppSelector } from "@/store";
 import React from "react";
 import {
   ResponsiveContainer,
@@ -14,8 +14,8 @@ import {
   CartesianGrid,
   ReferenceLine,
 } from "recharts";
-import { tooltipFormatter } from "../../utils/chartFormatters";
-import MobileTableCards from "../../components/common/MobileTableCards";
+import { tooltipFormatter } from "@/utils/chartFormatters";
+import MobileTableCards from "@/components/common/MobileTableCards";
 import {
   ArrowDownTrayIcon,
   ArrowPathIcon,

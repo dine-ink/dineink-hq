@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { useAppSelector } from "../../store";
-import { Alert, EmptyState, LoadingOverlay, MetricCard, type MetricStatus } from "../../design";
+import { useAppSelector } from "@/store";
+import { Alert, EmptyState, LoadingOverlay, MetricCard, type MetricStatus } from "@/design";
 import { formatCurrency, titleCaseFromKey } from "./duesShared";
 
 interface EbitdaTabProps {

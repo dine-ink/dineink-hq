@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { breakpoints } from "../tokens/breakpoints";
+import { breakpoints } from "@/design/tokens/breakpoints";
 
 // Matches jsdom's lack of window.matchMedia in the test environment (see
 // src/test/setupTests.ts's stub) gracefully by defaulting to `false` until

@@ -1,11 +1,11 @@
 import { lazy, Suspense } from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 
-import DashboardLayout from "../layouts/DashboardLayout";
+import DashboardLayout from "@/layouts/DashboardLayout";
 import ProtectedRoute from './ProtectedRoute'
 import AuthRoute from './AuthRoute'
 import RequireRole from './RequireRole'
-import NotFound from "../pages/NotFound";
+import NotFound from "@/pages/NotFound";
 
 // Every page below is route-split via React.lazy — previously all ~26 pages
 // (public marketing + the full authenticated dashboard, including every
@@ -13,27 +13,27 @@ import NotFound from "../pages/NotFound";
 // 12.4 MB (3.4 MB gzip) JS chunk, so even an anonymous visit to the public
 // Home page downloaded the entire dashboard. Each route now only loads the
 // code it actually needs.
-const Home = lazy(() => import("../pages/home/Home"));
-const Pricing = lazy(() => import("../pages/pricing/Pricing"));
-const Features = lazy(() => import("../pages/features/Features"));
-const About = lazy(() => import("../pages/about/About"));
-const Contact = lazy(() => import("../pages/contact/Contact"));
-const PrivacyPolicy = lazy(() => import("../pages/legal/PrivacyPolicy"));
+const Home = lazy(() => import("@/pages/home/Home"));
+const Pricing = lazy(() => import("@/pages/pricing/Pricing"));
+const Features = lazy(() => import("@/pages/features/Features"));
+const About = lazy(() => import("@/pages/about/About"));
+const Contact = lazy(() => import("@/pages/contact/Contact"));
+const PrivacyPolicy = lazy(() => import("@/pages/legal/PrivacyPolicy"));
 
-const Login = lazy(() => import("../pages/auth/Login"));
-const Signup = lazy(() => import("../pages/auth/Signup"));
-const ForgotPassword = lazy(() => import("../pages/auth/ForgotPassword"));
+const Login = lazy(() => import("@/pages/auth/Login"));
+const Signup = lazy(() => import("@/pages/auth/Signup"));
+const ForgotPassword = lazy(() => import("@/pages/auth/ForgotPassword"));
 
-const Dashboard = lazy(() => import("../pages/dashboard/Dashboard"));
-const Settings = lazy(() => import("../pages/settings/Settings"));
-const Shops = lazy(() => import("../pages/shops/Shops"));
-const Bills = lazy(() => import("../components/bills/Bills"));
-const Customers = lazy(() => import("../pages/customers/Customers"));
-const Reports = lazy(() => import("../pages/reports/Report"));
-const Attendance = lazy(() => import("../pages/attendance/Attendance"));
-const CashSessions = lazy(() => import("../pages/cash/CashSessions"));
-const BranchComparison = lazy(() => import("../pages/comparison/BranchComparison"));
-const Kitchen = lazy(() => import("../pages/kitchen/Kitchen"));
+const Dashboard = lazy(() => import("@/pages/dashboard/Dashboard"));
+const Settings = lazy(() => import("@/pages/settings/Settings"));
+const Shops = lazy(() => import("@/pages/shops/Shops"));
+const Bills = lazy(() => import("@/components/bills/Bills"));
+const Customers = lazy(() => import("@/pages/customers/Customers"));
+const Reports = lazy(() => import("@/pages/reports/Report"));
+const Attendance = lazy(() => import("@/pages/attendance/Attendance"));
+const CashSessions = lazy(() => import("@/pages/cash/CashSessions"));
+const BranchComparison = lazy(() => import("@/pages/comparison/BranchComparison"));
+const Kitchen = lazy(() => import("@/pages/kitchen/Kitchen"));
 const Insights = lazy(() => import("@/pages/insights/Insights"));
 const MenuManagement = lazy(() => import("@/pages/menuManagement/MenuManagement"));
 const Vendors = lazy(() => import("@/pages/vendors/Vendors"));

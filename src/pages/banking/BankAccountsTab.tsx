@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useAppSelector } from "../../store";
+import { useAppSelector } from "@/store";
 import {
   Button,
   IconButton,
@@ -13,7 +13,7 @@ import {
   Alert,
   useDisclosure,
   useConfirmDialog,
-} from "../../design";
+} from "@/design";
 import { PencilIcon, TrashIcon, PlusIcon } from "@heroicons/react/24/outline";
 import type { BankAccount } from "./types";
 

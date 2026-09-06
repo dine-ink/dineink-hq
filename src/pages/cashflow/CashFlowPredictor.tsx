@@ -12,8 +12,8 @@ import {
   CartesianGrid,
   Tooltip,
 } from "recharts";
-import { tooltipFormatter } from "../../utils/chartFormatters";
-import { useAppSelector } from "../../store";
+import { tooltipFormatter } from "@/utils/chartFormatters";
+import { useAppSelector } from "@/store";
 import {
   PageContainer,
   PageHeader,
@@ -25,7 +25,7 @@ import {
   colors,
   type DataTableColumn,
   type MetricStatus,
-} from "../../design";
+} from "@/design";
 
 type Horizon = "week" | "month" | "quarter";
 

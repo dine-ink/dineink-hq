@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
 import { Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import { tooltipFormatter } from "../../utils/chartFormatters";
-import { useAppSelector } from "../../store";
-import { Alert, EmptyState, LoadingOverlay, chartPalette } from "../../design";
+import { tooltipFormatter } from "@/utils/chartFormatters";
+import { useAppSelector } from "@/store";
+import { Alert, EmptyState, LoadingOverlay, chartPalette } from "@/design";
 import { categoryLabel, formatCurrency, monthYearLabel, type MonthComparisonData } from "./duesShared";
-import MobileTableCards from "../../components/common/MobileTableCards";
+import MobileTableCards from "@/components/common/MobileTableCards";
 
 interface MonthComparisonTabProps {
   month: number;

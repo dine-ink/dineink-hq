@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import dayjs from "dayjs";
 import { CheckIcon, PlusIcon, XMarkIcon } from "@heroicons/react/24/outline";
-import { useAppSelector } from "../../store";
+import { useAppSelector } from "@/store";
 import {
   Alert,
   Button,
@@ -14,7 +14,7 @@ import {
   StatusChip,
   Textarea,
   type ChipStatus,
-} from "../../design";
+} from "@/design";
 
 export interface LeaveRequest {
   id: number;

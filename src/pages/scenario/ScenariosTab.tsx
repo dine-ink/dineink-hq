@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
-import { useAppSelector } from "../../store";
+import { useAppSelector } from "@/store";
 import { OVERRIDE_FIELD_GROUPS, OVERRIDE_FIELDS, SCENARIO_TYPE_STYLES } from "./scenarioCategories";
-import MobileTableCards from "../../components/common/MobileTableCards";
+import MobileTableCards from "@/components/common/MobileTableCards";
 import {
   ArchiveBoxIcon,
   ArrowLeftIcon,

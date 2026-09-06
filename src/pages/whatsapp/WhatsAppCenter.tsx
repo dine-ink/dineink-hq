@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useAppSelector } from "../../store";
+import { useAppSelector } from "@/store";
 import { ChatBubbleLeftRightIcon } from "@heroicons/react/24/outline";
 import {
   PageContainer,
@@ -11,11 +11,11 @@ import {
   DataTable,
   type DataTableColumn,
   type ChipStatus,
-} from "../../design";
-import SendWhatsAppDialog from "../../components/common/SendWhatsAppDialog";
+} from "@/design";
+import SendWhatsAppDialog from "@/components/common/SendWhatsAppDialog";
 import TemplatesPanel, { type WhatsAppTemplate } from "./TemplatesPanel";
 import BulkSendPanel from "./BulkSendPanel";
-import TabStrip from "../../components/common/TabStrip";
+import TabStrip from "@/components/common/TabStrip";
 
 const TABS = ["Bulk Send", "Templates", "Message Log"] as const;
 type Tab = (typeof TABS)[number];

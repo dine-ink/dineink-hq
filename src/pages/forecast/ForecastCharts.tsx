@@ -14,7 +14,7 @@ import {
   Legend,
   Cell,
 } from "recharts";
-import { tooltipFormatter } from "../../utils/chartFormatters";
+import { tooltipFormatter } from "@/utils/chartFormatters";
 import { fmtCategoryValue } from "./forecastCategories";
 
 const TICK = { fontSize: 10, fill: "#6b7280" };

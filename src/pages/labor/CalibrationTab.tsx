@@ -1,8 +1,8 @@
 import { useState } from "react";
-import { Alert, Button, MetricCard } from "../../design";
+import { Alert, Button, MetricCard } from "@/design";
 import { CHART_CARD } from "./laborCategories";
 import { useLaborQuery, useLaborScope } from "./useLaborApi";
-import MobileTableCards from "../../components/common/MobileTableCards";
+import MobileTableCards from "@/components/common/MobileTableCards";
 
 // Calibration: comparing the labor standards an owner entered against what the
 // kitchen actually did. The honesty of this tab matters more than its numbers —

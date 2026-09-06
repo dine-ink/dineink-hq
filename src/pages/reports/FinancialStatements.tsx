@@ -8,8 +8,8 @@ import {
   ArrowDownTrayIcon,
   PrinterIcon,
 } from "@heroicons/react/24/outline";
-import { useAppSelector } from "../../store";
-import MobileTableCards from "../../components/common/MobileTableCards";
+import { useAppSelector } from "@/store";
+import MobileTableCards from "@/components/common/MobileTableCards";
 
 const STATEMENT_TYPES: { key: string; label: string }[] = [
   { key: "pnl", label: "Profit & Loss" },

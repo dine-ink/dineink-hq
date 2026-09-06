@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
-import { useAppSelector } from "../../store";
+import { useAppSelector } from "@/store";
 import { fmtCategoryValue, PERIOD_OPTIONS, STATUS_STYLES } from "./executiveCategories";
 import { BranchRankingChart, InvestmentPerformanceChart } from "./ExecutiveCharts";
-import MobileTableCards from "../../components/common/MobileTableCards";
+import MobileTableCards from "@/components/common/MobileTableCards";
 import {
   ArrowDownIcon,
   ArrowTrendingUpIcon,

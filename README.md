@@ -72,6 +72,10 @@ src/
 - **Use the design system.** `src/design/` is the source of buttons, inputs,
   dialogs, tables and layout primitives. 34 files import it; don't hand-roll a
   button.
+- **Import across folders with `@/`, never `../`.** `@/store`, not
+  `../../store`. ESLint enforces it (`no-restricted-imports`), and `@` is the
+  only alias — defined identically in `tsconfig.json`, `vite.config.ts` and
+  `vitest.config.ts`. Same-folder `./x` is fine and preferred inside a feature.
 - **Tests sit next to what they test** (`Login.test.tsx` beside `Login.tsx`).
 - **Routes are lazy.** Every page in `routes/AppRoutes.tsx` is behind
   `React.lazy` — an anonymous visitor to the marketing page must not download

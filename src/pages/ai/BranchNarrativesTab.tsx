@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useAppSelector } from "../../store";
+import { useAppSelector } from "@/store";
 import { PERIOD_OPTIONS } from "./aiCategories";
 import {
   ArrowTrendingUpIcon,

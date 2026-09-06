@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
-import { useAppSelector } from "../../store";
+import { useAppSelector } from "@/store";
 import { CONFIDENCE_STYLES, fmtCategoryValue, FORECAST_KPIS, MODEL_OPTIONS, PERIOD_OPTIONS, WIDGET_KPIS } from "./forecastCategories";
-import { AlertIcon, TrendIcon } from "../../utils/kpiDisplay";
-import { ALERT_STYLES, trendStyle } from "../../utils/kpiStyles";
+import { AlertIcon, TrendIcon } from "@/utils/kpiDisplay";
+import { ALERT_STYLES, trendStyle } from "@/utils/kpiStyles";
 import ForecastCharts from "./ForecastCharts";
-import MobileTableCards from "../../components/common/MobileTableCards";
+import MobileTableCards from "@/components/common/MobileTableCards";
 import { CheckCircleIcon } from "@heroicons/react/24/outline";
 
 export default function OverviewTab() {

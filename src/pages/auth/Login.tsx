@@ -8,10 +8,10 @@ import {
   SparklesIcon,
   ShieldCheckIcon,
 } from "@heroicons/react/24/outline";
-import Logo from "../../components/common/Logo";
-import { useAppDispatch } from "../../store";
-import { setAuth } from "../../store/slices/authSlice";
-import { setBranches } from "../../store/slices/branchSlice";
+import Logo from "@/components/common/Logo";
+import { useAppDispatch } from "@/store";
+import { setAuth } from "@/store/slices/authSlice";
+import { setBranches } from "@/store/slices/branchSlice";
 
 export default function Login() {
   const API_URL = import.meta.env.VITE_API_URL;

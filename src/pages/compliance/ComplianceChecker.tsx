@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { useAppSelector } from "../../store";
+import { useAppSelector } from "@/store";
 import {
   ShieldCheckIcon,
   FireIcon,
@@ -32,7 +32,7 @@ import {
   Textarea,
   type ChipStatus,
   type MetricStatus,
-} from "../../design";
+} from "@/design";
 
 const API_URL = import.meta.env.VITE_API_URL;
 

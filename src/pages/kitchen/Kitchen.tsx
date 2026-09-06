@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useAppSelector } from "../../store";
+import { useAppSelector } from "@/store";
 import {
   BarChart,
   Bar,
@@ -15,8 +15,8 @@ import {
   ReferenceLine,
 } from "recharts";
 import { FireIcon } from "@heroicons/react/24/outline";
-import { PageContainer, PageHeader, MetricCard, LoadingOverlay, Alert, type MetricStatus } from "../../design";
-import MobileTableCards from "../../components/common/MobileTableCards";
+import { PageContainer, PageHeader, MetricCard, LoadingOverlay, Alert, type MetricStatus } from "@/design";
+import MobileTableCards from "@/components/common/MobileTableCards";
 
 const TICK = { fontSize: 10, fill: "#6b7280" };
 

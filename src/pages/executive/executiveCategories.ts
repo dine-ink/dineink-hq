@@ -2,7 +2,7 @@
 // fmtCategoryValue formatter instead of implementing currency/percentage
 // formatting a fifth time. executive.service.ts is the sole source of every
 // KPI/health-score/alert value; this file only knows how to label and color them.
-export { fmtCategoryValue } from "../budget/budgetCategories";
+export { fmtCategoryValue } from "@/pages/budget/budgetCategories";
 
 export const PERIOD_OPTIONS = [
   { key: "currentMonth", label: "Current Month" },

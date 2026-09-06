@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { useAppSelector } from "../../store";
-import { formatQty } from "../../utils/units";
+import { useAppSelector } from "@/store";
+import { formatQty } from "@/utils/units";
 import ExcelJS from "exceljs";
 import { saveAs } from "file-saver";
 import {
@@ -21,8 +21,8 @@ import {
   Legend,
 } from "recharts";
 import dayjs from "dayjs";
-import { chartPalette } from "../../design";
-import MobileTableCards from "../../components/common/MobileTableCards";
+import { chartPalette } from "@/design";
+import MobileTableCards from "@/components/common/MobileTableCards";
 
 // The app's one shared qualitative chart palette — see BranchComparison.tsx
 // for the full duplication history this replaces.

@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { useAppSelector } from "../../store";
-import { apiSend, errorMessage } from "../../utils/apiRequest";
+import { useAppSelector } from "@/store";
+import { apiSend, errorMessage } from "@/utils/apiRequest";
 import {
   TruckIcon,
   PlusIcon,
@@ -16,9 +16,9 @@ import {
   ChartBarIcon,
   PaperClipIcon,
 } from "@heroicons/react/24/outline";
-import { StatusChip } from "../../design";
+import { StatusChip } from "@/design";
 import ReorderDialog from "./ReorderDialog";
-import MobileTableCards from "../../components/common/MobileTableCards";
+import MobileTableCards from "@/components/common/MobileTableCards";
 
 const API_URL = import.meta.env.VITE_API_URL;
 

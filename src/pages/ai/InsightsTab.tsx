@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useAppSelector } from "../../store";
+import { useAppSelector } from "@/store";
 import { CATEGORY_OPTIONS, PERIOD_OPTIONS } from "./aiCategories";
 import InsightCard from "./InsightCard";
 

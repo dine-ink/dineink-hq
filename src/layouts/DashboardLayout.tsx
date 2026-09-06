@@ -1,7 +1,7 @@
 import { Outlet, Link, NavLink, useNavigate } from "react-router-dom";
 import { useState } from "react";
-import Logo, { LogoWordmark } from "../components/common/Logo";
-import { logoMarkClasses } from "../components/common/logoTokens";
+import Logo, { LogoWordmark } from "@/components/common/Logo";
+import { logoMarkClasses } from "@/components/common/logoTokens";
 import {
   Dialog,
   DialogBackdrop,
@@ -46,10 +46,10 @@ import {
   ShieldCheckIcon,
   ChatBubbleLeftRightIcon,
 } from "@heroicons/react/24/outline";
-import { useAppDispatch, useAppSelector } from "../store";
-import { setSelectedBranch } from "../store/slices/branchSlice";
-import { setPreset, setCustomRange } from "../store/slices/dateRangeSlice";
-import type { Preset } from "../store/slices/dateRangeSlice";
+import { useAppDispatch, useAppSelector } from "@/store";
+import { setSelectedBranch } from "@/store/slices/branchSlice";
+import { setPreset, setCustomRange } from "@/store/slices/dateRangeSlice";
+import type { Preset } from "@/store/slices/dateRangeSlice";
 
 const NAV = [
   { name: "Dashboard", href: "/dashboard", icon: HomeIcon },
@@ -184,7 +184,7 @@ export default function DashboardLayout() {
       // actually requested, instead of being forced into every dashboard
       // page's bundle just because this layout wraps all of them.
       const { generateAndDownloadFullReport } =
-        await import("../utils/generateFullReport");
+        await import("@/utils/generateFullReport");
       await generateAndDownloadFullReport({
         restaurantName: user?.name || "Restaurant",
         branchName: selectedBranch?.name || "Branch",

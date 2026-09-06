@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
-import { useAppSelector } from "../../store";
+import { useAppSelector } from "@/store";
 import { PlusIcon, TrashIcon, TagIcon } from "@heroicons/react/24/outline";
-import { ConfirmationDialog, useConfirmDialog } from "../../design";
-import MobileTableCards from "../../components/common/MobileTableCards";
+import { ConfirmationDialog, useConfirmDialog } from "@/design";
+import MobileTableCards from "@/components/common/MobileTableCards";
 
 type DiscountCode = {
   id: number;

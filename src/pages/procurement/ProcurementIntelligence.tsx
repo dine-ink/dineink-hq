@@ -7,8 +7,8 @@ import {
   LockClosedIcon,
   ArrowTopRightOnSquareIcon,
 } from "@heroicons/react/24/outline";
-import { useAppSelector } from "../../store";
-import MobileTableCards from "../../components/common/MobileTableCards";
+import { useAppSelector } from "@/store";
+import MobileTableCards from "@/components/common/MobileTableCards";
 
 const API_URL = import.meta.env.VITE_API_URL;
 const EXTENSION_ID = import.meta.env.VITE_PROCUREMENT_EXTENSION_ID;

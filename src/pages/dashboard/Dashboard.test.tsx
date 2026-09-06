@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { screen, waitFor } from "@testing-library/react";
 import Dashboard from "./Dashboard";
-import { authenticatedState, renderWithProviders } from "../../test/test-utils";
+import { authenticatedState, renderWithProviders } from "@/test/test-utils";
 
 afterEach(() => {
   vi.unstubAllGlobals();

@@ -8,10 +8,10 @@ import {
   CpuChipIcon,
   ArrowLeftIcon,
 } from "@heroicons/react/24/outline";
-import Logo from "../../components/common/Logo";
-import { useAppDispatch } from "../../store";
-import { setAuth } from "../../store/slices/authSlice";
-import { setBranches } from "../../store/slices/branchSlice";
+import Logo from "@/components/common/Logo";
+import { useAppDispatch } from "@/store";
+import { setAuth } from "@/store/slices/authSlice";
+import { setBranches } from "@/store/slices/branchSlice";
 
 export default function Signup() {
   const navigate = useNavigate();

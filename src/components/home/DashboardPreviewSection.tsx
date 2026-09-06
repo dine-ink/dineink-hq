@@ -4,7 +4,7 @@ import {
   ComputerDesktopIcon,
 } from "@heroicons/react/24/solid";
 
-import desktopAppScreen from "../../assets/images/Desktop-App-Screen.png";
+import desktopAppScreen from "@/assets/images/Desktop-App-Screen.png";
 
 export default function DashboardPreviewSection() {
   const primaryFeatures = [

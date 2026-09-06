@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import type { Dispatch, SetStateAction } from "react";
-import { useAppSelector } from "../../store";
-import { Button, Dialog, FormField, Input, Alert, EmptyState, LoadingOverlay, useDisclosure } from "../../design";
+import { useAppSelector } from "@/store";
+import { Button, Dialog, FormField, Input, Alert, EmptyState, LoadingOverlay, useDisclosure } from "@/design";
 import { QrCodeIcon, PencilIcon } from "@heroicons/react/24/outline";
 import type { UpiConfig, UpiQrData } from "./types";
 

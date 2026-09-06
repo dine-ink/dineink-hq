@@ -22,7 +22,7 @@ let dataPromise: Promise<IndiaLocations> | null = null;
 
 const loadData = () => {
   if (!dataPromise) {
-    dataPromise = import("../data/indiaLocations.json").then(
+    dataPromise = import("@/data/indiaLocations.json").then(
       (m) => (m.default ?? m) as IndiaLocations,
     );
   }

@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAppSelector } from "../../store";
-import { formatQty } from "../../utils/units";
-import { chartPalette } from "../../design";
+import { useAppSelector } from "@/store";
+import { formatQty } from "@/utils/units";
+import { chartPalette } from "@/design";
 import { saveAs } from "file-saver";
 import ExcelJS from "exceljs";
-import { loadWorkbook, sheetToJson } from "../../utils/readExcel";
+import { loadWorkbook, sheetToJson } from "@/utils/readExcel";
 import {
   ArrowPathRoundedSquareIcon,
   BanknotesIcon,
@@ -102,8 +102,8 @@ import {
   CartesianGrid,
   ReferenceLine,
 } from "recharts";
-import { tooltipFormatter } from "../../utils/chartFormatters";
-import MobileTableCards from "../../components/common/MobileTableCards";
+import { tooltipFormatter } from "@/utils/chartFormatters";
+import MobileTableCards from "@/components/common/MobileTableCards";
 
 // Keys match the display names stored in category.icon field in the DB
 const iconMap: any = {

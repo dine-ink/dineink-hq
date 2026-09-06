@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { useAppSelector } from "../../store";
+import { useAppSelector } from "@/store";
 import CommonTable from "@/components/common/CommonTable";
 import {
   BuildingStorefrontIcon,
@@ -11,8 +11,8 @@ import {
 import {
   getIndianCitiesForState,
   getIndianStates,
-} from "../../utils/indiaLocations";
-import MobileTableCards from "../../components/common/MobileTableCards";
+} from "@/utils/indiaLocations";
+import MobileTableCards from "@/components/common/MobileTableCards";
 
 const INPUT_BASE =
   "w-full rounded-xl border bg-white px-3 py-2 text-sm outline-none transition-all";
