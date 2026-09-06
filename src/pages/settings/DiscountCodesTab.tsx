@@ -1,19 +1,15 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useAppSelector } from "@/store";
 import { PlusIcon, TrashIcon, TagIcon } from "@heroicons/react/24/outline";
 import { ConfirmationDialog, useConfirmDialog } from "@/design";
 import MobileTableCards from "@/components/common/MobileTableCards";
-
-type DiscountCode = {
-  id: number;
-  code: string;
-  type: "PERCENTAGE" | "FIXED";
-  value: number;
-  isActive: boolean;
-  maxUses: number | null;
-  usedCount: number;
-  expiresAt: string | null;
-};
+import {
+  useCreateDiscountCodeMutation,
+  useDeleteDiscountCodeMutation,
+  useGetDiscountCodesQuery,
+  useUpdateDiscountCodeMutation,
+  type DiscountCode,
+} from "@/store/api/discountsApi";
 
 const blankForm: { code: string; type: "PERCENTAGE" | "FIXED"; value: string; maxUses: string } = {
   code: "",
@@ -22,83 +18,62 @@ const blankForm: { code: string; type: "PERCENTAGE" | "FIXED"; value: string; ma
   maxUses: "",
 };
 
+/** Whatever RTK Query threw, as a sentence — its error is a union of shapes. */
+const messageFrom = (error: unknown, fallback: string): string => {
+  const data = (error as { data?: { message?: string } } | undefined)?.data;
+  return data?.message || fallback;
+};
+
 export default function DiscountCodesTab() {
-  const API_URL = import.meta.env.VITE_API_URL;
-  const { user, token } = useAppSelector((s) => s.auth);
-  const [codes, setCodes] = useState<DiscountCode[]>([]);
-  const [loading, setLoading] = useState(false);
+  const { user } = useAppSelector((s) => s.auth);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(blankForm);
-  const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const { dialogProps, confirm } = useConfirmDialog();
 
-  const authHeaders = { Authorization: `Bearer ${token}`, "Content-Type": "application/json" };
+  // `skip` replaces the `if (!user?.restaurantId) return` guard that every
+  // hand-written fetch effect had to remember; the request simply does not fire
+  // until the argument is real.
+  const { data: codes = [], isFetching: loading } = useGetDiscountCodesQuery(
+    { restaurantId: user?.restaurantId as number },
+    { skip: !user?.restaurantId },
+  );
 
-  const fetchCodes = async () => {
-    if (!user?.restaurantId) return;
-    try {
-      setLoading(true);
-      const res = await fetch(`${API_URL}/api/discounts/${user.restaurantId}`, {
-        headers: authHeaders,
-      });
-      const json = await res.json();
-      if (json.success) setCodes(json.data || []);
-    } catch {
-      /* silent */
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchCodes();
-  }, [user?.restaurantId]);
+  const [createCode, { isLoading: saving }] = useCreateDiscountCodeMutation();
+  const [updateCode] = useUpdateDiscountCodeMutation();
+  const [deleteCode] = useDeleteDiscountCodeMutation();
 
   const handleCreate = async () => {
     setError("");
     if (!form.code.trim()) return setError("Code is required");
     if (!(Number(form.value) > 0)) return setError("Value must be greater than 0");
-    setSaving(true);
     try {
-      const res = await fetch(`${API_URL}/api/discounts`, {
-        method: "POST",
-        headers: authHeaders,
-        body: JSON.stringify({
-          code: form.code.trim().toUpperCase(),
-          type: form.type,
-          value: Number(form.value),
-          maxUses: form.maxUses ? Number(form.maxUses) : null,
-        }),
-      });
-      const json = await res.json();
-      if (json.success) {
-        setCodes((prev) => [json.data, ...prev]);
-        setForm(blankForm);
-        setShowForm(false);
-      } else {
-        setError(json.message || "Failed to create discount code");
-      }
-    } catch {
-      setError("Failed to create discount code");
-    } finally {
-      setSaving(false);
+      // `.unwrap()` is what turns a rejected mutation into a thrown error.
+      // Without it the promise resolves either way and the failure is silent —
+      // the same shape of bug as the bare `catch {}` this replaces.
+      await createCode({
+        code: form.code.trim().toUpperCase(),
+        type: form.type,
+        value: Number(form.value),
+        maxUses: form.maxUses ? Number(form.maxUses) : null,
+      }).unwrap();
+      // No list surgery: invalidatesTags refetches getDiscountCodes, so what
+      // renders is what the server stored rather than this component's guess.
+      setForm(blankForm);
+      setShowForm(false);
+    } catch (err) {
+      setError(messageFrom(err, "Failed to create discount code"));
     }
   };
 
   const handleToggleActive = async (dc: DiscountCode) => {
+    setError("");
     try {
-      const res = await fetch(`${API_URL}/api/discounts/${dc.id}`, {
-        method: "PUT",
-        headers: authHeaders,
-        body: JSON.stringify({ isActive: !dc.isActive }),
-      });
-      const json = await res.json();
-      if (json.success) {
-        setCodes((prev) => prev.map((c) => (c.id === dc.id ? json.data : c)));
-      }
-    } catch {
-      /* silent */
+      await updateCode({ id: dc.id, isActive: !dc.isActive }).unwrap();
+    } catch (err) {
+      // Previously silent: a failed toggle left the switch where it was and
+      // looked like the click had simply not registered.
+      setError(messageFrom(err, "Failed to update discount code"));
     }
   };
 
@@ -108,15 +83,13 @@ export default function DiscountCodesTab() {
       message: "Are you sure you want to delete this discount code? This action cannot be undone.",
       tone: "danger",
       onConfirm: async () => {
+        setError("");
         try {
-          const res = await fetch(`${API_URL}/api/discounts/${id}`, {
-            method: "DELETE",
-            headers: authHeaders,
-          });
-          const json = await res.json();
-          if (json.success) setCodes((prev) => prev.filter((c) => c.id !== id));
-        } catch {
-          /* silent */
+          await deleteCode({ id }).unwrap();
+        } catch (err) {
+          // Previously silent: the row stayed on screen and the person assumed
+          // the delete had not gone through, when in fact it had not.
+          setError(messageFrom(err, "Failed to delete discount code"));
         }
       },
     });
@@ -138,6 +111,16 @@ export default function DiscountCodesTab() {
           <PlusIcon className="h-4 w-4" /> New Code
         </button>
       </div>
+
+      {/* Page-level, not inside the create form. Toggling and deleting can fail
+          too, and the form is usually closed when they do — an error rendered
+          only inside it would set state nobody ever sees, which is the silent
+          failure this migration is meant to remove. */}
+      {error && (
+        <p role="alert" className="rounded-xl bg-red-50 px-3 py-2 text-xs font-bold text-red-600">
+          {error}
+        </p>
+      )}
 
       {showForm && (
         <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4">
@@ -183,7 +166,6 @@ export default function DiscountCodesTab() {
               />
             </div>
           </div>
-          {error && <p className="mt-2 text-xs font-bold text-red-500">{error}</p>}
           <div className="mt-3 flex gap-2">
             <button
               onClick={handleCreate}
