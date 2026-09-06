@@ -1,5 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useAppSelector } from "@/store";
+import {
+  useGetBranchScenarioComparisonQuery,
+  useGetScenariosQuery,
+} from "@/store/api/scenariosApi";
 import { fmtCategoryValue } from "./scenarioCategories";
 import MobileTableCards from "@/components/common/MobileTableCards";
 import { TrophyIcon } from "@heroicons/react/24/outline";
@@ -20,82 +24,61 @@ const PERIODS = [
 
 export default function BranchComparisonTab() {
   const { branches } = useAppSelector((s) => s.branch);
-  const { user, token } = useAppSelector((s) => s.auth);
-  const API_URL = import.meta.env.VITE_API_URL;
+  const { user } = useAppSelector((s) => s.auth);
+  const restaurantId = user?.restaurantId as number;
 
-  const [templates, setTemplates] = useState<any[]>([]);
   const [templateId, setTemplateId] = useState<number | null>(null);
   const [period, setPeriod] = useState("currentMonth");
-  const [rows, setRows] = useState<any[]>([]);
-  const [loading, setLoading] = useState(false);
+
+  const { data: templates = [] } = useGetScenariosQuery(
+    { restaurantId, branchId: null, activeOnly: true },
+    { skip: !user?.restaurantId },
+  );
 
   useEffect(() => {
-    const fetchTemplates = async () => {
-      if (!user?.restaurantId) return;
-      try {
-        const res = await fetch(`${API_URL}/api/scenarios/${user.restaurantId}?branchId=null&activeOnly=true`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        const json = await res.json();
-        if (json.success) {
-          setTemplates(json.data);
-          setTemplateId(json.data.find((s: any) => s.type === "OPTIMISTIC")?.id ?? json.data[0]?.id ?? null);
-        }
-      } catch {
-        // fetch error — silently ignored
-      }
-    };
-    fetchTemplates();
-  }, [user?.restaurantId]);
+    setTemplateId(
+      templates.find((t) => t.type === "OPTIMISTIC")?.id ?? templates[0]?.id ?? null,
+    );
+  }, [templates]);
 
-  useEffect(() => {
-    const fetchComparison = async () => {
-      if (!templateId || !user?.restaurantId || !branches?.length) return;
-      setLoading(true);
-      try {
-        const template = templates.find((t) => t.id === templateId);
-        const overrideKeys = [
-          "revenueGrowthPercentage", "orderGrowthPercentage", "avgOrderValue", "rent", "utilities", "marketing",
-          "maintenance", "packaging", "foodCostTargetPercentage", "labourTargetPercentage", "deliveryPercentage",
-          "swiggyCommissionPercentage", "zomatoCommissionPercentage", "royaltyPercentage", "franchiseFeePercentage",
-          "salaryIncrementPercentage", "inflationPercentage", "rentEscalationPercentage", "workingDays", "businessHours",
-        ];
-        const liveOverrides = Object.fromEntries(overrideKeys.map((k) => [k, template?.[k] ?? null]));
+  const overrideKeys = [
+    "revenueGrowthPercentage", "orderGrowthPercentage", "avgOrderValue", "rent", "utilities", "marketing",
+    "maintenance", "packaging", "foodCostTargetPercentage", "labourTargetPercentage", "deliveryPercentage",
+    "swiggyCommissionPercentage", "zomatoCommissionPercentage", "royaltyPercentage", "franchiseFeePercentage",
+    "salaryIncrementPercentage", "inflationPercentage", "rentEscalationPercentage", "workingDays", "businessHours",
+  ];
+  const template = templates.find((t) => t.id === templateId);
+  const liveOverrides = Object.fromEntries(
+    overrideKeys.map((k) => [k, (template?.[k] as number | null | undefined) ?? null]),
+  );
 
-        const perBranch = await Promise.all(
-          (branches || []).map(async (branch: any) => {
-            const listRes = await fetch(`${API_URL}/api/scenarios/${user.restaurantId}?branchId=${branch.id}&activeOnly=true`, {
-              headers: { Authorization: `Bearer ${token}` },
-            });
-            const listJson = await listRes.json();
-            const expected = (listJson.data || []).find((s: any) => s.type === "EXPECTED");
-            if (!expected) return { branch, kpis: [] };
+  // Two requests per branch, expressed as one query — see
+  // getBranchScenarioComparison. Ranking stays here because it is presentation,
+  // not data access.
+  const { data: perBranch = [], isFetching: loading } = useGetBranchScenarioComparisonQuery(
+    {
+      restaurantId,
+      branchIds: (branches || []).map((b: any) => b.id),
+      period,
+      overrides: liveOverrides,
+    },
+    { skip: !templateId || !user?.restaurantId || !branches?.length },
+  );
 
-            const whatIfRes = await fetch(`${API_URL}/api/scenarios/${user.restaurantId}/${expected.id}/what-if?period=${period}`, {
-              method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-              body: JSON.stringify(liveOverrides),
-            });
-            const whatIfJson = await whatIfRes.json();
-            return { branch, kpis: whatIfJson.data?.kpis || [] };
-          }),
-        );
-
-        const withRank = perBranch.map(({ branch, kpis }) => {
-          const byKey = Object.fromEntries(kpis.map((k: any) => [k.key, k]));
-          const achievements = RANK_KPIS.map((k) => byKey[k]?.achievementPercentage).filter((v) => v !== null && v !== undefined);
-          const avgAchievement = achievements.length > 0 ? achievements.reduce((s: number, v: number) => s + v, 0) / achievements.length : null;
-          return { branch, byKey, avgAchievement };
-        });
-        withRank.sort((a, b) => (b.avgAchievement ?? -Infinity) - (a.avgAchievement ?? -Infinity));
-        setRows(withRank);
-      } catch {
-        // fetch error — silently ignored
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchComparison();
-  }, [templateId, period, user?.restaurantId, branches?.length]);
+  const rows = useMemo(() => {
+    const byId = new Map((branches || []).map((b: any) => [b.id, b]));
+    const withRank = perBranch.map(({ branchId, kpis }) => {
+      const byKey = Object.fromEntries(kpis.map((k) => [k.key, k]));
+      const achievements = RANK_KPIS.map((k) => byKey[k]?.achievementPercentage as number | undefined)
+        .filter((v): v is number => v !== null && v !== undefined);
+      const avgAchievement =
+        achievements.length > 0 ? achievements.reduce((sum, v) => sum + v, 0) / achievements.length : null;
+      return { branch: byId.get(branchId), byKey, avgAchievement };
+    }).filter((r): r is { branch: any; byKey: Record<string, any>; avgAchievement: number | null } =>
+      Boolean(r.branch),
+    );
+    return [...withRank].sort((a, b) => (b.avgAchievement ?? -Infinity) - (a.avgAchievement ?? -Infinity));
+  }, [perBranch, branches]);
 
   const rankBadge = (index: number) => {
     if (index === 0) return "bg-amber-100 text-amber-700";

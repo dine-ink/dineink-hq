@@ -3,7 +3,8 @@ import {
   ResponsiveContainer, BarChart, Bar, CartesianGrid, XAxis, YAxis, Tooltip, Cell,
 } from "recharts";
 import { tooltipFormatter } from "@/utils/chartFormatters";
-import { useAppSelector } from "@/store";
+import { useAppDispatch, useAppSelector } from "@/store";
+import { scenariosApi } from "@/store/api/scenariosApi";
 import { ASSUMPTION_FIELDS, fmtCategoryValue, INVESTMENT_STATUSES, INVESTMENT_TYPES, riskLevelFor, RISK_STYLES, STATUS_STYLES } from "./investmentCategories";
 import MobileTableCards from "@/components/common/MobileTableCards";
 import {
@@ -18,6 +19,7 @@ const SCENARIO_TYPE_LABEL: Record<string, string> = { CONSERVATIVE: "Conservativ
 export default function ProjectsTab() {
   const { branches } = useAppSelector((s) => s.branch);
   const { user, token } = useAppSelector((s) => s.auth);
+  const dispatch = useAppDispatch();
   const API_URL = import.meta.env.VITE_API_URL;
 
   const [projects, setProjects] = useState<any[]>([]);
@@ -88,12 +90,21 @@ export default function ProjectsTab() {
     await loadForecastComparison(project.id);
     if (user?.restaurantId) {
       try {
-        const branchParam = project.branchId ?? "null";
-        const res = await fetch(`${API_URL}/api/scenarios/${user.restaurantId}?branchId=${branchParam}&activeOnly=true`, { headers: { Authorization: `Bearer ${token}` } });
-        const json = await res.json();
-        if (json.success) setScenarios(json.data);
+        // Via the scenarios endpoint so this picker shares the cache with the
+        // Scenario Analysis tabs rather than refetching the same list.
+        setScenarios(
+          await dispatch(
+            scenariosApi.endpoints.getScenarios.initiate({
+              restaurantId: user.restaurantId as number,
+              branchId: project.branchId ?? null,
+              activeOnly: true,
+            }),
+          ).unwrap(),
+        );
       } catch {
-        // fetch error — silently ignored
+        // The picker simply stays empty — an investment can still be saved
+        // without linking a scenario.
+        setScenarios([]);
       }
     }
   };

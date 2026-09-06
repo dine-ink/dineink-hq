@@ -1,5 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { useAppSelector } from "@/store";
+import { errorMessage } from "@/utils/apiRequest";
+import {
+  useGetScenariosQuery,
+  useGetWhatIfQuery,
+  useUpdateScenarioMutation,
+} from "@/store/api/scenariosApi";
 import { fmtCategoryValue, OVERRIDE_FIELD_GROUPS, OVERRIDE_FIELDS, SCENARIO_KPIS, WIDGET_KPIS } from "./scenarioCategories";
 import { TrendIcon } from "@/utils/kpiDisplay";
 import { trendStyle } from "@/utils/kpiStyles";
@@ -16,8 +22,8 @@ const PERIODS = [
 
 export default function OverviewTab() {
   const { branches } = useAppSelector((s) => s.branch);
-  const { user, token } = useAppSelector((s) => s.auth);
-  const API_URL = import.meta.env.VITE_API_URL;
+  const { user } = useAppSelector((s) => s.auth);
+  const restaurantId = user?.restaurantId as number;
 
   // Independent of the global top-nav branch selector — same convention as
   // the Scenarios tab's own scope dropdown. A scenario's visibility here is
@@ -25,37 +31,34 @@ export default function OverviewTab() {
   // regardless of which branch happens to be selected in the top nav, and
   // vice versa.
   const [scopeBranchId, setScopeBranchId] = useState<string>("restaurant");
-  const [scenarios, setScenarios] = useState<any[]>([]);
   const [selectedScenarioId, setSelectedScenarioId] = useState<number | null>(null);
+
+  const { data: scenarios = [] } = useGetScenariosQuery(
+    {
+      restaurantId,
+      branchId: scopeBranchId === "restaurant" ? null : Number(scopeBranchId),
+      activeOnly: true,
+    },
+    { skip: !user?.restaurantId },
+  );
+  const [updateScenario] = useUpdateScenarioMutation();
   const [period, setPeriod] = useState("currentMonth");
   const [customFrom, setCustomFrom] = useState("");
   const [customTo, setCustomTo] = useState("");
-  const [whatIf, setWhatIf] = useState<any>(null);
-  const [loading, setLoading] = useState(false);
   const [sliderValues, setSliderValues] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
   const [dirty, setDirty] = useState(false);
 
+  // Pick a default scenario once the list arrives — Expected if present, else
+  // the first. Keyed off the list itself rather than a fetch callback.
   useEffect(() => {
-    const fetchScenarios = async () => {
-      if (!user?.restaurantId) return;
-      try {
-        const branchParam = scopeBranchId === "restaurant" ? "null" : scopeBranchId;
-        const res = await fetch(`${API_URL}/api/scenarios/${user.restaurantId}?branchId=${branchParam}&activeOnly=true`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        const json = await res.json();
-        if (json.success) {
-          setScenarios(json.data);
-          const preferred = json.data.find((s: any) => s.type === "EXPECTED") || json.data[0];
-          setSelectedScenarioId(preferred?.id ?? null);
-        }
-      } catch {
-        // fetch error — silently ignored
-      }
-    };
-    fetchScenarios();
-  }, [user?.restaurantId, scopeBranchId]);
+    if (!scenarios.length) {
+      setSelectedScenarioId(null);
+      return;
+    }
+    const preferred = scenarios.find((s) => s.type === "EXPECTED") || scenarios[0];
+    setSelectedScenarioId(preferred?.id ?? null);
+  }, [scenarios]);
 
   const selectedScenario = scenarios.find((s) => s.id === selectedScenarioId) || null;
   // Built-in scenarios (Conservative/Expected/Optimistic) are fixed reference
@@ -84,36 +87,29 @@ export default function OverviewTab() {
     return overrides;
   };
 
+  // Sliders fire many changes in a row, so the *arguments* are debounced rather
+  // than the request: the query re-runs only once the values settle. Because
+  // the overrides are part of the cache key, dragging back to a combination
+  // already tried is served from cache instead of recomputed.
+  const [debouncedOverrides, setDebouncedOverrides] = useState<Record<string, number | null>>({});
   useEffect(() => {
-    const fetchWhatIf = async () => {
-      if (!selectedScenarioId || !user?.restaurantId) {
-        setWhatIf(null);
-        return;
-      }
-      if (period === "custom" && (!customFrom || !customTo)) return;
-      setLoading(true);
-      try {
-        const rangeParams = period === "custom" ? `&from=${customFrom}&to=${customTo}` : "";
-        const res = await fetch(
-          `${API_URL}/api/scenarios/${user.restaurantId}/${selectedScenarioId}/what-if?period=${period}${rangeParams}`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-            body: JSON.stringify(buildLiveOverrides()),
-          },
-        );
-        const json = await res.json();
-        if (json.success) setWhatIf(json.data);
-      } catch {
-        // fetch error — silently ignored
-      } finally {
-        setLoading(false);
-      }
-    };
-    // Debounced — sliders can fire many changes in a row; only the settled value triggers a request.
-    const t = setTimeout(fetchWhatIf, 350);
+    const t = setTimeout(() => setDebouncedOverrides(buildLiveOverrides()), 350);
     return () => clearTimeout(t);
-  }, [selectedScenarioId, period, customFrom, customTo, sliderValues]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sliderValues]);
+
+  const rangeReady = period !== "custom" || Boolean(customFrom && customTo);
+  const { data: whatIf, isFetching: loading } = useGetWhatIfQuery(
+    {
+      restaurantId,
+      scenarioId: selectedScenarioId as number,
+      period,
+      from: customFrom,
+      to: customTo,
+      overrides: debouncedOverrides,
+    },
+    { skip: !selectedScenarioId || !user?.restaurantId || !rangeReady },
+  );
 
   const kpisByKey = useMemo(() => {
     const map = new Map<string, any>();
@@ -130,23 +126,18 @@ export default function OverviewTab() {
     if (!selectedScenario) return;
     setSaving(true);
     try {
-      const res = await fetch(`${API_URL}/api/scenarios/${user.restaurantId}/${selectedScenario.id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ overrides: buildLiveOverrides() }),
-      });
-      const json = await res.json();
-      if (json.success) {
-        setScenarios((prev) => prev.map((s) => (s.id === json.data.id ? json.data : s)));
-        setDirty(false);
-      } else {
-        // `dirty` deliberately stays true on failure: it is what keeps the Save
-        // button live and the unsaved values on screen. Clearing it — or saying
-        // nothing, as this did — presents unsaved overrides as saved.
-        alert(json.message || "Failed to save these scenario overrides");
-      }
-    } catch {
-      alert("Failed to save these scenario overrides");
+      await updateScenario({
+        restaurantId,
+        id: selectedScenario.id,
+        body: { overrides: buildLiveOverrides() },
+      }).unwrap();
+      // The list refreshes via invalidatesTags rather than local surgery.
+      setDirty(false);
+    } catch (err) {
+      // `dirty` deliberately stays true on failure: it is what keeps the Save
+      // button live and the unsaved values on screen. Clearing it — or saying
+      // nothing, as this once did — presents unsaved overrides as saved.
+      alert(errorMessage(err, "Failed to save these scenario overrides"));
     } finally {
       setSaving(false);
     }
@@ -314,7 +305,7 @@ export default function OverviewTab() {
           </div>
 
           {/* CHARTS */}
-          <ScenarioCharts kpis={whatIf.kpis} />
+          <ScenarioCharts kpis={whatIf.kpis ?? []} />
 
           {/* FULL KPI TABLE */}
           <div className="overflow-x-auto rounded-xl border border-gray-200">

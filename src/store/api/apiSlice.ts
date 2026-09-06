@@ -40,6 +40,8 @@ export const api = createApi({
     "Due",
     "Compliance",
     "ComplianceSummary",
+    "Scenario",
+    "ScenarioProjection",
   ],
   endpoints: () => ({}),
 });

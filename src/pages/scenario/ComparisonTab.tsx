@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useAppSelector } from "@/store";
+import { useGetScenariosQuery, useGetWhatIfBatchQuery } from "@/store/api/scenariosApi";
 import { fmtCategoryValue, SCENARIO_KPIS } from "./scenarioCategories";
 import MobileTableCards from "@/components/common/MobileTableCards";
 
@@ -29,55 +30,46 @@ export default function ComparisonTab() {
   // scenario stays visible here regardless of which branch happens to be
   // selected in the top nav, and vice versa.
   const [scopeBranchId, setScopeBranchId] = useState<string>("restaurant");
-  const [scenarios, setScenarios] = useState<any[]>([]);
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [period, setPeriod] = useState("currentMonth");
   const [budgetColumn, setBudgetColumn] = useState<Record<string, number | null> | null>(null);
-  const [results, setResults] = useState<Record<number, any>>({});
-  const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    const fetchScenarios = async () => {
-      if (!user?.restaurantId) return;
-      try {
-        const branchParam = scopeBranchId === "restaurant" ? "null" : scopeBranchId;
-        const res = await fetch(`${API_URL}/api/scenarios/${user.restaurantId}?branchId=${branchParam}&activeOnly=true`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        const json = await res.json();
-        if (json.success) {
-          setScenarios(json.data);
-          // Pre-select up to the max so the table isn't empty on first load,
-          // without silently dropping scenarios beyond the cap — the rest are
-          // just left unselected, still pickable via the chips below.
-          setSelectedIds(json.data.slice(0, MAX_SELECTED_SCENARIOS).map((s: any) => s.id));
-        }
-      } catch {
-        // fetch error — silently ignored
-      }
-    };
-    fetchScenarios();
-  }, [user?.restaurantId, scopeBranchId]);
+  const restaurantId = user?.restaurantId as number;
 
+  const { data: scenarios = [] } = useGetScenariosQuery(
+    {
+      restaurantId,
+      branchId: scopeBranchId === "restaurant" ? null : Number(scopeBranchId),
+      activeOnly: true,
+    },
+    { skip: !user?.restaurantId },
+  );
+
+  // One cache entry for the whole selected set — a hook cannot be called once
+  // per id, so the fan-out lives in the endpoint (see getWhatIfBatch).
+  const { data: results = {}, isFetching: loading } = useGetWhatIfBatchQuery(
+    { restaurantId, scenarioIds: selectedIds, period },
+    { skip: !user?.restaurantId || selectedIds.length === 0 },
+  );
+
+  // Pre-select up to the max so the table isn't empty on first load, without
+  // silently dropping scenarios beyond the cap — the rest are just left
+  // unselected, still pickable via the chips below.
   useEffect(() => {
-    const fetchComparison = async () => {
+    setSelectedIds(scenarios.slice(0, MAX_SELECTED_SCENARIOS).map((s) => s.id));
+  }, [scenarios]);
+
+  // The Budget column still uses fetch: it belongs to the budgets module, not
+  // this one, and moves when that module is migrated. Migrating by API module
+  // means a screen can legitimately be on the new pattern for one and the old
+  // pattern for another.
+  useEffect(() => {
+    const fetchBudgetColumn = async () => {
       if (selectedIds.length === 0 || !user?.restaurantId) {
-        setResults({});
+        setBudgetColumn(null);
         return;
       }
-      setLoading(true);
       try {
-        const entries = await Promise.all(
-          selectedIds.map(async (id) => {
-            const res = await fetch(`${API_URL}/api/scenarios/${user.restaurantId}/${id}/what-if?period=${period}`, {
-              method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: "{}",
-            });
-            const json = await res.json();
-            return [id, json.data] as const;
-          }),
-        );
-        setResults(Object.fromEntries(entries));
-
         // Optional Budget column — reuses the Budget module's own variance
         // endpoint rather than re-deriving budget figures; skipped silently
         // if no published budget exists for this scope.
@@ -98,12 +90,14 @@ export default function ComparisonTab() {
           setBudgetColumn(null);
         }
       } catch {
-        // fetch error — silently ignored
-      } finally {
-        setLoading(false);
+        // A missing budget is an expected state (no published budget for this
+        // scope), and the column simply does not render — so this stays quiet
+        // rather than reporting a failure the person cannot act on.
+        setBudgetColumn(null);
       }
     };
-    fetchComparison();
+    fetchBudgetColumn();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedIds, period, user?.restaurantId, scopeBranchId]);
 
   const toggleScenario = (id: number) => {

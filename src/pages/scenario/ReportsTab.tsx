@@ -4,7 +4,9 @@ import autoTable from "jspdf-autotable";
 import ExcelJS from "exceljs";
 import { saveAs } from "file-saver";
 import { ArrowDownTrayIcon, PrinterIcon } from "@heroicons/react/24/outline";
-import { useAppSelector } from "@/store";
+import { useAppDispatch, useAppSelector } from "@/store";
+import { errorMessage } from "@/utils/apiRequest";
+import { scenariosApi, useGetScenariosQuery } from "@/store/api/scenariosApi";
 import { fmtCategoryValue, SCENARIO_KPIS } from "./scenarioCategories";
 import MobileTableCards from "@/components/common/MobileTableCards";
 
@@ -31,8 +33,9 @@ const MAX_COMPARISON_SCENARIOS = 4;
 
 export default function ReportsTab() {
   const { branches } = useAppSelector((s) => s.branch);
-  const { user, token } = useAppSelector((s) => s.auth);
-  const API_URL = import.meta.env.VITE_API_URL;
+  const { user } = useAppSelector((s) => s.auth);
+  const dispatch = useAppDispatch();
+  const restaurantId = user?.restaurantId as number;
 
   const [reportType, setReportType] = useState("summary");
   const [period, setPeriod] = useState("currentMonth");
@@ -43,80 +46,73 @@ export default function ReportsTab() {
   // scenario stays visible here regardless of which branch happens to be
   // selected in the top nav, and vice versa. Drives "summary"/"comparison".
   const [scopeBranchId, setScopeBranchId] = useState<string>("restaurant");
-  const [scenarios, setScenarios] = useState<any[]>([]);
   const [selectedScenarioId, setSelectedScenarioId] = useState<number | null>(null);
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
-  const [restaurantScenarios, setRestaurantScenarios] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  // Scenarios scoped to scopeBranchId (used by "summary" and "comparison").
+  const { data: scenarios = [] } = useGetScenariosQuery(
+    {
+      restaurantId,
+      branchId: scopeBranchId === "restaurant" ? null : Number(scopeBranchId),
+      activeOnly: true,
+    },
+    { skip: !user?.restaurantId },
+  );
+
+  // Restaurant-wide scenarios (used by "restaurant" and "branch" template picker).
+  const { data: restaurantScenarios = [] } = useGetScenariosQuery(
+    { restaurantId, branchId: null, activeOnly: true },
+    { skip: !user?.restaurantId },
+  );
   const [columns, setColumns] = useState<string[]>([]);
   const [rows, setRows] = useState<any[]>([]);
   const [meta, setMeta] = useState({ startDate: "", endDate: "" });
 
-  // Scenarios scoped to scopeBranchId (used by "summary" and "comparison").
+  // Defaults follow whichever list is in scope.
   useEffect(() => {
-    const fetchScenarios = async () => {
-      if (!user?.restaurantId) return;
-      try {
-        const branchParam = scopeBranchId === "restaurant" ? "null" : scopeBranchId;
-        const res = await fetch(`${API_URL}/api/scenarios/${user.restaurantId}?branchId=${branchParam}&activeOnly=true`, { headers: { Authorization: `Bearer ${token}` } });
-        const json = await res.json();
-        if (json.success) {
-          setScenarios(json.data);
-          setSelectedScenarioId(json.data[0]?.id ?? null);
-          setSelectedIds(json.data.slice(0, MAX_COMPARISON_SCENARIOS).map((s: any) => s.id));
-        }
-      } catch {
-        // fetch error — silently ignored
-      }
-    };
-    fetchScenarios();
-  }, [user?.restaurantId, scopeBranchId]);
-
-  // Restaurant-wide scenarios (used by "restaurant" and "branch" template picker).
-  useEffect(() => {
-    const fetchRestaurantScenarios = async () => {
-      if (!user?.restaurantId) return;
-      try {
-        const res = await fetch(`${API_URL}/api/scenarios/${user.restaurantId}?branchId=null&activeOnly=true`, { headers: { Authorization: `Bearer ${token}` } });
-        const json = await res.json();
-        if (json.success) setRestaurantScenarios(json.data);
-      } catch {
-        // fetch error — silently ignored
-      }
-    };
-    fetchRestaurantScenarios();
-  }, [user?.restaurantId]);
+    setSelectedScenarioId(scenarios[0]?.id ?? null);
+    setSelectedIds(scenarios.slice(0, MAX_COMPARISON_SCENARIOS).map((s) => s.id));
+  }, [scenarios]);
 
   useEffect(() => {
-    const rangeParams = period === "custom" ? `&from=${customFrom}&to=${customTo}` : "";
+    // The range is part of the query arguments now rather than a URL suffix
+    // built here — see runWhatIf below.
     if (period === "custom" && (!customFrom || !customTo)) return;
+
+    // Shares the cache with the hooks in the other tabs — a projection this
+    // tab asks for may already have been computed by Overview or Comparison.
+    const runWhatIf = (scenarioId: number) =>
+      dispatch(
+        scenariosApi.endpoints.getWhatIf.initiate({
+          restaurantId, scenarioId, period, from: customFrom, to: customTo,
+        }),
+      ).unwrap();
 
     const run = async () => {
       if (!user?.restaurantId) return;
       setLoading(true);
+      setError("");
       try {
         if (reportType === "summary") {
           if (!selectedScenarioId) return;
-          const res = await fetch(`${API_URL}/api/scenarios/${user.restaurantId}/${selectedScenarioId}/what-if?period=${period}${rangeParams}`, {
-            method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: "{}",
-          });
-          const json = await res.json();
-          setMeta({ startDate: json.data?.startDate, endDate: json.data?.endDate });
+          const data = await runWhatIf(selectedScenarioId);
+          setMeta({ startDate: data?.startDate ?? "", endDate: data?.endDate ?? "" });
           setColumns(["Actual", "Projected"]);
           setRows(SCENARIO_KPIS.map((def) => {
-            const row = json.data?.kpis?.find((k: any) => k.key === def.key);
+            const row = data?.kpis?.find((k) => k.key === def.key);
             return { label: def.label, unit: def.unit, values: [row?.baseline ?? null, row?.projected ?? null] };
           }));
         } else if (reportType === "comparison") {
           if (selectedIds.length === 0) return;
-          const entries = await Promise.all(selectedIds.map(async (id) => {
-            const res = await fetch(`${API_URL}/api/scenarios/${user.restaurantId}/${id}/what-if?period=${period}${rangeParams}`, {
-              method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: "{}",
-            });
-            const json = await res.json();
-            return { id, data: json.data };
-          }));
-          setMeta({ startDate: entries[0]?.data?.startDate, endDate: entries[0]?.data?.endDate });
+          const batch = await dispatch(
+            scenariosApi.endpoints.getWhatIfBatch.initiate({
+              restaurantId, scenarioIds: selectedIds, period, from: customFrom, to: customTo,
+            }),
+          ).unwrap();
+          const entries = selectedIds.map((id) => ({ id, data: batch[id] }));
+          setMeta({ startDate: entries[0]?.data?.startDate ?? "", endDate: entries[0]?.data?.endDate ?? "" });
           const names = entries.map((e) => scenarios.find((s) => s.id === e.id)?.name || `#${e.id}`);
           setColumns(["Actual", ...names]);
           setRows(SCENARIO_KPIS.map((def) => {
@@ -128,14 +124,11 @@ export default function ReportsTab() {
           if (!selectedScenarioId) return;
           const restScenario = restaurantScenarios.find((s) => s.id === selectedScenarioId) || restaurantScenarios[0];
           if (!restScenario) { setRows([]); return; }
-          const res = await fetch(`${API_URL}/api/scenarios/${user.restaurantId}/${restScenario.id}/what-if?period=${period}${rangeParams}`, {
-            method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: "{}",
-          });
-          const json = await res.json();
-          setMeta({ startDate: json.data?.startDate, endDate: json.data?.endDate });
+          const data = await runWhatIf(restScenario.id);
+          setMeta({ startDate: data?.startDate ?? "", endDate: data?.endDate ?? "" });
           setColumns(["Actual (All Branches)", "Projected (All Branches)"]);
           setRows(SCENARIO_KPIS.map((def) => {
-            const row = json.data?.kpis?.find((k: any) => k.key === def.key);
+            const row = data?.kpis?.find((k) => k.key === def.key);
             return { label: def.label, unit: def.unit, values: [row?.baseline ?? null, row?.projected ?? null] };
           }));
         } else if (reportType === "branch") {
@@ -148,26 +141,27 @@ export default function ReportsTab() {
             "salaryIncrementPercentage", "inflationPercentage", "rentEscalationPercentage", "workingDays", "businessHours",
           ];
           const liveOverrides = Object.fromEntries(overrideKeys.map((k) => [k, template[k] ?? null]));
-          const perBranch = await Promise.all(branches.map(async (branch: any) => {
-            const listRes = await fetch(`${API_URL}/api/scenarios/${user.restaurantId}?branchId=${branch.id}&activeOnly=true`, { headers: { Authorization: `Bearer ${token}` } });
-            const listJson = await listRes.json();
-            const expected = (listJson.data || []).find((s: any) => s.type === "EXPECTED");
-            if (!expected) return { branch, data: null };
-            const res = await fetch(`${API_URL}/api/scenarios/${user.restaurantId}/${expected.id}/what-if?period=${period}${rangeParams}`, {
-              method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify(liveOverrides),
-            });
-            const json = await res.json();
-            return { branch, data: json.data };
-          }));
-          setMeta({ startDate: perBranch[0]?.data?.startDate, endDate: perBranch[0]?.data?.endDate });
-          setColumns(perBranch.map((p) => p.branch.name));
+          const compared = await dispatch(
+            scenariosApi.endpoints.getBranchScenarioComparison.initiate({
+              restaurantId,
+              branchIds: branches.map((b: any) => b.id),
+              period,
+              overrides: liveOverrides as Record<string, number | null>,
+            }),
+          ).unwrap();
+          const byId = new Map(branches.map((b: any) => [b.id, b]));
+          setMeta({ startDate: "", endDate: "" });
+          setColumns(compared.map((c) => (byId.get(c.branchId) as any)?.name ?? `#${c.branchId}`));
           setRows(SCENARIO_KPIS.map((def) => ({
             label: def.label, unit: def.unit,
-            values: perBranch.map((p) => p.data?.kpis?.find((k: any) => k.key === def.key)?.projected ?? null),
+            values: compared.map((c) => c.kpis.find((k) => k.key === def.key)?.projected ?? null),
           })));
         }
-      } catch {
-        // fetch error — silently ignored
+      } catch (err) {
+        // Previously silent: a failed report left the previous table on screen,
+        // so the numbers looked current for a period that had never loaded.
+        setError(errorMessage(err, "Couldn't build this report"));
+        setRows([]);
       } finally {
         setLoading(false);
       }
@@ -219,6 +213,12 @@ export default function ReportsTab() {
 
   return (
     <div className="space-y-4">
+      {error && (
+        <p role="alert" className="rounded-xl bg-red-50 px-3 py-2 text-[12px] font-bold text-red-600 print:hidden">
+          {error}
+        </p>
+      )}
+
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between print:hidden">
         <div className="flex flex-wrap items-center gap-2">
           <select value={reportType} onChange={(e) => setReportType(e.target.value)} className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-[12px] font-semibold text-gray-700 outline-none">
