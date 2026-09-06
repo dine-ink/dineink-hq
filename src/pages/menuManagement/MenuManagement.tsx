@@ -386,9 +386,12 @@ export default function MenuManagement() {
         setCategories((prev: any[]) => [...prev, data.data]);
         setMenuCatName("");
         setShowMenuCategory(false);
+      } else {
+        // The dialog stays open on failure so the typed name survives a retry.
+        alert(data.message || "Failed to add that category");
       }
     } catch {
-      /* silent */
+      alert("Failed to add that category");
     }
   };
 
@@ -444,8 +447,9 @@ export default function MenuManagement() {
       const data = await res.json();
       if (data.success)
         setMenuItems((prev: any[]) => prev.filter((m: any) => m.id !== id));
+      else alert(data.message || "Failed to delete this menu item");
     } catch {
-      /* silent */
+      alert("Failed to delete this menu item");
     }
   };
 
@@ -467,8 +471,11 @@ export default function MenuManagement() {
         setMenuItems((prev: any[]) =>
           prev.map((m: any) => (m.id === item.id ? data.data : m)),
         );
+      // A rejected toggle left the availability switch showing its old value,
+      // which reads as the click not registering rather than being refused.
+      else alert(data.message || "Failed to change this item's availability");
     } catch {
-      /* silent */
+      alert("Failed to change this item's availability");
     }
   };
 
@@ -740,9 +747,11 @@ export default function MenuManagement() {
           ]),
         );
         setIngredients(formatted);
+      } else {
+        alert(data.message || "Couldn't generate an ingredient list");
       }
     } catch {
-      // error silently ignored
+      alert("Couldn't generate an ingredient list");
     } finally {
       setLoading(false);
     }
@@ -773,9 +782,13 @@ export default function MenuManagement() {
       const data = await res.json();
       if (data.success) {
         alert("Ingredients saved successfully");
+      } else {
+        // Success alerted; failure did not. Pressing Save and getting no
+        // response at all is indistinguishable from the click missing.
+        alert(data.message || "Failed to save these ingredients");
       }
     } catch {
-      // fetch error
+      alert("Failed to save these ingredients");
     }
   };
 
@@ -843,9 +856,13 @@ export default function MenuManagement() {
           id: ingredientId,
           name: priceHistoryModal.ingredientName,
         });
+      } else {
+        // An ingredient price feeds every recipe's food cost, so a price change
+        // that silently didn't take leaves margins computed on the old figure.
+        alert(data.message || "Failed to record that price change");
       }
     } catch {
-      // fetch error
+      alert("Failed to record that price change");
     }
   };
 
@@ -1600,10 +1617,12 @@ export default function MenuManagement() {
         alert("Mapping saved");
         fetchMenuItemMappings();
       } else {
-        alert(data.message);
+        // `alert(undefined)` renders the string "undefined" when the server
+        // sends no message, so the fallback is not cosmetic.
+        alert(data.message || "Failed to save this recipe mapping");
       }
     } catch {
-      // mapping error
+      alert("Failed to save this recipe mapping");
     } finally {
       setMappingLoading(false);
     }
@@ -1655,9 +1674,13 @@ export default function MenuManagement() {
       const data = await res.json();
       if (data.success) {
         setIngredientMappings(data.data);
+      } else {
+        // The AI suggestion is a slow call behind a button. With nothing shown
+        // on failure, the button simply appeared to do nothing.
+        alert(data.message || "Couldn't suggest ingredients for this item");
       }
     } catch {
-      // fetch error
+      alert("Couldn't suggest ingredients for this item");
     }
   };
 
@@ -2060,9 +2083,11 @@ export default function MenuManagement() {
       if (data.success) {
         setNewGroupName("");
         fetchAddOnGroups();
+      } else {
+        alert(data.message || "Failed to create that add-on group");
       }
     } catch {
-      /* silent */
+      alert("Failed to create that add-on group");
     }
   };
 
@@ -2070,13 +2095,20 @@ export default function MenuManagement() {
     if (!window.confirm("Delete this add-on group and all its options?"))
       return;
     try {
-      await fetch(`${API_URL}/api/addons/groups/${id}`, {
+      // The response was never read, so `fetchAddOnGroups()` ran either way —
+      // and because it re-renders from the server, a failed delete showed the
+      // group still there with nothing said about why.
+      const res = await fetch(`${API_URL}/api/addons/groups/${id}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` },
       });
+      const data = await res.json().catch(() => null);
+      if (!res.ok || data?.success === false) {
+        throw new Error(data?.message || `Request failed (${res.status})`);
+      }
       fetchAddOnGroups();
-    } catch {
-      /* silent */
+    } catch (error) {
+      alert(error instanceof Error ? error.message : "Failed to delete that add-on group");
     }
   };
 
@@ -2103,21 +2135,27 @@ export default function MenuManagement() {
           [groupId]: { name: "", price: "" },
         }));
         fetchAddOnGroups();
+      } else {
+        alert(data.message || "Failed to add that option");
       }
     } catch {
-      /* silent */
+      alert("Failed to add that option");
     }
   };
 
   const handleDeleteOption = async (id: number) => {
     try {
-      await fetch(`${API_URL}/api/addons/options/${id}`, {
+      const res = await fetch(`${API_URL}/api/addons/options/${id}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` },
       });
+      const data = await res.json().catch(() => null);
+      if (!res.ok || data?.success === false) {
+        throw new Error(data?.message || `Request failed (${res.status})`);
+      }
       fetchAddOnGroups();
-    } catch {
-      /* silent */
+    } catch (error) {
+      alert(error instanceof Error ? error.message : "Failed to delete that option");
     }
   };
 
@@ -2151,26 +2189,38 @@ export default function MenuManagement() {
       return { ...prev, attachedIds: next };
     });
     try {
-      if (isAttached) {
-        await fetch(
-          `${API_URL}/api/addons/menu-items/${attachModal.item.id}/groups/${groupId}`,
-          { method: "DELETE", headers: { Authorization: `Bearer ${token}` } },
-        );
-      } else {
-        await fetch(
-          `${API_URL}/api/addons/menu-items/${attachModal.item.id}/groups`,
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${token}`,
+      const res = isAttached
+        ? await fetch(
+            `${API_URL}/api/addons/menu-items/${attachModal.item.id}/groups/${groupId}`,
+            { method: "DELETE", headers: { Authorization: `Bearer ${token}` } },
+          )
+        : await fetch(
+            `${API_URL}/api/addons/menu-items/${attachModal.item.id}/groups`,
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`,
+              },
+              body: JSON.stringify({ addOnGroupId: groupId }),
             },
-            body: JSON.stringify({ addOnGroupId: groupId }),
-          },
-        );
+          );
+      const data = await res.json().catch(() => null);
+      if (!res.ok || data?.success === false) {
+        throw new Error(data?.message || `Request failed (${res.status})`);
       }
-    } catch {
-      /* silent — optimistic state may drift; modal re-fetches next time it opens */
+    } catch (error) {
+      // The previous comment accepted the drift because "the modal re-fetches
+      // next time it opens". Until then the checkbox claims a group is attached
+      // when it isn't — and an add-on group that isn't attached is one
+      // customers cannot order. Put the checkbox back and say so.
+      setAttachModal((prev) => {
+        const next = new Set(prev.attachedIds);
+        if (isAttached) next.add(groupId);
+        else next.delete(groupId);
+        return { ...prev, attachedIds: next };
+      });
+      alert(error instanceof Error ? error.message : "Failed to update the add-ons on this item");
     }
   };
 
@@ -2211,9 +2261,13 @@ export default function MenuManagement() {
         setShowSopForm(false);
         resetSopForm();
         fetchSopChecklists();
+      } else {
+        // The form stays open and populated so the steps someone just typed
+        // are not discarded along with the error.
+        alert(data.message || "Failed to save this SOP checklist");
       }
     } catch {
-      /* silent */
+      alert("Failed to save this SOP checklist");
     }
   };
 
@@ -2231,13 +2285,17 @@ export default function MenuManagement() {
   const handleDeleteSop = async (id: number) => {
     if (!window.confirm("Delete this SOP checklist?")) return;
     try {
-      await fetch(`${API_URL}/api/sop/${id}`, {
+      const res = await fetch(`${API_URL}/api/sop/${id}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` },
       });
+      const data = await res.json().catch(() => null);
+      if (!res.ok || data?.success === false) {
+        throw new Error(data?.message || `Request failed (${res.status})`);
+      }
       fetchSopChecklists();
-    } catch {
-      /* silent */
+    } catch (error) {
+      alert(error instanceof Error ? error.message : "Failed to delete this SOP checklist");
     }
   };
 
