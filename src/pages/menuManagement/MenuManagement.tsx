@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAppSelector } from "@/store";
 import { useAddOns } from "./useAddOns";
+import { useInventoryAnalytics } from "./useInventoryAnalytics";
 import OperationsTab from "./tabs/OperationsTab";
 import AddOnsTab from "./tabs/AddOnsTab";
 import { formatQty } from "@/utils/units";
@@ -558,149 +559,22 @@ export default function MenuManagement() {
     }
   };
 
-  const mappedMenuItems = menuItems.filter(
-    (item: any) => item.menuItemIngredients?.length > 0,
-  );
 
-  const ingredientAnalytics = React.useMemo(() => {
-    if (!menuItems.length || !bills.length) {
-      return [];
-    }
-    const ingredientConsumptionMap: Record<string, any> = {};
-    bills?.forEach((bill: any) => {
-      bill.items?.forEach((billItem: any) => {
-        const menuItem = menuItems.find(
-          (m: any) => m.id === billItem.menuItemId,
-        );
 
-        if (!menuItem) return;
-        const quantitySold = Number(billItem.quantity || 0);
-        menuItem.menuItemIngredients?.forEach((mapping: any) => {
-          const ingredient = mapping.ingredient;
-          if (!ingredient) return;
-          const key = ingredient.id;
-          if (!ingredientConsumptionMap[key]) {
-            ingredientConsumptionMap[key] = {
-              ingredient: ingredient.name,
-              category: ingredient.category?.name || "Other",
-              unit: mapping.unit,
-              consumed: 0,
-              totalCost: 0,
-            };
-          }
-          const mappingQty = Number(mapping.quantity || 0);
-          const usedQty = mappingQty * quantitySold;
-          const price = Number(ingredient.pricePerUnit || 0);
-          let cost = 0;
-          const mappingUnit = mapping.unit?.toLowerCase();
-          const ingredientUnit = ingredient.unit?.toLowerCase();
-          if (mappingUnit === ingredientUnit) {
-            cost = usedQty * price;
-          } else if (
-            ingredientUnit === "kg" &&
-            (mappingUnit === "gram" || mappingUnit === "gm")
-          ) {
-            cost = (usedQty / 1000) * price;
-          } else if (ingredientUnit === "litre" && mappingUnit === "ml") {
-            cost = (usedQty / 1000) * price;
-          } else {
-            cost = usedQty * price;
-          }
-          ingredientConsumptionMap[key].consumed += usedQty;
-          ingredientConsumptionMap[key].totalCost += cost;
-        });
-      });
-    });
-    return Object.values(ingredientConsumptionMap);
-  }, [bills, menuItems]);
 
-  const avgFoodCost = (() => {
-    // Items with no price set contribute nothing to the sum, so they must
-    // also be excluded from the divisor — dividing by the full item count
-    // (including unpriced items) silently understated the average.
-    let totalFoodCostPct = 0;
-    let pricedItemCount = 0;
-    mappedMenuItems.forEach((item: any) => {
-      const sellingPrice = Number(item.price || 0);
-      if (sellingPrice <= 0) return;
-      const recipeCost = (item.menuItemIngredients || []).reduce(
-        (sum: number, mapping: any) => {
-          const ingredient = mapping.ingredient;
-          if (!ingredient) return sum;
-          const qty = Number(mapping.quantity || 0);
-          const price = Number(ingredient.pricePerUnit || 0);
-          const mappingUnit = mapping.unit?.toLowerCase();
-          const ingredientUnit = ingredient.unit?.toLowerCase();
-          let cost = 0;
-          if (mappingUnit === ingredientUnit) {
-            cost = qty * price;
-          } else if (
-            ingredientUnit === "kg" &&
-            (mappingUnit === "gram" || mappingUnit === "gm")
-          ) {
-            cost = (qty / 1000) * price;
-          } else if (ingredientUnit === "litre" && mappingUnit === "ml") {
-            cost = (qty / 1000) * price;
-          } else {
-            cost = qty * price;
-          }
-          return sum + cost;
-        },
-        0,
-      );
-      totalFoodCostPct += (recipeCost / sellingPrice) * 100;
-      pricedItemCount++;
-    });
-    return pricedItemCount > 0
-      ? (totalFoodCostPct / pricedItemCount).toFixed(1)
-      : "0";
-  })();
 
-  const avgRecipeCost =
-    mappedItems.length > 0
-      ? (
-          mappedItems.reduce((acc: number, item: any) => {
-            const total = (item.menuItemIngredients || []).reduce(
-              (sum: number, mapping: any) => {
-                const ingredient = mapping.ingredient;
-                if (!ingredient) return sum;
-                const qty = Number(mapping.quantity || 0);
-                const price = Number(ingredient.pricePerUnit || 0);
-                const mappingUnit = mapping.unit?.toLowerCase()?.trim();
-                const ingredientUnit = ingredient.unit?.toLowerCase()?.trim();
-                let cost = 0;
-                /* SAME UNIT */
-                if (mappingUnit === ingredientUnit) {
-                  cost = qty * price;
-                } else if (
-                  /* KG -> GRAM */
-                  ingredientUnit === "kg" &&
-                  (mappingUnit === "gram" || mappingUnit === "gm")
-                ) {
-                  cost = (qty / 1000) * price;
-                } else if (ingredientUnit === "litre" && mappingUnit === "ml") {
-                  /* LITRE -> ML */
-                  cost = (qty / 1000) * price;
-                } else if (
-                  /* PIECE */
-                  ingredientUnit === "piece" &&
-                  (mappingUnit === "piece" || mappingUnit === "pc")
-                ) {
-                  cost = qty * price;
-                } else {
-                  /* FALLBACK */
-                  cost = qty * price;
-                }
-                return sum + Number(cost || 0);
-              },
-              0,
-            );
-            return acc + Number(total || 0);
-          }, 0) / mappedItems.length
-        ).toFixed(0)
-      : 0;
 
-  const avgProfitMargin = (100 - Number(avgFoodCost)).toFixed(1);
+  // The eight derived figures Restock, Analytics, Item Mapping and the AI
+  // alerts all read. See useInventoryAnalytics for why they are not inline.
+  const {
+    ingredientAnalytics,
+    avgFoodCost,
+    avgRecipeCost,
+    avgProfitMargin,
+    totalConsumptionValue,
+    inventoryValue,
+    inventoryTurnover,
+  } = useInventoryAnalytics(bills, menuItems, allIngredients, mappedItems);
 
   const handleGenerate = async () => {
     try {
@@ -1699,12 +1573,6 @@ export default function MenuManagement() {
     sellingPrice > 0 ? ((totalRecipeCost / sellingPrice) * 100).toFixed(1) : 0;
   const margin =
     sellingPrice > 0 ? (100 - Number(foodCostPercentage)).toFixed(1) : 0;
-  const totalConsumptionValue = ingredientAnalytics.reduce(
-    (acc: number, item: any) => {
-      return acc + Number(item.totalCost || 0);
-    },
-    0,
-  );
   const aiAlerts: any[] = [];
 
   /* HIGH FOOD COST */
@@ -2064,13 +1932,7 @@ export default function MenuManagement() {
   };
 
 
-  const inventoryValue = allIngredients.reduce((acc: number, item: any) => {
-    return acc + Number(item.quantity || 0) * Number(item.pricePerUnit || 0);
-  }, 0);
 
-  const inventoryTurnover = (
-    totalConsumptionValue / Math.max(inventoryValue, 1)
-  ).toFixed(2);
   const fetchVendors = async () => {
     try {
       if (!selectedBranch?.id) {
