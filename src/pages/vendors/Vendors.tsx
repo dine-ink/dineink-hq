@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAppSelector } from "../../store";
+import { apiSend, errorMessage } from "../../utils/apiRequest";
 import {
   TruckIcon,
   PlusIcon,
@@ -192,15 +193,23 @@ export default function Vendors() {
       ? `${API_URL}/api/ingredients/vendors/${vendorModal.editing.id}`
       : `${API_URL}/api/ingredients/vendors`;
     const method = vendorModal.editing ? "PUT" : "POST";
-    await fetch(url, {
-      method,
-      headers,
-      body: JSON.stringify({
-        ...vendorForm,
-        restaurantId: user.restaurantId,
-        branchId: selectedBranch.id,
-      }),
-    });
+    try {
+      await apiSend(url, {
+        method,
+        headers,
+        body: JSON.stringify({
+          ...vendorForm,
+          restaurantId: user.restaurantId,
+          branchId: selectedBranch.id,
+        }),
+      });
+    } catch (error) {
+      // The modal stays open on failure, so the values the person typed are
+      // still there to retry with. Closing it and refetching — which is what
+      // this did before — showed them the unchanged list and read as success.
+      alert(errorMessage(error));
+      return;
+    }
     setVendorModal({ open: false, editing: null });
     fetchVendors();
     fetchOutstanding();
@@ -213,10 +222,15 @@ export default function Vendors() {
       )
     )
       return;
-    await fetch(`${API_URL}/api/ingredients/vendors/${id}`, {
-      method: "DELETE",
-      headers,
-    });
+    try {
+      await apiSend(`${API_URL}/api/ingredients/vendors/${id}`, {
+        method: "DELETE",
+        headers,
+      });
+    } catch (error) {
+      alert(errorMessage(error));
+      return;
+    }
     fetchVendors();
     fetchOutstanding();
   };
@@ -255,18 +269,27 @@ export default function Vendors() {
       !selectedBranch?.id
     )
       return;
-    await fetch(`${API_URL}/api/vendors/payments`, {
-      method: "POST",
-      headers,
-      body: JSON.stringify({
-        vendorId: paymentModal.vendor.id,
-        restaurantId: user.restaurantId,
-        branchId: selectedBranch.id,
-        ...paymentForm,
-        amount: Number(paymentForm.amount),
-        createdById: user.id,
-      }),
-    });
+    try {
+      // This is money. A payment that silently fails to record is
+      // indistinguishable from one that succeeded until someone reconciles the
+      // ledger against the vendor's own statement — so this is the write on
+      // this screen that least tolerates being fire-and-forget.
+      await apiSend(`${API_URL}/api/vendors/payments`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          vendorId: paymentModal.vendor.id,
+          restaurantId: user.restaurantId,
+          branchId: selectedBranch.id,
+          ...paymentForm,
+          amount: Number(paymentForm.amount),
+          createdById: user.id,
+        }),
+      });
+    } catch (error) {
+      alert(errorMessage(error));
+      return;
+    }
     setPaymentModal({ open: false, vendor: null });
     setPaymentForm({
       amount: "",
@@ -290,36 +313,43 @@ export default function Vendors() {
     // picks it up and sets documentUrl on the created invoice. With no
     // file attached, keep sending exactly the JSON body this page has
     // always sent (no behavior change for the no-file case).
-    if (invoiceFile) {
-      const fd = new FormData();
-      fd.append("vendorId", String(invoiceModal.vendor.id));
-      fd.append("restaurantId", String(user.restaurantId));
-      fd.append("branchId", String(selectedBranch.id));
-      fd.append("invoiceNumber", invoiceForm.invoiceNumber);
-      fd.append("invoiceDate", invoiceForm.invoiceDate);
-      fd.append("dueDate", invoiceForm.dueDate);
-      fd.append("totalAmount", String(Number(invoiceForm.totalAmount)));
-      fd.append("notes", invoiceForm.notes);
-      fd.append("createdById", String(user.id));
-      fd.append("document", invoiceFile);
-      await fetch(`${API_URL}/api/vendors/invoices`, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
-        body: fd,
-      });
+    try {
+      if (invoiceFile) {
+        const fd = new FormData();
+        fd.append("vendorId", String(invoiceModal.vendor.id));
+        fd.append("restaurantId", String(user.restaurantId));
+        fd.append("branchId", String(selectedBranch.id));
+        fd.append("invoiceNumber", invoiceForm.invoiceNumber);
+        fd.append("invoiceDate", invoiceForm.invoiceDate);
+        fd.append("dueDate", invoiceForm.dueDate);
+        fd.append("totalAmount", String(Number(invoiceForm.totalAmount)));
+        fd.append("notes", invoiceForm.notes);
+        fd.append("createdById", String(user.id));
+        fd.append("document", invoiceFile);
+        await apiSend(`${API_URL}/api/vendors/invoices`, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}` },
+          body: fd,
+        });
     } else {
-      await fetch(`${API_URL}/api/vendors/invoices`, {
-        method: "POST",
-        headers,
-        body: JSON.stringify({
-          vendorId: invoiceModal.vendor.id,
-          restaurantId: user.restaurantId,
-          branchId: selectedBranch.id,
-          ...invoiceForm,
-          totalAmount: Number(invoiceForm.totalAmount),
-          createdById: user.id,
-        }),
-      });
+        await apiSend(`${API_URL}/api/vendors/invoices`, {
+          method: "POST",
+          headers,
+          body: JSON.stringify({
+            vendorId: invoiceModal.vendor.id,
+            restaurantId: user.restaurantId,
+            branchId: selectedBranch.id,
+            ...invoiceForm,
+            totalAmount: Number(invoiceForm.totalAmount),
+            createdById: user.id,
+          }),
+        });
+      }
+    } catch (error) {
+      // Modal stays open so the invoice details and the attached file are not
+      // lost to a retry.
+      alert(errorMessage(error));
+      return;
     }
     setInvoiceModal({ open: false, vendor: null });
     setInvoiceForm({
@@ -364,11 +394,16 @@ export default function Vendors() {
   const payInvoice = async (invoiceId: number, remaining: number) => {
     const amt = prompt(`Pay how much? (Remaining: ₹${remaining})`);
     if (!amt || isNaN(Number(amt))) return;
-    await fetch(`${API_URL}/api/vendors/invoices/${invoiceId}/pay`, {
-      method: "PUT",
-      headers,
-      body: JSON.stringify({ amount: Number(amt) }),
-    });
+    try {
+      await apiSend(`${API_URL}/api/vendors/invoices/${invoiceId}/pay`, {
+        method: "PUT",
+        headers,
+        body: JSON.stringify({ amount: Number(amt) }),
+      });
+    } catch (error) {
+      alert(errorMessage(error));
+      return;
+    }
     if (detailModal.vendor) openDetailModal(detailModal.vendor);
     fetchOutstanding();
   };
