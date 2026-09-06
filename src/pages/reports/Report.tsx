@@ -22,6 +22,7 @@ import {
 import dayjs from "dayjs";
 import { chartPalette } from "@/design";
 import MobileTableCards from "@/components/common/MobileTableCards";
+import { useReportFinancials } from "./useReportFinancials";
 import HourlyHeatmapTab from "./tabs/HourlyHeatmapTab";
 import DayAnalysisTab from "./tabs/DayAnalysisTab";
 import StockLifecycleTab from "./tabs/StockLifecycleTab";
@@ -178,35 +179,16 @@ export default function Report() {
 
 
 
-  // ===== COMPUTED METRICS =====
-  const totalRevenue = bills.reduce((s, b) => s + Number(b.total || 0), 0);
-  const totalDiscount = bills.reduce((s, b) => s + Number(b.discount || 0), 0);
-  const totalCGST = bills.reduce((s, b) => s + Number(b.cgst || 0), 0);
-  const totalSGST = bills.reduce((s, b) => s + Number(b.sgst || 0), 0);
-  const totalGST = totalCGST + totalSGST;
-  const totalServiceCharge = bills.reduce(
-    (s, b) => s + Number(b.serviceCharge || 0),
-    0,
-  );
-  // Canonical figures from the shared finance engine (finance.formulas.ts) —
-  // same numbers Dashboard/Insights/Branch Comparison/PDF/Excel already show.
-  // Falls back to the old local estimate (raw ShopExpense sum, no food/labour
-  // cost) only until the fetch resolves, same pattern used in Insights.tsx.
-  const fin = financeSummary?.current;
-  const localTotalExpenses = expenses.reduce(
-    (s, e) => s + Number(e.amount || 0),
-    0,
-  );
-  const totalExpenses = fin
-    ? fin.foodCost +
-      fin.labourCost +
-      fin.fixedExpenses +
-      fin.variableExpenses +
-      fin.financeCost
-    : localTotalExpenses;
-  const netProfit = fin
-    ? fin.netProfit
-    : totalRevenue - totalGST - localTotalExpenses;
+  // Every derived figure now comes from one place — see useReportFinancials.
+  // Extracted so the financial tabs could move out without either
+  // duplicating the arithmetic or threading a dozen props through them.
+  const {
+    fin,
+    totalRevenue, totalDiscount, totalCGST, totalSGST, totalGST, totalServiceCharge,
+    localTotalExpenses, totalExpenses, netProfit, profitMargin,
+    paidBills, unpaidBills, dineInRevenue, takeawayRevenue, deliveryRevenue,
+    paymentBreakdown, dailyData, expenseByType, orderTypePieData,
+  } = useReportFinancials(bills, expenses, financeSummary);
 
   const [downloadingGst, setDownloadingGst] = useState(false);
   const downloadGstFiling = async () => {
@@ -286,58 +268,6 @@ export default function Report() {
       setDownloadingGst(false);
     }
   };
-  const profitMargin =
-    totalRevenue > 0 ? ((netProfit / totalRevenue) * 100).toFixed(1) : "0";
-  const paidBills = bills.filter((b) => b.status === "PAID");
-  const unpaidBills = bills.filter(
-    (b) => b.status === "UNPAID" || b.status === "PARTIAL",
-  );
-  const dineInRevenue = bills
-    .filter((b) => b.orderType === "DINE_IN")
-    .reduce((s, b) => s + Number(b.total || 0), 0);
-  const takeawayRevenue = bills
-    .filter((b) => b.orderType === "TAKEAWAY")
-    .reduce((s, b) => s + Number(b.total || 0), 0);
-  const deliveryRevenue = bills
-    .filter((b) => b.orderType === "DELIVERY")
-    .reduce((s, b) => s + Number(b.total || 0), 0);
-
-  // Payment method breakdown
-  const paymentBreakdown = bills.reduce((acc: any, b) => {
-    const method = b.paymentMethod || "Unknown";
-    if (!acc[method]) acc[method] = { count: 0, amount: 0 };
-    acc[method].count++;
-    acc[method].amount += Number(b.total || 0);
-    return acc;
-  }, {});
-
-  // Daily revenue for chart
-  const dailyRevenue = bills.reduce((acc: any, b) => {
-    const date = dayjs(b.createdAt).format("DD/MM");
-    if (!acc[date]) acc[date] = { date, revenue: 0, bills: 0, discount: 0 };
-    acc[date].revenue += Number(b.total || 0);
-    acc[date].bills++;
-    acc[date].discount += Number(b.discount || 0);
-    return acc;
-  }, {});
-  const dailyData = Object.values(dailyRevenue).sort(
-    (a: any, b: any) =>
-      dayjs(a.date, "DD/MM").valueOf() - dayjs(b.date, "DD/MM").valueOf(),
-  );
-
-  // Expense by type
-  const expenseByType = expenses.reduce((acc: any, e) => {
-    const type = e.expenseType || "Other";
-    if (!acc[type]) acc[type] = 0;
-    acc[type] += Number(e.amount || 0);
-    return acc;
-  }, {});
-
-  const orderTypePieData = [
-    { name: "Dine In", value: dineInRevenue },
-    { name: "Takeaway", value: takeawayRevenue },
-    { name: "Delivery", value: deliveryRevenue },
-  ].filter((d) => d.value > 0);
 
   if (loading) {
     return (
