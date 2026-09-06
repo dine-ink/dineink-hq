@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { useGetInventoryForecastQuery } from "@/store/api/forecastApi";
 import { useAppSelector } from "@/store";
 import { DataTable, StatusChip, type DataTableColumn } from "@/design";
 import { MODEL_OPTIONS } from "./forecastCategories";
@@ -51,36 +52,26 @@ const columns: DataTableColumn<InventoryItem>[] = [
 
 export default function InventoryForecastTab() {
   const { selectedBranch } = useAppSelector((s) => s.branch);
-  const { user, token } = useAppSelector((s) => s.auth);
-  const API_URL = import.meta.env.VITE_API_URL;
+  const { user } = useAppSelector((s) => s.auth);
 
   const [scope, setScope] = useState<"branch" | "restaurant">("branch");
   const [model, setModel] = useState("HISTORICAL_TREND");
-  const [items, setItems] = useState<InventoryItem[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(false);
 
-  useEffect(() => {
-    const fetchInventory = async () => {
-      if (!user?.restaurantId) return;
-      setLoading(true);
-      setError(false);
-      try {
-        const branchParam = scope === "branch" && selectedBranch?.id ? `&branchId=${selectedBranch.id}` : "";
-        const res = await fetch(`${API_URL}/api/forecasts/${user.restaurantId}/inventory?model=${model}&topN=10${branchParam}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        const json = await res.json();
-        if (json.success) setItems(Array.isArray(json.data) ? json.data : []);
-        else setError(true);
-      } catch {
-        setError(true);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchInventory();
-  }, [user?.restaurantId, selectedBranch?.id, scope, model]);
+  const {
+    data,
+    isFetching: loading,
+    isError,
+  } = useGetInventoryForecastQuery(
+    {
+      restaurantId: user?.restaurantId as number,
+      branchId: scope === "branch" ? selectedBranch?.id : undefined,
+      model,
+    },
+    { skip: !user?.restaurantId },
+  );
+  // The request failing and the server declining stay separate, as before.
+  const error = isError || data === null;
+  const items: InventoryItem[] = data ?? [];
 
   return (
     <div className="space-y-4">

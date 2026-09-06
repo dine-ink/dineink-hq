@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { useGetDemandForecastQuery } from "@/store/api/forecastApi";
 import { useAppSelector } from "@/store";
 import { DataTable, type DataTableColumn } from "@/design";
 import { MODEL_OPTIONS, PERIOD_OPTIONS } from "./forecastCategories";
@@ -42,37 +43,29 @@ const columns: DataTableColumn<DemandItem>[] = [
 
 export default function DemandForecastTab() {
   const { selectedBranch } = useAppSelector((s) => s.branch);
-  const { user, token } = useAppSelector((s) => s.auth);
-  const API_URL = import.meta.env.VITE_API_URL;
+  const { user } = useAppSelector((s) => s.auth);
 
   const [scope, setScope] = useState<"branch" | "restaurant">("branch");
   const [period, setPeriod] = useState("NEXT_MONTH");
   const [model, setModel] = useState("HISTORICAL_TREND");
-  const [items, setItems] = useState<DemandItem[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(false);
 
-  useEffect(() => {
-    const fetchDemand = async () => {
-      if (!user?.restaurantId) return;
-      setLoading(true);
-      setError(false);
-      try {
-        const branchParam = scope === "branch" && selectedBranch?.id ? `&branchId=${selectedBranch.id}` : "";
-        const res = await fetch(`${API_URL}/api/forecasts/${user.restaurantId}/demand?period=${period}&model=${model}&topN=10${branchParam}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        const json = await res.json();
-        if (json.success) setItems(Array.isArray(json.data?.items) ? json.data.items : []);
-        else setError(true);
-      } catch {
-        setError(true);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchDemand();
-  }, [user?.restaurantId, selectedBranch?.id, scope, period, model]);
+  const {
+    data,
+    isFetching: loading,
+    isError,
+  } = useGetDemandForecastQuery(
+    {
+      restaurantId: user?.restaurantId as number,
+      branchId: scope === "branch" ? selectedBranch?.id : undefined,
+      period,
+      model,
+    },
+    { skip: !user?.restaurantId },
+  );
+  // Two ways to fail, kept apart as they were before: the request itself, and
+  // the server answering 200 with success:false (which arrives as null).
+  const error = isError || data === null;
+  const items: DemandItem[] = data ?? [];
 
   return (
     <div className="space-y-4">

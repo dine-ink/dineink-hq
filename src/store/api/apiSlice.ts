@@ -46,6 +46,8 @@ export const api = createApi({
     "BudgetVariance",
     "Executive",
     "ExecutivePreferences",
+    "Forecast",
+    "ForecastAccuracy",
   ],
   endpoints: () => ({}),
 });

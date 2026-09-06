@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useAppSelector } from "@/store";
+import { useGenerateForecastQuery } from "@/store/api/forecastApi";
 import { CONFIDENCE_STYLES, fmtCategoryValue, FORECAST_KPIS, MODEL_OPTIONS, PERIOD_OPTIONS, WIDGET_KPIS } from "./forecastCategories";
 import { AlertIcon, TrendIcon } from "@/utils/kpiDisplay";
 import { ALERT_STYLES, trendStyle } from "@/utils/kpiStyles";
@@ -9,34 +10,27 @@ import { CheckCircleIcon } from "@heroicons/react/24/outline";
 
 export default function OverviewTab() {
   const { selectedBranch } = useAppSelector((s) => s.branch);
-  const { user, token } = useAppSelector((s) => s.auth);
-  const API_URL = import.meta.env.VITE_API_URL;
+  const { user } = useAppSelector((s) => s.auth);
 
   const [scope, setScope] = useState<"branch" | "restaurant">("branch");
   const [period, setPeriod] = useState("NEXT_MONTH");
   const [model, setModel] = useState("HISTORICAL_TREND");
-  const [forecast, setForecast] = useState<any>(null);
-  const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    const fetchForecast = async () => {
-      if (!user?.restaurantId) return;
-      setLoading(true);
-      try {
-        const branchParam = scope === "branch" && selectedBranch?.id ? `&branchId=${selectedBranch.id}` : "";
-        const res = await fetch(`${API_URL}/api/forecasts/${user.restaurantId}/generate?period=${period}&model=${model}${branchParam}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        const json = await res.json();
-        if (json.success) setForecast(json.data);
-      } catch {
-        // fetch error — silently ignored
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchForecast();
-  }, [user?.restaurantId, selectedBranch?.id, scope, period, model]);
+  // Reports runs this same query. Cached, so switching between the two tabs no
+  // longer re-runs the model on the server for parameters it already has.
+  const {
+    data: forecast,
+    isFetching: loading,
+    isError,
+  } = useGenerateForecastQuery(
+    {
+      restaurantId: user?.restaurantId as number,
+      branchId: scope === "branch" ? selectedBranch?.id : undefined,
+      period,
+      model,
+    },
+    { skip: !user?.restaurantId },
+  );
 
   const kpisByKey = useMemo(() => {
     const map = new Map<string, any>();
@@ -86,6 +80,11 @@ export default function OverviewTab() {
       </div>
 
       {loading && <div className="flex h-24 items-center justify-center text-[12px] text-gray-400">Generating forecast…</div>}
+      {!loading && isError && (
+        <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-[12px] text-amber-800">
+          Could not generate a forecast just now. Check the connection and try again.
+        </div>
+      )}
 
       {!loading && forecast && (
         <>
