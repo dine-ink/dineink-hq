@@ -729,7 +729,7 @@ export default function RestaurantSetupModal({ open, setOpen }: Props) {
                             key={index}
                             className="overflow-hidden rounded-[32px] border border-white/40 bg-white/80 shadow-[0_8px_30px_rgba(0,0,0,0.05)] backdrop-blur-xl"
                           >
-                            <div className="relative overflow-hidden border-b border-gray-100 bg-gradient-to-r from-red-500 to-rose-500 px-4 py-3">
+                            <div className="relative overflow-hidden border-b border-gray-100 bg-gradient-to-r from-[#b10000] to-[#8f0000] px-4 py-3">
                               <div className="absolute right-0 top-0 h-40 w-40 rounded-full bg-white/10 blur-3xl" />
                               <div className="relative z-10 flex items-center justify-between">
                                 <div className="flex items-center gap-3">
