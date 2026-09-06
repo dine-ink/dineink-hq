@@ -48,6 +48,8 @@ export const api = createApi({
     "ExecutivePreferences",
     "Forecast",
     "ForecastAccuracy",
+    "Investment",
+    "InvestmentMetrics",
   ],
   endpoints: () => ({}),
 });

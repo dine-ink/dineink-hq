@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
 import { useAppSelector } from "@/store";
+import { useGetInvestmentPortfolioQuery } from "@/store/api/investmentApi";
 import { fmtCategoryValue, riskLevelFor, RISK_STYLES } from "./investmentCategories";
 import InvestmentCharts from "./InvestmentCharts";
 import {
@@ -9,28 +9,14 @@ import {
 } from "@heroicons/react/24/outline";
 
 export default function OverviewTab() {
-  const { user, token } = useAppSelector((s) => s.auth);
-  const API_URL = import.meta.env.VITE_API_URL;
+  const { user } = useAppSelector((s) => s.auth);
 
-  const [portfolio, setPortfolio] = useState<any>(null);
-  const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    const fetchPortfolio = async () => {
-      if (!user?.restaurantId) return;
-      setLoading(true);
-      try {
-        const res = await fetch(`${API_URL}/api/investments/${user.restaurantId}/portfolio`, { headers: { Authorization: `Bearer ${token}` } });
-        const json = await res.json();
-        if (json.success) setPortfolio(json.data);
-      } catch {
-        // fetch error — silently ignored
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchPortfolio();
-  }, [user?.restaurantId]);
+  // Refreshes itself after a project is created, edited or deleted on the
+  // Projects tab — the old code left this stale until the tab was revisited.
+  const { data: portfolio, isFetching: loading } = useGetInvestmentPortfolioQuery(
+    user?.restaurantId as number,
+    { skip: !user?.restaurantId },
+  );
 
   if (loading) return <div className="flex h-40 items-center justify-center text-[12px] text-gray-400">Loading portfolio…</div>;
 

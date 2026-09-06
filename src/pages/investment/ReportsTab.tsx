@@ -7,6 +7,7 @@ import { ArrowDownTrayIcon, PrinterIcon } from "@heroicons/react/24/outline";
 import { useAppSelector } from "@/store";
 import { fmtCategoryValue } from "./investmentCategories";
 import MobileTableCards from "@/components/common/MobileTableCards";
+import { useGetInvestmentsWithMetricsQuery } from "@/store/api/investmentApi";
 
 const REPORT_TYPES = [
   { key: "summary", label: "Investment Summary Report" },
@@ -19,35 +20,24 @@ const REPORT_TYPES = [
 ];
 
 export default function ReportsTab() {
-  const { user, token } = useAppSelector((s) => s.auth);
-  const API_URL = import.meta.env.VITE_API_URL;
+  const { user } = useAppSelector((s) => s.auth);
 
   const [reportType, setReportType] = useState("summary");
-  const [withMetrics, setWithMetrics] = useState<any[]>([]);
   const [selectedProjectId, setSelectedProjectId] = useState<number | null>(null);
-  const [loading, setLoading] = useState(false);
   const [columns, setColumns] = useState<string[]>([]);
   const [rows, setRows] = useState<any[]>([]);
 
+  const { data: withMetrics = [], isFetching: loading } =
+    useGetInvestmentsWithMetricsQuery(user?.restaurantId as number, {
+      skip: !user?.restaurantId,
+    });
+
+  // The first project is the default selection, and `?? prev` keeps it once the
+  // reader has chosen another — exactly as the old fetch did inline.
+  const firstProjectId = withMetrics[0]?.project.id ?? null;
   useEffect(() => {
-    const fetchAll = async () => {
-      if (!user?.restaurantId) return;
-      setLoading(true);
-      try {
-        const res = await fetch(`${API_URL}/api/investments/${user.restaurantId}/with-metrics`, { headers: { Authorization: `Bearer ${token}` } });
-        const json = await res.json();
-        if (json.success) {
-          setWithMetrics(json.data);
-          setSelectedProjectId((prev) => prev ?? json.data[0]?.project.id ?? null);
-        }
-      } catch {
-        // fetch error — silently ignored
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchAll();
-  }, [user?.restaurantId]);
+    setSelectedProjectId((prev) => prev ?? firstProjectId);
+  }, [firstProjectId]);
 
   useEffect(() => {
     if (withMetrics.length === 0) return;

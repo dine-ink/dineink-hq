@@ -1,10 +1,18 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import {
   ResponsiveContainer, BarChart, Bar, CartesianGrid, XAxis, YAxis, Tooltip, Cell,
 } from "recharts";
 import { tooltipFormatter } from "@/utils/chartFormatters";
 import { useAppDispatch, useAppSelector } from "@/store";
 import { scenariosApi } from "@/store/api/scenariosApi";
+import {
+  useGetInvestmentsQuery,
+  useGetInvestmentMetricsQuery,
+  useGetInvestmentForecastComparisonQuery,
+  useCreateInvestmentMutation,
+  useUpdateInvestmentMutation,
+  useDeleteInvestmentMutation,
+} from "@/store/api/investmentApi";
 import { ASSUMPTION_FIELDS, fmtCategoryValue, INVESTMENT_STATUSES, INVESTMENT_TYPES, riskLevelFor, RISK_STYLES, STATUS_STYLES } from "./investmentCategories";
 import MobileTableCards from "@/components/common/MobileTableCards";
 import {
@@ -18,37 +26,42 @@ const SCENARIO_TYPE_LABEL: Record<string, string> = { CONSERVATIVE: "Conservativ
 
 export default function ProjectsTab() {
   const { branches } = useAppSelector((s) => s.branch);
-  const { user, token } = useAppSelector((s) => s.auth);
+  const { user } = useAppSelector((s) => s.auth);
   const dispatch = useAppDispatch();
-  const API_URL = import.meta.env.VITE_API_URL;
 
-  const [projects, setProjects] = useState<any[]>([]);
-  const [loading, setLoading] = useState(false);
   const [view, setView] = useState<"list" | "create" | "edit">("list");
   const [selected, setSelected] = useState<any>(null);
-  const [metrics, setMetrics] = useState<any>(null);
   const [scenarios, setScenarios] = useState<any[]>([]);
   const [scenarioId, setScenarioId] = useState<string>("");
-  const [forecastComparison, setForecastComparison] = useState<any>(null);
-  const [saving, setSaving] = useState(false);
+
+  const restaurantId = user?.restaurantId as number;
+
+  const { data: projects = [], isFetching: loading } = useGetInvestmentsQuery(
+    restaurantId,
+    { skip: !user?.restaurantId },
+  );
+
+  /**
+   * Metrics and the forecast comparison follow the selection instead of being
+   * loaded by hand when a project is opened. That is what makes the scenario
+   * picker a one-liner: changing scenarioId changes the cache key, and the
+   * numbers refetch on their own.
+   */
+  const { data: metrics } = useGetInvestmentMetricsQuery(
+    { restaurantId, investmentId: selected?.id, scenarioId },
+    { skip: !user?.restaurantId || !selected?.id },
+  );
+  const { data: forecastComparison } = useGetInvestmentForecastComparisonQuery(
+    { restaurantId, investmentId: selected?.id },
+    { skip: !user?.restaurantId || !selected?.id },
+  );
+
+  const [createInvestment, { isLoading: creating }] = useCreateInvestmentMutation();
+  const [updateInvestment, { isLoading: updating }] = useUpdateInvestmentMutation();
+  const [deleteInvestment] = useDeleteInvestmentMutation();
+  const saving = creating || updating;
 
   const [form, setForm] = useState<Record<string, string>>({});
-
-  const fetchProjects = async () => {
-    if (!user?.restaurantId) return;
-    setLoading(true);
-    try {
-      const res = await fetch(`${API_URL}/api/investments/${user.restaurantId}`, { headers: { Authorization: `Bearer ${token}` } });
-      const json = await res.json();
-      if (json.success) setProjects(json.data);
-    } catch {
-      // fetch error — silently ignored
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => { fetchProjects(); }, [user?.restaurantId]);
 
   const openCreate = () => {
     setForm({ name: "", type: "CUSTOM", branchId: "restaurant", initialInvestment: "", plannedStartDate: new Date().toISOString().slice(0, 10), projectLifeYears: "5" });
@@ -58,7 +71,6 @@ export default function ProjectsTab() {
   const handleCreate = async () => {
     if (!form.name?.trim()) { alert("Please enter a project name"); return; }
     if (!form.initialInvestment || Number(form.initialInvestment) <= 0) { alert("Please enter a positive initial investment"); return; }
-    setSaving(true);
     try {
       const body: Record<string, any> = {
         name: form.name.trim(), type: form.type, description: form.description || null,
@@ -67,15 +79,12 @@ export default function ProjectsTab() {
         projectLifeYears: Number(form.projectLifeYears || 5),
       };
       ASSUMPTION_FIELDS.forEach((f) => { if (form[f.key]) body[f.key] = Number(form[f.key]); });
-      const res = await fetch(`${API_URL}/api/investments/${user.restaurantId}`, {
-        method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify(body),
-      });
-      const json = await res.json();
-      if (json.success) { await fetchProjects(); openDetail(json.data); } else { alert(json.message || "Failed to create investment"); }
+      // The list, portfolio and branch ranking all refresh from the tag; no
+      // hand-written refetch, and no other tab left stale.
+      const created = await createInvestment({ restaurantId, body }).unwrap();
+      openDetail(created);
     } catch {
       alert("Failed to create investment");
-    } finally {
-      setSaving(false);
     }
   };
 
@@ -86,8 +95,6 @@ export default function ProjectsTab() {
     setForm(values);
     setScenarioId("");
     setView("edit");
-    await loadMetrics(project.id, "");
-    await loadForecastComparison(project.id);
     if (user?.restaurantId) {
       try {
         // Via the scenarios endpoint so this picker shares the cache with the
@@ -109,69 +116,43 @@ export default function ProjectsTab() {
     }
   };
 
-  const loadMetrics = async (investmentId: number, scenario: string) => {
-    try {
-      const scenarioParam = scenario ? `?scenarioId=${scenario}` : "";
-      const res = await fetch(`${API_URL}/api/investments/${user.restaurantId}/${investmentId}/metrics${scenarioParam}`, { headers: { Authorization: `Bearer ${token}` } });
-      const json = await res.json();
-      if (json.success) setMetrics(json.data);
-    } catch {
-      // fetch error — silently ignored
-    }
-  };
-
-  const loadForecastComparison = async (investmentId: number) => {
-    try {
-      const res = await fetch(`${API_URL}/api/investments/${user.restaurantId}/${investmentId}/forecast-comparison`, { headers: { Authorization: `Bearer ${token}` } });
-      const json = await res.json();
-      if (json.success) setForecastComparison(json.data);
-    } catch {
-      // fetch error — silently ignored
-    }
-  };
-
-  const handleScenarioChange = (value: string) => {
-    setScenarioId(value);
-    if (selected) loadMetrics(selected.id, value);
-  };
+  // Changing the scenario changes the metrics query's cache key, which is all
+  // the refetch this needs.
+  const handleScenarioChange = (value: string) => setScenarioId(value);
 
   const handleSave = async () => {
     if (!selected) return;
-    setSaving(true);
     try {
       const body: Record<string, any> = { name: form.name.trim(), description: form.description || null };
       ASSUMPTION_FIELDS.forEach((f) => { body[f.key] = form[f.key] ? Number(form[f.key]) : null; });
-      const res = await fetch(`${API_URL}/api/investments/${user.restaurantId}/${selected.id}`, {
-        method: "PUT", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify(body),
-      });
-      const json = await res.json();
-      if (json.success) { setSelected(json.data); await fetchProjects(); await loadMetrics(selected.id, scenarioId); }
-      // handleCreate a few lines up already alerts on failure; this one — the
-      // edit path, where the assumptions driving IRR and payback are changed —
-      // said nothing at all.
-      else alert(json.message || "Failed to save these investment assumptions");
+      // Invalidating InvestmentMetrics is what refreshes IRR and payback here —
+      // these are the assumptions those are computed from.
+      setSelected(await updateInvestment({ restaurantId, investmentId: selected.id, body }).unwrap());
     } catch {
       alert("Failed to save these investment assumptions");
-    } finally {
-      setSaving(false);
     }
   };
 
   const handleSetStatus = async (status: string) => {
     if (!selected) return;
-    const res = await fetch(`${API_URL}/api/investments/${user.restaurantId}/${selected.id}`, {
-      method: "PUT", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify({ status }),
-    });
-    const json = await res.json();
-    if (json.success) { setSelected(json.data); await fetchProjects(); }
+    try {
+      setSelected(
+        await updateInvestment({ restaurantId, investmentId: selected.id, body: { status } }).unwrap(),
+      );
+    } catch {
+      // This path said nothing at all when it failed: the status badge simply
+      // did not change and no one was told why.
+      alert("Failed to change this project's status");
+    }
   };
 
   const handleDelete = async (project: any) => {
     if (!confirm(`Delete "${project.name}"? This can't be undone.`)) return;
-    const res = await fetch(`${API_URL}/api/investments/${user.restaurantId}/${project.id}`, { method: "DELETE", headers: { Authorization: `Bearer ${token}` } });
-    const json = await res.json();
-    if (json.success) await fetchProjects();
-    else alert(json.message || "Failed to delete");
+    try {
+      await deleteInvestment({ restaurantId, investmentId: project.id }).unwrap();
+    } catch {
+      alert("Failed to delete");
+    }
   };
 
   const statusBadge = (status: string) => {
