@@ -72,6 +72,11 @@ export const api = createApi({
     "WhatsAppLog",
     "Customer",
     "Settings",
+    "Equipment",
+    "Labor",
+    "StockAudit",
+    "Cash",
+    "Procurement",
   ],
   endpoints: () => ({}),
 });

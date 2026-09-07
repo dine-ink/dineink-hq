@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
 import dayjs from "dayjs";
 import { useAppSelector } from "@/store";
+import { useGetCashSessionsQuery } from "@/store/api/operationsApi";
 import {
   LineChart,
   Line,
@@ -16,34 +16,13 @@ import {
 import MobileTableCards from "@/components/common/MobileTableCards";
 
 export default function CashSessions() {
-  const API_URL = import.meta.env.VITE_API_URL;
   const { from, to } = useAppSelector((s) => s.dateRange);
   const { selectedBranch } = useAppSelector((s) => s.branch);
-  const { token } = useAppSelector((s) => s.auth);
-  const [loading, setLoading] = useState(false);
-  const [sessions, setSessions] = useState<any[]>([]);
 
-  useEffect(() => {
-    const fetch_ = async () => {
-      if (!selectedBranch?.id) return;
-      try {
-        setLoading(true);
-        const res = await fetch(
-          `${API_URL}/api/cash/sessions?branchId=${selectedBranch.id}&from=${from}&to=${to}`,
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          },
-        );
-        const data = await res.json();
-        if (data.success) setSessions(data.data || []);
-      } catch {
-        /* silent */
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetch_();
-  }, [from, to, selectedBranch?.id]);
+  const { data: sessions = [], isFetching: loading } = useGetCashSessionsQuery(
+    { branchId: selectedBranch?.id as number, from, to },
+    { skip: !selectedBranch?.id },
+  );
 
   const shortfallSessions = sessions.filter(
     (s: any) => Number(s.cashDifference || 0) < 0,

@@ -1,5 +1,9 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useAppSelector } from "@/store";
+import {
+  useGetBranchComparisonQuery,
+  useGetCityComparisonQuery,
+} from "@/store/api/analyticsApi";
 import {
   BarChart,
   Bar,
@@ -113,50 +117,27 @@ function WinnerBadge({
 }
 
 export default function BranchComparison() {
-  const API_URL = import.meta.env.VITE_API_URL;
   const { from, to } = useAppSelector((s) => s.dateRange);
-  const { user, token } = useAppSelector((s) => s.auth);
+  const { user } = useAppSelector((s) => s.auth);
   const [activeTab, setActiveTab] = useState<TabId>("branch");
-  const [loading, setLoading] = useState(false);
-  const [branchData, setBranchData] = useState<any[]>([]);
-  const [cityData, setCityData] = useState<any[]>([]);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      if (!user?.restaurantId) return;
-      setLoading(true);
-      const h = { Authorization: `Bearer ${token}` };
-      // Fetch branch and city data independently so one failing won't block the other
-      await Promise.all([
-        (async () => {
-          try {
-            const res = await fetch(
-              `${API_URL}/api/analytics/${user.restaurantId}/branch-comparison?from=${from}&to=${to}`,
-              { headers: h },
-            );
-            const data = await res.json();
-            if (data.success) setBranchData(data.data || []);
-          } catch {
-            /* silent */
-          }
-        })(),
-        (async () => {
-          try {
-            const res = await fetch(
-              `${API_URL}/api/analytics/${user.restaurantId}/city-comparison?from=${from}&to=${to}`,
-              { headers: h },
-            );
-            const data = await res.json();
-            if (data.success) setCityData(data.data || []);
-          } catch {
-            /* silent */
-          }
-        })(),
-      ]);
-      setLoading(false);
-    };
-    fetchData();
-  }, [from, to]);
+  /**
+   * Two independent queries, which is what the nested try/catch pair inside
+   * one Promise.all was reaching for: either can fail without taking the
+   * other's data down with it. RTK Query gives that for free.
+   */
+  const branchQ = useGetBranchComparisonQuery(
+    { restaurantId: user?.restaurantId as number, from, to },
+    { skip: !user?.restaurantId },
+  );
+  const cityQ = useGetCityComparisonQuery(
+    { restaurantId: user?.restaurantId as number, from, to },
+    { skip: !user?.restaurantId },
+  );
+
+  const branchData = branchQ.data ?? [];
+  const cityData = cityQ.data ?? [];
+  const loading = branchQ.isFetching || cityQ.isFetching;
 
   const data = activeTab === "branch" ? branchData : cityData;
   const nameKey =

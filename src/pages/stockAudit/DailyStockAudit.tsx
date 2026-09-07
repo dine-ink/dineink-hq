@@ -1,5 +1,9 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { useAppSelector } from "@/store";
+import {
+  useGetDailyAuditPreviewQuery,
+  useSubmitDailyAuditMutation,
+} from "@/store/api/operationsApi";
 import { formatQty } from "@/utils/units";
 import {
   ClipboardDocumentCheckIcon,
@@ -9,14 +13,12 @@ import {
 } from "@heroicons/react/24/outline";
 
 export default function DailyStockAudit() {
-  const API_URL = import.meta.env.VITE_API_URL;
   const { selectedBranch } = useAppSelector((s) => s.branch);
-  const { user, token } = useAppSelector((s) => s.auth);
+  const { user } = useAppSelector((s) => s.auth);
 
   const todayStr = new Date().toISOString().slice(0, 10);
   const [auditDate, setAuditDate] = useState(todayStr);
   const [ingredients, setIngredients] = useState<any[]>([]);
-  const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [savedOk, setSavedOk] = useState(false);
   const [search, setSearch] = useState("");
@@ -24,42 +26,43 @@ export default function DailyStockAudit() {
   const [closingInputs, setClosingInputs] = useState<Record<number, string>>({});
   const [notesInputs, setNotesInputs] = useState<Record<number, string>>({});
 
-  const headers = { Authorization: `Bearer ${token}` };
+  /**
+   * The preview seeds two editable drafts — a closing quantity and a note per
+   * ingredient — so the rows are seeded from the query rather than read off it.
+   *
+   * Re-seeding whenever the payload changes is what the old code did: filing an
+   * audit called fetchPreview() again, and changing the date refetched. The
+   * submit invalidates StockAudit, so both still happen.
+   */
+  const { data: preview, isFetching: loading } = useGetDailyAuditPreviewQuery(
+    { branchId: selectedBranch?.id as number, date: auditDate },
+    { skip: !selectedBranch?.id || !user?.restaurantId },
+  );
+  const [submitDailyAudit] = useSubmitDailyAuditMutation();
 
-  const fetchPreview = useCallback(async () => {
-    if (!selectedBranch?.id || !user?.restaurantId) return;
-    setLoading(true);
-    setSavedOk(false);
-    try {
-      const res = await fetch(
-        `${API_URL}/api/inventory/daily-audit/preview?branchId=${selectedBranch.id}&date=${auditDate}`,
-        { headers },
-      );
-      const json = await res.json();
-      if (json.success) {
-        setIngredients(json.data || []);
-        // Pre-fill from an already-saved audit if one exists for this date;
-        // otherwise default to the calculated Expected value instead of
-        // leaving it blank — with 200+ ingredients, typing every single
-        // closing qty from scratch isn't realistic. Staff only need to
-        // correct the rows where their physical count actually differs;
-        // anything left untouched saves as "matched expected, no wastage",
-        // which is exactly what a real, uneventful count would show anyway.
-        const initClosing: Record<number, string> = {};
-        const initNotes: Record<number, string> = {};
-        for (const ing of json.data || []) {
-          if (ing.closingQty !== null) initClosing[ing.ingredientId] = String(ing.closingQty);
-          else if (ing.expectedClosing !== null && ing.expectedClosing !== undefined) initClosing[ing.ingredientId] = String(ing.expectedClosing);
-          if (ing.notes) initNotes[ing.ingredientId] = ing.notes;
-        }
-        setClosingInputs(initClosing);
-        setNotesInputs(initNotes);
-      }
-    } catch { /* silent */ }
-    setLoading(false);
-  }, [selectedBranch?.id, auditDate, user?.restaurantId]);
+  useEffect(() => {
+    if (!preview) return;
+    const rows: any[] = Array.isArray(preview) ? preview : [];
+    setIngredients(rows);
 
-  useEffect(() => { fetchPreview(); }, [fetchPreview]);
+    // Pre-fill from an already-saved audit if one exists for this date;
+    // otherwise default to the calculated Expected value instead of leaving it
+    // blank — with 200+ ingredients, typing every single closing qty from
+    // scratch isn't realistic. Staff only need to correct the rows where their
+    // physical count actually differs; anything left untouched saves as
+    // "matched expected, no wastage", which is exactly what a real, uneventful
+    // count would show anyway.
+    const initClosing: Record<number, string> = {};
+    const initNotes: Record<number, string> = {};
+    for (const ing of rows) {
+      if (ing.closingQty !== null) initClosing[ing.ingredientId] = String(ing.closingQty);
+      else if (ing.expectedClosing !== null && ing.expectedClosing !== undefined)
+        initClosing[ing.ingredientId] = String(ing.expectedClosing);
+      if (ing.notes) initNotes[ing.ingredientId] = ing.notes;
+    }
+    setClosingInputs(initClosing);
+    setNotesInputs(initNotes);
+  }, [preview]);
 
   const handleSave = async () => {
     if (!selectedBranch?.id) return;
@@ -77,14 +80,13 @@ export default function DailyStockAudit() {
 
     setSaving(true);
     try {
-      const res = await fetch(`${API_URL}/api/inventory/daily-audit`, {
-        method: "POST",
-        headers: { ...headers, "Content-Type": "application/json" },
-        body: JSON.stringify({ branchId: selectedBranch.id, date: auditDate, entries }),
-      });
-      const json = await res.json();
-      if (json.success) { setSavedOk(true); fetchPreview(); }
-      else alert(json.message || "Failed to save");
+      await submitDailyAudit({
+        branchId: selectedBranch.id,
+        date: auditDate,
+        entries,
+      }).unwrap();
+      setSavedOk(true);
+      // The preview refetches from the tag; no second call by hand.
     } catch { alert("Failed to save"); }
     setSaving(false);
   };

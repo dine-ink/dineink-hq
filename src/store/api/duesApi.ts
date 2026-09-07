@@ -78,11 +78,44 @@ export const duesApi = api.injectEndpoints({
       query: ({ id }) => ({ url: `/api/dues/${id}`, method: "DELETE" }),
       invalidatesTags: (_result, _error, { scope }) => scopeTag(scope),
     }),
+    /**
+     * Three read-only roll-ups over the same dues the list above manages, so
+     * they carry the same scope tag: recording a payment refreshes the EBITDA
+     * summary, the month-on-month comparison and the payment calendar together.
+     * Each was a separate hand-written fetch before, and none of them refreshed
+     * after a write.
+     */
+    getDuesEbitdaSummary: builder.query<any, DuesScope>({
+      query: ({ restaurantId, branchId, month, year }) =>
+        `/api/dues/${restaurantId}/${branchId}/ebitda-summary?month=${month}&year=${year}`,
+      transformResponse: (response: Envelope<any>) => unwrap(response),
+      providesTags: (_result, _error, scope) => scopeTag(scope),
+    }),
+
+    getDuesMonthComparison: builder.query<any, DuesScope>({
+      query: ({ restaurantId, branchId, month, year }) =>
+        `/api/dues/${restaurantId}/${branchId}/month-comparison?month=${month}&year=${year}`,
+      transformResponse: (response: Envelope<any>) => unwrap(response),
+      providesTags: (_result, _error, scope) => scopeTag(scope),
+    }),
+
+    getDuesPaymentCalendar: builder.query<
+      any,
+      Omit<DuesScope, "month" | "year"> & { month: number; year: number; from: string; to: string }
+    >({
+      query: ({ restaurantId, branchId, from, to }) =>
+        `/api/dues/${restaurantId}/${branchId}/payment-calendar?from=${from}&to=${to}`,
+      transformResponse: (response: Envelope<any>) => unwrap(response),
+      providesTags: (_result, _error, scope) => scopeTag(scope),
+    }),
   }),
 });
 
 export const {
   useGetMonthlyDuesQuery,
+  useGetDuesEbitdaSummaryQuery,
+  useGetDuesMonthComparisonQuery,
+  useGetDuesPaymentCalendarQuery,
   useCreateMonthlyDueMutation,
   useUpdateMonthlyDueMutation,
   useDeleteMonthlyDueMutation,
