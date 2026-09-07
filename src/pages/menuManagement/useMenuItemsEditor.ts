@@ -1,6 +1,11 @@
 import { useState } from "react";
-import type { Dispatch, SetStateAction } from "react";
 import { useAppSelector } from "@/store";
+import {
+  useCreateMenuCategoryMutation,
+  useSaveMenuItemMutation,
+  useDeleteMenuItemMutation,
+  useSetMenuItemAvailabilityMutation,
+} from "@/store/api/menuApi";
 
 /**
  * The menu list: its filters, its sort, and the create/edit/delete of items and
@@ -16,16 +21,14 @@ import { useAppSelector } from "@/store";
  * were on the page. Nothing here is memoised that was not memoised before.
  */
 
-export function useMenuItemsEditor(
-  menuItems: any[],
-  // Dispatch, not a plain setter: the handlers use the updater form, and a
-  // `(items: any[]) => void` signature rejects it.
-  setMenuItems: Dispatch<SetStateAction<any[]>>,
-  categories: any[],
-  setCategories: Dispatch<SetStateAction<any[]>>,
-) {
-  const { user, token } = useAppSelector((s) => s.auth);
-  const API_URL = import.meta.env.VITE_API_URL;
+/**
+ * Both setters this used to take are gone. They existed so the write handlers
+ * could patch the page's arrays by hand — map after an edit, filter after a
+ * delete, append after a create. The cache tag does that now, so the hook only
+ * reads.
+ */
+export function useMenuItemsEditor(menuItems: any[], categories: any[]) {
+  const { user } = useAppSelector((s) => s.auth);
 
   // ── Menu tab CRUD state ──────────────────────────────────────────────────
   const [itemSearch, setItemSearch] = useState("");
@@ -52,7 +55,11 @@ export function useMenuItemsEditor(
   const [itemForm, setItemForm] = useState<any>(blankItemForm);
   const [showMenuCategory, setShowMenuCategory] = useState(false);
   const [menuCatName, setMenuCatName] = useState("");
-  const [savingItem, setSavingItem] = useState(false);
+
+  const [createMenuCategory] = useCreateMenuCategoryMutation();
+  const [saveMenuItemMutation, { isLoading: savingItem }] = useSaveMenuItemMutation();
+  const [deleteMenuItemMutation] = useDeleteMenuItemMutation();
+  const [setAvailability] = useSetMenuItemAvailabilityMutation();
 
   // ── Menu CRUD helpers ────────────────────────────────────────────────────
 
@@ -60,81 +67,44 @@ export function useMenuItemsEditor(
     const name = menuCatName.trim();
     if (!name) return;
     try {
-      const res = await fetch(`${API_URL}/api/restaurant/categories`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ restaurantId: user.restaurantId, name }),
-      });
-      const data = await res.json();
-      if (data.success) {
-        setCategories((prev: any[]) => [...prev, data.data]);
-        setMenuCatName("");
-        setShowMenuCategory(false);
-      } else {
-        // The dialog stays open on failure so the typed name survives a retry.
-        alert(data.message || "Failed to add that category");
-      }
+      await createMenuCategory({ restaurantId: user.restaurantId, name }).unwrap();
+      setMenuCatName("");
+      setShowMenuCategory(false);
     } catch {
+      // The dialog stays open on failure so the typed name survives a retry.
       alert("Failed to add that category");
     }
   };
 
   const handleSaveMenuItem = async () => {
     if (!itemForm.name.trim() || !itemForm.price) return;
-    setSavingItem(true);
     try {
-      const payload = {
-        ...itemForm,
-        restaurantId: user.restaurantId,
-        branchId: user.branchId || null,
-        price: Number(itemForm.price),
-        prepTime: itemForm.prepTime ? Number(itemForm.prepTime) : 0,
-        categoryId: itemForm.categoryId ? Number(itemForm.categoryId) : null,
-      };
-      const isEdit = !!editingItem;
-      const url = isEdit
-        ? `${API_URL}/api/restaurant/menu-items/${editingItem.id}`
-        : `${API_URL}/api/restaurant/menu-items`;
-      const res = await fetch(url, {
-        method: isEdit ? "PUT" : "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
+      await saveMenuItemMutation({
+        id: editingItem?.id,
+        payload: {
+          ...itemForm,
+          restaurantId: user.restaurantId,
+          branchId: user.branchId || null,
+          price: Number(itemForm.price),
+          prepTime: itemForm.prepTime ? Number(itemForm.prepTime) : 0,
+          categoryId: itemForm.categoryId ? Number(itemForm.categoryId) : null,
         },
-        body: JSON.stringify(payload),
-      });
-      const data = await res.json();
-      if (data.success) {
-        setMenuItems((prev: any[]) =>
-          isEdit
-            ? prev.map((m: any) => (m.id === editingItem.id ? data.data : m))
-            : [...prev, data.data],
-        );
-        setShowAddItemForm(false);
-        setEditingItem(null);
-        setItemForm(blankItemForm);
-      }
+      }).unwrap();
+      setShowAddItemForm(false);
+      setEditingItem(null);
+      setItemForm(blankItemForm);
     } catch {
-      /* silent */
-    } finally {
-      setSavingItem(false);
+      // This path said nothing at all before: a rejected save closed no dialog
+      // and raised no message, so the item simply never appeared. The form
+      // stays open and populated.
+      alert("Failed to save this menu item");
     }
   };
 
   const handleDeleteMenuItem = async (id: number) => {
     if (!window.confirm("Delete this menu item?")) return;
     try {
-      const res = await fetch(`${API_URL}/api/restaurant/menu-items/${id}`, {
-        method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data = await res.json();
-      if (data.success)
-        setMenuItems((prev: any[]) => prev.filter((m: any) => m.id !== id));
-      else alert(data.message || "Failed to delete this menu item");
+      await deleteMenuItemMutation(id).unwrap();
     } catch {
       alert("Failed to delete this menu item");
     }
@@ -142,26 +112,10 @@ export function useMenuItemsEditor(
 
   const handleToggleAvailability = async (item: any) => {
     try {
-      const res = await fetch(
-        `${API_URL}/api/restaurant/menu-items/${item.id}`,
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({ isAvailable: !item.isAvailable }),
-        },
-      );
-      const data = await res.json();
-      if (data.success)
-        setMenuItems((prev: any[]) =>
-          prev.map((m: any) => (m.id === item.id ? data.data : m)),
-        );
-      // A rejected toggle left the availability switch showing its old value,
-      // which reads as the click not registering rather than being refused.
-      else alert(data.message || "Failed to change this item's availability");
+      await setAvailability({ id: item.id, isAvailable: !item.isAvailable }).unwrap();
     } catch {
+      // A rejected toggle leaves the switch showing its old value, which reads
+      // as the click not registering rather than being refused.
       alert("Failed to change this item's availability");
     }
   };

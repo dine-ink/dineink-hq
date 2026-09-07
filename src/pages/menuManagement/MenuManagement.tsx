@@ -2,6 +2,10 @@ import { useEffect, useState } from "react";
 import { useAppDispatch, useAppSelector } from "@/store";
 import { useAddOns } from "./useAddOns";
 import {
+  useGetMenuManagementQuery,
+  useGetDailyAuditCountQuery,
+} from "@/store/api/inventoryApi";
+import {
   useAttachAddOnGroupMutation,
   useDetachAddOnGroupMutation,
   addonsApi,
@@ -199,13 +203,21 @@ export default function MenuManagement() {
   const { selectedBranch } = useAppSelector((s) => s.branch);
   const { user, token } = useAppSelector((s) => s.auth);
   const dispatch = useAppDispatch();
+
+  // Whether a closing-stock audit has been filed today. The query returns null
+  // when the check itself failed, which is not the same as "none filed" — the
+  // page nags only for the second.
+  const today = new Date().toISOString().split("T")[0];
+  const { data: todayAuditCount = null } = useGetDailyAuditCountQuery(
+    { branchId: selectedBranch?.id as number, date: today },
+    { skip: !selectedBranch?.id },
+  );
   const [selectedWeek, setSelectedWeek] = useState("week1");
-  const [todayAuditCount, setTodayAuditCount] = useState<number | null>(null);
   const API_URL = import.meta.env.VITE_API_URL;
 
   // The menu list: filters, sort, and the create/edit/delete of items and
   // categories. Nothing outside the Menu tab reads any of it.
-  const menuEditor = useMenuItemsEditor(menuItems, setMenuItems, categories, setCategories);
+  const menuEditor = useMenuItemsEditor(menuItems, categories);
 
   // The ingredient stock editor. The page keeps `ingredients` in view because
   // allIngredients is flattened from it and three other tabs read that.
@@ -941,162 +953,124 @@ export default function MenuManagement() {
       text: "text-emerald-600",
     });
   }
+  /**
+   * One cached payload, two derivations.
+   *
+   * This used to be a single effect keyed on `[selectedBranch?.id,
+   * selectedWeek]`, which meant picking a different week refetched this
+   * payload, the mappings and the month's bills. Only the restock formatting
+   * depends on the week, and it needs no network at all — so the fetch is keyed
+   * on the branch and the week-dependent shaping is a separate effect over the
+   * cached result.
+   */
+  const { data: menuManagement } = useGetMenuManagementQuery(
+    { restaurantId: user?.restaurantId as number, branchId: selectedBranch?.id },
+    { skip: !user?.restaurantId || !selectedBranch?.id },
+  );
+
   useEffect(() => {
-    const fetchMenuManagement = async () => {
-      try {
-        const restaurantId = user.restaurantId;
+    if (!menuManagement) return;
 
-        if (!restaurantId || !selectedBranch?.id) {
-          return;
+    setMenuItems(menuManagement.menuItems || []);
+    if (menuManagement.menuItems?.length) {
+      setSelectedMenuItem(menuManagement.menuItems[0]);
+    }
+
+    const groupedIngredients = (menuManagement.ingredients || []).reduce(
+      (acc: any, item: any) => {
+        const categoryName = item.category?.name || "Others";
+        if (!acc[categoryName]) {
+          acc[categoryName] = [];
         }
+        acc[categoryName].push({
+          id: item.id,
+          name: item.name,
+          quantity: item.quantity,
+          unit: item.unit,
+          purchasePrice: item.purchasePrice,
+          pricePerUnit: item.pricePerUnit,
+          reorderLevel: item.reorderLevel,
+          vendor: item.ingredientVendors,
+        });
+        return acc;
+      },
+      {},
+    );
+    setIngredients(groupedIngredients);
+    setCategories(menuManagement.categories || []);
+  }, [menuManagement]);
 
-        const res = await fetch(
-          `${API_URL}/api/inventory/${restaurantId}/menu-management?branchId=${selectedBranch.id}`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          },
-        );
+  // Week-dependent only. No request: the sheets are already in the payload
+  // above, and this reshapes the chosen week's rows for the Restock tab.
+  useEffect(() => {
+    if (!menuManagement) return;
 
-        const json = await res.json();
+    const currentDate = new Date();
+    const currentMonth = currentDate.getMonth() + 1;
+    const currentYear = currentDate.getFullYear();
+    const currentMonthRestock = (menuManagement.restocks || []).find(
+      (item: any) => item.month === currentMonth && item.year === currentYear,
+    );
+    const selectedWeekData = currentMonthRestock?.data?.[selectedWeek] || [];
+    const formattedRestocks =
+      selectedWeekData.map((item: any) => {
+        // TOTAL PURCHASE QTY
+        const totalPurchaseQty =
+          Number(item["Day 1 Qty"] || 0) +
+          Number(item["Day 2 Qty"] || 0) +
+          Number(item["Day 3 Qty"] || 0) +
+          Number(item["Day 4 Qty"] || 0) +
+          Number(item["Day 5 Qty"] || 0) +
+          Number(item["Day 6 Qty"] || 0) +
+          Number(item["Day 7 Qty"] || 0);
 
-        if (json.success) {
-          setMenuItems(json.data.menuItems || []);
+        // AVG PRICE
+        const prices = [
+          Number(item["Day 1 Price"] || 0),
+          Number(item["Day 2 Price"] || 0),
+          Number(item["Day 3 Price"] || 0),
+          Number(item["Day 4 Price"] || 0),
+          Number(item["Day 5 Price"] || 0),
+          Number(item["Day 6 Price"] || 0),
+          Number(item["Day 7 Price"] || 0),
+        ].filter((p) => p > 0);
+        const avgPrice = prices.length
+          ? prices.reduce((a, b) => a + b, 0) / prices.length
+          : 0;
 
-          if (json.data.menuItems?.length) {
-            setSelectedMenuItem(json.data.menuItems[0]);
-          }
+        return {
+          Category: item.Category,
+          Ingredient: item.Ingredient,
+          Unit: item.Unit,
+          // OPENING
+          OpeningStockQty: Number(item["Opening Qty"] || 0),
+          OpeningStockPrice: Number(item["Opening Price"] || 0),
+          OpeningStockValue: Number(item["Opening Value"] || 0),
+          // WEEK 1
+          Week1PurchaseQty: totalPurchaseQty,
+          Week1Price: avgPrice,
+          Week1Expense: Number(item["Expense"] || 0),
+          Week1ClosingStock: Number(item["Closing Qty"] || 0),
+          Week1ClosingValue: Number(item["Closing Value"] || 0),
+          // MONTHLY
+          TotalPurchaseAmount: Number(item["Week Purchase"] || 0),
+          TotalWeeklyExpense: Number(item["Expense"] || 0),
+          MonthClosingValue: Number(item["Closing Value"] || 0),
+          MonthlyRMExpense: Number(item["Expense"] || 0),
+        };
+      }) || [];
 
-          const groupedIngredients = (json.data.ingredients || []).reduce(
-            (acc: any, item: any) => {
-              const categoryName = item.category?.name || "Others";
-              if (!acc[categoryName]) {
-                acc[categoryName] = [];
-              }
+    setRestocks(formattedRestocks);
+    setRestockHistory(currentMonthRestock?.data || {});
+  }, [menuManagement, selectedWeek]);
 
-              acc[categoryName].push({
-                id: item.id,
-                name: item.name,
-                quantity: item.quantity,
-                unit: item.unit,
-                purchasePrice: item.purchasePrice,
-                pricePerUnit: item.pricePerUnit,
-                reorderLevel: item.reorderLevel,
-                vendor: item.ingredientVendors,
-              });
-
-              return acc;
-            },
-            {},
-          );
-
-          setIngredients(groupedIngredients);
-
-          const currentDate = new Date();
-
-          const currentMonth = currentDate.getMonth() + 1;
-
-          const currentYear = currentDate.getFullYear();
-          const currentMonthRestock = (json.data.restocks || []).find(
-            (item: any) =>
-              item.month === currentMonth && item.year === currentYear,
-          );
-          const selectedWeekData =
-            currentMonthRestock?.data?.[selectedWeek] || [];
-          const formattedRestocks =
-            selectedWeekData.map((item: any) => {
-              // TOTAL PURCHASE QTY
-              const totalPurchaseQty =
-                Number(item["Day 1 Qty"] || 0) +
-                Number(item["Day 2 Qty"] || 0) +
-                Number(item["Day 3 Qty"] || 0) +
-                Number(item["Day 4 Qty"] || 0) +
-                Number(item["Day 5 Qty"] || 0) +
-                Number(item["Day 6 Qty"] || 0) +
-                Number(item["Day 7 Qty"] || 0);
-
-              // AVG PRICE
-              const prices = [
-                Number(item["Day 1 Price"] || 0),
-                Number(item["Day 2 Price"] || 0),
-                Number(item["Day 3 Price"] || 0),
-                Number(item["Day 4 Price"] || 0),
-                Number(item["Day 5 Price"] || 0),
-                Number(item["Day 6 Price"] || 0),
-                Number(item["Day 7 Price"] || 0),
-              ].filter((p) => p > 0);
-
-              const avgPrice = prices.length
-                ? prices.reduce((a, b) => a + b, 0) / prices.length
-                : 0;
-
-              return {
-                Category: item.Category,
-
-                Ingredient: item.Ingredient,
-
-                Unit: item.Unit,
-
-                // OPENING
-                OpeningStockQty: Number(item["Opening Qty"] || 0),
-
-                OpeningStockPrice: Number(item["Opening Price"] || 0),
-
-                OpeningStockValue: Number(item["Opening Value"] || 0),
-
-                // WEEK 1
-                Week1PurchaseQty: totalPurchaseQty,
-
-                Week1Price: avgPrice,
-
-                Week1Expense: Number(item["Expense"] || 0),
-
-                Week1ClosingStock: Number(item["Closing Qty"] || 0),
-
-                Week1ClosingValue: Number(item["Closing Value"] || 0),
-
-                // MONTHLY
-                TotalPurchaseAmount: Number(item["Week Purchase"] || 0),
-
-                TotalWeeklyExpense: Number(item["Expense"] || 0),
-
-                MonthClosingValue: Number(item["Closing Value"] || 0),
-
-                MonthlyRMExpense: Number(item["Expense"] || 0),
-              };
-            }) || [];
-
-          setRestocks(formattedRestocks);
-          setRestockHistory(currentMonthRestock?.data || {});
-          setCategories(json.data.categories || []);
-        }
-      } catch {
-        // fetch error
-      }
-    };
-    fetchMenuManagement();
+  // Both were called from the effect above purely because they sat in it; they
+  // never depended on the week.
+  useEffect(() => {
     fetchMenuItemMappings();
     fetchBills();
-  }, [selectedBranch?.id, selectedWeek]);
-
-  useEffect(() => {
-    const fetchTodayAuditStatus = async () => {
-      if (!selectedBranch?.id) return;
-      try {
-        const today = new Date().toISOString().split("T")[0];
-        const res = await fetch(
-          `${API_URL}/api/inventory/daily-audit/history?branchId=${selectedBranch.id}&from=${today}&to=${today}`,
-          { headers: { Authorization: `Bearer ${token}` } },
-        );
-        const data = await res.json();
-        setTodayAuditCount(data.success ? (data.data || []).length : null);
-      } catch {
-        setTodayAuditCount(null);
-      }
-    };
-    fetchTodayAuditStatus();
   }, [selectedBranch?.id]);
+
 
 
   // Owned by useAddOns: the list is read by this page's attach modal and

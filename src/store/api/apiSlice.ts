@@ -52,6 +52,8 @@ export const api = createApi({
     "InvestmentMetrics",
     "AddOn",
     "Sop",
+    "MenuItem",
+    "IngredientMapping",
   ],
   endpoints: () => ({}),
 });
