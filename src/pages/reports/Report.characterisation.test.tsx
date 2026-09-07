@@ -2,7 +2,12 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import Report from "./Report";
-import { authenticatedState, renderWithProviders } from "@/test/test-utils";
+import {
+  authenticatedState,
+  jsonResponse,
+  renderWithProviders,
+  requestUrl,
+} from "@/test/test-utils";
 
 /**
  * Characterisation tests for the Reports page.
@@ -57,8 +62,12 @@ const mockReportFetches = () => {
   vi.stubGlobal(
     "fetch",
     vi.fn((input: RequestInfo | URL) => {
-      const url = String(input);
-      const json = (body: unknown) => Promise.resolve({ json: () => Promise.resolve(body) });
+      // Shared helpers rather than a local stand-in: RTK Query passes a Request
+      // (which String() turns into "[object Request]") and fetchBaseQuery needs
+      // a real Response. Neither matters while this page is on raw fetch, and
+      // both will the moment it is migrated.
+      const url = requestUrl(input);
+      const json = jsonResponse;
 
       if (url.includes("/api/bills/")) return json({ success: true, bills: BILLS });
       if (url.includes("/menu-management")) return json({ success: true, data: { menuItems: MENU_ITEMS } });

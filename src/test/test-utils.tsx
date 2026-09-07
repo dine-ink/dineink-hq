@@ -68,4 +68,29 @@ export function renderWithProviders(
   return { store, ...render(ui, { wrapper: Wrapper, ...renderOptions }) };
 }
 
+/**
+ * Two helpers for mocking fetch, worth having in one place because getting
+ * either wrong fails silently.
+ *
+ * `requestUrl` exists because RTK Query hands fetch a `Request` object rather
+ * than a URL string. A mock that does `String(input)` on one gets
+ * "[object Request]", matches none of its own URL branches, and falls through
+ * to whatever the default is — so the page renders its empty state and the test
+ * passes while proving nothing. That happened here.
+ *
+ * `jsonResponse` returns a real Response rather than a `{ json }` stand-in,
+ * because fetchBaseQuery calls response.clone() and reads its headers. A plain
+ * object makes every query reject, which again looks exactly like "no data".
+ */
+export const requestUrl = (input: RequestInfo | URL): string =>
+  String(input instanceof Request ? input.url : input);
+
+export const jsonResponse = (body: unknown, status = 200): Promise<Response> =>
+  Promise.resolve(
+    new Response(JSON.stringify(body), {
+      status,
+      headers: { "Content-Type": "application/json" },
+    }),
+  );
+
 export * from "@testing-library/react";

@@ -1,5 +1,12 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useAppSelector } from "@/store";
+import {
+  useGetAddOnGroupsQuery,
+  useCreateAddOnGroupMutation,
+  useDeleteAddOnGroupMutation,
+  useCreateAddOnOptionMutation,
+  useDeleteAddOnOptionMutation,
+} from "@/store/api/addonsApi";
 
 /**
  * Add-on groups and their options — "Extra Cheese ₹40" and the like.
@@ -8,16 +15,16 @@ import { useAppSelector } from "@/store";
  * Stock Lifecycle and Menu Engineering each owned their data outright, so the
  * fetch moved down with the markup. Add-ons do not: the list is read by the
  * Add-Ons tab, which manages it, *and* by the Menu tab, whose per-item attach
- * modal needs the full set of groups to offer. Neither tab can own it, and
- * threading eight values through both is what this refactor is trying to stop.
+ * modal needs the full set of groups to offer. Neither tab can own it.
  *
- * So it becomes a hook the page holds and hands to whoever needs it.
+ * What is left here after the RTK Query migration is only what is genuinely
+ * local: the two draft forms. The list, the fetch and the four refetch-after-
+ * write calls are all gone — a mutation invalidates "AddOn" and every reader
+ * updates itself.
  *
- * It takes `activeTab` rather than an `enabled` boolean deliberately. The
- * original effect listed `activeTab` in its dependencies, so moving between the
- * two tabs that use add-ons refetched. A boolean would stay `true` across that
- * move and quietly drop the refetch — better behaviour, probably, but this
- * extraction's contract is that behaviour does not change.
+ * The `activeTab` argument went with them. It existed to reproduce an effect
+ * that refetched whenever the tab changed; the cache now decides that, and a
+ * tab switch inside the 60-second window serves what it already has.
  */
 
 export interface AddOnOptionDraft {
@@ -27,7 +34,6 @@ export interface AddOnOptionDraft {
 
 export interface UseAddOns {
   addOnGroups: any[];
-  refresh: () => void;
   newGroupName: string;
   setNewGroupName: (name: string) => void;
   newOptionForm: Record<number, AddOnOptionDraft>;
@@ -40,80 +46,46 @@ export interface UseAddOns {
   deleteOption: (id: number) => Promise<void>;
 }
 
-export function useAddOns(activeTab: string): UseAddOns {
-  const { user, token } = useAppSelector((s) => s.auth);
-  const API_URL = import.meta.env.VITE_API_URL;
+export function useAddOns(): UseAddOns {
+  const { user } = useAppSelector((s) => s.auth);
 
-  const [addOnGroups, setAddOnGroups] = useState<any[]>([]);
   const [newGroupName, setNewGroupName] = useState("");
   const [newOptionForm, setNewOptionForm] = useState<
     Record<number, AddOnOptionDraft>
   >({});
 
-  const fetchAddOnGroups = async () => {
-    if (!user?.restaurantId) return;
-    try {
-      const res = await fetch(
-        `${API_URL}/api/addons/groups/${user.restaurantId}`,
-        { headers: { Authorization: `Bearer ${token}` } },
-      );
-      const data = await res.json();
-      if (data.success) setAddOnGroups(data.data || []);
-    } catch {
-      /* silent */
-    }
-  };
+  const { data: addOnGroups = [] } = useGetAddOnGroupsQuery(
+    user?.restaurantId as number,
+    { skip: !user?.restaurantId },
+  );
 
-  // Needed on both the Add-Ons tab (management) and the Menu tab (the
-  // per-item attach modal needs the full group list too).
-  useEffect(() => {
-    if (activeTab === "addons" || activeTab === "menu") fetchAddOnGroups();
-  }, [activeTab, user?.restaurantId]);
+  const [createAddOnGroup] = useCreateAddOnGroupMutation();
+  const [deleteAddOnGroup] = useDeleteAddOnGroupMutation();
+  const [createAddOnOption] = useCreateAddOnOptionMutation();
+  const [deleteAddOnOption] = useDeleteAddOnOptionMutation();
 
   const createGroup = async () => {
     if (!newGroupName.trim() || !user?.restaurantId) return;
     try {
-      const res = await fetch(`${API_URL}/api/addons/groups`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          restaurantId: user.restaurantId,
-          name: newGroupName.trim(),
-        }),
-      });
-      const data = await res.json();
-      if (data.success) {
-        setNewGroupName("");
-        fetchAddOnGroups();
-      } else {
-        alert(data.message || "Failed to create that add-on group");
-      }
+      await createAddOnGroup({
+        restaurantId: user.restaurantId,
+        name: newGroupName.trim(),
+      }).unwrap();
+      setNewGroupName("");
     } catch {
       alert("Failed to create that add-on group");
     }
   };
 
   const deleteGroup = async (id: number) => {
-    if (!window.confirm("Delete this add-on group and all its options?"))
-      return;
+    if (!window.confirm("Delete this add-on group and all its options?")) return;
     try {
-      // The response was never read, so `fetchAddOnGroups()` ran either way —
-      // and because it re-renders from the server, a failed delete showed the
-      // group still there with nothing said about why.
-      const res = await fetch(`${API_URL}/api/addons/groups/${id}`, {
-        method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data = await res.json().catch(() => null);
-      if (!res.ok || data?.success === false) {
-        throw new Error(data?.message || `Request failed (${res.status})`);
-      }
-      fetchAddOnGroups();
-    } catch (error) {
-      alert(error instanceof Error ? error.message : "Failed to delete that add-on group");
+      // Before, the response was never read, so the refetch ran either way — a
+      // failed delete showed the group still there with nothing said about why.
+      // `.unwrap()` makes a rejection throw, which is what keeps that fixed.
+      await deleteAddOnGroup(id).unwrap();
+    } catch {
+      alert("Failed to delete that add-on group");
     }
   };
 
@@ -121,28 +93,15 @@ export function useAddOns(activeTab: string): UseAddOns {
     const form = newOptionForm[groupId];
     if (!form?.name?.trim() || !form?.price) return;
     try {
-      const res = await fetch(`${API_URL}/api/addons/options`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          addOnGroupId: groupId,
-          name: form.name.trim(),
-          price: Number(form.price),
-        }),
-      });
-      const data = await res.json();
-      if (data.success) {
-        setNewOptionForm((prev) => ({
-          ...prev,
-          [groupId]: { name: "", price: "" },
-        }));
-        fetchAddOnGroups();
-      } else {
-        alert(data.message || "Failed to add that option");
-      }
+      await createAddOnOption({
+        addOnGroupId: groupId,
+        name: form.name.trim(),
+        price: Number(form.price),
+      }).unwrap();
+      setNewOptionForm((prev) => ({
+        ...prev,
+        [groupId]: { name: "", price: "" },
+      }));
     } catch {
       alert("Failed to add that option");
     }
@@ -150,23 +109,14 @@ export function useAddOns(activeTab: string): UseAddOns {
 
   const deleteOption = async (id: number) => {
     try {
-      const res = await fetch(`${API_URL}/api/addons/options/${id}`, {
-        method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data = await res.json().catch(() => null);
-      if (!res.ok || data?.success === false) {
-        throw new Error(data?.message || `Request failed (${res.status})`);
-      }
-      fetchAddOnGroups();
-    } catch (error) {
-      alert(error instanceof Error ? error.message : "Failed to delete that option");
+      await deleteAddOnOption(id).unwrap();
+    } catch {
+      alert("Failed to delete that option");
     }
   };
 
   return {
     addOnGroups,
-    refresh: fetchAddOnGroups,
     newGroupName,
     setNewGroupName,
     newOptionForm,

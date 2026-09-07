@@ -2,7 +2,12 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import MenuManagement from "./MenuManagement";
-import { authenticatedState, renderWithProviders } from "@/test/test-utils";
+import {
+  authenticatedState,
+  jsonResponse,
+  renderWithProviders,
+  requestUrl,
+} from "@/test/test-utils";
 
 /**
  * Characterisation tests for Menu Management.
@@ -29,6 +34,9 @@ const CATEGORIES = [
 const INGREDIENTS = [
   { id: 5, name: "Rice", unit: "Kg", quantity: 20, pricePerUnit: 60, purchasePrice: 1200 },
 ];
+const ADD_ON_GROUPS = [
+  { id: 71, name: "Sauces & Dips", options: [{ id: 91, name: "Extra Cheese", price: 40 }], menuItems: [] },
+];
 
 /**
  * Every URL must answer. A tab that renders its empty state because a request
@@ -39,8 +47,12 @@ const mockFetches = () => {
   vi.stubGlobal(
     "fetch",
     vi.fn((input: RequestInfo | URL) => {
-      const url = String(input);
-      const json = (body: unknown) => Promise.resolve({ json: () => Promise.resolve(body) });
+      // requestUrl, not String(input): RTK Query passes a Request object, and
+      // stringifying one gives "[object Request]" — which matched none of the
+      // branches below and fell through to the empty default. The tab then
+      // rendered its empty state and the test passed while proving nothing.
+      const url = requestUrl(input);
+      const json = jsonResponse;
 
       if (url.includes("/menu-management")) {
         return json({ success: true, data: { menuItems: MENU_ITEMS, categories: CATEGORIES, ingredients: INGREDIENTS } });
@@ -63,7 +75,7 @@ const mockFetches = () => {
           },
         });
       }
-      if (url.includes("/addons/groups")) return json({ success: true, data: [] });
+      if (url.includes("/addons/groups")) return json({ success: true, data: ADD_ON_GROUPS });
       if (url.includes("/api/sop")) return json({ success: true, data: [] });
       if (url.includes("/fetchVendors")) return json({ success: true, data: [] });
       if (url.includes("/restaurantwise")) return json({ success: true, bills: [] });
@@ -127,6 +139,18 @@ describe("Menu Management — characterisation", () => {
       await waitFor(() => expect(screen.getAllByText(label).length).toBeGreaterThan(0));
     },
   );
+
+  it("shows add-on groups the server returned, not just an empty tab", async () => {
+    // The point of this one is the data path, not the markup. Everything on the
+    // Add-Ons tab now arrives through RTK Query, and a tab that renders its
+    // empty state looks identical to a working one — so assert on a value that
+    // could only have come from the response.
+    const user = userEvent.setup();
+    await renderPage();
+    await openTab(user, "Add-Ons");
+    await waitFor(() => expect(screen.getAllByText("Sauces & Dips").length).toBeGreaterThan(0));
+    expect(screen.getAllByText(/Extra Cheese/).length).toBeGreaterThan(0);
+  });
 
   it("survives every tab being visited in sequence", async () => {
     // Three tabs fetch lazily on activation (operations, engineering, addons)

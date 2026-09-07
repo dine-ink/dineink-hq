@@ -21,19 +21,22 @@ import {
  * it stays with the page — and takes those three with it.)
  */
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useAppSelector } from "@/store";
+import {
+  useGetSopChecklistsQuery,
+  useSaveSopMutation,
+  useDeleteSopMutation,
+} from "@/store/api/sopApi";
 
 interface OperationsTabProps {
   menuItems: any[];
 }
 
 export default function OperationsTab({ menuItems }: OperationsTabProps) {
-  const { user, token } = useAppSelector((s) => s.auth);
+  const { user } = useAppSelector((s) => s.auth);
   const { selectedBranch } = useAppSelector((s) => s.branch);
-  const API_URL = import.meta.env.VITE_API_URL;
 
-  const [sopChecklists, setSopChecklists] = useState<any[]>([]);
   const [sopForm, setSopForm] = useState<{
     id: number | null;
     title: string;
@@ -43,23 +46,12 @@ export default function OperationsTab({ menuItems }: OperationsTabProps) {
   }>({ id: null, title: "", category: "", menuItemId: "", steps: [""] });
   const [showSopForm, setShowSopForm] = useState(false);
 
-  const fetchSopChecklists = async () => {
-    if (!user?.restaurantId) return;
-    try {
-      const res = await fetch(
-        `${API_URL}/api/sop/${user.restaurantId}?branchId=${selectedBranch?.id || ""}`,
-        { headers: { Authorization: `Bearer ${token}` } },
-      );
-      const data = await res.json();
-      if (data.success) setSopChecklists(data.data || []);
-    } catch {
-      /* silent */
-    }
-  };
-
-  useEffect(() => {
-    fetchSopChecklists();
-  }, [selectedBranch?.id]);
+  const { data: sopChecklists = [] } = useGetSopChecklistsQuery(
+    { restaurantId: user?.restaurantId as number, branchId: selectedBranch?.id },
+    { skip: !user?.restaurantId },
+  );
+  const [saveSop] = useSaveSopMutation();
+  const [deleteSop] = useDeleteSopMutation();
 
   const resetSopForm = () =>
     setSopForm({
@@ -74,36 +66,20 @@ export default function OperationsTab({ menuItems }: OperationsTabProps) {
     const steps = sopForm.steps.map((s) => s.trim()).filter(Boolean);
     if (!sopForm.title.trim() || !steps.length) return;
     try {
-      const payload = {
+      await saveSop({
+        id: sopForm.id,
         restaurantId: user.restaurantId,
         branchId: selectedBranch?.id,
         menuItemId: sopForm.menuItemId ? Number(sopForm.menuItemId) : null,
         title: sopForm.title.trim(),
         category: sopForm.category.trim() || null,
         steps,
-      };
-      const res = await fetch(
-        sopForm.id ? `${API_URL}/api/sop/${sopForm.id}` : `${API_URL}/api/sop`,
-        {
-          method: sopForm.id ? "PUT" : "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify(payload),
-        },
-      );
-      const data = await res.json();
-      if (data.success) {
-        setShowSopForm(false);
-        resetSopForm();
-        fetchSopChecklists();
-      } else {
-        // The form stays open and populated so the steps someone just typed
-        // are not discarded along with the error.
-        alert(data.message || "Failed to save this SOP checklist");
-      }
+      }).unwrap();
+      setShowSopForm(false);
+      resetSopForm();
     } catch {
+      // The form stays open and populated so the steps someone just typed are
+      // not discarded along with the error.
       alert("Failed to save this SOP checklist");
     }
   };
@@ -122,17 +98,9 @@ export default function OperationsTab({ menuItems }: OperationsTabProps) {
   const handleDeleteSop = async (id: number) => {
     if (!window.confirm("Delete this SOP checklist?")) return;
     try {
-      const res = await fetch(`${API_URL}/api/sop/${id}`, {
-        method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data = await res.json().catch(() => null);
-      if (!res.ok || data?.success === false) {
-        throw new Error(data?.message || `Request failed (${res.status})`);
-      }
-      fetchSopChecklists();
-    } catch (error) {
-      alert(error instanceof Error ? error.message : "Failed to delete this SOP checklist");
+      await deleteSop(id).unwrap();
+    } catch {
+      alert("Failed to delete this SOP checklist");
     }
   };
 

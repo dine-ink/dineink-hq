@@ -50,6 +50,8 @@ export const api = createApi({
     "ForecastAccuracy",
     "Investment",
     "InvestmentMetrics",
+    "AddOn",
+    "Sop",
   ],
   endpoints: () => ({}),
 });

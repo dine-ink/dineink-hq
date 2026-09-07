@@ -23,8 +23,7 @@ const MAX_SELECTED_SCENARIOS = 4;
 
 export default function ComparisonTab() {
   const { branches } = useAppSelector((s) => s.branch);
-  const { user, token } = useAppSelector((s) => s.auth);
-  const API_URL = import.meta.env.VITE_API_URL;
+  const { user } = useAppSelector((s) => s.auth);
 
   // Independent of the global top-nav branch selector — same convention as
   // the Scenarios tab's own scope dropdown, so a restaurant-wide custom

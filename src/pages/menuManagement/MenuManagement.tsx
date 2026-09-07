@@ -1,6 +1,11 @@
 import { useEffect, useState } from "react";
-import { useAppSelector } from "@/store";
+import { useAppDispatch, useAppSelector } from "@/store";
 import { useAddOns } from "./useAddOns";
+import {
+  useAttachAddOnGroupMutation,
+  useDetachAddOnGroupMutation,
+  addonsApi,
+} from "@/store/api/addonsApi";
 import MenuTab from "./tabs/MenuTab";
 import IngredientsTab from "./tabs/IngredientsTab";
 import ItemMappingTab from "./tabs/ItemMappingTab";
@@ -193,6 +198,7 @@ export default function MenuManagement() {
   const [uploadingRestock, setUploadingRestock] = useState(false);
   const { selectedBranch } = useAppSelector((s) => s.branch);
   const { user, token } = useAppSelector((s) => s.auth);
+  const dispatch = useAppDispatch();
   const [selectedWeek, setSelectedWeek] = useState("week1");
   const [todayAuditCount, setTodayAuditCount] = useState<number | null>(null);
   const API_URL = import.meta.env.VITE_API_URL;
@@ -1097,23 +1103,28 @@ export default function MenuManagement() {
   // managed by the Add-Ons tab, so neither one can hold it.
   // The whole object goes to the Add-Ons tab, which manages it; the page
   // itself only needs the groups, for the per-item attach modal.
-  const addOns = useAddOns(activeTab);
+  const addOns = useAddOns();
+  const [attachAddOnGroup] = useAttachAddOnGroupMutation();
+  const [detachAddOnGroup] = useDetachAddOnGroupMutation();
   const { addOnGroups } = addOns;
 
+  /**
+   * Which groups are already on this item. Fetched imperatively rather than as
+   * a hook query because it is per-item and only wanted while the modal is
+   * open — `initiate` still goes through the same cache, so opening the same
+   * item twice in a row costs nothing.
+   */
   const openAttachModal = async (item: any) => {
     setAttachModal({ open: true, item, attachedIds: new Set() });
     try {
-      const res = await fetch(`${API_URL}/api/addons/menu-items/${item.id}`, {
-        headers: { Authorization: `Bearer ${token}` },
+      const groups = await dispatch(
+        addonsApi.endpoints.getMenuItemAddOnGroups.initiate(item.id),
+      ).unwrap();
+      setAttachModal({
+        open: true,
+        item,
+        attachedIds: new Set((groups || []).map((g: any) => g.id)),
       });
-      const data = await res.json();
-      if (data.success) {
-        setAttachModal({
-          open: true,
-          item,
-          attachedIds: new Set((data.data || []).map((g: any) => g.id)),
-        });
-      }
     } catch {
       /* silent */
     }
@@ -1121,8 +1132,11 @@ export default function MenuManagement() {
 
   const handleToggleAttach = async (groupId: number) => {
     if (!attachModal.item) return;
+    const menuItemId = attachModal.item.id;
     const isAttached = attachModal.attachedIds.has(groupId);
-    // Optimistic update
+    // Optimistic update. Kept local rather than moved into an RTK Query cache
+    // patch: the checkbox is the modal's own state, and a round trip per click
+    // would be worse than what is here.
     setAttachModal((prev) => {
       const next = new Set(prev.attachedIds);
       if (isAttached) next.delete(groupId);
@@ -1130,38 +1144,18 @@ export default function MenuManagement() {
       return { ...prev, attachedIds: next };
     });
     try {
-      const res = isAttached
-        ? await fetch(
-            `${API_URL}/api/addons/menu-items/${attachModal.item.id}/groups/${groupId}`,
-            { method: "DELETE", headers: { Authorization: `Bearer ${token}` } },
-          )
-        : await fetch(
-            `${API_URL}/api/addons/menu-items/${attachModal.item.id}/groups`,
-            {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${token}`,
-              },
-              body: JSON.stringify({ addOnGroupId: groupId }),
-            },
-          );
-      const data = await res.json().catch(() => null);
-      if (!res.ok || data?.success === false) {
-        throw new Error(data?.message || `Request failed (${res.status})`);
-      }
-    } catch (error) {
-      // The previous comment accepted the drift because "the modal re-fetches
-      // next time it opens". Until then the checkbox claims a group is attached
-      // when it isn't — and an add-on group that isn't attached is one
-      // customers cannot order. Put the checkbox back and say so.
+      const run = isAttached ? detachAddOnGroup : attachAddOnGroup;
+      await run({ menuItemId, addOnGroupId: groupId }).unwrap();
+    } catch {
+      // A checkbox that claims a group is attached when it isn't describes an
+      // add-on customers cannot order. Put it back and say so.
       setAttachModal((prev) => {
         const next = new Set(prev.attachedIds);
         if (isAttached) next.add(groupId);
         else next.delete(groupId);
         return { ...prev, attachedIds: next };
       });
-      alert(error instanceof Error ? error.message : "Failed to update the add-ons on this item");
+      alert("Failed to update the add-ons on this item");
     }
   };
 
