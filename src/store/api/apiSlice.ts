@@ -68,6 +68,9 @@ export const api = createApi({
     "BankTransaction",
     "Upi",
     "Ai",
+    "WhatsAppTemplate",
+    "WhatsAppLog",
+    "Customer",
   ],
   endpoints: () => ({}),
 });
