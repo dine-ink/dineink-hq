@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
 import { useAppSelector } from "@/store";
+import { useGetMenuEngineeringQuery } from "@/store/api/inventoryApi";
 import { tooltipFormatter } from "@/utils/chartFormatters";
 import {
   ResponsiveContainer,
@@ -32,35 +32,16 @@ import MobileTableCards from "@/components/common/MobileTableCards";
  * in a single component.
  */
 export default function MenuEngineeringMatrixTab() {
-  const API_URL = import.meta.env.VITE_API_URL;
-  const { user, token } = useAppSelector((s) => s.auth);
+  const { user } = useAppSelector((s) => s.auth);
   const { selectedBranch } = useAppSelector((s) => s.branch);
 
-  const [menuEngineering, setMenuEngineering] = useState<any>(null);
-  const [engineeringLoading, setEngineeringLoading] = useState(false);
-
-  useEffect(() => {
-    if (!user?.restaurantId) return;
-    const fetchMenuEngineering = async () => {
-      try {
-        setEngineeringLoading(true);
-        const params = selectedBranch?.id ? `?branchId=${selectedBranch.id}` : "";
-        const res = await fetch(
-          `${API_URL}/api/analytics/${user.restaurantId}/menu-engineering${params}`,
-          { headers: { Authorization: `Bearer ${token}` } },
-        );
-        const data = await res.json();
-        if (data.success) setMenuEngineering(data.data);
-      } catch {
-        // The empty state below covers this.
-        setMenuEngineering(null);
-      } finally {
-        setEngineeringLoading(false);
-      }
-    };
-    fetchMenuEngineering();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedBranch?.id, user?.restaurantId]);
+  // On failure `data` is undefined, which the empty state below already
+  // handles — the same outcome the old catch arranged by setting null.
+  const { data: menuEngineering, isFetching: engineeringLoading } =
+    useGetMenuEngineeringQuery(
+      { restaurantId: user?.restaurantId as number, branchId: selectedBranch?.id },
+      { skip: !user?.restaurantId },
+    );
 
   return (
     <div className="space-y-4">

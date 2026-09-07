@@ -68,6 +68,20 @@ export const inventoryApi = api.injectEndpoints({
       providesTags: ["Inventory"],
     }),
 
+    /**
+     * The menu-engineering matrix — stars, plow-horses, puzzles and dogs.
+     *
+     * Tagged "MenuEngineering" as well as the menu tag, so editing an item's
+     * price refreshes the matrix it appears in. Before, the matrix kept its
+     * pre-edit classification until the tab was left and reopened.
+     */
+    getMenuEngineering: builder.query<any, BranchScope>({
+      query: ({ restaurantId, branchId }) =>
+        `/api/analytics/${restaurantId}/menu-engineering${branchId ? `?branchId=${branchId}` : ""}`,
+      transformResponse: (response: Envelope<any>) => unwrap(response),
+      providesTags: ["MenuEngineering", "MenuItem"],
+    }),
+
     saveRestockHistory: builder.mutation<any, Record<string, any>>({
       query: (body) => ({
         url: "/api/inventory/save-restock-history",
@@ -94,6 +108,7 @@ export const inventoryApi = api.injectEndpoints({
 
 export const {
   useGetMenuManagementQuery,
+  useGetMenuEngineeringQuery,
   useGetMappedMenuQuery,
   useGetRestockHistoryQuery,
   useGetDailyAuditCountQuery,

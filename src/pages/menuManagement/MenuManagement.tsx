@@ -2,10 +2,12 @@ import { useEffect, useRef, useState } from "react";
 import { useAppDispatch, useAppSelector } from "@/store";
 import { useAddOns } from "./useAddOns";
 import {
+  inventoryApi,
   useGetMenuManagementQuery,
   useGetDailyAuditCountQuery,
+  useSaveRestockHistoryMutation,
 } from "@/store/api/inventoryApi";
-import { useGetBillsQuery } from "@/store/api/billsApi";
+import { billsApi, useGetBillsQuery } from "@/store/api/billsApi";
 import {
   useAttachAddOnGroupMutation,
   useDetachAddOnGroupMutation,
@@ -202,7 +204,7 @@ export default function MenuManagement() {
   });
   const [uploadingRestock, setUploadingRestock] = useState(false);
   const { selectedBranch } = useAppSelector((s) => s.branch);
-  const { user, token } = useAppSelector((s) => s.auth);
+  const { user } = useAppSelector((s) => s.auth);
   const dispatch = useAppDispatch();
 
   // Whether a closing-stock audit has been filed today. The query returns null
@@ -214,7 +216,6 @@ export default function MenuManagement() {
     { skip: !selectedBranch?.id },
   );
   const [selectedWeek, setSelectedWeek] = useState("week1");
-  const API_URL = import.meta.env.VITE_API_URL;
 
   // The menu list: filters, sort, and the create/edit/delete of items and
   // categories. Nothing outside the Menu tab reads any of it.
@@ -297,42 +298,43 @@ export default function MenuManagement() {
     let monthBills: any[] = [];
 
     try {
-      const [restockRes, mappingRes, billsRes] = await Promise.all([
-        fetch(
-          `${API_URL}/api/inventory/${user.restaurantId}/get-restock-history?branchId=${selectedBranch?.id || ""}`,
-          { headers: { Authorization: `Bearer ${token}` } },
-        ),
-        fetch(`${API_URL}/api/inventory/${user.restaurantId}/get-mapped-menu`, {
-          headers: { Authorization: `Bearer ${token}` },
-        }),
-        fetch(
-          `${API_URL}/api/bills/${user.restaurantId}/restaurantwise?branchId=${selectedBranch?.id || ""}&from=${monthStart}&to=${monthEnd}`,
-          { headers: { Authorization: `Bearer ${token}` } },
-        ),
+      // `forceRefetch` on all three, on purpose. The template is a file someone
+      // is about to work from offline, and the comment above is right that it
+      // must not be built from stale state. Going through the cache layer still
+      // buys the shared auth and envelope handling; it just declines the cache.
+      const [restockRecords, mapped, monthBillRows] = await Promise.all([
+        dispatch(
+          inventoryApi.endpoints.getRestockHistory.initiate(
+            { restaurantId: user.restaurantId, branchId: selectedBranch?.id },
+            { forceRefetch: true },
+          ),
+        ).unwrap(),
+        dispatch(
+          inventoryApi.endpoints.getMappedMenu.initiate(user.restaurantId, {
+            forceRefetch: true,
+          }),
+        ).unwrap(),
+        dispatch(
+          billsApi.endpoints.getBills.initiate(
+            {
+              restaurantId: user.restaurantId,
+              branchId: selectedBranch?.id,
+              from: monthStart,
+              to: monthEnd,
+            },
+            { forceRefetch: true },
+          ),
+        ).unwrap(),
       ]);
 
-      const [restockJson, mappingJson, billsJson] = await Promise.all([
-        restockRes.json(),
-        mappingRes.json(),
-        billsRes.json(),
-      ]);
-
-      if (restockJson.success && Array.isArray(restockJson.data)) {
-        const record = restockJson.data.find(
-          (r: any) => r.month === currentMonthNum && r.year === currentYear,
-        );
-        if (record?.data && !Array.isArray(record.data)) {
-          savedWeeks = record.data;
-        }
+      const record = restockRecords.find(
+        (r: any) => r.month === currentMonthNum && r.year === currentYear,
+      );
+      if (record?.data && !Array.isArray(record.data)) {
+        savedWeeks = record.data;
       }
-
-      if (mappingJson.success) {
-        freshMenuItems = mappingJson.data || [];
-      }
-
-      if (billsJson.success) {
-        monthBills = billsJson.bills || [];
-      }
+      freshMenuItems = mapped || [];
+      monthBills = monthBillRows || [];
     } catch {
       // silent — fall back to baseRows / zero consumption
     }
@@ -775,37 +777,19 @@ export default function MenuManagement() {
 
       const year = currentDate.getFullYear();
 
-      const res = await fetch(`${API_URL}/api/inventory/save-restock-history`, {
-        method: "POST",
-
-        headers: {
-          "Content-Type": "application/json",
-
-          Authorization: `Bearer ${token}`,
-        },
-
-        body: JSON.stringify({
-          restaurantId: user.restaurantId,
-
-          branchId: selectedBranch.id,
-
-          month,
-
-          year,
-
-          data: uploadedData || restockHistory,
-        }),
-      });
-
-      const data = await res.json();
-
-      if (data.success) {
-        setUploadingRestock(false);
-      } else {
-        alert(data.message || "Failed to save restock");
-      }
+      await saveRestockHistoryMutation({
+        restaurantId: user.restaurantId,
+        branchId: selectedBranch.id,
+        month,
+        year,
+        data: uploadedData || restockHistory,
+      }).unwrap();
     } catch {
       alert("Failed to save restock history");
+    } finally {
+      // Was cleared only on success, so a failed upload left the spinner
+      // running and the button disabled until a reload.
+      setUploadingRestock(false);
     }
   };
 
@@ -1087,6 +1071,7 @@ export default function MenuManagement() {
   // The whole object goes to the Add-Ons tab, which manages it; the page
   // itself only needs the groups, for the per-item attach modal.
   const addOns = useAddOns();
+  const [saveRestockHistoryMutation] = useSaveRestockHistoryMutation();
   const [attachAddOnGroup] = useAttachAddOnGroupMutation();
   const [detachAddOnGroup] = useDetachAddOnGroupMutation();
   const { addOnGroups } = addOns;
