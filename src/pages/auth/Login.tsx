@@ -27,6 +27,11 @@ export default function Login() {
   // to carry the way out.
   const [error, setError] = useState<{ message: string; locked: boolean } | null>(null);
 
+  /**
+   * Deliberately still a raw fetch while the rest of the app is on RTK
+   * Query. The four outcomes below are the reason — see the note in
+   * store/api/apiSlice.ts.
+   */
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
