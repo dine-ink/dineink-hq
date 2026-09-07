@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useAppSelector } from "@/store";
+import { useGetHourlyHeatmapQuery } from "@/store/api/reportsApi";
 import {
   ResponsiveContainer,
   BarChart,
@@ -14,65 +15,53 @@ import {
  * Hourly sales heatmap — revenue by hour and weekday, optionally filtered to a
  * single menu item or category.
  *
- * The filters and the request they drive live here. `heatmapData` does not, and
- * that is deliberate rather than an oversight: the Day Analysis tab reads the
- * same state, and the unfiltered version is loaded by the page's main batch on
- * mount. Owning it here would leave Day Analysis with nothing.
+ * This tab now owns its data, which fixes a bug the earlier extraction recorded
+ * and deliberately left alone.
  *
- * That sharing carries an existing quirk, preserved rather than fixed: applying
- * a filter here overwrites the shared data, so Day Analysis afterwards shows
- * figures for the filtered item until the page reloads. Changing it is a
- * behaviour change and belongs with the work that gives each tab its own query,
- * not with moving markup between files.
+ * It used to receive `heatmapData` and `setHeatmapData` from the page and
+ * overwrite them when a filter was applied. The Day Analysis tab reads the same
+ * figures, so filtering here left Day Analysis showing one menu item's hours as
+ * if they were the whole branch's, until the page was reloaded. The note then
+ * said changing it "belongs with the work that gives each tab its own query" —
+ * this is that work.
+ *
+ * The filters are part of the query's cache key, so the filtered and unfiltered
+ * views are separate entries and neither can overwrite the other.
  */
 
 interface HourlyHeatmapTabProps {
-  heatmapData: any;
-  setHeatmapData: (data: any) => void;
   menuItems: any;
   from: string;
   to: string;
 }
 
 export default function HourlyHeatmapTab({
-  heatmapData,
-  setHeatmapData,
   menuItems,
   from,
   to,
 }: HourlyHeatmapTabProps) {
-  const API_URL = import.meta.env.VITE_API_URL;
-  const { user, token } = useAppSelector((s) => s.auth);
+  const { user } = useAppSelector((s) => s.auth);
   const { selectedBranch } = useAppSelector((s) => s.branch);
 
   const [heatmapItemId, setHeatmapItemId] = useState("");
   const [heatmapCategoryId, setHeatmapCategoryId] = useState("");
 
-  // The parent's copy of this effect was guarded on the active tab; rendering
-  // this component conditionally is that guard.
-  useEffect(() => {
-    if (!selectedBranch?.id || !user?.restaurantId) return;
-    const fetchHeatmap = async () => {
-      try {
-        const bParam = `branchId=${selectedBranch.id}`;
-        const filterParam = heatmapItemId
-          ? `&itemId=${heatmapItemId}`
-          : heatmapCategoryId
-            ? `&categoryId=${heatmapCategoryId}`
-            : "";
-        const res = await fetch(
-          `${API_URL}/api/analytics/${user.restaurantId}/hourly-heatmap?${bParam}&from=${from}&to=${to}${filterParam}`,
-          { headers: { Authorization: `Bearer ${token}` } },
-        );
-        const json = await res.json();
-        if (json.success) setHeatmapData(json.data);
-      } catch {
-        // The chart keeps whatever the page's initial load produced.
-      }
-    };
-    fetchHeatmap();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [heatmapItemId, heatmapCategoryId, selectedBranch?.id, from, to]);
+  const filters = heatmapItemId
+    ? `&itemId=${heatmapItemId}`
+    : heatmapCategoryId
+      ? `&categoryId=${heatmapCategoryId}`
+      : "";
+
+  const { data: heatmapData } = useGetHourlyHeatmapQuery(
+    {
+      restaurantId: user?.restaurantId as number,
+      branchId: selectedBranch?.id as number,
+      from,
+      to,
+      filters,
+    },
+    { skip: !user?.restaurantId || !selectedBranch?.id },
+  );
 
   return (
   <div className="space-y-3">

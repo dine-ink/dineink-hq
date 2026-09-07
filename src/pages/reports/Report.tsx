@@ -1,5 +1,19 @@
-import { useEffect, useState } from "react";
-import { useAppSelector } from "@/store";
+import { useState } from "react";
+import { useAppDispatch, useAppSelector } from "@/store";
+import {
+  useGetDashboardOverviewQuery,
+  useGetFinanceSummaryQuery,
+} from "@/store/api/dashboardApi";
+import { useGetBillsQuery } from "@/store/api/billsApi";
+import { useGetMenuManagementQuery } from "@/store/api/inventoryApi";
+import {
+  reportsApi,
+  useGetReportExpensesQuery,
+  useGetRunningOrdersQuery,
+  useGetInventoryAdjustmentsQuery,
+  useGetHourlyHeatmapQuery,
+  useGetRevenueForecastQuery,
+} from "@/store/api/reportsApi";
 import ExcelJS from "exceljs";
 import { saveAs } from "file-saver";
 import {
@@ -63,123 +77,69 @@ const REPORT_TAB_GROUPS = [
 const reportTabs = REPORT_TAB_GROUPS.flatMap((group) => group.tabs);
 
 export default function Report() {
-  const API_URL = import.meta.env.VITE_API_URL;
+  const dispatch = useAppDispatch();
   const { from, to, preset } = useAppSelector((s) => s.dateRange);
   const { selectedBranch } = useAppSelector((s) => s.branch);
-  const { user, token } = useAppSelector((s) => s.auth);
+  const { user } = useAppSelector((s) => s.auth);
 
   const [activeTab, setActiveTab] = useState("P&L Statement");
-  const [loading, setLoading] = useState(false);
-  const [_reportData, setReportData] = useState<any>(null);
-  const [expenses, setExpenses] = useState<any[]>([]);
-  const [bills, setBills] = useState<any[]>([]);
-  const [menuItems, setMenuItems] = useState<any[]>([]);
-  const [runningOrders, setRunningOrders] = useState<any[]>([]);
-  const [inventoryAdjustments, setInventoryAdjustments] = useState<any[]>([]);
-  const [heatmapData, setHeatmapData] = useState<any>(null);
-  const [forecastData, setForecastData] = useState<any>(null);
-  const [financeSummary, setFinanceSummary] = useState<any>(null);
 
-  useEffect(() => {
-    const fetchReports = async () => {
-      if (!selectedBranch?.id || !user?.restaurantId) return;
-      try {
-        setLoading(true);
-        const headers = { Authorization: `Bearer ${token}` };
-        const bParam = `branchId=${selectedBranch.id}`;
-        const [
-          analyticsRes,
-          expensesRes,
-          billsRes,
-          menuRes,
-          ordersRes,
-          adjustRes,
-          heatmapRes,
-          forecastRes,
-          financeSummaryRes,
-        ] = await Promise.all([
-          fetch(
-            `${API_URL}/api/analytics/${user.restaurantId}/restaurantDashboardOverview?${bParam}&range=${preset}&from=${from}&to=${to}`,
-            { headers },
-          ),
-          fetch(
-            `${API_URL}/api/reports/expenses?${bParam}&from=${from}&to=${to}`,
-            { headers },
-          ),
-          fetch(
-            `${API_URL}/api/bills/${user.restaurantId}/restaurantwise?${bParam}&from=${from}&to=${to}`,
-            { headers },
-          ),
-          fetch(
-            `${API_URL}/api/inventory/${user.restaurantId}/menu-management?${bParam}`,
-            { headers },
-          ),
-          fetch(
-            `${API_URL}/api/orders/running?${bParam}&from=${from}&to=${to}`,
-            { headers },
-          ),
-          fetch(
-            `${API_URL}/api/inventory/adjustments?${bParam}&from=${from}&to=${to}`,
-            { headers },
-          ),
-          fetch(
-            `${API_URL}/api/analytics/${user.restaurantId}/hourly-heatmap?${bParam}&from=${from}&to=${to}`,
-            { headers },
-          ),
-          fetch(
-            `${API_URL}/api/analytics/${user.restaurantId}/revenue-forecast?${bParam}`,
-            { headers },
-          ),
-          // Canonical EBITDA/Net Profit/Food Cost/Labour Cost — same
-          // finance.formulas.ts engine used by Dashboard/Insights/Branch
-          // Comparison/PDF/Excel exports, so the P&L Statement tab below
-          // agrees with every other screen instead of re-deriving Net
-          // Profit from just revenue/GST/generic ShopExpense rows (which
-          // omitted food cost and labour cost entirely).
-          fetch(
-            `${API_URL}/api/finance/${user.restaurantId}/${selectedBranch.id}/summary?period=custom&from=${from}&to=${to}`,
-            { headers },
-          ),
-        ]);
-        const [
-          analyticsData,
-          expensesData,
-          billsData,
-          menuData,
-          ordersData,
-          adjustData,
-          heatmapJson,
-          forecastJson,
-          financeSummaryJson,
-        ] = await Promise.all([
-          analyticsRes.json(),
-          expensesRes.json(),
-          billsRes.json(),
-          menuRes.json(),
-          ordersRes.json(),
-          adjustRes.json(),
-          heatmapRes.json(),
-          forecastRes.json(),
-          financeSummaryRes.json(),
-        ]);
-        if (analyticsData.success) setReportData(analyticsData.data);
-        if (expensesData.success) setExpenses(expensesData.data || []);
-        if (billsData.success) setBills(billsData.bills || []);
-        if (menuData.success) setMenuItems(menuData.data?.menuItems || []);
-        if (ordersData.success) setRunningOrders(ordersData.data || []);
-        if (adjustData.success) setInventoryAdjustments(adjustData.data || []);
-        if (heatmapJson.success) setHeatmapData(heatmapJson.data);
-        if (forecastJson.success) setForecastData(forecastJson.data);
-        if (financeSummaryJson.success)
-          setFinanceSummary(financeSummaryJson.data);
-      } catch {
-        /* silent */
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchReports();
-  }, [selectedBranch?.id, from, to]);
+  /**
+   * Nine requests that used to be one `Promise.all` feeding nine pieces of
+   * state. Two of them are not defined here at all: the dashboard overview and
+   * the finance summary already live in dashboardApi, and the bills and
+   * menu-management calls in billsApi and inventoryApi — so this page now
+   * shares Dashboard's cache for the first two and Menu Management's for the
+   * others instead of refetching what the app already has.
+   *
+   * `loading` is the OR of them rather than one flag around the batch. That is
+   * a small improvement on its own: the old version showed a spinner until the
+   * slowest of nine resolved, even for tabs that needed only the fastest.
+   */
+  const scope = {
+    restaurantId: user?.restaurantId as number,
+    branchId: selectedBranch?.id as number,
+    from,
+    to,
+  };
+  const ready = !!user?.restaurantId && !!selectedBranch?.id;
+  const skip = { skip: !ready };
+
+  const overview = useGetDashboardOverviewQuery({ ...scope, preset }, skip);
+  const expensesQ = useGetReportExpensesQuery(scope, skip);
+  const billsQ = useGetBillsQuery(scope, skip);
+  const menuQ = useGetMenuManagementQuery(
+    { restaurantId: scope.restaurantId, branchId: scope.branchId },
+    skip,
+  );
+  const ordersQ = useGetRunningOrdersQuery(scope, skip);
+  const adjustQ = useGetInventoryAdjustmentsQuery(scope, skip);
+  const heatmapQ = useGetHourlyHeatmapQuery(scope, skip);
+  const forecastQ = useGetRevenueForecastQuery(
+    { restaurantId: scope.restaurantId, branchId: scope.branchId },
+    skip,
+  );
+  const financeQ = useGetFinanceSummaryQuery({ ...scope, preset }, skip);
+
+  const loading =
+    overview.isFetching ||
+    expensesQ.isFetching ||
+    billsQ.isFetching ||
+    menuQ.isFetching ||
+    ordersQ.isFetching ||
+    adjustQ.isFetching ||
+    heatmapQ.isFetching ||
+    forecastQ.isFetching ||
+    financeQ.isFetching;
+
+  const expenses = expensesQ.data ?? [];
+  const bills = billsQ.data ?? [];
+  const menuItems = menuQ.data?.menuItems ?? [];
+  const runningOrders = ordersQ.data ?? [];
+  const inventoryAdjustments = adjustQ.data ?? [];
+  const heatmapData = heatmapQ.data ?? null;
+  const forecastData = forecastQ.data ?? null;
+  const financeSummary = financeQ.data ?? null;
 
 
 
@@ -199,17 +159,13 @@ export default function Report() {
     if (!user?.restaurantId || !selectedBranch?.id) return;
     try {
       setDownloadingGst(true);
-      const res = await fetch(
-        `${API_URL}/api/reports/gst-filing/${user.restaurantId}/${selectedBranch.id}?from=${from}&to=${to}`,
-        { headers: { Authorization: `Bearer ${token}` } },
-      );
-      const json = await res.json();
-      if (!json.success) {
-        alert(json.message || "Failed to generate GST report");
-        return;
-      }
+      // A button-triggered read, so `initiate` rather than a hook. Not
+      // forceRefetch: the filing is derived from bills in a closed date range,
+      // and asking twice in a minute gives the same answer.
       const { restaurant, branch, gstPercentage, monthly, grandTotal } =
-        json.data;
+        await dispatch(
+          reportsApi.endpoints.getGstFiling.initiate(scope),
+        ).unwrap();
 
       const wb = new ExcelJS.Workbook();
       const ws = wb.addWorksheet("GST Summary");
@@ -397,8 +353,6 @@ export default function Report() {
         {/* ===== HOURLY HEATMAP ===== */}
         {activeTab === "Hourly Heatmap" && (
           <HourlyHeatmapTab
-            heatmapData={heatmapData}
-            setHeatmapData={setHeatmapData}
             menuItems={menuItems}
             from={from}
             to={to}

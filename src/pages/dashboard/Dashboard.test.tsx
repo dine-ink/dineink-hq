@@ -1,7 +1,12 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { screen, waitFor } from "@testing-library/react";
 import Dashboard from "./Dashboard";
-import { authenticatedState, renderWithProviders } from "@/test/test-utils";
+import {
+  authenticatedState,
+  jsonResponse,
+  renderWithProviders,
+  requestUrl,
+} from "@/test/test-utils";
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -15,15 +20,19 @@ describe("Dashboard page", () => {
   });
 
   it("prompts restaurant setup when the account has no branches yet", async () => {
+    // `(url: string)` and a `{ json }` stand-in, which is what this was, stopped
+    // working when this page moved to RTK Query: a Request object has no
+    // `.includes`, so the mock threw and *every* request failed. The assertion
+    // below still passed — but because nothing loaded, not because the account
+    // has no branches, which is the thing under test.
     vi.stubGlobal(
       "fetch",
-      vi.fn((url: string) => {
+      vi.fn((input: RequestInfo | URL) => {
+        const url = requestUrl(input);
         if (url.includes("/my-restaurant")) {
-          return Promise.resolve({
-            json: () => Promise.resolve({ success: true, data: { restaurant: { branches: [] } } }),
-          });
+          return jsonResponse({ success: true, data: { restaurant: { branches: [] } } });
         }
-        return Promise.resolve({ json: () => Promise.resolve({ success: false }) });
+        return jsonResponse({ success: false });
       }),
     );
 

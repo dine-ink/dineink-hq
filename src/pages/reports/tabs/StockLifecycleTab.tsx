@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useAppSelector } from "@/store";
+import { useGetStockLifecycleQuery } from "@/store/api/reportsApi";
 import MobileTableCards from "@/components/common/MobileTableCards";
 import { formatQty } from "@/utils/units";
 
@@ -18,37 +19,26 @@ import { formatQty } from "@/utils/units";
  * just relocating markup.
  */
 export default function StockLifecycleTab() {
-  const API_URL = import.meta.env.VITE_API_URL;
-  const { user, token } = useAppSelector((s) => s.auth);
+  const { user } = useAppSelector((s) => s.auth);
   const { selectedBranch } = useAppSelector((s) => s.branch);
 
-  const [lifecycleData, setLifecycleData] = useState<any[]>([]);
-  const [lifecycleLoading, setLifecycleLoading] = useState(false);
   const [lifecycleMonth, setLifecycleMonth] = useState(new Date().getMonth() + 1);
   const [lifecycleYear, setLifecycleYear] = useState(new Date().getFullYear());
   const [expandedIngredients, setExpandedIngredients] = useState<Set<number>>(new Set());
   const [wastageSortBy, setWastageSortBy] = useState<"weight" | "price" | "product">("weight");
 
-  useEffect(() => {
-    if (!selectedBranch?.id || !user?.restaurantId) return;
-    const fetchLifecycle = async () => {
-      setLifecycleLoading(true);
-      try {
-        const res = await fetch(
-          `${API_URL}/api/inventory/lifecycle?branchId=${selectedBranch.id}&month=${lifecycleMonth}&year=${lifecycleYear}`,
-          { headers: { Authorization: `Bearer ${token}` } },
-        );
-        const json = await res.json();
-        if (json.success) setLifecycleData(json.data || []);
-      } catch {
-        // The empty state below covers this; nothing actionable to show.
-        setLifecycleData([]);
-      }
-      setLifecycleLoading(false);
-    };
-    fetchLifecycle();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [lifecycleMonth, lifecycleYear, selectedBranch?.id, user?.restaurantId]);
+  // Keyed by month and year, so stepping back to a month already viewed is
+  // instant. On failure `data` is undefined and the empty state below covers
+  // it, which is what the old catch arranged by hand.
+  const { data: lifecycleData = [], isFetching: lifecycleLoading } =
+    useGetStockLifecycleQuery(
+      {
+        branchId: selectedBranch?.id as number,
+        month: lifecycleMonth,
+        year: lifecycleYear,
+      },
+      { skip: !selectedBranch?.id || !user?.restaurantId },
+    );
 
   const months = [
     "Jan",
