@@ -1,8 +1,14 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { act, renderHook } from "@testing-library/react";
 import { authenticatedState, hookWrapper } from "@/test/test-utils";
+import { confirmAction } from "@/utils/confirmAction";
 import { notify } from "@/utils/notify";
 import { useIngredientEditor } from "./useIngredientEditor";
+
+vi.mock("@/utils/confirmAction", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/utils/confirmAction")>()),
+  confirmAction: vi.fn(),
+}));
 
 vi.mock("@/utils/notify", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/utils/notify")>()),
@@ -44,6 +50,7 @@ const withDraft = (draft: Record<string, any[]>) => {
 afterEach(() => {
   vi.unstubAllGlobals();
   vi.mocked(notify).mockClear();
+  vi.mocked(confirmAction).mockReset();
 });
 
 describe("useIngredientEditor — rows", () => {
@@ -139,20 +146,31 @@ describe("useIngredientEditor — categories", () => {
     expect(hook.result.current.manualCategories.has("Grains")).toBe(false);
   });
 
-  it("deletes a category and its rows once confirmed", () => {
-    vi.stubGlobal("confirm", () => true);
+  it("deletes a category and its rows once confirmed", async () => {
+    vi.mocked(confirmAction).mockResolvedValue(true);
     const hook = withDraft({ Grains: [row()], Dairy: [row()] });
-    act(() => hook.result.current.handleDeleteCategory("Grains"));
+    await act(() => hook.result.current.handleDeleteCategory("Grains"));
 
     expect(Object.keys(hook.result.current.ingredients)).toEqual(["Dairy"]);
   });
 
-  it("keeps everything when the confirmation is declined", () => {
-    vi.stubGlobal("confirm", () => false);
+  it("keeps everything when the confirmation is declined", async () => {
+    // The whole point of the guard: declining must leave the draft untouched.
+    vi.mocked(confirmAction).mockResolvedValue(false);
     const hook = withDraft({ Grains: [row()], Dairy: [row()] });
-    act(() => hook.result.current.handleDeleteCategory("Grains"));
+    await act(() => hook.result.current.handleDeleteCategory("Grains"));
 
     expect(Object.keys(hook.result.current.ingredients)).toEqual(["Grains", "Dairy"]);
+  });
+
+  it("asks before deleting, naming the category", async () => {
+    vi.mocked(confirmAction).mockResolvedValue(false);
+    const hook = withDraft({ Grains: [row()] });
+    await act(() => hook.result.current.handleDeleteCategory("Grains"));
+
+    expect(confirmAction).toHaveBeenCalledWith(
+      expect.objectContaining({ title: 'Delete the "Grains" category?' }),
+    );
   });
 });
 

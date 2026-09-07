@@ -72,6 +72,7 @@ import {
 } from "react-icons/fa";
 import { getIndianCitiesForState, getIndianStates } from "@/utils/indiaLocations";
 import { notify } from "@/utils/notify";
+import { confirmAction } from "@/utils/confirmAction";
 
 const tabs = [
   {
@@ -374,14 +375,14 @@ export default function RestaurantSetupModal({ open, setOpen }: Props) {
       prev.map((s, idx) => (idx === i ? { ...s, ...updates } : s)),
     );
 
-  const handleCloseSetup = () => {
-    if (
-      window.confirm(
-        "If you close now, all setup progress will be lost. Do you really want to close?",
-      )
-    ) {
-      setOpen(false);
-    }
+  const handleCloseSetup = async () => {
+    const confirmed = await confirmAction({
+      title: "Close setup and lose your progress?",
+      message: "Nothing you have entered so far has been saved yet.",
+      confirmLabel: "Close anyway",
+      cancelLabel: "Keep setting up",
+    });
+    if (confirmed) setOpen(false);
   };
 
   const handleSubmitSetup = async () => {

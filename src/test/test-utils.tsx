@@ -8,6 +8,7 @@ import branchReducer from "@/store/slices/branchSlice";
 import dateRangeReducer from "@/store/slices/dateRangeSlice";
 import { api } from "@/store/api/apiSlice";
 import { ToastProvider } from "@/design/components/feedback";
+import { ConfirmProvider } from "@/design/components/dialogs";
 
 // Mirrors src/store/index.ts's shape so components using useAppSelector
 // work unmodified under test, without pulling in the real store singleton
@@ -59,14 +60,18 @@ export function renderWithProviders(
   { preloadedState, route = "/", ...renderOptions }: CustomRenderOptions = {},
 ) {
   const store = makeTestStore(preloadedState);
-  // ToastProvider is mounted here for the same reason main.tsx mounts it: the
-  // app's notify() calls need a sink. Without it every converted alert() would
-  // fall through to a console warning under test and assert on nothing.
+  // Both providers are mounted here for the same reason main.tsx mounts them:
+  // the app's notify() and confirmAction() calls need a sink. Without them a
+  // converted alert() falls through to a console warning and asserts on
+  // nothing, and a converted confirm() resolves false — so a delete under test
+  // would silently decline itself.
   function Wrapper({ children }: { children: ReactNode }) {
     return (
       <Provider store={store}>
         <ToastProvider>
-          <MemoryRouter initialEntries={[route]}>{children}</MemoryRouter>
+          <ConfirmProvider>
+            <MemoryRouter initialEntries={[route]}>{children}</MemoryRouter>
+          </ConfirmProvider>
         </ToastProvider>
       </Provider>
     );
@@ -110,7 +115,9 @@ export function hookWrapper(preloadedState?: Partial<TestRootState>) {
   const Wrapper = ({ children }: { children: ReactNode }) => (
     <Provider store={store}>
       <ToastProvider>
-        <MemoryRouter>{children}</MemoryRouter>
+        <ConfirmProvider>
+          <MemoryRouter>{children}</MemoryRouter>
+        </ConfirmProvider>
       </ToastProvider>
     </Provider>
   );

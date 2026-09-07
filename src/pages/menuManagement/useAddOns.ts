@@ -8,6 +8,7 @@ import {
   useDeleteAddOnOptionMutation,
 } from "@/store/api/addonsApi";
 import { notify } from "@/utils/notify";
+import { confirmAction } from "@/utils/confirmAction";
 
 /**
  * Add-on groups and their options — "Extra Cheese ₹40" and the like.
@@ -79,7 +80,12 @@ export function useAddOns(): UseAddOns {
   };
 
   const deleteGroup = async (id: number) => {
-    if (!window.confirm("Delete this add-on group and all its options?")) return;
+    const confirmed = await confirmAction({
+      title: "Delete this add-on group?",
+      message: "Every option inside it will be deleted too.",
+      confirmLabel: "Delete",
+    });
+    if (!confirmed) return;
     try {
       // Before, the response was never read, so the refetch ran either way — a
       // failed delete showed the group still there with nothing said about why.

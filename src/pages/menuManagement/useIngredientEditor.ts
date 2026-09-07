@@ -12,6 +12,7 @@ import {
   useGetVendorsQuery,
 } from "@/store/api/ingredientsApi";
 import { notify, notifySuccess } from "@/utils/notify";
+import { confirmAction } from "@/utils/confirmAction";
 
 /**
  * The ingredient stock editor: the draft rows people type into, the categories
@@ -206,11 +207,13 @@ export function useIngredientEditor(
     setShowAddCategory(false);
   };
 
-  const handleDeleteCategory = (category: string) => {
-    if (
-      !window.confirm(`Delete category "${category}" and all its ingredients?`)
-    )
-      return;
+  const handleDeleteCategory = async (category: string) => {
+    const confirmed = await confirmAction({
+      title: `Delete the "${category}" category?`,
+      message: "Every ingredient in it will be removed from this draft.",
+      confirmLabel: "Delete",
+    });
+    if (!confirmed) return;
     setIngredients((prev: any) => {
       const updated = { ...prev };
       delete updated[category];

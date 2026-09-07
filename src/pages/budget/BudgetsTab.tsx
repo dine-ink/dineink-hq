@@ -23,6 +23,7 @@ import {
   TrashIcon,
 } from "@heroicons/react/24/outline";
 import { notify } from "@/utils/notify";
+import { confirmAction } from "@/utils/confirmAction";
 
 const currentFyStartYear = () => {
   const now = new Date();
@@ -190,7 +191,12 @@ export default function BudgetsTab() {
   };
 
   const handleDeleteBudget = async (budget: any) => {
-    if (!window.confirm(`Delete "${budget.name}"? This cannot be undone.`)) return;
+    const confirmed = await confirmAction({
+      title: `Delete "${budget.name}"?`,
+      message: "This cannot be undone.",
+      confirmLabel: "Delete",
+    });
+    if (!confirmed) return;
     try {
       await deleteBudget({ restaurantId, budgetId: budget.id }).unwrap();
       if (selectedBudget?.id === budget.id) setView("list");

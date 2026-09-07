@@ -5,6 +5,7 @@ import { useGetEquipmentQuery } from "@/store/api/operationsApi";
 import { CHART_CARD } from "./laborCategories";
 import { useLaborQuery, useLaborScope } from "./useLaborApi";
 import MobileTableCards from "@/components/common/MobileTableCards";
+import { confirmAction } from "@/utils/confirmAction";
 
 // Station setup: the stations themselves, their productive-time factor, their
 // throughput ceiling, and which equipment feeds each one. This is the table
@@ -149,17 +150,30 @@ export default function StationsTab() {
   };
 
   const remove = async (station: Station) => {
-    const warning = [
-      `Delete "${station.name}"?`,
+    const consequences = [
       station.standardsCount > 0 ? `${station.standardsCount} labor standard(s) will be deleted.` : null,
       station.skilledStaffCount > 0 ? `${station.skilledStaffCount} staff skill entr(ies) will be deleted.` : null,
       station.equipmentCount > 0
         ? `${station.equipmentCount} equipment item(s) will be unassigned (the equipment itself is kept).`
         : null,
-    ]
-      .filter(Boolean)
-      .join("\n");
-    if (!window.confirm(warning)) return;
+    ].filter((line): line is string => line !== null);
+
+    const confirmed = await confirmAction({
+      title: `Delete "${station.name}"?`,
+      // A real list, not newline-joined text: the dialog renders markup, where
+      // "\n" collapses to a space and would run these into one long sentence.
+      message: consequences.length ? (
+        <ul className="list-disc space-y-1 pl-4">
+          {consequences.map((line) => (
+            <li key={line}>{line}</li>
+          ))}
+        </ul>
+      ) : (
+        "This cannot be undone."
+      ),
+      confirmLabel: "Delete",
+    });
+    if (!confirmed) return;
 
     setBusy(true);
     setActionError(null);

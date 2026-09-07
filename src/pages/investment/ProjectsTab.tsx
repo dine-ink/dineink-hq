@@ -22,6 +22,7 @@ import {
   TrashIcon,
 } from "@heroicons/react/24/outline";
 import { notify } from "@/utils/notify";
+import { confirmAction } from "@/utils/confirmAction";
 
 const SCENARIO_TYPE_LABEL: Record<string, string> = { CONSERVATIVE: "Conservative", EXPECTED: "Expected", OPTIMISTIC: "Optimistic" };
 
@@ -148,7 +149,12 @@ export default function ProjectsTab() {
   };
 
   const handleDelete = async (project: any) => {
-    if (!confirm(`Delete "${project.name}"? This can't be undone.`)) return;
+    const confirmed = await confirmAction({
+      title: `Delete "${project.name}"?`,
+      message: "This cannot be undone.",
+      confirmLabel: "Delete",
+    });
+    if (!confirmed) return;
     try {
       await deleteInvestment({ restaurantId, investmentId: project.id }).unwrap();
     } catch {

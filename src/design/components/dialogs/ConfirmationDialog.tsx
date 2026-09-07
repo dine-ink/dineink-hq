@@ -15,12 +15,16 @@ export interface ConfirmationDialogProps {
   tone?: "primary" | "danger";
 }
 
-// Replaces the app's current reliance on the browser's native
-// window.confirm() (found in 4 files) for anything more consequential than
-// a trivial toggle — window.confirm blocks the whole tab, can't be styled,
-// and gives no room for an explanatory message. This is additive
-// infrastructure; existing window.confirm() call sites are unaffected
-// unless explicitly migrated (see FINAL_UI_UX_POLISH_REPORT.md).
+// Replaces the browser's native window.confirm(), which blocked the whole
+// tab, could not be styled, and gave no room for an explanatory message.
+// No call site uses window.confirm any more; all thirteen were migrated
+// (see docs/FINAL_UI_UX_POLISH_REPORT.md for the original survey).
+//
+// Two ways in, both landing here:
+//   - useConfirmDialog(), for a component happy to host the dialog itself
+//   - confirmAction() from utils, via ConfirmProvider at the app root, for
+//     the `if (!(await confirmAction(...))) return;` call sites — including
+//     hooks that render nothing and so cannot host a dialog
 export function ConfirmationDialog({
   open,
   onClose,

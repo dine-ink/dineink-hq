@@ -29,6 +29,7 @@ import {
 import DiscountCodesTab from "./DiscountCodesTab";
 import TabStrip from "@/components/common/TabStrip";
 import { notify, notifySuccess } from "@/utils/notify";
+import { confirmAction } from "@/utils/confirmAction";
 
 const TABS = [
   { id: "General", label: "Restaurant", icon: BuildingStorefrontIcon },
@@ -306,13 +307,14 @@ export default function Settings() {
       ),
     }));
 
-  const handleSignOutAll = () => {
-    if (
-      !window.confirm(
-        "This will sign you out on this device. Active sessions on other devices will expire when their token times out. Continue?",
-      )
-    )
-      return;
+  const handleSignOutAll = async () => {
+    const confirmed = await confirmAction({
+      title: "Sign out?",
+      message:
+        "You will be signed out on this device. Sessions on other devices expire when their token times out.",
+      confirmLabel: "Sign out",
+    });
+    if (!confirmed) return;
     dispatch(clearAuth());
     navigate("/login");
   };

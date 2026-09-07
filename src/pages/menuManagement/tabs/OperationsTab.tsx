@@ -29,6 +29,7 @@ import {
   useDeleteSopMutation,
 } from "@/store/api/sopApi";
 import { notify } from "@/utils/notify";
+import { confirmAction } from "@/utils/confirmAction";
 
 interface OperationsTabProps {
   menuItems: any[];
@@ -97,7 +98,12 @@ export default function OperationsTab({ menuItems }: OperationsTabProps) {
   };
 
   const handleDeleteSop = async (id: number) => {
-    if (!window.confirm("Delete this SOP checklist?")) return;
+    const confirmed = await confirmAction({
+      title: "Delete this SOP checklist?",
+      message: "The checklist and all of its steps will be removed.",
+      confirmLabel: "Delete",
+    });
+    if (!confirmed) return;
     try {
       await deleteSop(id).unwrap();
     } catch {

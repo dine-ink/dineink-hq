@@ -29,8 +29,10 @@ import {
 } from "@heroicons/react/24/outline";
 import { StatusChip } from "@/design";
 import ReorderDialog from "./ReorderDialog";
+import PayInvoiceDialog from "./PayInvoiceDialog";
 import MobileTableCards from "@/components/common/MobileTableCards";
-import { notify } from "@/utils/notify";
+import { notify, notifySuccess } from "@/utils/notify";
+import { confirmAction } from "@/utils/confirmAction";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -130,7 +132,13 @@ export default function Vendors() {
   const [deleteVendorMutation] = useDeleteVendorMutation();
   const [recordVendorPayment] = useRecordVendorPaymentMutation();
   const [createVendorInvoice] = useCreateVendorInvoiceMutation();
-  const [payVendorInvoice] = usePayVendorInvoiceMutation();
+  const [payVendorInvoice, { isLoading: payingInvoice }] =
+    usePayVendorInvoiceMutation();
+  const [payModal, setPayModal] = useState<{
+    open: boolean;
+    invoiceId: number | null;
+    remaining: number;
+  }>({ open: false, invoiceId: null, remaining: 0 });
 
   // Deep-link from a low-stock alert (Menu Management → Analytics) — open the
   // purchase invoice modal for the vendor tied to the ingredient running low.
@@ -190,12 +198,12 @@ export default function Vendors() {
   };
 
   const deleteVendor = async (id: number) => {
-    if (
-      !confirm(
-        "Delete this vendor? This will also remove all ingredient links.",
-      )
-    )
-      return;
+    const confirmed = await confirmAction({
+      title: "Delete this vendor?",
+      message: "Every ingredient link to this vendor will be removed as well.",
+      confirmLabel: "Delete",
+    });
+    if (!confirmed) return;
     try {
       await deleteVendorMutation(id).unwrap();
     } catch (error) {
@@ -338,15 +346,20 @@ export default function Vendors() {
     }
   };
 
-  const payInvoice = async (invoiceId: number, remaining: number) => {
-    const amt = prompt(`Pay how much? (Remaining: ₹${remaining})`);
-    if (!amt || isNaN(Number(amt))) return;
+  // Validation of the amount lives in PayInvoiceDialog, which will not submit
+  // a figure that is empty, zero, negative or larger than what is owed. This
+  // handler therefore only has to record it.
+  const payInvoice = async (amount: number) => {
+    const invoiceId = payModal.invoiceId;
+    if (invoiceId === null) return;
     try {
-      await payVendorInvoice({ invoiceId, amount: Number(amt) }).unwrap();
+      await payVendorInvoice({ invoiceId, amount }).unwrap();
     } catch (error) {
       notify(errorMessage(error));
       return;
     }
+    setPayModal({ open: false, invoiceId: null, remaining: 0 });
+    notifySuccess(`Payment of ₹${amount.toLocaleString("en-IN")} recorded`);
     // The modal holds its rows in local state, so it is reopened to pick up
     // the new balance; the owed totals behind it follow the ledger tag.
     if (detailModal.vendor) openDetailModal(detailModal.vendor);
@@ -1161,7 +1174,11 @@ export default function Vendors() {
                           {i.status !== "PAID" && (
                             <button
                               onClick={() =>
-                                payInvoice(i.id, i.totalAmount - i.paidAmount)
+                                setPayModal({
+                                  open: true,
+                                  invoiceId: i.id,
+                                  remaining: i.totalAmount - i.paidAmount,
+                                })
                               }
                               className="text-[9px] font-bold text-emerald-600 underline"
                             >
@@ -1360,6 +1377,14 @@ export default function Vendors() {
           </div>
         </div>
       )}
+
+      <PayInvoiceDialog
+        open={payModal.open}
+        remaining={payModal.remaining}
+        submitting={payingInvoice}
+        onClose={() => setPayModal({ open: false, invoiceId: null, remaining: 0 })}
+        onSubmit={payInvoice}
+      />
     </main>
   );
 }

@@ -15,7 +15,7 @@
  * update the matching variable here too — this file has no build-time link
  * to the TS tokens, so the two must be kept in sync by hand. Consolidating
  * them into a single generated source is tracked as follow-up work (see
- * FINAL_UI_UX_POLISH_REPORT.md).
+ * docs/FINAL_UI_UX_POLISH_REPORT.md).
  */
 
 @theme {

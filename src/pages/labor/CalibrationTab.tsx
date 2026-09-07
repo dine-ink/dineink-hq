@@ -3,6 +3,7 @@ import { Alert, Button, MetricCard } from "@/design";
 import { CHART_CARD } from "./laborCategories";
 import { useLaborQuery, useLaborScope } from "./useLaborApi";
 import MobileTableCards from "@/components/common/MobileTableCards";
+import { confirmAction } from "@/utils/confirmAction";
 
 // Calibration: comparing the labor standards an owner entered against what the
 // kitchen actually did. The honesty of this tab matters more than its numbers —
@@ -55,12 +56,14 @@ export default function CalibrationTab() {
   const [notice, setNotice] = useState<string | null>(null);
 
   const apply = async () => {
-    if (
-      !window.confirm(
-        "Record these measured times against your labor standards?\n\nYour entered standards are NOT overwritten — the measured figures are stored alongside them, and the plan only starts using a measured time once it has 20+ observations.",
-      )
-    )
-      return;
+    const confirmed = await confirmAction({
+      title: "Record these measured times against your labor standards?",
+      message:
+        "Your entered standards are not overwritten — the measured figures are stored alongside them, and the plan only starts using a measured time once it has 20+ observations.",
+      tone: "primary",
+      confirmLabel: "Record",
+    });
+    if (!confirmed) return;
     setBusy(true);
     setActionError(null);
     try {

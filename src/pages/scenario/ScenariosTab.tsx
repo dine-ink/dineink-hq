@@ -22,6 +22,7 @@ import {
   TrashIcon,
 } from "@heroicons/react/24/outline";
 import { notify } from "@/utils/notify";
+import { confirmAction } from "@/utils/confirmAction";
 
 export default function ScenariosTab() {
   const { branches } = useAppSelector((s) => s.branch);
@@ -130,7 +131,12 @@ export default function ScenariosTab() {
 
   const handleResetAll = async () => {
     if (!selectedScenario) return;
-    if (!confirm("Reset every override on this scenario back to its inherited default?")) return;
+    const confirmed = await confirmAction({
+      title: "Reset every override on this scenario?",
+      message: "Each field goes back to the default it inherits.",
+      confirmLabel: "Reset all",
+    });
+    if (!confirmed) return;
     try {
       const reset = await resetFields({
         restaurantId,
@@ -173,7 +179,12 @@ export default function ScenariosTab() {
       notify("Built-in scenarios can't be deleted — archive it instead.", "warning");
       return;
     }
-    if (!confirm(`Delete scenario "${scenario.name}"? This can't be undone.`)) return;
+    const confirmed = await confirmAction({
+      title: `Delete the "${scenario.name}" scenario?`,
+      message: "This cannot be undone.",
+      confirmLabel: "Delete",
+    });
+    if (!confirmed) return;
     try {
       await deleteScenario({ restaurantId, id: scenario.id }).unwrap();
     } catch (err) {

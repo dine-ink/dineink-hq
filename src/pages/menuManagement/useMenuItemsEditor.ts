@@ -7,6 +7,7 @@ import {
   useSetMenuItemAvailabilityMutation,
 } from "@/store/api/menuApi";
 import { notify } from "@/utils/notify";
+import { confirmAction } from "@/utils/confirmAction";
 
 /**
  * The menu list: its filters, its sort, and the create/edit/delete of items and
@@ -103,7 +104,12 @@ export function useMenuItemsEditor(menuItems: any[], categories: any[]) {
   };
 
   const handleDeleteMenuItem = async (id: number) => {
-    if (!window.confirm("Delete this menu item?")) return;
+    const confirmed = await confirmAction({
+      title: "Delete this menu item?",
+      message: "This cannot be undone.",
+      confirmLabel: "Delete",
+    });
+    if (!confirmed) return;
     try {
       await deleteMenuItemMutation(id).unwrap();
     } catch {
