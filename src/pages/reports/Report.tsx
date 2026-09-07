@@ -48,6 +48,7 @@ import RevenueForecastTab from "./tabs/RevenueForecastTab";
 import WasteReportTab from "./tabs/WasteReportTab";
 import TableAnalyticsTab from "./tabs/TableAnalyticsTab";
 import MenuEngineeringTab from "./tabs/MenuEngineeringTab";
+import { notify } from "@/utils/notify";
 
 // The app's one shared qualitative chart palette — see BranchComparison.tsx
 // for the full duplication history this replaces.
@@ -223,7 +224,7 @@ export default function Report() {
       });
       saveAs(blob, `GST-Filing-Summary-${from}-to-${to}.xlsx`);
     } catch {
-      alert("Failed to generate GST report");
+      notify("Failed to generate GST report");
     } finally {
       setDownloadingGst(false);
     }

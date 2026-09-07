@@ -30,6 +30,7 @@ import {
 import { StatusChip } from "@/design";
 import ReorderDialog from "./ReorderDialog";
 import MobileTableCards from "@/components/common/MobileTableCards";
+import { notify } from "@/utils/notify";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -182,7 +183,7 @@ export default function Vendors() {
       // The modal stays open on failure, so the values the person typed are
       // still there to retry with. Closing it and refetching — which is what
       // this did before — showed them the unchanged list and read as success.
-      alert(errorMessage(error));
+      notify(errorMessage(error));
       return;
     }
     setVendorModal({ open: false, editing: null });
@@ -198,7 +199,7 @@ export default function Vendors() {
     try {
       await deleteVendorMutation(id).unwrap();
     } catch (error) {
-      alert(errorMessage(error));
+      notify(errorMessage(error));
     }
   };
 
@@ -250,7 +251,7 @@ export default function Vendors() {
         createdById: user.id,
       }).unwrap();
     } catch (error) {
-      alert(errorMessage(error));
+      notify(errorMessage(error));
       return;
     }
     setPaymentModal({ open: false, vendor: null });
@@ -302,7 +303,7 @@ export default function Vendors() {
     } catch (error) {
       // Modal stays open so the invoice details and the attached file are not
       // lost to a retry.
-      alert(errorMessage(error));
+      notify(errorMessage(error));
       return;
     }
     setInvoiceModal({ open: false, vendor: null });
@@ -343,7 +344,7 @@ export default function Vendors() {
     try {
       await payVendorInvoice({ invoiceId, amount: Number(amt) }).unwrap();
     } catch (error) {
-      alert(errorMessage(error));
+      notify(errorMessage(error));
       return;
     }
     // The modal holds its rows in local state, so it is reopened to pick up

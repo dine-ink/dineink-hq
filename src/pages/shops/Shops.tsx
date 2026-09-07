@@ -20,6 +20,7 @@ import {
   getIndianStates,
 } from "@/utils/indiaLocations";
 import MobileTableCards from "@/components/common/MobileTableCards";
+import { notify } from "@/utils/notify";
 
 const INPUT_BASE =
   "w-full rounded-xl border bg-white px-3 py-2 text-sm outline-none transition-all";
@@ -184,7 +185,7 @@ export default function Shops() {
       // The draft is re-seeded by the effect above when the invalidated branch
       // query comes back.
     } catch {
-      alert("Update failed");
+      notify("Update failed");
     } finally {
       setSaving(false);
     }

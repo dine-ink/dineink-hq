@@ -1,7 +1,13 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { act, renderHook } from "@testing-library/react";
 import { authenticatedState, hookWrapper } from "@/test/test-utils";
+import { notify } from "@/utils/notify";
 import { useIngredientEditor } from "./useIngredientEditor";
+
+vi.mock("@/utils/notify", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/utils/notify")>()),
+  notify: vi.fn(),
+}));
 
 /**
  * The ingredient stock draft: a map of category name to a list of editable
@@ -37,6 +43,7 @@ const withDraft = (draft: Record<string, any[]>) => {
 
 afterEach(() => {
   vi.unstubAllGlobals();
+  vi.mocked(notify).mockClear();
 });
 
 describe("useIngredientEditor — rows", () => {
@@ -105,16 +112,14 @@ describe("useIngredientEditor — categories", () => {
   });
 
   it("refuses a duplicate rather than replacing the rows under it", () => {
-    const alerted: string[] = [];
-    vi.stubGlobal("alert", (m: string) => alerted.push(m));
-
     const hook = withDraft({ Grains: [row({ name: "Rice" })] });
     act(() => hook.result.current.setNewCategoryName("Grains"));
     act(() => hook.result.current.handleAddCategory());
 
     // The existing row survives; without the guard this would have blanked it.
     expect(hook.result.current.ingredients.Grains).toHaveLength(1);
-    expect(alerted).toEqual(["Category already exists"]);
+    // A warning rather than an error: nothing broke, the name is just taken.
+    expect(notify).toHaveBeenCalledWith("Category already exists", "warning");
   });
 
   it("also refuses a duplicate of an *empty* category", () => {
@@ -125,7 +130,6 @@ describe("useIngredientEditor — categories", () => {
     // "Grains" again would set it to [] and the keys would look identical. What
     // distinguishes the two is the early return: it leaves the typed name in
     // the input, where a successful add clears it.
-    vi.stubGlobal("alert", () => {});
     const hook = withDraft({ Grains: [] });
     act(() => hook.result.current.setNewCategoryName("Grains"));
     act(() => hook.result.current.handleAddCategory());

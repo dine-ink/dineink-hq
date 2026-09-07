@@ -33,6 +33,7 @@ import {
   type DataTableColumn,
   type ChipStatus,
 } from "@/design";
+import { notify } from "@/utils/notify";
 
 
 interface EmiScheduleRef {
@@ -275,7 +276,7 @@ export default function EquipmentList() {
       // fixed, and the tag replaces the two manual filters.
       await deleteEquipment(id).unwrap();
     } catch {
-      alert("Failed to delete this equipment item");
+      notify("Failed to delete this equipment item");
     } finally {
       setDeleteTarget(null);
     }

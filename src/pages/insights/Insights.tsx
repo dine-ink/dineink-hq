@@ -80,6 +80,7 @@ import {
   WalletIcon,
   WrenchIcon,
 } from "@heroicons/react/24/outline";
+import { notify } from "@/utils/notify";
 
 const tabs = ["Overview", "Insights Setup", "Financial Assumptions"];
 
@@ -321,7 +322,7 @@ export default function Insights() {
     try {
       // token and user from Redux (outer scope)
       if (!selectedBranch?.id) {
-        alert("Please select branch");
+        notify("Please select branch", "warning");
         return;
       }
 
@@ -334,7 +335,7 @@ export default function Insights() {
         branchId: selectedBranch.id,
       }).unwrap();
     } catch {
-      alert("Failed to save these insights");
+      notify("Failed to save these insights");
     }
   };
 

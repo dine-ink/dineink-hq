@@ -11,6 +11,7 @@ import {
   CheckCircleIcon,
   InformationCircleIcon,
 } from "@heroicons/react/24/outline";
+import { notify } from "@/utils/notify";
 
 export default function DailyStockAudit() {
   const { selectedBranch } = useAppSelector((s) => s.branch);
@@ -76,7 +77,7 @@ export default function DailyStockAudit() {
         notes: notesInputs[ing.ingredientId] || "",
       }));
 
-    if (entries.length === 0) { alert("Enter at least one closing stock value."); return; }
+    if (entries.length === 0) { notify("Enter at least one closing stock value.", "warning"); return; }
 
     setSaving(true);
     try {
@@ -87,7 +88,7 @@ export default function DailyStockAudit() {
       }).unwrap();
       setSavedOk(true);
       // The preview refetches from the tag; no second call by hand.
-    } catch { alert("Failed to save"); }
+    } catch { notify("Failed to save"); }
     setSaving(false);
   };
 

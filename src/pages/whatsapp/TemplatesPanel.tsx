@@ -6,6 +6,7 @@ import {
   useDeleteWhatsAppTemplateMutation,
 } from "@/store/api/whatsappApi";
 import { Button, Dialog, DeleteDialog, FormField, FormSection, Input, Textarea, Alert, EmptyState } from "@/design";
+import { notify } from "@/utils/notify";
 
 export interface WhatsAppTemplate {
   id: number;
@@ -96,7 +97,7 @@ export default function TemplatesPanel({ templates, loading }: TemplatesPanelPro
     } catch {
       // Was swallowed entirely: a refused delete closed the dialog and left
       // the template in the list with nothing said.
-      alert("Failed to delete this template");
+      notify("Failed to delete this template");
     } finally {
       setDeleteTarget(null);
     }

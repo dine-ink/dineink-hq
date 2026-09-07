@@ -12,6 +12,7 @@ import { trendStyle } from "@/utils/kpiStyles";
 import ScenarioCharts from "./ScenarioCharts";
 import MobileTableCards from "@/components/common/MobileTableCards";
 import { ArrowPathIcon, CheckIcon } from "@heroicons/react/24/outline";
+import { notify } from "@/utils/notify";
 
 const PERIODS = [
   { key: "currentMonth", label: "Current Month" },
@@ -137,7 +138,7 @@ export default function OverviewTab() {
       // `dirty` deliberately stays true on failure: it is what keeps the Save
       // button live and the unsaved values on screen. Clearing it — or saying
       // nothing, as this once did — presents unsaved overrides as saved.
-      alert(errorMessage(err, "Failed to save these scenario overrides"));
+      notify(errorMessage(err, "Failed to save these scenario overrides"));
     } finally {
       setSaving(false);
     }

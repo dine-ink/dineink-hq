@@ -71,6 +71,7 @@ import {
   FaFish,
 } from "react-icons/fa";
 import { getIndianCitiesForState, getIndianStates } from "@/utils/indiaLocations";
+import { notify } from "@/utils/notify";
 
 const tabs = [
   {
@@ -392,13 +393,13 @@ export default function RestaurantSetupModal({ open, setOpen }: Props) {
       !restaurant.email ||
       !restaurant.gst
     ) {
-      alert("Please fill all required restaurant details");
+      notify("Please fill all required restaurant details", "warning");
       return;
     }
     try {
       setLoading(true);
       if (!authToken) {
-        alert("Session expired. Please login again.");
+        notify("Session expired. Please login again.");
         return;
       }
       const filteredStaff = staff.filter((s) => s.name && s.phone);
@@ -459,10 +460,10 @@ export default function RestaurantSetupModal({ open, setOpen }: Props) {
         setOpen(false);
         window.location.reload();
       } else {
-        alert(data.message);
+        notify(data.message || "Setup failed");
       }
     } catch {
-      alert("Setup failed");
+      notify("Setup failed");
     } finally {
       setLoading(false);
     }

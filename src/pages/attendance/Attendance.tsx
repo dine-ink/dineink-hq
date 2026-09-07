@@ -30,6 +30,7 @@ import {
 import LeaveManagementTab from "./LeaveManagementTab";
 import PayrollProcessingTab from "./PayrollProcessingTab";
 import MobileTableCards from "@/components/common/MobileTableCards";
+import { notify } from "@/utils/notify";
 
 // Effective hours for payroll/display purposes: an owner-entered override
 // takes precedence over whatever the POS clock-in/out computed.
@@ -149,7 +150,7 @@ export default function Attendance() {
       }).unwrap();
       setHoursModal({ open: false, staff: null, att: null });
     } catch {
-      alert("Failed to save hours");
+      notify("Failed to save hours");
     } finally {
       setSavingHours(false);
     }

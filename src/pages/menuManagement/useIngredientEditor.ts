@@ -11,6 +11,7 @@ import {
   useUploadVendorDataMutation,
   useGetVendorsQuery,
 } from "@/store/api/ingredientsApi";
+import { notify, notifySuccess } from "@/utils/notify";
 
 /**
  * The ingredient stock editor: the draft rows people type into, the categories
@@ -91,7 +92,7 @@ export function useIngredientEditor(
       );
       setIngredients(formatted);
     } catch {
-      alert("Couldn't generate an ingredient list");
+      notify("Couldn't generate an ingredient list");
     } finally {
       setLoading(false);
     }
@@ -102,7 +103,7 @@ export function useIngredientEditor(
     // while building the request body — the ingredients were silently not
     // saved and the swallowed catch below meant no error was shown either.
     if (!selectedBranch?.id) {
-      alert("Please select a branch");
+      notify("Please select a branch", "warning");
       return;
     }
     try {
@@ -111,11 +112,11 @@ export function useIngredientEditor(
         branchId: selectedBranch.id,
         ingredients,
       }).unwrap();
-      alert("Ingredients saved successfully");
+      notifySuccess("Ingredients saved successfully");
     } catch {
       // Success alerted; failure did not. Pressing Save and getting no response
       // at all is indistinguishable from the click missing.
-      alert("Failed to save these ingredients");
+      notify("Failed to save these ingredients");
     }
   };
 
@@ -178,7 +179,7 @@ export function useIngredientEditor(
     } catch {
       // An ingredient price feeds every recipe's food cost, so a change that
       // silently didn't take leaves margins computed on the old figure.
-      alert("Failed to record that price change");
+      notify("Failed to record that price change");
     }
   };
 
@@ -196,7 +197,7 @@ export function useIngredientEditor(
     const name = newCategoryName.trim();
     if (!name) return;
     if (ingredients[name] !== undefined) {
-      alert("Category already exists");
+      notify("Category already exists", "warning");
       return;
     }
     setIngredients((prev: any) => ({ ...prev, [name]: [] }));
@@ -319,9 +320,9 @@ export function useIngredientEditor(
             vendors: jsonData,
           }).unwrap();
           // The vendor list refreshes from the tag; no hand-written refetch.
-          alert(`Vendor upload successful (${jsonData.length} vendors)`);
+          notifySuccess(`Vendor upload successful (${jsonData.length} vendors)`);
         } catch {
-          alert("Failed to process vendor file");
+          notify("Failed to process vendor file");
         } finally {
           setUploadingVendor(false);
         }
@@ -330,7 +331,7 @@ export function useIngredientEditor(
       reader.readAsArrayBuffer(file);
     } catch {
       setUploadingVendor(false);
-      alert("Vendor upload failed");
+      notify("Vendor upload failed");
     }
   };
 

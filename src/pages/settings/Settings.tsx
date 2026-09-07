@@ -28,6 +28,7 @@ import {
 } from "@heroicons/react/24/outline";
 import DiscountCodesTab from "./DiscountCodesTab";
 import TabStrip from "@/components/common/TabStrip";
+import { notify, notifySuccess } from "@/utils/notify";
 
 const TABS = [
   { id: "General", label: "Restaurant", icon: BuildingStorefrontIcon },
@@ -239,7 +240,7 @@ export default function Settings() {
       // editMode and the logo preview are reset by the seeding effect when the
       // invalidated query comes back.
     } catch {
-      alert("Failed to save");
+      notify("Failed to save");
     }
   };
 
@@ -254,7 +255,7 @@ export default function Settings() {
       setBranchEditMode(false);
       await syncBranchesToStore();
     } catch {
-      alert("Failed to save branches");
+      notify("Failed to save branches");
     } finally {
       setSavingBranch(false);
     }
@@ -262,7 +263,7 @@ export default function Settings() {
 
   const handleAddBranch = async () => {
     if (!newBranch.name.trim()) {
-      alert("Branch name is required");
+      notify("Branch name is required", "warning");
       return;
     }
     try {
@@ -281,7 +282,7 @@ export default function Settings() {
       dispatch(setBranches(updatedBranches));
       window.dispatchEvent(new Event("branchChanged"));
     } catch {
-      alert("Failed to add branch");
+      notify("Failed to add branch");
     } finally {
       setSavingBranch(false);
     }
@@ -318,7 +319,7 @@ export default function Settings() {
 
   const handleUpdatePassword = async () => {
     if (passwordForm.newPassword !== passwordForm.confirmPassword) {
-      alert("Passwords do not match");
+      notify("Passwords do not match", "warning");
       return;
     }
     try {
@@ -333,12 +334,12 @@ export default function Settings() {
         newPassword: "",
         confirmPassword: "",
       });
-      alert("Password updated successfully");
+      notifySuccess("Password updated successfully");
     } catch {
       // A wrong current password is the common case here, and it used to
       // surface the server's own message. That distinction is lost with
       // `.unwrap()`, so the text says what to check.
-      alert("Could not update the password. Check that the current one is right.");
+      notify("Could not update the password. Check that the current one is right.");
     }
   };
 

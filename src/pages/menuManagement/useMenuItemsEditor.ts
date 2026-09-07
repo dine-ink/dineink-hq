@@ -6,6 +6,7 @@ import {
   useDeleteMenuItemMutation,
   useSetMenuItemAvailabilityMutation,
 } from "@/store/api/menuApi";
+import { notify } from "@/utils/notify";
 
 /**
  * The menu list: its filters, its sort, and the create/edit/delete of items and
@@ -72,7 +73,7 @@ export function useMenuItemsEditor(menuItems: any[], categories: any[]) {
       setShowMenuCategory(false);
     } catch {
       // The dialog stays open on failure so the typed name survives a retry.
-      alert("Failed to add that category");
+      notify("Failed to add that category");
     }
   };
 
@@ -97,7 +98,7 @@ export function useMenuItemsEditor(menuItems: any[], categories: any[]) {
       // This path said nothing at all before: a rejected save closed no dialog
       // and raised no message, so the item simply never appeared. The form
       // stays open and populated.
-      alert("Failed to save this menu item");
+      notify("Failed to save this menu item");
     }
   };
 
@@ -106,7 +107,7 @@ export function useMenuItemsEditor(menuItems: any[], categories: any[]) {
     try {
       await deleteMenuItemMutation(id).unwrap();
     } catch {
-      alert("Failed to delete this menu item");
+      notify("Failed to delete this menu item");
     }
   };
 
@@ -116,7 +117,7 @@ export function useMenuItemsEditor(menuItems: any[], categories: any[]) {
     } catch {
       // A rejected toggle leaves the switch showing its old value, which reads
       // as the click not registering rather than being refused.
-      alert("Failed to change this item's availability");
+      notify("Failed to change this item's availability");
     }
   };
 

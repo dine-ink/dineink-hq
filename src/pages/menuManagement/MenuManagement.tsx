@@ -125,6 +125,7 @@ import {
 } from "recharts";
 import MobileTableCards from "@/components/common/MobileTableCards";
 import MenuEngineeringMatrixTab from "./tabs/MenuEngineeringMatrixTab";
+import { notify } from "@/utils/notify";
 
 
 const tabs = [
@@ -766,7 +767,7 @@ export default function MenuManagement() {
       setUploadingRestock(true);
 
       if (!selectedBranch?.id) {
-        alert("Please select branch");
+        notify("Please select branch", "warning");
 
         return;
       }
@@ -785,7 +786,7 @@ export default function MenuManagement() {
         data: uploadedData || restockHistory,
       }).unwrap();
     } catch {
-      alert("Failed to save restock history");
+      notify("Failed to save restock history");
     } finally {
       // Was cleared only on success, so a failed upload left the spinner
       // running and the button disabled until a reload.
@@ -1123,7 +1124,7 @@ export default function MenuManagement() {
         else next.delete(groupId);
         return { ...prev, attachedIds: next };
       });
-      alert("Failed to update the add-ons on this item");
+      notify("Failed to update the add-ons on this item");
     }
   };
 

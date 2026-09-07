@@ -7,6 +7,7 @@ import {
   useCreateAddOnOptionMutation,
   useDeleteAddOnOptionMutation,
 } from "@/store/api/addonsApi";
+import { notify } from "@/utils/notify";
 
 /**
  * Add-on groups and their options — "Extra Cheese ₹40" and the like.
@@ -73,7 +74,7 @@ export function useAddOns(): UseAddOns {
       }).unwrap();
       setNewGroupName("");
     } catch {
-      alert("Failed to create that add-on group");
+      notify("Failed to create that add-on group");
     }
   };
 
@@ -85,7 +86,7 @@ export function useAddOns(): UseAddOns {
       // `.unwrap()` makes a rejection throw, which is what keeps that fixed.
       await deleteAddOnGroup(id).unwrap();
     } catch {
-      alert("Failed to delete that add-on group");
+      notify("Failed to delete that add-on group");
     }
   };
 
@@ -103,7 +104,7 @@ export function useAddOns(): UseAddOns {
         [groupId]: { name: "", price: "" },
       }));
     } catch {
-      alert("Failed to add that option");
+      notify("Failed to add that option");
     }
   };
 
@@ -111,7 +112,7 @@ export function useAddOns(): UseAddOns {
     try {
       await deleteAddOnOption(id).unwrap();
     } catch {
-      alert("Failed to delete that option");
+      notify("Failed to delete that option");
     }
   };
 

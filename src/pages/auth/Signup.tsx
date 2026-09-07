@@ -12,6 +12,7 @@ import Logo from "@/components/common/Logo";
 import { useAppDispatch } from "@/store";
 import { setAuth } from "@/store/slices/authSlice";
 import { setBranches } from "@/store/slices/branchSlice";
+import { notify } from "@/utils/notify";
 
 export default function Signup() {
   const navigate = useNavigate();
@@ -55,11 +56,11 @@ export default function Signup() {
   const handleSendOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     if (form.password !== form.confirmPassword) {
-      alert("Passwords do not match");
+      notify("Passwords do not match", "warning");
       return;
     }
     if (form.password.length < 6) {
-      alert("Password must be at least 6 characters");
+      notify("Password must be at least 6 characters", "warning");
       return;
     }
     try {
@@ -71,11 +72,11 @@ export default function Signup() {
         setStep("otp");
         setResendCooldown(30);
       } else {
-        alert(data.message || "Could not send verification code");
+        notify(data.message || "Could not send verification code");
       }
     } catch (error) {
       console.error(error);
-      alert("Something went wrong");
+      notify("Something went wrong");
     } finally {
       setLoading(false);
     }

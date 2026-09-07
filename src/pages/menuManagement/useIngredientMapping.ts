@@ -5,6 +5,7 @@ import {
   useSaveMenuItemMappingMutation,
 } from "@/store/api/inventoryApi";
 import { useAiSuggestIngredientsMutation } from "@/store/api/ingredientsApi";
+import { notify, notifySuccess } from "@/utils/notify";
 
 /**
  * Which ingredients go into which menu item, and what that recipe costs.
@@ -77,10 +78,10 @@ export function useIngredientMapping(
       };
 
       await saveMenuItemMapping(payload).unwrap();
-      alert("Mapping saved");
+      notifySuccess("Mapping saved");
       await fetchMenuItemMappings();
     } catch {
-      alert("Failed to save this recipe mapping");
+      notify("Failed to save this recipe mapping");
     } finally {
       setMappingLoading(false);
     }
@@ -116,7 +117,7 @@ export function useIngredientMapping(
     } catch {
       // The AI suggestion is a slow call behind a button. With nothing shown on
       // failure, the button simply appeared to do nothing.
-      alert("Couldn't suggest ingredients for this item");
+      notify("Couldn't suggest ingredients for this item");
     }
   };
 

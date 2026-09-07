@@ -28,6 +28,7 @@ import {
   useSaveSopMutation,
   useDeleteSopMutation,
 } from "@/store/api/sopApi";
+import { notify } from "@/utils/notify";
 
 interface OperationsTabProps {
   menuItems: any[];
@@ -80,7 +81,7 @@ export default function OperationsTab({ menuItems }: OperationsTabProps) {
     } catch {
       // The form stays open and populated so the steps someone just typed are
       // not discarded along with the error.
-      alert("Failed to save this SOP checklist");
+      notify("Failed to save this SOP checklist");
     }
   };
 
@@ -100,7 +101,7 @@ export default function OperationsTab({ menuItems }: OperationsTabProps) {
     try {
       await deleteSop(id).unwrap();
     } catch {
-      alert("Failed to delete this SOP checklist");
+      notify("Failed to delete this SOP checklist");
     }
   };
 

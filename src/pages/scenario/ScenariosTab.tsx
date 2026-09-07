@@ -21,6 +21,7 @@ import {
   PlusIcon,
   TrashIcon,
 } from "@heroicons/react/24/outline";
+import { notify } from "@/utils/notify";
 
 export default function ScenariosTab() {
   const { branches } = useAppSelector((s) => s.branch);
@@ -71,7 +72,7 @@ export default function ScenariosTab() {
 
   const handleCreate = async () => {
     if (!formName.trim()) {
-      alert("Please enter a scenario name");
+      notify("Please enter a scenario name", "warning");
       return;
     }
     setSaving(true);
@@ -88,7 +89,7 @@ export default function ScenariosTab() {
       }).unwrap();
       if (created) openDetail(created);
     } catch (err) {
-      alert(errorMessage(err, "Failed to create scenario"));
+      notify(errorMessage(err, "Failed to create scenario"));
     } finally {
       setSaving(false);
     }
@@ -115,7 +116,7 @@ export default function ScenariosTab() {
       }).unwrap();
       if (saved) setSelectedScenario(saved);
     } catch (err) {
-      alert(errorMessage(err, "Failed to save scenario"));
+      notify(errorMessage(err, "Failed to save scenario"));
     } finally {
       setSaving(false);
     }
@@ -138,7 +139,7 @@ export default function ScenariosTab() {
       }).unwrap();
       if (reset) openDetail(reset);
     } catch (err) {
-      alert(errorMessage(err, "Failed to reset the overrides on this scenario"));
+      notify(errorMessage(err, "Failed to reset the overrides on this scenario"));
     }
   };
 
@@ -154,7 +155,7 @@ export default function ScenariosTab() {
       }).unwrap();
       if (toggled) setSelectedScenario(toggled);
     } catch (err) {
-      alert(errorMessage(err, "Failed to change whether this scenario is active"));
+      notify(errorMessage(err, "Failed to change whether this scenario is active"));
     }
   };
 
@@ -163,20 +164,20 @@ export default function ScenariosTab() {
       const cloned = await cloneScenario({ restaurantId, id: scenarioId }).unwrap();
       if (cloned) openDetail(cloned);
     } catch (err) {
-      alert(errorMessage(err, "Failed to clone this scenario"));
+      notify(errorMessage(err, "Failed to clone this scenario"));
     }
   };
 
   const handleDelete = async (scenario: any) => {
     if (scenario.type !== "CUSTOM") {
-      alert("Built-in scenarios can't be deleted — archive it instead.");
+      notify("Built-in scenarios can't be deleted — archive it instead.", "warning");
       return;
     }
     if (!confirm(`Delete scenario "${scenario.name}"? This can't be undone.`)) return;
     try {
       await deleteScenario({ restaurantId, id: scenario.id }).unwrap();
     } catch (err) {
-      alert(errorMessage(err, "Failed to delete scenario"));
+      notify(errorMessage(err, "Failed to delete scenario"));
     }
   };
 

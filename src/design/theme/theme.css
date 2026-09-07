@@ -117,4 +117,21 @@
   /* ---- Transitions — mirrors src/design/tokens/transitions.ts ---- */
   --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
   --default-transition-duration: 200ms;
+
+  /* ---- Animations ---- */
+  /* Toasts rise into place from the bottom-right rather than appearing
+     abruptly, so a notification that arrives while you are reading is
+     noticeable as movement instead of a sudden change of layout. */
+  --animate-toast-in: toast-in 220ms var(--ease-standard) both;
+
+  @keyframes toast-in {
+    from {
+      opacity: 0;
+      transform: translateY(0.75rem) scale(0.96);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
 }

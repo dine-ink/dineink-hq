@@ -22,6 +22,7 @@ import {
   PlusIcon,
   TrashIcon,
 } from "@heroicons/react/24/outline";
+import { notify } from "@/utils/notify";
 
 const currentFyStartYear = () => {
   const now = new Date();
@@ -94,7 +95,7 @@ export default function BudgetsTab() {
 
   const handleCreate = async () => {
     if (!formName.trim()) {
-      alert("Please enter a budget name");
+      notify("Please enter a budget name", "warning");
       return;
     }
     setSaving(true);
@@ -115,7 +116,7 @@ export default function BudgetsTab() {
       }).unwrap();
       if (created) openDetail(created);
     } catch (err) {
-      alert(errorMessage(err, "Failed to create budget"));
+      notify(errorMessage(err, "Failed to create budget"));
     } finally {
       setSaving(false);
     }
@@ -140,7 +141,7 @@ export default function BudgetsTab() {
       ).unwrap();
       if (full) openDetail(full);
     } catch (err) {
-      alert(errorMessage(err, "Couldn't open that budget"));
+      notify(errorMessage(err, "Couldn't open that budget"));
     }
   };
 
@@ -165,7 +166,7 @@ export default function BudgetsTab() {
       }).unwrap();
       if (saved) setSelectedBudget(saved);
     } catch (err) {
-      alert(errorMessage(err, "Failed to save budget items"));
+      notify(errorMessage(err, "Failed to save budget items"));
     } finally {
       setSaving(false);
     }
@@ -184,7 +185,7 @@ export default function BudgetsTab() {
       }).unwrap();
       if (updated) setSelectedBudget(updated);
     } catch (err) {
-      alert(errorMessage(err, "Failed to change the budget's status"));
+      notify(errorMessage(err, "Failed to change the budget's status"));
     }
   };
 
@@ -194,7 +195,7 @@ export default function BudgetsTab() {
       await deleteBudget({ restaurantId, budgetId: budget.id }).unwrap();
       if (selectedBudget?.id === budget.id) setView("list");
     } catch (err) {
-      alert(errorMessage(err, "Failed to delete budget"));
+      notify(errorMessage(err, "Failed to delete budget"));
     }
   };
 
@@ -203,7 +204,7 @@ export default function BudgetsTab() {
       const copy = await duplicateBudget({ restaurantId, budgetId }).unwrap();
       if (copy) openDetail(copy);
     } catch (err) {
-      alert(errorMessage(err, "Failed to duplicate this budget"));
+      notify(errorMessage(err, "Failed to duplicate this budget"));
     }
   };
 
@@ -217,7 +218,7 @@ export default function BudgetsTab() {
       }).unwrap();
       if (copy) openDetail(copy);
     } catch (err) {
-      alert(errorMessage(err, "Failed to copy this budget to next year"));
+      notify(errorMessage(err, "Failed to copy this budget to next year"));
     }
   };
 

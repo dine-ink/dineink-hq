@@ -7,6 +7,7 @@ import {
   useSaveAssumptionDefaultsMutation,
   useSaveAssumptionOverridesMutation,
 } from "@/store/api/insightsApi";
+import { notify } from "@/utils/notify";
 
 /**
  * The Financial Assumptions tab's data: restaurant-wide defaults, the optional
@@ -101,7 +102,7 @@ export function useFinanceAssumptions(activeTab: string) {
     // undefined case anyway.
     const branchId = selectedBranch?.id;
     if (assumptionsMode === "branch" && !branchId) {
-      alert("Please select a branch");
+      notify("Please select a branch", "warning");
       return;
     }
     setAssumptionsSaving(true);
@@ -127,7 +128,7 @@ export function useFinanceAssumptions(activeTab: string) {
       }
       setAssumptionsSavedAt(Date.now());
     } catch {
-      alert("Failed to save financial assumptions");
+      notify("Failed to save financial assumptions");
     } finally {
       setAssumptionsSaving(false);
     }

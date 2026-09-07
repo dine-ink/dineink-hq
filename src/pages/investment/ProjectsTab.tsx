@@ -21,6 +21,7 @@ import {
   PlusIcon,
   TrashIcon,
 } from "@heroicons/react/24/outline";
+import { notify } from "@/utils/notify";
 
 const SCENARIO_TYPE_LABEL: Record<string, string> = { CONSERVATIVE: "Conservative", EXPECTED: "Expected", OPTIMISTIC: "Optimistic" };
 
@@ -69,8 +70,8 @@ export default function ProjectsTab() {
   };
 
   const handleCreate = async () => {
-    if (!form.name?.trim()) { alert("Please enter a project name"); return; }
-    if (!form.initialInvestment || Number(form.initialInvestment) <= 0) { alert("Please enter a positive initial investment"); return; }
+    if (!form.name?.trim()) { notify("Please enter a project name", "warning"); return; }
+    if (!form.initialInvestment || Number(form.initialInvestment) <= 0) { notify("Please enter a positive initial investment", "warning"); return; }
     try {
       const body: Record<string, any> = {
         name: form.name.trim(), type: form.type, description: form.description || null,
@@ -84,7 +85,7 @@ export default function ProjectsTab() {
       const created = await createInvestment({ restaurantId, body }).unwrap();
       openDetail(created);
     } catch {
-      alert("Failed to create investment");
+      notify("Failed to create investment");
     }
   };
 
@@ -129,7 +130,7 @@ export default function ProjectsTab() {
       // these are the assumptions those are computed from.
       setSelected(await updateInvestment({ restaurantId, investmentId: selected.id, body }).unwrap());
     } catch {
-      alert("Failed to save these investment assumptions");
+      notify("Failed to save these investment assumptions");
     }
   };
 
@@ -142,7 +143,7 @@ export default function ProjectsTab() {
     } catch {
       // This path said nothing at all when it failed: the status badge simply
       // did not change and no one was told why.
-      alert("Failed to change this project's status");
+      notify("Failed to change this project's status");
     }
   };
 
@@ -151,7 +152,7 @@ export default function ProjectsTab() {
     try {
       await deleteInvestment({ restaurantId, investmentId: project.id }).unwrap();
     } catch {
-      alert("Failed to delete");
+      notify("Failed to delete");
     }
   };
 

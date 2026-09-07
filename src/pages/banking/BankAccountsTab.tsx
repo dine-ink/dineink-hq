@@ -21,6 +21,7 @@ import {
 } from "@/design";
 import { PencilIcon, TrashIcon, PlusIcon } from "@heroicons/react/24/outline";
 import type { BankAccount } from "./types";
+import { notify } from "@/utils/notify";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -111,7 +112,7 @@ export default function BankAccountsTab() {
           // the row still sitting there, and said nothing about why.
           await deleteBankAccount(acc.id).unwrap();
         } catch {
-          alert("Failed to delete this account");
+          notify("Failed to delete this account");
         }
       },
     });
