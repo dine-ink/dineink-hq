@@ -67,6 +67,7 @@ export const api = createApi({
     "BankAccount",
     "BankTransaction",
     "Upi",
+    "Ai",
   ],
   endpoints: () => ({}),
 });

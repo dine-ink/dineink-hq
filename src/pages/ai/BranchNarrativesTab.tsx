@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useAppSelector } from "@/store";
+import { useGetAiBranchNarrativesQuery } from "@/store/api/aiApi";
 import { PERIOD_OPTIONS } from "./aiCategories";
 import {
   ArrowTrendingUpIcon,
@@ -10,29 +11,15 @@ import {
 const scoreStyle = (score: number) => (score >= 70 ? "text-emerald-700 border-emerald-200 bg-emerald-50" : score >= 50 ? "text-amber-700 border-amber-200 bg-amber-50" : "text-red-700 border-red-200 bg-red-50");
 
 export default function BranchNarrativesTab() {
-  const { user, token } = useAppSelector((s) => s.auth);
-  const API_URL = import.meta.env.VITE_API_URL;
+  const { user } = useAppSelector((s) => s.auth);
 
   const [period, setPeriod] = useState("currentMonth");
-  const [narratives, setNarratives] = useState<any[]>([]);
-  const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    const run = async () => {
-      if (!user?.restaurantId) return;
-      setLoading(true);
-      try {
-        const res = await fetch(`${API_URL}/api/ai/${user.restaurantId}/branch-narratives?period=${period}`, { headers: { Authorization: `Bearer ${token}` } });
-        const json = await res.json();
-        if (json.success) setNarratives(json.data);
-      } catch {
-        // fetch error — silently ignored
-      } finally {
-        setLoading(false);
-      }
-    };
-    run();
-  }, [user?.restaurantId, period]);
+  const { data: narratives = [], isFetching: loading } =
+    useGetAiBranchNarrativesQuery(
+      { restaurantId: user?.restaurantId as number, period },
+      { skip: !user?.restaurantId },
+    );
 
   return (
     <div className="space-y-4">
