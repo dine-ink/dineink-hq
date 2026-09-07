@@ -66,7 +66,14 @@ const mockFetches = () => {
       if (url.includes("getRestaurantIngredients")) return json({ success: true, data: {} });
       if (url.includes("get-restock-history")) return json({ success: true, data: [] });
       if (url.includes("/menu-management")) {
-        return json({ success: true, data: { menuItems: [], categories: [], ingredients: {} } });
+        // `ingredients` is an array here, as the real endpoint sends it. It was
+        // `{}` — copied from the grouped shape Menu Management builds *after*
+        // fetching — which no longer passes unnoticed now that the page values
+        // this stock during render rather than inside a swallowed catch.
+        return json({
+          success: true,
+          data: { menuItems: [], categories: [], ingredients: [] },
+        });
       }
       if (url.includes("/restaurant/staff/")) return json({ success: true, data: [] });
       return json({ success: true, data: {} });

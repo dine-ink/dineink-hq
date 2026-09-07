@@ -1,6 +1,12 @@
 import { useState, useEffect } from "react";
 import { useAppSelector } from "@/store";
 import { ASSUMPTION_FIELD_GROUPS } from "./assumptionFields";
+import {
+  useGetAssumptionDefaultsQuery,
+  useGetAssumptionsForBranchQuery,
+  useSaveAssumptionDefaultsMutation,
+  useSaveAssumptionOverridesMutation,
+} from "@/store/api/insightsApi";
 
 /**
  * The Financial Assumptions tab's data: restaurant-wide defaults, the optional
@@ -11,15 +17,19 @@ import { ASSUMPTION_FIELD_GROUPS } from "./assumptionFields";
  * backend applying these, not these values directly -- so this is a straight
  * move rather than a split.
  *
- * It takes `activeTab` rather than an `enabled` boolean for the same reason
- * useAddOns does: the original effect listed activeTab in its dependencies, and
- * a boolean would quietly change when the fetch fires.
+ * `activeTab` is still the gate, now as a `skip` rather than an effect guard.
+ *
+ * The fetched values become an editable draft -- typing in a field mutates the
+ * local copy, not the cache -- so they are seeded from the queries rather than
+ * read straight off them. Seeding on every arrival is safe here, and matches
+ * what the old code did: the only things that invalidate "Assumptions" are
+ * this hook's own two saves, so the only refetches are a mount, a branch
+ * change, and a save. That is exactly when the old effect ran.
  */
 
 export function useFinanceAssumptions(activeTab: string) {
-  const { user, token } = useAppSelector((s) => s.auth);
+  const { user } = useAppSelector((s) => s.auth);
   const { selectedBranch } = useAppSelector((s) => s.branch);
-  const API_URL = import.meta.env.VITE_API_URL;
 
   // Which Financial Assumptions groups are expanded. The first opens by
   // default so the tab is not a wall of six closed headers, and the rest stay
@@ -32,44 +42,36 @@ export function useFinanceAssumptions(activeTab: string) {
   );
   const [assumptionDefaults, setAssumptionDefaults] = useState<any>({});
   const [assumptionResolved, setAssumptionResolved] = useState<any>(null);
-  const [assumptionsLoading, setAssumptionsLoading] = useState(false);
   const [assumptionsSaving, setAssumptionsSaving] = useState(false);
   const [assumptionsSavedAt, setAssumptionsSavedAt] = useState<number | null>(
     null,
   );
 
-  // Financial Assumptions — restaurant-wide defaults, with optional
-  // per-branch overrides. Fetched whenever the tab is opened or the selected
-  // branch changes (branch fetch is only meaningful in "branch" mode, but
-  // fetching defaults on every branch change keeps them fresh too).
-  useEffect(() => {
-    if (activeTab !== "Financial Assumptions" || !user?.restaurantId) return;
-    const fetchAssumptions = async () => {
-      setAssumptionsLoading(true);
-      try {
-        const defaultsRes = await fetch(
-          `${API_URL}/api/finance-assumptions/${user.restaurantId}`,
-          { headers: { Authorization: `Bearer ${token}` } },
-        );
-        const defaultsJson = await defaultsRes.json();
-        if (defaultsJson.success) setAssumptionDefaults(defaultsJson.data);
+  const onTab = activeTab === "Financial Assumptions" && !!user?.restaurantId;
 
-        if (selectedBranch?.id) {
-          const branchRes = await fetch(
-            `${API_URL}/api/finance-assumptions/${user.restaurantId}/${selectedBranch.id}`,
-            { headers: { Authorization: `Bearer ${token}` } },
-          );
-          const branchJson = await branchRes.json();
-          if (branchJson.success) setAssumptionResolved(branchJson.data);
-        }
-      } catch {
-        // fetch error — silently ignored, form just stays blank
-      } finally {
-        setAssumptionsLoading(false);
-      }
-    };
-    fetchAssumptions();
-  }, [activeTab, selectedBranch?.id, user?.restaurantId]);
+  const defaultsQ = useGetAssumptionDefaultsQuery(user?.restaurantId as number, {
+    skip: !onTab,
+  });
+  const branchQ = useGetAssumptionsForBranchQuery(
+    {
+      restaurantId: user?.restaurantId as number,
+      branchId: selectedBranch?.id as number,
+    },
+    { skip: !onTab || !selectedBranch?.id },
+  );
+  const [saveDefaults] = useSaveAssumptionDefaultsMutation();
+  const [saveOverrides] = useSaveAssumptionOverridesMutation();
+
+  const assumptionsLoading = defaultsQ.isFetching || branchQ.isFetching;
+
+  // Seed the draft from whatever the queries hold. See the note above for why
+  // doing this on every arrival is equivalent to the old effect.
+  useEffect(() => {
+    if (defaultsQ.data) setAssumptionDefaults(defaultsQ.data);
+  }, [defaultsQ.data]);
+  useEffect(() => {
+    if (branchQ.data) setAssumptionResolved(branchQ.data);
+  }, [branchQ.data]);
 
   const activeAssumptionValues =
     assumptionsMode === "defaults"
@@ -104,42 +106,26 @@ export function useFinanceAssumptions(activeTab: string) {
     }
     setAssumptionsSaving(true);
     try {
-      const url =
-        assumptionsMode === "defaults"
-          ? `${API_URL}/api/finance-assumptions/${user.restaurantId}`
-          : `${API_URL}/api/finance-assumptions/${user.restaurantId}/${branchId}`;
-      const payload: any = {};
+      const body: any = {};
       ASSUMPTION_FIELD_GROUPS.flatMap((g) => g.fields).forEach(({ key }) => {
-        payload[key] = activeAssumptionValues[key] ?? null;
+        body[key] = activeAssumptionValues[key] ?? null;
       });
-      const res = await fetch(url, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(payload),
-      });
-      const json = await res.json();
-      if (json.success) {
-        if (assumptionsMode === "defaults") {
-          setAssumptionDefaults(json.data);
-        } else {
-          // The PUT response is just the raw override row (no
-          // overriddenFields) — re-fetch the resolved view so "Reset to
-          // default" badges reflect the save immediately, not just after
-          // the next branch-change/tab-reopen refetch.
-          const branchRes = await fetch(
-            `${API_URL}/api/finance-assumptions/${user.restaurantId}/${branchId}`,
-            { headers: { Authorization: `Bearer ${token}` } },
-          );
-          const branchJson = await branchRes.json();
-          if (branchJson.success) setAssumptionResolved(branchJson.data);
-        }
-        setAssumptionsSavedAt(Date.now());
+      if (assumptionsMode === "defaults") {
+        setAssumptionDefaults(
+          await saveDefaults({ restaurantId: user.restaurantId, body }).unwrap(),
+        );
       } else {
-        alert(json.message || "Failed to save");
+        // The PUT answers with the raw override row, which carries no
+        // overriddenFields. Invalidating "Assumptions" refetches the resolved
+        // view, so the "Reset to default" badges reflect the save straight
+        // away -- that used to be a second fetch written by hand here.
+        await saveOverrides({
+          restaurantId: user.restaurantId,
+          branchId: branchId as number,
+          body,
+        }).unwrap();
       }
+      setAssumptionsSavedAt(Date.now());
     } catch {
       alert("Failed to save financial assumptions");
     } finally {

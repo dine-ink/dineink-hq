@@ -1,6 +1,23 @@
-import { useState, useEffect } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { ASSUMPTION_FIELD_GROUPS } from "./assumptionFields";
 import { useFinanceAssumptions } from "./useFinanceAssumptions";
+import {
+  useGetInsightsSetupQuery,
+  useGetTableOperationsQuery,
+  useGetVendorOutstandingQuery,
+  useGetVendorInvoiceActivityQuery,
+  useGetFinanceSummaryForPeriodQuery,
+  useGetRestaurantIngredientsQuery,
+  useSaveInsightsSetupMutation,
+} from "@/store/api/insightsApi";
+import {
+  useGetMenuManagementQuery,
+  useGetRestockHistoryQuery,
+} from "@/store/api/inventoryApi";
+import {
+  useGetDashboardOverviewQuery,
+  useGetStaffQuery,
+} from "@/store/api/dashboardApi";
 import { useInsightsMetrics } from "./useInsightsMetrics";
 import OverviewTab from "./tabs/OverviewTab";
 import InsightsSetupTab from "./tabs/InsightsSetupTab";
@@ -70,9 +87,8 @@ const tabs = ["Overview", "Insights Setup", "Financial Assumptions"];
 
 export default function Insights() {
   const { selectedBranch } = useAppSelector((s) => s.branch);
-  const { user, token } = useAppSelector((s) => s.auth);
+  const { user } = useAppSelector((s) => s.auth);
   const currentUser = user; // alias kept for existing code that uses currentUser
-  const API_URL = import.meta.env.VITE_API_URL;
 
   const [activeTab, setActiveTab] = useState("Overview");
   const [staffData, setStaffData] = useState<any[]>([]);
@@ -82,14 +98,6 @@ export default function Insights() {
   const assumptions = useFinanceAssumptions(activeTab);
 
   const [_ingredients, setIngredients] = useState<any>({});
-  const [restockHistory, setRestockHistory] = useState<any[]>([]);
-  const [inventoryStockValue, setInventoryStockValue] = useState(0);
-  const [mtdAnalytics, setMtdAnalytics] = useState<any>(null);
-  const [financeSummary, setFinanceSummary] = useState<any>(null);
-  const [financeSummaryError, setFinanceSummaryError] = useState(false);
-  const [tableOps, setTableOps] = useState<any>(null);
-  const [accountsPayable, setAccountsPayable] = useState(0);
-  const [hasVendorInvoices, setHasVendorInvoices] = useState(true);
   const [insightsData, setInsightsData] = useState<any>({
     monthlyRent: 0,
     rentModel: "FIXED",
@@ -135,6 +143,153 @@ export default function Insights() {
   });
   // Every derived figure the tabs display. The page computes them once here and
   // reads none of them itself -- Overview takes 46, Insights Setup takes 8.
+  /**
+   * Eight requests that were eight functions inside one effect, each with its
+   * own try/catch and its own piece of state.
+   *
+   * Three are not defined in insightsApi at all. The month-to-date overview and
+   * the menu-management payload already had slices, so this page now shares
+   * Dashboard's cache for the first and Menu Management's for the second rather
+   * than fetching what the app already holds.
+   */
+  const scope = {
+    restaurantId: user?.restaurantId as number,
+    branchId: selectedBranch?.id as number,
+  };
+  const skip = { skip: !user?.restaurantId || !selectedBranch?.id };
+
+  // Calendar month to date, not a rolling 30 days — the Break-Even Progress
+  // and Delivery Profitability cards are both month-to-date figures.
+  const mtd = (() => {
+    const now = new Date();
+    return {
+      from: new Date(now.getFullYear(), now.getMonth(), 1)
+        .toISOString()
+        .slice(0, 10),
+      to: now.toISOString().slice(0, 10),
+    };
+  })();
+
+  const setupQ = useGetInsightsSetupQuery(scope, skip);
+  const [saveInsightsSetup] = useSaveInsightsSetupMutation();
+  const restockQ = useGetRestockHistoryQuery(
+    { restaurantId: scope.restaurantId },
+    { skip: !user?.restaurantId },
+  );
+  const stockQ = useGetMenuManagementQuery(scope, skip);
+  const mtdQ = useGetDashboardOverviewQuery(
+    { ...scope, preset: "month", ...mtd },
+    skip,
+  );
+  const financeQ = useGetFinanceSummaryForPeriodQuery(
+    { ...scope, period: "currentMonth" },
+    skip,
+  );
+  const tableOpsQ = useGetTableOperationsQuery({ ...scope, ...mtd }, skip);
+  const payableQ = useGetVendorOutstandingQuery(scope, skip);
+  const invoiceActivityQ = useGetVendorInvoiceActivityQuery(scope, skip);
+
+  const mtdAnalytics = mtdQ.data ?? null;
+  const financeSummary = financeQ.data ?? null;
+  // True when the summary could not be loaded *or* the server declined it.
+  // The page shows an estimated-figures banner for either, as before.
+  const financeSummaryError = financeQ.isError || financeQ.data === null;
+  const tableOps = tableOpsQ.data ?? null;
+  const accountsPayable = payableQ.data ?? 0;
+  const hasVendorInvoices = !!invoiceActivityQ.data?.hasAnyInvoices;
+
+  /**
+   * Stock at hand, valued. The payload carries every ingredient with its
+   * quantity and unit price; this is the only figure the page wants from it.
+   *
+   * The Array.isArray guard is not defensive noise. This reduce used to sit
+   * inside a fetch function's try/catch, so a payload whose `ingredients` was
+   * not an array threw and was swallowed — the figure stayed 0 and the page
+   * carried on. In a useMemo it runs during render, where the same payload
+   * takes the whole page down with it. Moving work out of a catch changes what
+   * a bad response costs, and this is where that has to be paid for.
+   */
+  const inventoryStockValue = useMemo(() => {
+    const rows = stockQ.data?.ingredients;
+    if (!Array.isArray(rows)) return 0;
+    return rows.reduce(
+      (sum: number, ing: any) =>
+        sum + Number(ing.quantity || 0) * Number(ing.pricePerUnit || 0),
+      0,
+    );
+  }, [stockQ.data]);
+
+  // This month's restock sheet, reshaped. Kept verbatim from the effect it
+  // came out of — eighteen field mappings, several with cascading fallbacks
+  // through Week5 down to Week1, which are not worth retyping.
+  const restockHistory = useMemo(() => {
+    const now = new Date();
+    const currentMonth = now.getMonth() + 1;
+    const currentYear = now.getFullYear();
+    const currentMonthData = (restockQ.data || []).find(
+      (item: any) => item.month === currentMonth && item.year === currentYear,
+    );
+    if (!Array.isArray(currentMonthData?.data)) return [];
+    return currentMonthData.data.map((item: any) => ({
+      Category: item["Category"],
+      Ingredient: item["Ingredient"],
+      Unit: item["Unit"],
+      OpeningStockQty: Number(item["Opening Stock Qty"] || 0),
+      OpeningStockPrice: Number(item["Opening Stock Price"] || 0),
+      OpeningStockValue: Number(item["Opening Stock Value"] || 0),
+      Week1PurchaseQty: Number(item["Week1 Purchase Qty"] || 0),
+      Week2PurchaseQty: Number(item["Week2 Purchase Qty"] || 0),
+      Week3PurchaseQty: Number(item["Week3 Purchase Qty"] || 0),
+      Week4PurchaseQty: Number(item["Week4 Purchase Qty"] || 0),
+      Week5PurchaseQty: Number(item["Week5 Purchase Qty"] || 0),
+      Week1Price: Number(item["Week1 Price"] || 0),
+      Week5Price: Number(item["Week5 Price"] || 0),
+      TotalPurchaseAmount: Number(item["Total Purchase Amount"] || 0),
+      MonthClosingValue: Number(
+        item["Month Closing Value"] ||
+          item["Week5 Closing Value"] ||
+          item["Week4 Closing Value"] ||
+          item["Week3 Closing Value"] ||
+          item["Week2 Closing Value"] ||
+          item["Week1 Closing Value"] ||
+          0,
+      ),
+      MonthlyRMExpense: Number(
+        item["Monthly RM Expense"] ||
+          Number(item["Opening Stock Value"] || 0) +
+            Number(item["Total Purchase Amount"] || 0) -
+            Number(
+              item["Week5 Closing Value"] ||
+                item["Week4 Closing Value"] ||
+                item["Week3 Closing Value"] ||
+                item["Week2 Closing Value"] ||
+                item["Week1 Closing Value"] ||
+                0,
+            ),
+      ),
+      TotalPurchasedQty:
+        Number(item["Week1 Purchase Qty"] || 0) +
+        Number(item["Week2 Purchase Qty"] || 0) +
+        Number(item["Week3 Purchase Qty"] || 0) +
+        Number(item["Week4 Purchase Qty"] || 0) +
+        Number(item["Week5 Purchase Qty"] || 0),
+    }));
+  }, [restockQ.data]);
+
+  // The saved setup figures seed an editable form, so they are merged into
+  // the draft rather than read straight off the cache. Nulls become 0 first:
+  // downstream arithmetic sums these directly and would otherwise produce NaN.
+  useEffect(() => {
+    if (!setupQ.data) return;
+    const normalized = Object.fromEntries(
+      Object.entries(setupQ.data).map(([k, v]) => [
+        k,
+        v === null || v === undefined ? 0 : v,
+      ]),
+    );
+    setInsightsData((prev: any) => ({ ...prev, ...normalized }));
+  }, [setupQ.data]);
+
   const metrics = useInsightsMetrics({
     financeSummary,
     insightsData,
@@ -146,266 +301,15 @@ export default function Insights() {
     staffData,
   });
 
+  // Was refetched on every branch change even though the endpoint is
+  // restaurant-scoped and returns the same rows for all of them.
+  const ingredientsQ = useGetRestaurantIngredientsQuery(
+    user?.restaurantId as number,
+    { skip: !user?.restaurantId },
+  );
   useEffect(() => {
-    const fetchInsights = async () => {
-      try {
-        if (!selectedBranch?.id || !user?.restaurantId) return;
-
-        const res = await fetch(
-          `${API_URL}/api/analytics/insights/${user.restaurantId}/${selectedBranch.id}`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          },
-        );
-
-        const json = await res.json();
-
-        if (json.success && json.data) {
-          // Normalize null/undefined → 0 for all numeric fields so downstream
-          // arithmetic (totalFixedExpenses + ...) never produces NaN
-          const normalized = Object.fromEntries(
-            Object.entries(json.data).map(([k, v]) => [
-              k,
-              v === null || v === undefined ? 0 : v,
-            ]),
-          );
-          setInsightsData((prev: any) => ({ ...prev, ...normalized }));
-        }
-      } catch {
-        // fetch error
-      }
-    };
-
-    const fetchRestockHistory = async () => {
-      try {
-        if (!user?.restaurantId) return;
-        const res = await fetch(
-          `${API_URL}/api/inventory/${user.restaurantId}/get-restock-history`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          },
-        );
-        const response = await res.json();
-        if (response.success) {
-          const currentDate = new Date();
-          const currentMonth = currentDate.getMonth() + 1;
-          const currentYear = currentDate.getFullYear();
-          const currentMonthData = response.data.find(
-            (item: any) =>
-              item.month === currentMonth && item.year === currentYear,
-          );
-          if (currentMonthData) {
-            const formattedData = currentMonthData.data.map((item: any) => ({
-              Category: item["Category"],
-              Ingredient: item["Ingredient"],
-              Unit: item["Unit"],
-              OpeningStockQty: Number(item["Opening Stock Qty"] || 0),
-              OpeningStockPrice: Number(item["Opening Stock Price"] || 0),
-              OpeningStockValue: Number(item["Opening Stock Value"] || 0),
-              Week1PurchaseQty: Number(item["Week1 Purchase Qty"] || 0),
-              Week2PurchaseQty: Number(item["Week2 Purchase Qty"] || 0),
-              Week3PurchaseQty: Number(item["Week3 Purchase Qty"] || 0),
-              Week4PurchaseQty: Number(item["Week4 Purchase Qty"] || 0),
-              Week5PurchaseQty: Number(item["Week5 Purchase Qty"] || 0),
-              Week1Price: Number(item["Week1 Price"] || 0),
-              Week5Price: Number(item["Week5 Price"] || 0),
-              TotalPurchaseAmount: Number(item["Total Purchase Amount"] || 0),
-              MonthClosingValue: Number(
-                item["Month Closing Value"] ||
-                  item["Week5 Closing Value"] ||
-                  item["Week4 Closing Value"] ||
-                  item["Week3 Closing Value"] ||
-                  item["Week2 Closing Value"] ||
-                  item["Week1 Closing Value"] ||
-                  0,
-              ),
-              MonthlyRMExpense: Number(
-                item["Monthly RM Expense"] ||
-                  Number(item["Opening Stock Value"] || 0) +
-                    Number(item["Total Purchase Amount"] || 0) -
-                    Number(
-                      item["Week5 Closing Value"] ||
-                        item["Week4 Closing Value"] ||
-                        item["Week3 Closing Value"] ||
-                        item["Week2 Closing Value"] ||
-                        item["Week1 Closing Value"] ||
-                        0,
-                    ),
-              ),
-              TotalPurchasedQty:
-                Number(item["Week1 Purchase Qty"] || 0) +
-                Number(item["Week2 Purchase Qty"] || 0) +
-                Number(item["Week3 Purchase Qty"] || 0) +
-                Number(item["Week4 Purchase Qty"] || 0) +
-                Number(item["Week5 Purchase Qty"] || 0),
-            }));
-            setRestockHistory(formattedData);
-          } else {
-            setRestockHistory([]);
-          }
-        }
-      } catch {
-        // fetch error
-      }
-    };
-    const fetchInventoryStock = async () => {
-      try {
-        if (!user?.restaurantId || !selectedBranch?.id) return;
-        const res = await fetch(
-          `${API_URL}/api/inventory/${user.restaurantId}/menu-management?branchId=${selectedBranch.id}`,
-          { headers: { Authorization: `Bearer ${token}` } },
-        );
-        const json = await res.json();
-        if (json.success) {
-          const total = (json.data?.ingredients || []).reduce(
-            (sum: number, ing: any) =>
-              sum + Number(ing.quantity || 0) * Number(ing.pricePerUnit || 0),
-            0,
-          );
-          setInventoryStockValue(total);
-        }
-      } catch {
-        // silently ignored
-      }
-    };
-
-    // Month-to-date revenue (calendar month, not a rolling 30-day window) —
-    // powers the Break-Even Progress and Delivery Profitability cards below.
-    const fetchMtdAnalytics = async () => {
-      try {
-        if (!user?.restaurantId || !selectedBranch?.id) return;
-        const now = new Date();
-        const from = new Date(now.getFullYear(), now.getMonth(), 1)
-          .toISOString()
-          .slice(0, 10);
-        const to = now.toISOString().slice(0, 10);
-        const res = await fetch(
-          `${API_URL}/api/analytics/${user.restaurantId}/restaurantDashboardOverview?branchId=${selectedBranch.id}&range=month&from=${from}&to=${to}`,
-          { headers: { Authorization: `Bearer ${token}` } },
-        );
-        const json = await res.json();
-        if (json.success) setMtdAnalytics(json.data);
-      } catch {
-        // silently ignored
-      }
-    };
-
-    // The canonical EBITDA/Prime Cost/Net Profit/Break-even figures — same
-    // finance.formulas.ts engine used by Dashboard, Branch Comparison, and
-    // the PDF/Excel exports, so this page's numbers always agree with theirs.
-    const fetchFinanceSummary = async () => {
-      try {
-        if (!user?.restaurantId || !selectedBranch?.id) return;
-        const res = await fetch(
-          `${API_URL}/api/finance/${user.restaurantId}/${selectedBranch.id}/summary?period=currentMonth`,
-          { headers: { Authorization: `Bearer ${token}` } },
-        );
-        const json = await res.json();
-        if (json.success) {
-          setFinanceSummary(json.data);
-          setFinanceSummaryError(false);
-        } else {
-          setFinanceSummaryError(true);
-        }
-      } catch {
-        setFinanceSummaryError(true);
-      }
-    };
-
-    const fetchTableOps = async () => {
-      try {
-        if (!user?.restaurantId || !selectedBranch?.id) return;
-        const now = new Date();
-        const from = new Date(now.getFullYear(), now.getMonth(), 1)
-          .toISOString()
-          .slice(0, 10);
-        const to = now.toISOString().slice(0, 10);
-        const res = await fetch(
-          `${API_URL}/api/analytics/${user.restaurantId}/${selectedBranch.id}/table-operations?from=${from}&to=${to}`,
-          { headers: { Authorization: `Bearer ${token}` } },
-        );
-        const json = await res.json();
-        if (json.success) setTableOps(json.data);
-      } catch {
-        // silently ignored
-      }
-    };
-
-    // Total outstanding vendor balances (Accounts Payable), for Days Payable
-    // Outstanding in the Cash Conversion Cycle below.
-    const fetchAccountsPayable = async () => {
-      try {
-        if (!user?.restaurantId || !selectedBranch?.id) return;
-        const res = await fetch(
-          `${API_URL}/api/vendors/outstanding/${user.restaurantId}/${selectedBranch.id}`,
-          { headers: { Authorization: `Bearer ${token}` } },
-        );
-        const json = await res.json();
-        const vendors = json?.data || json || [];
-        const total = Array.isArray(vendors)
-          ? vendors.reduce(
-              (s: number, v: any) => s + Number(v.outstanding || 0),
-              0,
-            )
-          : 0;
-        setAccountsPayable(total);
-      } catch {
-        // silently ignored
-      }
-    };
-
-    // Distinguishes "no vendor invoices logged" from "invoices exist and are
-    // all fully paid" — both otherwise look identical (accountsPayable = 0).
-    const fetchVendorInvoiceActivity = async () => {
-      try {
-        if (!user?.restaurantId || !selectedBranch?.id) return;
-        const res = await fetch(
-          `${API_URL}/api/vendors/invoice-activity/${user.restaurantId}/${selectedBranch.id}`,
-          { headers: { Authorization: `Bearer ${token}` } },
-        );
-        const json = await res.json();
-        if (json.success) setHasVendorInvoices(!!json.data.hasAnyInvoices);
-      } catch {
-        // silently ignored
-      }
-    };
-
-    fetchInsights();
-    fetchRestockHistory();
-    fetchInventoryStock();
-    fetchMtdAnalytics();
-    fetchFinanceSummary();
-    fetchTableOps();
-    fetchAccountsPayable();
-    fetchVendorInvoiceActivity();
-  }, [selectedBranch]);
-  const fetchIngredients = async () => {
-    try {
-      // token and user from Redux (outer scope)
-      const res = await fetch(
-        `${API_URL}/api/ingredients/${user.restaurantId}/getRestaurantIngredients`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        },
-      );
-      const data = await res.json();
-      if (data.success && data.data) {
-        setIngredients(data.data);
-      }
-    } catch {
-      // error silently ignored
-    }
-  };
-
-  useEffect(() => {
-    fetchIngredients();
-  }, [selectedBranch]);
+    if (ingredientsQ.data) setIngredients(ingredientsQ.data);
+  }, [ingredientsQ.data]);
 
   const handleSaveInsights = async () => {
     try {
@@ -415,59 +319,32 @@ export default function Insights() {
         return;
       }
 
-      const res = await fetch(`${API_URL}/api/analytics/insights`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-
-        body: JSON.stringify({
-          ...insightsData,
-          restaurantId: user.restaurantId,
-          branchId: selectedBranch.id,
-        }),
-      });
-
-      // The parsed body used to be discarded outright, so neither a rejected
-      // save nor a thrown one reached the person who pressed Save.
-      const json = await res.json().catch(() => null);
-      if (!res.ok || json?.success === false) {
-        alert(json?.message || "Failed to save these insights");
-      }
+      // A rejection throws here, which is what keeps the earlier fix in
+      // place: the response used to be discarded outright, so neither a
+      // refused save nor a thrown one reached the person who pressed Save.
+      await saveInsightsSetup({
+        ...insightsData,
+        restaurantId: user.restaurantId,
+        branchId: selectedBranch.id,
+      }).unwrap();
     } catch {
       alert("Failed to save these insights");
     }
   };
 
 
+  // The `skip` is the guard the old effect grew by hand. Without a branch it
+  // used to build a URL ending in "/undefined" and ask for it.
+  const staffQ = useGetStaffQuery(
+    {
+      restaurantId: currentUser?.restaurantId as number,
+      branchId: selectedBranch?.id as number,
+    },
+    { skip: !currentUser?.restaurantId || !selectedBranch?.id },
+  );
   useEffect(() => {
-    const fetchStaff = async () => {
-      try {
-        const res = await fetch(
-          `${API_URL}/api/restaurant/staff/${currentUser.restaurantId}/${selectedBranch?.id}`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          },
-        );
-        const data = await res.json();
-        if (data.success) {
-          setStaffData(data.data);
-        }
-      } catch {
-        // fetch error
-      }
-    };
-    // selectedBranch was missing from this guard, so with no branch selected
-    // the effect ran and dereferenced null building the URL. Requiring the id
-    // here is what makes the optional chain above unreachable rather than a
-    // request for ".../staff/12/undefined".
-    if (currentUser?.restaurantId && selectedBranch?.id) {
-      fetchStaff();
-    }
-  }, [selectedBranch]);
+    if (staffQ.data) setStaffData(staffQ.data);
+  }, [staffQ.data]);
 
   return (
     <main className="flex flex-col overflow-hidden bg-[#f5f6fa]">
