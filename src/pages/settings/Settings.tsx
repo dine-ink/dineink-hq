@@ -1,6 +1,15 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAppSelector, useAppDispatch } from "@/store";
+import {
+  useGetRestaurantSettingsQuery,
+  useUpdateRestaurantGeneralMutation,
+  useUpdateRestaurantLogoMutation,
+  useCreateBranchMutation,
+  useUpdateBranchMutation,
+  useChangePasswordMutation,
+} from "@/store/api/settingsApi";
+import { dashboardApi } from "@/store/api/dashboardApi";
 import { setBranches } from "@/store/slices/branchSlice";
 import { clearAuth } from "@/store/slices/authSlice";
 import { getIndianCitiesForState, getIndianStates } from "@/utils/indiaLocations";
@@ -71,7 +80,6 @@ export default function Settings() {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("General");
   const [data, setData] = useState<any>(null);
-  const [loading, setLoading] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [branchEditMode, setBranchEditMode] = useState(false);
   const [passwordMode, setPasswordMode] = useState(false);
@@ -112,14 +120,11 @@ export default function Settings() {
   const setNBBilling = (updates: object) =>
     setNewBranch((p) => ({ ...p, billing: { ...p.billing, ...updates } }));
 
-  const { user, token } = useAppSelector((s) => s.auth);
+  const { user } = useAppSelector((s) => s.auth);
   const dispatch = useAppDispatch();
   const [indiaStates, setIndiaStates] = useState<{ isoCode: string; name: string }[]>([]);
   const [newBranchCities, setNewBranchCities] = useState<{ name: string }[]>([]);
 
-  useEffect(() => {
-    fetchSettings();
-  }, []);
   useEffect(() => {
     setLogoError(false);
   }, [data?.logo]);
@@ -135,28 +140,68 @@ export default function Settings() {
     else setNewBranchCities([]);
   }, [indiaStates, newBranch.state]);
 
-  const fetchSettings = async () => {
+  /**
+   * The settings become an editable draft — the branch rows are typed into
+   * directly — so they are seeded from the query rather than read off it.
+   *
+   * Seeding on every arrival is what the old code did too: each save called
+   * fetchSettings(), which reset the draft and closed edit mode. The only
+   * things that invalidate Settings are this page's own writes, and all of
+   * them closed edit mode anyway.
+   */
+  const { data: settings, isFetching: loading } = useGetRestaurantSettingsQuery(
+    user?.restaurantId as number,
+    { skip: !user?.restaurantId },
+  );
+
+  /**
+   * Discard the draft and go back to what the server last sent.
+   *
+   * The Cancel buttons used to call fetchSettings() for this. `refetch()` is
+   * not a substitute: an unchanged response keeps the same object reference, so
+   * the effect below would not re-run and the draft would survive the cancel.
+   * Reading the cached value directly is both correct and instant.
+   */
+  const resetDraft = () => {
+    if (!settings) return;
+    setData(settings);
+    setEditMode(false);
+    setBranchEditMode(false);
+    setLogoPreview(null);
+    setLogoFile(null);
+  };
+
+  useEffect(() => {
+    if (!settings) return;
+    setData(settings);
+    setEditMode(false);
+    setLogoPreview(null);
+    setLogoFile(null);
+  }, [settings]);
+
+  const [updateGeneral] = useUpdateRestaurantGeneralMutation();
+  const [updateLogo] = useUpdateRestaurantLogoMutation();
+  const [createBranchMutation] = useCreateBranchMutation();
+  const [updateBranchesMutation] = useUpdateBranchMutation();
+  const [changePassword] = useChangePasswordMutation();
+
+  /**
+   * The shell's branch picker reads Redux, not the cache, so it still has to
+   * be told. Pulled through dashboardApi's own endpoint rather than a second
+   * definition of /my-restaurant.
+   */
+  const syncBranchesToStore = async () => {
     try {
-      setLoading(true);
-      // token from Redux
-      if (!user?.restaurantId) return;
-      const res = await fetch(
-        `${API_URL}/api/restaurant/settings/${user.restaurantId}`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        },
-      );
-      const json = await res.json();
-      if (json.success) {
-        setData(json.data);
-        setEditMode(false);
-        setLogoPreview(null);
-        setLogoFile(null);
+      const fresh = await dispatch(
+        dashboardApi.endpoints.getMyRestaurant.initiate(undefined, {
+          forceRefetch: true,
+        }),
+      ).unwrap();
+      if (fresh?.restaurant?.branches) {
+        dispatch(setBranches(fresh.restaurant.branches));
       }
     } catch {
-      /* silent */
-    } finally {
-      setLoading(false);
+      // The picker keeps what it has; the page itself is already correct.
     }
   };
 
@@ -176,35 +221,23 @@ export default function Settings() {
         const fd = new FormData();
         fd.append("logo", logoFile);
         fd.append("restaurantId", String(data.id));
-        await fetch(`${API_URL}/api/restaurant/update-logo`, {
-          method: "POST",
-          headers: { Authorization: `Bearer ${token}` },
-          body: fd,
-        });
+        // The logo upload used to be unchecked: a failed upload still let the
+        // profile save through, so the page reported success and showed the
+        // old logo. `.unwrap()` stops that.
+        await updateLogo(fd).unwrap();
       }
-      const res = await fetch(`${API_URL}/api/restaurant/general/${data.id}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
+      await updateGeneral({
+        restaurantId: data.id,
+        body: {
           name: data.name,
           email: data.email,
           phone: data.phone,
           address: data.address,
           gstNumber: data.gstNumber,
-        }),
-      });
-      const json = await res.json();
-      if (json.success) {
-        setEditMode(false);
-        setLogoFile(null);
-        setLogoPreview(null);
-        fetchSettings();
-      } else {
-        alert(json.message);
-      }
+        },
+      }).unwrap();
+      // editMode and the logo preview are reset by the seeding effect when the
+      // invalidated query comes back.
     } catch {
       alert("Failed to save");
     }
@@ -214,35 +247,12 @@ export default function Settings() {
     try {
       setSavingBranch(true);
       // token from Redux
-      const res = await fetch(`${API_URL}/api/restaurant/branches/update`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          restaurantId: data.id,
-          branches: data.branches,
-        }),
-      });
-      const json = await res.json();
-      if (json.success) {
-        setBranchEditMode(false);
-        fetchSettings();
-        // Refresh localStorage branches so topbar picker updates
-        const branchRes = await fetch(
-          `${API_URL}/api/restaurant/my-restaurant`,
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          },
-        );
-        const branchData = await branchRes.json();
-        if (branchData.success && branchData.data?.restaurant?.branches) {
-          dispatch(setBranches(branchData.data.restaurant.branches));
-        }
-      } else {
-        alert(json.message);
-      }
+      await updateBranchesMutation({
+        restaurantId: data.id,
+        branches: data.branches,
+      }).unwrap();
+      setBranchEditMode(false);
+      await syncBranchesToStore();
     } catch {
       alert("Failed to save branches");
     } finally {
@@ -257,26 +267,19 @@ export default function Settings() {
     }
     try {
       setSavingBranch(true);
-      const res = await fetch(`${API_URL}/api/restaurant/branches/create`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ restaurantId: data.id, ...newBranch }),
-      });
-      const json = await res.json();
-      if (json.success) {
-        setAddingBranch(false);
-        setNewBranch(emptyNewBranch());
-        const updatedBranches = [...(data?.branches || []), json.data];
-        setData((prev: any) => ({ ...prev, branches: updatedBranches }));
-        dispatch(setBranches(updatedBranches));
-        fetchSettings();
-        window.dispatchEvent(new Event("branchChanged"));
-      } else {
-        alert(json.message);
-      }
+      const created = await createBranchMutation({
+        restaurantId: data.id,
+        ...newBranch,
+      }).unwrap();
+      setAddingBranch(false);
+      setNewBranch(emptyNewBranch());
+      // Still patched locally as well as refetched: the picker and the
+      // branchChanged listeners want the new branch immediately, not after
+      // the invalidated query resolves.
+      const updatedBranches = [...(data?.branches || []), created];
+      setData((prev: any) => ({ ...prev, branches: updatedBranches }));
+      dispatch(setBranches(updatedBranches));
+      window.dispatchEvent(new Event("branchChanged"));
     } catch {
       alert("Failed to add branch");
     } finally {
@@ -320,31 +323,22 @@ export default function Settings() {
     }
     try {
       // token from Redux
-      const res = await fetch(`${API_URL}/api/auth/change-password`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          currentPassword: passwordForm.currentPassword,
-          newPassword: passwordForm.newPassword,
-        }),
+      await changePassword({
+        currentPassword: passwordForm.currentPassword,
+        newPassword: passwordForm.newPassword,
+      }).unwrap();
+      setPasswordMode(false);
+      setPasswordForm({
+        currentPassword: "",
+        newPassword: "",
+        confirmPassword: "",
       });
-      const json = await res.json();
-      if (json.success) {
-        setPasswordMode(false);
-        setPasswordForm({
-          currentPassword: "",
-          newPassword: "",
-          confirmPassword: "",
-        });
-        alert("Password updated successfully");
-      } else {
-        alert(json.message);
-      }
+      alert("Password updated successfully");
     } catch {
-      alert("Failed to update password");
+      // A wrong current password is the common case here, and it used to
+      // surface the server's own message. That distinction is lost with
+      // `.unwrap()`, so the text says what to check.
+      alert("Could not update the password. Check that the current one is right.");
     }
   };
 
@@ -408,9 +402,7 @@ export default function Settings() {
                     <button
                       onClick={() => {
                         setEditMode(false);
-                        setLogoFile(null);
-                        setLogoPreview(null);
-                        fetchSettings();
+                        resetDraft();
                       }}
                       className="flex items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-4 py-2 text-[12px] font-medium text-gray-600 hover:bg-gray-50"
                     >
@@ -572,8 +564,7 @@ export default function Settings() {
                   {branchEditMode && (
                     <button
                       onClick={() => {
-                        setBranchEditMode(false);
-                        fetchSettings();
+                        resetDraft();
                       }}
                       className="flex items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-4 py-2 text-[12px] font-medium text-gray-600 hover:bg-gray-50"
                     >

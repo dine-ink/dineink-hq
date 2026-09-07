@@ -71,6 +71,7 @@ export const api = createApi({
     "WhatsAppTemplate",
     "WhatsAppLog",
     "Customer",
+    "Settings",
   ],
   endpoints: () => ({}),
 });
