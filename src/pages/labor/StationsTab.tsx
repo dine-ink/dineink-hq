@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { PlusIcon, TrashIcon } from "@heroicons/react/24/outline";
 import { Alert, Button, Dialog, FormField, Input, Select } from "@/design";
-import { useAppSelector } from "@/store";
+import { useGetEquipmentQuery } from "@/store/api/operationsApi";
 import { CHART_CARD } from "./laborCategories";
 import { useLaborQuery, useLaborScope } from "./useLaborApi";
 import MobileTableCards from "@/components/common/MobileTableCards";
@@ -38,18 +38,13 @@ const emptyForm = { name: "", code: "", utilizationFactor: "", capacityPerHour: 
 
 export default function StationsTab() {
   const { restaurantId, branchId, request } = useLaborScope();
-  const { token } = useAppSelector((s) => s.auth);
-  const API_URL = import.meta.env.VITE_API_URL;
 
   const stationsPath = restaurantId && branchId ? `/${restaurantId}/${branchId}/stations?includeInactive=true` : null;
   const { data: stations, loading, error, reload } = useLaborQuery<Station[]>(stationsPath);
 
   // Bumped after a write to re-pull the equipment list, which lives outside the
   // labor namespace and so isn't covered by useLaborQuery's own reload().
-  const [equipmentNonce, setEquipmentNonce] = useState(0);
 
-  const [equipment, setEquipment] = useState<EquipmentRow[] | null>(null);
-  const [equipmentError, setEquipmentError] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Station | null>(null);
   const [form, setForm] = useState(emptyForm);
@@ -61,27 +56,24 @@ export default function StationsTab() {
   // directly; only the station link and items/hour rate are written through the
   // labor namespace (assignEquipmentToStationService, which enforces that a unit
   // and its station are at the same branch).
-  useEffect(() => {
-    if (!restaurantId || !branchId) return;
-    let cancelled = false;
-    (async () => {
-      try {
-        const res = await fetch(`${API_URL}/api/equipment/${restaurantId}/${branchId}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        const json = await res.json().catch(() => null);
-        if (cancelled) return;
-        if (!res.ok || !json?.success) throw new Error(json?.message || "Could not load equipment");
-        setEquipment(json.data as EquipmentRow[]);
-        setEquipmentError(null);
-      } catch (err: any) {
-        if (!cancelled) setEquipmentError(err.message);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [API_URL, token, restaurantId, branchId, equipmentNonce]);
+  // Equipment belongs to its own module, so the LIST comes from /api/equipment
+  // directly; only the station link and items/hour rate are written through the
+  // labor namespace (assignEquipmentToStationService, which enforces that a unit
+  // and its station are at the same branch).
+  //
+  // Two pieces of hand-built machinery went with this: a `cancelled` flag so a
+  // slow earlier response could not land after a newer one, and a nonce bumped
+  // after each write to force a reload. The cache covers both.
+  const equipmentQ = useGetEquipmentQuery(
+    { restaurantId: restaurantId as number, branchId: branchId as number },
+    { skip: !restaurantId || !branchId },
+  );
+  // null while it has not loaded, which the render below distinguishes from
+  // an empty list — preserved rather than collapsed to [].
+  const equipment = (equipmentQ.data ?? null) as EquipmentRow[] | null;
+  const equipmentError = equipmentQ.isError
+    ? (equipmentQ.error as any)?.data?.message || "Could not load equipment"
+    : null;
 
   const updateEquipmentLink = async (
     row: EquipmentRow,
@@ -97,8 +89,8 @@ export default function StationsTab() {
           itemsPerHour: patch.itemsPerHour !== undefined ? patch.itemsPerHour : row.itemsPerHour,
         }),
       });
-      setEquipmentNonce((n) => n + 1);
-      reload(); // station rollups change when a unit's rate or station changes
+      // Both the equipment list and the station rollups refresh from the tags
+      // writeLabor invalidates; the nonce and the manual reload are gone.
     } catch (err: any) {
       setActionError(err.message);
     } finally {

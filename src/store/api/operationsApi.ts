@@ -66,13 +66,19 @@ export const operationsApi = api.injectEndpoints({
       providesTags: ["Labor"],
     }),
 
+    /**
+     * Invalidates Equipment as well as Labor, because the labor namespace can
+     * write equipment: `/labor/equipment/:id/station` links a unit to a station
+     * and sets its items-per-hour rate. The Stations tab used to bump a nonce by
+     * hand to reload the equipment list after that write; the tag does it.
+     */
     writeLabor: builder.mutation<
       any,
       { path: string; method: "POST" | "PUT" | "DELETE"; body?: Record<string, any> }
     >({
       query: ({ path, method, body }) => ({ url: `/api/labor${path}`, method, body }),
       transformResponse: (response: Envelope<any>) => unwrap(response),
-      invalidatesTags: ["Labor"],
+      invalidatesTags: ["Labor", "Equipment"],
     }),
 
     // ── Daily stock audit ───────────────────────────────────────────────────

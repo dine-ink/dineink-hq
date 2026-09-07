@@ -1,5 +1,12 @@
 import { useState, useEffect, useRef } from "react";
 import { useAppSelector } from "@/store";
+import {
+  useGetBranchDetailsQuery,
+  useUpdateBranchDetailsMutation,
+  useUpdateRestaurantLogoMutation,
+  useCreateStaffMutation,
+  useUpdateStaffMutation,
+} from "@/store/api/settingsApi";
 import CommonTable from "@/components/common/CommonTable";
 import {
   BuildingStorefrontIcon,
@@ -57,12 +64,17 @@ const BILLING_MODULES = [
 const ALL_PAYMENT_METHODS = ["Cash", "Card", "UPI"];
 
 export default function Shops() {
-  const API_URL = import.meta.env.VITE_API_URL;
   const { selectedBranch } = useAppSelector((s) => s.branch);
-  const { token } = useAppSelector((s) => s.auth);
+  // Still needed to resolve the logo's server-relative path.
+  const API_URL = import.meta.env.VITE_API_URL;
+
+  const [updateBranchDetails] = useUpdateBranchDetailsMutation();
+  const [updateLogo] = useUpdateRestaurantLogoMutation();
+  const [createStaff] = useCreateStaffMutation();
+  const [updateStaff] = useUpdateStaffMutation();
+
 
   const [branchDetails, setBranchDetails] = useState<any>(null);
-  const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [staff, setStaff] = useState<any[]>([]);
   const [editMode, setEditMode] = useState(false);
@@ -75,12 +87,32 @@ export default function Shops() {
   const [states, setStates] = useState<{ isoCode: string; name: string }[]>([]);
   const [cities, setCities] = useState<{ name: string }[]>([]);
 
+  /**
+   * The branch payload is an editable draft — every field on this page writes
+   * into it — so it is seeded from the query rather than read off it, the same
+   * as the settings form and the ingredient editor.
+   *
+   * Re-seeding on each arrival is what the old code did: saving called
+   * fetchBranchDetails() again, and Cancel called it to throw the draft away.
+   */
+  const { data: fetchedBranch, isFetching: loading } = useGetBranchDetailsQuery(
+    selectedBranch?.id as number,
+    { skip: !selectedBranch?.id },
+  );
+
+  const seedFromServer = () => {
+    if (!fetchedBranch) return;
+    setBranchDetails(fetchedBranch);
+    setStaff(fetchedBranch.users || []);
+    setLogoError(false);
+    setLogoPreview(null);
+    setLogoFile(null);
+  };
+
   useEffect(() => {
-    if (selectedBranch?.id) {
-      setLoading(true);
-      fetchBranchDetails(selectedBranch.id).finally(() => setLoading(false));
-    }
-  }, [selectedBranch?.id]);
+    seedFromServer();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fetchedBranch]);
   useEffect(() => {
     setLogoError(false);
   }, [branchDetails?.restaurant?.logo]);
@@ -96,24 +128,6 @@ export default function Shops() {
     else setCities([]);
   }, [states, branchDetails?.state]);
 
-  const fetchBranchDetails = async (branchId: number) => {
-    try {
-      const res = await fetch(`${API_URL}/api/restaurant/branch/${branchId}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const json = await res.json();
-      if (json.success) {
-        setBranchDetails(json.data);
-        setStaff(json.data.users || []);
-        setLogoError(false);
-        setLogoPreview(null);
-        setLogoFile(null);
-      }
-    } catch {
-      /* silent */
-    }
-  };
-
   const handleLogoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -125,60 +139,41 @@ export default function Shops() {
   const handleSaveChanges = async () => {
     try {
       setSaving(true);
-      const h = {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      };
 
-      // 1. Logo upload
+      // 1. Logo upload. Unchecked before — a failed upload let the rest of the
+      // save proceed, so the page reported success and showed the old logo.
       if (logoFile) {
         const fd = new FormData();
         fd.append("logo", logoFile);
         fd.append("restaurantId", String(branchDetails.restaurant?.id));
-        await fetch(`${API_URL}/api/restaurant/update-logo`, {
-          method: "POST",
-          headers: { Authorization: `Bearer ${token}` },
-          body: fd,
-        });
+        await updateLogo(fd).unwrap();
       }
 
       // 2. Branch + tables + billing
-      const res = await fetch(
-        `${API_URL}/api/restaurant/branch/${branchDetails.id}`,
-        {
-          method: "PUT",
-          headers: h,
-          body: JSON.stringify({
-            ...branchDetails,
-            tables: branchDetails.tables || [],
-          }),
-        },
-      );
-      const data = await res.json();
-      if (!data.success) {
-        alert(data.message);
-        return;
-      }
+      await updateBranchDetails({
+        branchId: branchDetails.id,
+        body: { ...branchDetails, tables: branchDetails.tables || [] },
+      }).unwrap();
 
-      // 3. Staff — create new, update existing
+      // 3. Staff — create new, update existing.
+      //
+      // These were fire-and-forget: neither call read its response, so a
+      // rejected staff save left the page reporting success while the person
+      // was never created. `.unwrap()` puts a failure into the catch below.
       await Promise.all(
         staff.map(async (s: any) => {
-          if (s._isNew && s.name) {
-            await fetch(`${API_URL}/api/restaurant/staff/create`, {
-              method: "POST",
-              headers: h,
-              body: JSON.stringify({
-                ...s,
-                restaurantId: branchDetails.restaurant?.id,
-                branchId: branchDetails.id,
-              }),
-            });
-          } else if (!s._isNew && s.name) {
-            await fetch(`${API_URL}/api/restaurant/staff/${s.id}`, {
-              method: "PUT",
-              headers: h,
-              body: JSON.stringify({ ...s, branchId: branchDetails.id }),
-            });
+          if (!s.name) return;
+          if (s._isNew) {
+            await createStaff({
+              ...s,
+              restaurantId: branchDetails.restaurant?.id,
+              branchId: branchDetails.id,
+            }).unwrap();
+          } else {
+            await updateStaff({
+              staffId: s.id,
+              body: { ...s, branchId: branchDetails.id },
+            }).unwrap();
           }
         }),
       );
@@ -186,7 +181,8 @@ export default function Shops() {
       setEditMode(false);
       setLogoFile(null);
       setLogoPreview(null);
-      fetchBranchDetails(branchDetails.id);
+      // The draft is re-seeded by the effect above when the invalidated branch
+      // query comes back.
     } catch {
       alert("Update failed");
     } finally {
@@ -373,10 +369,10 @@ export default function Shops() {
                     <button
                       onClick={() => {
                         setEditMode(false);
-                        setLogoFile(null);
-                        setLogoPreview(null);
-                        setLogoError(false);
-                        fetchBranchDetails(branchDetails.id);
+                        // Discards the draft by re-seeding from the cached
+                        // payload — no request needed, and unlike refetch()
+                        // it works when the response has not changed.
+                        seedFromServer();
                       }}
                       className="flex items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-4 py-2 text-[12px] font-semibold text-gray-700 transition hover:bg-gray-50"
                     >

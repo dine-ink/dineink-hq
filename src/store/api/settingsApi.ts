@@ -73,6 +73,46 @@ export const settingsApi = api.injectEndpoints({
       invalidatesTags: ["Settings", "Restaurant"],
     }),
 
+    // ── One branch, in detail, plus its staff ───────────────────────────────
+    getBranchDetails: builder.query<any, number>({
+      query: (branchId) => `/api/restaurant/branch/${branchId}`,
+      transformResponse: (response: Envelope<any>) => unwrap(response),
+      providesTags: ["Branch"],
+    }),
+
+    updateBranchDetails: builder.mutation<
+      any,
+      { branchId: number; body: Record<string, any> }
+    >({
+      query: ({ branchId, body }) => ({
+        url: `/api/restaurant/branch/${branchId}`,
+        method: "PUT",
+        body,
+      }),
+      transformResponse: (response: Envelope<any>) => unwrap(response),
+      invalidatesTags: ["Branch", "Settings", "Restaurant"],
+    }),
+
+    createStaff: builder.mutation<any, Record<string, any>>({
+      query: (body) => ({ url: "/api/restaurant/staff/create", method: "POST", body }),
+      transformResponse: (response: Envelope<any>) => unwrap(response),
+      // Staff are returned as part of the branch detail payload.
+      invalidatesTags: ["Branch", "Staff"],
+    }),
+
+    updateStaff: builder.mutation<
+      any,
+      { staffId: number | string; body: Record<string, any> }
+    >({
+      query: ({ staffId, body }) => ({
+        url: `/api/restaurant/staff/${staffId}`,
+        method: "PUT",
+        body,
+      }),
+      transformResponse: (response: Envelope<any>) => unwrap(response),
+      invalidatesTags: ["Branch", "Staff"],
+    }),
+
     /**
      * Changes the signed-in user's password. Invalidates nothing: it alters no
      * data any screen displays.
@@ -90,6 +130,10 @@ export const settingsApi = api.injectEndpoints({
 
 export const {
   useGetRestaurantSettingsQuery,
+  useGetBranchDetailsQuery,
+  useUpdateBranchDetailsMutation,
+  useCreateStaffMutation,
+  useUpdateStaffMutation,
   useUpdateRestaurantGeneralMutation,
   useUpdateRestaurantLogoMutation,
   useCreateBranchMutation,

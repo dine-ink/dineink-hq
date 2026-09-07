@@ -1,5 +1,11 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useAppSelector } from "@/store";
+import {
+  useGetCustomersByBranchQuery,
+  useGetCustomerRfmQuery,
+} from "@/store/api/customersApi";
+import { useGetDashboardOverviewQuery } from "@/store/api/dashboardApi";
+import { useGetInsightsSetupQuery } from "@/store/api/insightsApi";
 import {
   ArrowPathRoundedSquareIcon,
   CalendarDaysIcon,
@@ -72,20 +78,51 @@ function CustomerIdentity({ customer }: { customer: any }) {
 
 export default function Customers() {
   const { selectedBranch } = useAppSelector((s) => s.branch);
-  const { user, token } = useAppSelector((s) => s.auth);
+  const { user } = useAppSelector((s) => s.auth);
   const [search, setSearch] = useState("");
-  const [loading, setLoading] = useState(false);
   const [_selectedCustomer, setSelectedCustomer] = useState<any>(null);
-  const [customers, setCustomers] = useState<any[]>([]);
   const [messageCustomer, setMessageCustomer] = useState<any>(null);
   const [page, setPage] = useState(1);
   const rowsPerPage = 5;
+
+  /**
+   * The two inputs behind LTV:CAC. Neither endpoint is defined here — the
+   * overview is dashboardApi's and the Insights setup figures are insightsApi's
+   * — so this page reads what Dashboard and Insights have already fetched
+   * rather than asking again.
+   */
+  const mtdWindow = (() => {
+    const now = new Date();
+    return {
+      from: new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10),
+      to: now.toISOString().slice(0, 10),
+    };
+  })();
+
+  const scope = {
+    restaurantId: user?.restaurantId as number,
+    branchId: selectedBranch?.id as number,
+  };
+  const skip = { skip: !user?.restaurantId || !selectedBranch?.id };
+
+  const { data: mtdAnalytics = null } = useGetDashboardOverviewQuery(
+    { ...scope, preset: "month", ...mtdWindow },
+    skip,
+  );
+  const { data: insightsSetup } = useGetInsightsSetupQuery(scope, skip);
+  const marketingSpend = Number(insightsSetup?.marketingSpend || 0);
+
+  // The AbortController this replaced was cancelling a superseded request,
+  // which the query subscription does itself.
+  const { data: customers = [], isFetching: loading } = useGetCustomersByBranchQuery(
+    scope,
+    skip,
+  );
   const filtered = customers.filter(
     (c) =>
       (c.name ?? "").toLowerCase().includes(search.toLowerCase()) ||
       (c.phone ?? "").includes(search),
   );
-  const API_URL = import.meta.env.VITE_API_URL;
   const totalPages = Math.ceil(filtered.length / rowsPerPage);
   const paginatedCustomers = filtered.slice(
     (page - 1) * rowsPerPage,
@@ -94,10 +131,6 @@ export default function Customers() {
   const [activeTab, setActiveTab] = useState<"overview" | "churn" | "rfm">(
     "overview",
   );
-  const [rfmData, setRfmData] = useState<any>(null);
-  const [rfmLoading, setRfmLoading] = useState(false);
-  const [mtdAnalytics, setMtdAnalytics] = useState<any>(null);
-  const [marketingSpend, setMarketingSpend] = useState(0);
   const total = filtered.length;
   const repeat = filtered.filter((c) => c.visits > 1).length;
   const revenue = filtered.reduce((s, c) => s + c.spend, 0);
@@ -176,83 +209,12 @@ export default function Customers() {
     newCustomersThisMonth > 0 ? marketingSpend / newCustomersThisMonth : 0;
   const ltvCacRatio = cac > 0 ? ltv / cac : null;
 
-  useEffect(() => {
-    const controller = new AbortController();
-    fetchCustomers(controller.signal);
-    return () => controller.abort();
-  }, [selectedBranch]);
 
-  // Month-to-date new-customer count (for CAC) and marketing spend (from
-  // Insights Setup) — needed to derive LTV:CAC alongside the cohort churn
-  // and LTV numbers below.
-  useEffect(() => {
-    const fetchCacInputs = async () => {
-      try {
-        if (!selectedBranch?.id || !user?.restaurantId) return;
-        const now = new Date();
-        const from = new Date(now.getFullYear(), now.getMonth(), 1)
-          .toISOString()
-          .slice(0, 10);
-        const to = now.toISOString().slice(0, 10);
-        const [overviewRes, insightsRes] = await Promise.all([
-          fetch(
-            `${API_URL}/api/analytics/${user.restaurantId}/restaurantDashboardOverview?branchId=${selectedBranch.id}&range=month&from=${from}&to=${to}`,
-            { headers: { Authorization: `Bearer ${token}` } },
-          ),
-          fetch(
-            `${API_URL}/api/analytics/insights/${user.restaurantId}/${selectedBranch.id}`,
-            { headers: { Authorization: `Bearer ${token}` } },
-          ),
-        ]);
-        const overviewJson = await overviewRes.json();
-        if (overviewJson.success) setMtdAnalytics(overviewJson.data);
-        const insightsJson = await insightsRes.json();
-        setMarketingSpend(Number(insightsJson?.data?.marketingSpend || 0));
-      } catch {
-        // silently ignored
-      }
-    };
-    fetchCacInputs();
-  }, [selectedBranch]);
-
-  const fetchCustomers = async (signal?: AbortSignal) => {
-    try {
-      setLoading(true);
-      if (!selectedBranch?.id || !user?.restaurantId) return;
-      const url = `${API_URL}/api/customers/${user.restaurantId}/customerByBranch?branchId=${selectedBranch.id}`;
-      const res = await fetch(url, {
-        signal,
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data = await res.json();
-      if (data.success) setCustomers(data.customers);
-    } catch (err) {
-      if (err instanceof DOMException) return;
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Fetch RFM data when tab is selected
-  useEffect(() => {
-    if (activeTab !== "rfm" || !selectedBranch?.id) return;
-    const fetchRFM = async () => {
-      try {
-        setRfmLoading(true);
-        const res = await fetch(
-          `${API_URL}/api/analytics/${user.restaurantId}/customer-rfm?branchId=${selectedBranch.id}`,
-          { headers: { Authorization: `Bearer ${token}` } },
-        );
-        const data = await res.json();
-        if (data.success) setRfmData(data.data);
-      } catch {
-        /* silent */
-      } finally {
-        setRfmLoading(false);
-      }
-    };
-    fetchRFM();
-  }, [activeTab, selectedBranch]);
+  // Only asked for while its tab is open, which was an early return before.
+  const { data: rfmData = null, isFetching: rfmLoading } = useGetCustomerRfmQuery(
+    scope,
+    { skip: !user?.restaurantId || !selectedBranch?.id || activeTab !== "rfm" },
+  );
 
   if (loading) {
     return (
