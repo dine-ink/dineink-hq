@@ -93,4 +93,20 @@ export const jsonResponse = (body: unknown, status = 200): Promise<Response> =>
     }),
   );
 
+/**
+ * A wrapper for renderHook, for hooks that read the store or use a query hook.
+ *
+ * renderWithProviders covers components; this is the same providers without a
+ * component to hang them on.
+ */
+export function hookWrapper(preloadedState?: Partial<TestRootState>) {
+  const store = makeTestStore(preloadedState);
+  const Wrapper = ({ children }: { children: ReactNode }) => (
+    <Provider store={store}>
+      <MemoryRouter>{children}</MemoryRouter>
+    </Provider>
+  );
+  return { store, Wrapper };
+}
+
 export * from "@testing-library/react";
