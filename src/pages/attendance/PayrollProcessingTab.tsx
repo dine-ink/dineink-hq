@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import dayjs from "dayjs";
 import {
   ArrowDownTrayIcon,
@@ -6,6 +6,11 @@ import {
   PlusIcon,
 } from "@heroicons/react/24/outline";
 import { useAppSelector } from "@/store";
+import {
+  useGetPayrollQuery,
+  useRunPayrollMutation,
+  useSaveDeductionsMutation,
+} from "@/store/api/attendanceApi";
 import {
   Alert,
   Button,
@@ -41,8 +46,7 @@ const DEDUCTION_TYPES = ["ADVANCE", "FINE", "UNPAID_LEAVE", "OTHER"] as const;
 const inr = (v: any) => `₹${Number(v || 0).toLocaleString("en-IN")}`;
 
 export default function PayrollProcessingTab({ allStaff }: PayrollProcessingTabProps) {
-  const API_URL = import.meta.env.VITE_API_URL;
-  const { user, token, restaurant } = useAppSelector((s) => s.auth);
+  const { user, restaurant } = useAppSelector((s) => s.auth);
   const { selectedBranch } = useAppSelector((s) => s.branch);
 
   const [monthValue, setMonthValue] = useState(dayjs().format("YYYY-MM"));
@@ -50,10 +54,6 @@ export default function PayrollProcessingTab({ allStaff }: PayrollProcessingTabP
     const [y, m] = monthValue.split("-").map(Number);
     return [m || dayjs().month() + 1, y || dayjs().year()];
   })();
-
-  const [runs, setRuns] = useState<PayrollRun[]>([]);
-  const [loadingHistory, setLoadingHistory] = useState(false);
-  const [historyError, setHistoryError] = useState(false);
 
   const [viewingRun, setViewingRun] = useState<PayrollRun | null>(null);
   const [running, setRunning] = useState(false);
@@ -69,47 +69,36 @@ export default function PayrollProcessingTab({ allStaff }: PayrollProcessingTabP
   const [formError, setFormError] = useState<string | null>(null);
   const [deductionSuccess, setDeductionSuccess] = useState<string | null>(null);
 
-  const fetchHistory = async () => {
-    if (!user?.restaurantId || !selectedBranch?.id) return;
-    setLoadingHistory(true);
-    setHistoryError(false);
-    try {
-      const res = await fetch(
-        `${API_URL}/api/attendance/payroll/${user.restaurantId}/${selectedBranch.id}`,
-        { headers: { Authorization: `Bearer ${token}` } },
-      );
-      const json = await res.json();
-      if (json.success) setRuns(json.data || []);
-      else setHistoryError(true);
-    } catch {
-      setHistoryError(true);
-    } finally {
-      setLoadingHistory(false);
-    }
-  };
+  // Recording a deduction or approving leave invalidates Payroll, so this
+  // list refreshes without the three hand-written refetches it used to need.
+  const {
+    data: runs = [],
+    isFetching: loadingHistory,
+    isError: historyError,
+    refetch: refetchHistory,
+  } = useGetPayrollQuery(
+    {
+      restaurantId: user?.restaurantId as number,
+      branchId: selectedBranch?.id as number,
+    },
+    { skip: !user?.restaurantId || !selectedBranch?.id },
+  );
 
-  useEffect(() => {
-    fetchHistory();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.restaurantId, selectedBranch?.id]);
+  const [runPayrollMutation] = useRunPayrollMutation();
+  const [saveDeductions] = useSaveDeductionsMutation();
 
   const runPayroll = async () => {
     if (!selectedBranch?.id) return;
     setRunning(true);
     setRunError(null);
     try {
-      const res = await fetch(`${API_URL}/api/attendance/payroll/run`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ branchId: selectedBranch.id, month, year }),
-      });
-      const json = await res.json();
-      if (json.success) {
-        setViewingRun(json.data);
-        await fetchHistory();
-      } else {
-        setRunError(json.message || "Failed to run payroll for this period");
-      }
+      setViewingRun(
+        await runPayrollMutation({
+          branchId: selectedBranch.id,
+          month,
+          year,
+        }).unwrap(),
+      );
     } catch {
       setRunError("Failed to run payroll for this period");
     } finally {
@@ -140,28 +129,19 @@ export default function PayrollProcessingTab({ allStaff }: PayrollProcessingTabP
     setSaving(true);
     setFormError(null);
     try {
-      const res = await fetch(`${API_URL}/api/attendance/deductions`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({
-          userId: Number(formUserId),
-          branchId: selectedBranch.id,
-          deductionType: formDeductionType,
-          amount: Number(formAmount),
-          month,
-          year,
-          notes: formNotes || undefined,
-        }),
-      });
-      const json = await res.json();
-      if (json.success) {
-        closeDeductionDialog();
-        setDeductionSuccess(
-          `Deduction recorded for ${dayjs(monthValue + "-01").format("MMMM YYYY")}. Re-run payroll for this month to reflect it.`,
-        );
-      } else {
-        setFormError(json.message || "Failed to record this deduction");
-      }
+      await saveDeductions({
+        userId: Number(formUserId),
+        branchId: selectedBranch.id,
+        deductionType: formDeductionType,
+        amount: Number(formAmount),
+        month,
+        year,
+        notes: formNotes || undefined,
+      }).unwrap();
+      closeDeductionDialog();
+      setDeductionSuccess(
+        `Deduction recorded for ${dayjs(monthValue + "-01").format("MMMM YYYY")}. Re-run payroll for this month to reflect it.`,
+      );
     } catch {
       setFormError("Failed to record this deduction");
     } finally {
@@ -355,7 +335,7 @@ export default function PayrollProcessingTab({ allStaff }: PayrollProcessingTabP
           rowKey={(r) => r.id}
           loading={loadingHistory}
           error={historyError}
-          onRetry={fetchHistory}
+          onRetry={refetchHistory}
           onRowClick={(r) => setViewingRun(r)}
           selectedRowKey={viewingRun?.id}
           emptyTitle="No payroll runs yet"

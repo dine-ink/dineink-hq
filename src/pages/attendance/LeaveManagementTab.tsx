@@ -1,7 +1,12 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import dayjs from "dayjs";
 import { CheckIcon, PlusIcon, XMarkIcon } from "@heroicons/react/24/outline";
 import { useAppSelector } from "@/store";
+import {
+  useGetLeaveRequestsQuery,
+  useCreateLeaveRequestMutation,
+  useSetLeaveStatusMutation,
+} from "@/store/api/attendanceApi";
 import {
   Alert,
   Button,
@@ -46,13 +51,9 @@ const STATUS_TO_CHIP: Record<LeaveRequest["status"], ChipStatus> = {
 };
 
 export default function LeaveManagementTab({ allStaff }: LeaveManagementTabProps) {
-  const API_URL = import.meta.env.VITE_API_URL;
-  const { user, token } = useAppSelector((s) => s.auth);
+  const { user } = useAppSelector((s) => s.auth);
   const { selectedBranch } = useAppSelector((s) => s.branch);
 
-  const [requests, setRequests] = useState<LeaveRequest[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(false);
   const [statusFilter, setStatusFilter] = useState<(typeof STATUS_FILTERS)[number]>("ALL");
   const [actioningId, setActioningId] = useState<number | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
@@ -66,30 +67,24 @@ export default function LeaveManagementTab({ allStaff }: LeaveManagementTabProps
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
 
-  const fetchLeaveRequests = async () => {
-    if (!user?.restaurantId || !selectedBranch?.id) return;
-    setLoading(true);
-    setError(false);
-    try {
-      const qs = statusFilter !== "ALL" ? `?status=${statusFilter}` : "";
-      const res = await fetch(
-        `${API_URL}/api/attendance/leave/${user.restaurantId}/${selectedBranch.id}${qs}`,
-        { headers: { Authorization: `Bearer ${token}` } },
-      );
-      const json = await res.json();
-      if (json.success) setRequests(json.data || []);
-      else setError(true);
-    } catch {
-      setError(true);
-    } finally {
-      setLoading(false);
-    }
-  };
+  // The status filter is part of the cache key, so flicking between All,
+  // Pending and Approved reuses lists already fetched instead of asking again.
+  const {
+    data: requests = [],
+    isFetching: loading,
+    isError: error,
+    refetch,
+  } = useGetLeaveRequestsQuery(
+    {
+      restaurantId: user?.restaurantId as number,
+      branchId: selectedBranch?.id as number,
+      query: statusFilter !== "ALL" ? `?status=${statusFilter}` : "",
+    },
+    { skip: !user?.restaurantId || !selectedBranch?.id },
+  );
 
-  useEffect(() => {
-    fetchLeaveRequests();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.restaurantId, selectedBranch?.id, statusFilter]);
+  const [createLeaveRequest] = useCreateLeaveRequestMutation();
+  const [setLeaveStatus] = useSetLeaveStatusMutation();
 
   const openAddDialog = () => {
     setFormUserId(allStaff[0] ? String(allStaff[0].id) : "");
@@ -119,25 +114,15 @@ export default function LeaveManagementTab({ allStaff }: LeaveManagementTabProps
     setSaving(true);
     setFormError(null);
     try {
-      const res = await fetch(`${API_URL}/api/attendance/leave`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({
-          userId: Number(formUserId),
-          branchId: selectedBranch.id,
-          leaveType: formLeaveType,
-          startDate: formStartDate,
-          endDate: formEndDate,
-          reason: formReason || undefined,
-        }),
-      });
-      const json = await res.json();
-      if (json.success) {
-        closeDialog();
-        await fetchLeaveRequests();
-      } else {
-        setFormError(json.message || "Failed to submit leave request");
-      }
+      await createLeaveRequest({
+        userId: Number(formUserId),
+        branchId: selectedBranch.id,
+        leaveType: formLeaveType,
+        startDate: formStartDate,
+        endDate: formEndDate,
+        reason: formReason || undefined,
+      }).unwrap();
+      closeDialog();
     } catch {
       setFormError("Failed to submit leave request");
     } finally {
@@ -149,17 +134,10 @@ export default function LeaveManagementTab({ allStaff }: LeaveManagementTabProps
     setActioningId(id);
     setActionError(null);
     try {
-      const res = await fetch(`${API_URL}/api/attendance/leave/${id}/status`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ status, approvedById: user?.id }),
-      });
-      const json = await res.json();
-      if (json.success) {
-        await fetchLeaveRequests();
-      } else {
-        setActionError(json.message || `Failed to ${status === "APPROVED" ? "approve" : "reject"} this request`);
-      }
+      // Invalidating Payroll as well as Leave is the point here: approved
+      // unpaid leave changes what someone is owed, and the payroll tab used to
+      // keep showing the pre-approval figure until it was reopened.
+      await setLeaveStatus({ id, status, approvedById: user?.id }).unwrap();
     } catch {
       setActionError(`Failed to ${status === "APPROVED" ? "approve" : "reject"} this request`);
     } finally {
@@ -269,7 +247,7 @@ export default function LeaveManagementTab({ allStaff }: LeaveManagementTabProps
           rowKey={(r) => r.id}
           loading={loading}
           error={error}
-          onRetry={fetchLeaveRequests}
+          onRetry={refetch}
           emptyTitle="No leave requests found"
           emptyDescription="Leave requests submitted by or on behalf of staff for this branch will show up here."
         />

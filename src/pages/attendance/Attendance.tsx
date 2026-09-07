@@ -1,6 +1,13 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import dayjs from "dayjs";
 import { useAppSelector } from "@/store";
+import {
+  useGetAttendanceForDateQuery,
+  useGetAttendanceForRangeQuery,
+  useGetStaffProductivityQuery,
+  useSaveManualAttendanceMutation,
+} from "@/store/api/attendanceApi";
+import { useGetStaffQuery } from "@/store/api/dashboardApi";
 import {
   BarChart,
   Bar,
@@ -100,9 +107,8 @@ const dailyPay = (staff: any, att: any, branch: any) =>
   Math.round(Number(staff?.salary || 0) / 30 + overtimePay(staff, att, branch));
 
 export default function Attendance() {
-  const API_URL = import.meta.env.VITE_API_URL;
   const { selectedBranch } = useAppSelector((s) => s.branch);
-  const { user, token } = useAppSelector((s) => s.auth);
+  const { user } = useAppSelector((s) => s.auth);
   const [pageTab, setPageTab] = useState<"register" | "leave" | "payroll">(
     "register",
   );
@@ -111,12 +117,6 @@ export default function Attendance() {
   const [activeSection, setActiveSection] = useState<
     "attendance" | "productivity"
   >("attendance");
-  const [productivity, setProductivity] = useState<any>(null);
-  const [prodLoading, setProdLoading] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [attendance, setAttendance] = useState<any[]>([]);
-  const [monthlyAttendance, setMonthlyAttendance] = useState<any[]>([]);
-  const [allStaff, setAllStaff] = useState<any[]>([]);
   const [hoursModal, setHoursModal] = useState<{
     open: boolean;
     staff: any;
@@ -125,17 +125,6 @@ export default function Attendance() {
   const [hoursInput, setHoursInput] = useState("");
   const [overtimeInput, setOvertimeInput] = useState("");
   const [savingHours, setSavingHours] = useState(false);
-
-  const fetchAttendanceForDate = async () => {
-    if (!selectedBranch?.id) return;
-    const h = { Authorization: `Bearer ${token}` };
-    const res = await fetch(
-      `${API_URL}/api/attendance/branch/${selectedBranch.id}?date=${date}`,
-      { headers: h },
-    );
-    const data = await res.json();
-    if (data.success) setAttendance(data.data || []);
-  };
 
   const openHoursModal = (staff: any, att: any) => {
     setHoursModal({ open: true, staff, att });
@@ -147,28 +136,18 @@ export default function Attendance() {
     if (!hoursModal.staff || !selectedBranch?.id) return;
     setSavingHours(true);
     try {
-      const res = await fetch(`${API_URL}/api/attendance/manual`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          userId: hoursModal.staff.id,
-          restaurantId: user?.restaurantId,
-          branchId: selectedBranch.id,
-          date,
-          manualTotalHours: hoursInput === "" ? null : Number(hoursInput),
-          overtimeHours: overtimeInput === "" ? 0 : Number(overtimeInput),
-        }),
-      });
-      const data = await res.json();
-      if (data.success) {
-        setHoursModal({ open: false, staff: null, att: null });
-        await fetchAttendanceForDate();
-      } else {
-        alert(data.message || "Failed to save hours");
-      }
+      // Invalidating Attendance refreshes the day and the month grid; the
+      // Payroll tag takes the run with it, since hours worked feed what is
+      // owed. Both were separate refetches, and the payroll one was missing.
+      await saveManualAttendance({
+        userId: hoursModal.staff.id,
+        restaurantId: user?.restaurantId,
+        branchId: selectedBranch.id,
+        date,
+        manualTotalHours: hoursInput === "" ? null : Number(hoursInput),
+        overtimeHours: overtimeInput === "" ? 0 : Number(overtimeInput),
+      }).unwrap();
+      setHoursModal({ open: false, staff: null, att: null });
     } catch {
       alert("Failed to save hours");
     } finally {
@@ -177,67 +156,52 @@ export default function Attendance() {
   };
 
   // Fetch productivity data when tab switches
-  useEffect(() => {
-    if (activeSection !== "productivity" || !selectedBranch?.id) return;
-    const fetchProd = async () => {
-      try {
-        setProdLoading(true);
-        const h = { Authorization: `Bearer ${token}` };
-        const from = dayjs(date).startOf("month").format("YYYY-MM-DD");
-        const to = dayjs(date).endOf("month").format("YYYY-MM-DD");
-        const res = await fetch(
-          `${API_URL}/api/analytics/${user?.restaurantId}/staff-productivity?branchId=${selectedBranch.id}&from=${from}&to=${to}`,
-          { headers: h },
-        );
-        const data = await res.json();
-        if (data.success) setProductivity(data.data);
-      } catch {
-        /* silent */
-      } finally {
-        setProdLoading(false);
-      }
-    };
-    fetchProd();
-  }, [activeSection, selectedBranch, date]);
+  /**
+   * The month range the productivity and month-grid queries share. Both were
+   * recomputing it inside their own effects.
+   */
+  const monthRange = {
+    from: dayjs(date).startOf("month").format("YYYY-MM-DD"),
+    to: dayjs(date).endOf("month").format("YYYY-MM-DD"),
+  };
 
-  useEffect(() => {
-    const fetch_ = async () => {
-      if (!selectedBranch?.id) return;
-      try {
-        setLoading(true);
-        const h = { Authorization: `Bearer ${token}` };
-        const from = dayjs(date).startOf("month").format("YYYY-MM-DD");
-        const to = dayjs(date).endOf("month").format("YYYY-MM-DD");
-        const [attRes, monthRes, staffRes] = await Promise.all([
-          fetch(
-            `${API_URL}/api/attendance/branch/${selectedBranch.id}?date=${date}`,
-            { headers: h },
-          ),
-          fetch(
-            `${API_URL}/api/attendance/branch/${selectedBranch.id}?from=${from}&to=${to}`,
-            { headers: h },
-          ),
-          fetch(
-            `${API_URL}/api/restaurant/staff/${user?.restaurantId}/${selectedBranch.id}`,
-            { headers: h },
-          ),
-        ]);
-        const [a, m, s] = await Promise.all([
-          attRes.json(),
-          monthRes.json(),
-          staffRes.json(),
-        ]);
-        if (a.success) setAttendance(a.data || []);
-        if (m.success) setMonthlyAttendance(m.data || []);
-        if (s.success) setAllStaff(s.data || []);
-      } catch {
-        /* silent */
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetch_();
-  }, [selectedBranch, date]);
+  const { data: attendance = [], isFetching: loadingDay } =
+    useGetAttendanceForDateQuery(
+      { branchId: selectedBranch?.id as number, date },
+      { skip: !selectedBranch?.id },
+    );
+
+  const { data: monthlyAttendance = [], isFetching: loadingMonth } =
+    useGetAttendanceForRangeQuery(
+      { branchId: selectedBranch?.id as number, ...monthRange },
+      { skip: !selectedBranch?.id },
+    );
+
+  const { data: allStaff = [] } = useGetStaffQuery(
+    {
+      restaurantId: user?.restaurantId as number,
+      branchId: selectedBranch?.id as number,
+    },
+    { skip: !user?.restaurantId || !selectedBranch?.id },
+  );
+
+  const loading = loadingDay || loadingMonth;
+
+  // Only fetched while its section is open, as before — the guard that was an
+  // early return in the effect is the skip here.
+  const { data: productivity = null, isFetching: prodLoading } =
+    useGetStaffProductivityQuery(
+      {
+        restaurantId: user?.restaurantId as number,
+        branchId: selectedBranch?.id as number,
+        ...monthRange,
+      },
+      { skip: activeSection !== "productivity" || !selectedBranch?.id },
+    );
+
+  const [saveManualAttendance] = useSaveManualAttendanceMutation();
+
+
 
   const presentIds = new Set(attendance.map((a: any) => a.userId));
   const presentCount = attendance.filter((a: any) => a.loginTime).length;
