@@ -47,16 +47,35 @@ const BILLS = [
   },
 ];
 
+/** One ingredient's month, enough for Stock Lifecycle to render its summary. */
+const LIFECYCLE_ROW = {
+  ingredientId: 5,
+  name: "Rice",
+  unit: "Kg",
+  openingQty: 20,
+  purchasedQty: 10,
+  consumedQty: 25,
+  closingQty: 4,
+  wastageQty: 1,
+  wastagePercentage: 3.3,
+  wastageCost: 60,
+  pricePerUnit: 60,
+};
+
 const MENU_ITEMS = [
   { id: 11, name: "Dosa", price: 200, categoryId: 1, category: { id: 1, name: "South Indian" } },
   { id: 12, name: "Idli", price: 120, categoryId: 1, category: { id: 1, name: "South Indian" } },
 ];
 
 /**
- * The page fires nine parallel requests on mount plus a few lazily. Real
- * Response objects are not needed here — Report.tsx still uses bare `fetch`
- * and reads `.json()` directly — but every URL must answer, or a tab renders
- * its empty state for the wrong reason and the test pins the wrong behaviour.
+ * The page issues nine requests on mount plus a few lazily, and every URL must
+ * answer — or a tab renders its empty state for the wrong reason and the test
+ * pins the wrong behaviour.
+ *
+ * These go through jsonResponse because the page is on RTK Query now, and
+ * fetchBaseQuery needs a real Response. An earlier version of this mock
+ * returned a `{ json }` stand-in, which worked while the page used bare fetch
+ * and would have failed every query the moment it moved.
  */
 const mockReportFetches = () => {
   vi.stubGlobal(
@@ -74,7 +93,11 @@ const mockReportFetches = () => {
       // Left unsuccessful so the page falls back to its bills-derived P&L math
       // rather than needing a fabricated finance-engine payload.
       if (url.includes("/api/finance/")) return json({ success: false });
-      if (url.includes("/lifecycle")) return json({ success: true, data: [] });
+      if (url.includes("/lifecycle")) {
+        // One row, so the tab renders its real view rather than its empty
+        // state — the empty state is the branch least likely to break.
+        return json({ success: true, data: [LIFECYCLE_ROW] });
+      }
       if (url.includes("/heatmap")) return json({ success: true, data: {} });
       if (url.includes("/forecast")) return json({ success: true, data: {} });
       return json({ success: true, data: [] });
@@ -129,21 +152,60 @@ describe("Reports page — characterisation", () => {
     }
   });
 
-  // The point of the suite: each tab must mount without throwing against the
-  // shared data loaded once at the top. That shared state is what a
-  // decomposition has to preserve, and a tab that crashes on extraction fails
-  // here rather than in production.
+  /**
+   * Each tab must mount against the shared data loaded once at the top — that
+   * shared state is what a decomposition has to preserve.
+   *
+   * Each is checked by something it renders *itself*, not by its tab button
+   * still being on screen. That distinction is the whole point: an earlier
+   * version of this suite asserted only that the button was there, and a
+   * scripted extraction silently dropped about a hundred lines of JSX out of
+   * one of these tabs while every test stayed green. A truncated tab still
+   * mounts, and its button never moved.
+   *
+   * The markers below are strings only the tab in question renders, so a tab
+   * that loses its top, renders the wrong component, or fails to mount at all
+   * now fails here.
+   */
+  const TAB_MARKERS: Record<string, string> = {
+    "P&L Statement": "GST Collected",
+    "Tax Report": "Taxable Revenue",
+    "Expense Tracker": "Cost ratio",
+    "Sales Analytics": "Order Type",
+    "Discount Analysis": "Avg Discount per Bill",
+    "Menu Engineering": "High qty · High margin",
+    "Table Analytics": "Avg Turn Time",
+    "Waste Report": "Total Wastage Cost",
+    // A figure only reachable with lifecycle data, so this covers the tab's
+    // real view rather than its empty state.
+    "Stock Lifecycle": "Highest Waste Ingredient",
+    "Hourly Heatmap": "Whole Menu (all orders)",
+    "Day Analysis": "Revenue Share",
+    // Not a chart series name: those are Recharts props, which render no text
+    // in jsdom and would have made this case pass on nothing.
+    "Revenue Forecast": "Last 7-Day Avg",
+  };
+
   it.each(ALL_TABS.filter((t) => t !== "P&L Statement"))(
-    "renders the %s tab without crashing",
+    "renders the %s tab's own content",
     async (tab) => {
       const user = userEvent.setup();
       await renderReport();
       await openTab(user, tab);
-      // Still mounted, still showing the page shell.
-      await waitFor(() => expect(screen.getAllByText(tab).length).toBeGreaterThan(0));
+      await waitFor(() =>
+        expect(screen.getAllByText(TAB_MARKERS[tab]).length).toBeGreaterThan(0),
+      );
       expect(screen.queryByText("Loading reports...")).not.toBeInTheDocument();
     },
   );
+
+  it("has a marker for every tab, so none is silently unchecked", () => {
+    // Without this, adding a thirteenth tab to ALL_TABS and forgetting its
+    // marker would make its case pass on `undefined`.
+    for (const tab of ALL_TABS) {
+      expect(TAB_MARKERS[tab], `no marker for ${tab}`).toBeTruthy();
+    }
+  });
 
   it("keeps the P&L figures it derives from bills when finance data is unavailable", async () => {
     await renderReport();

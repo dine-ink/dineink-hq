@@ -67,11 +67,38 @@ const mockFetches = () => {
         // directly, so omitting it throws and unmounts the page. A mock that is
         // merely well-formed is not enough — it has to be shaped like the real
         // response.
+        // One item, so the tab renders the matrix rather than its "no sales
+        // recorded yet" state. `summary` is not optional either way: the tab
+        // reads summary.star directly and omitting it throws.
         return json({
           success: true,
           data: {
-            items: [],
-            summary: { star: 0, plowhorse: 0, puzzle: 0, dog: 0, avgMargin: 0, popularityThresholdPct: 0 },
+            // Every field the tab reads. `cost` in particular is not optional:
+            // the table does `item.cost.toFixed(2)` with no guard, so a payload
+            // missing it takes the whole tab down rather than showing a blank
+            // cell. Worth knowing, and worth this fixture being complete.
+            items: [
+              {
+                id: 11,
+                name: "Masala Dosa",
+                category: "South Indian",
+                classification: "STAR",
+                quantitySold: 40,
+                popularityShare: 55,
+                price: 180,
+                cost: 68.5,
+                margin: 111.5,
+                marginPct: 62,
+              },
+            ],
+            summary: {
+              star: 1,
+              plowhorse: 0,
+              puzzle: 0,
+              dog: 0,
+              avgMargin: 62,
+              popularityThresholdPct: 25,
+            },
           },
         });
       }
@@ -130,15 +157,46 @@ describe("Menu Management — characterisation", () => {
     }
   });
 
+  /**
+   * Each tab is checked by something it renders itself, not by its tab button
+   * still being on screen. The button never moves, so asserting on it passes
+   * for a tab that lost half its markup — which is exactly what happened once
+   * during the Reports extraction, with every test green.
+   */
+  const TAB_MARKERS: Record<string, string> = {
+    menu: "Filter by category",
+    addons: "Sauces & Dips",
+    ingredients: "Ingredient inventory & vendor management",
+    restock: "Opening Value",
+    // The tab's subtitle rather than a row control: the ingredient rows only
+    // exist once a mapping is loaded, and the empty case is the one least
+    // likely to break.
+    mapping: "Recipe costing & ingredient intelligence",
+    analytics: "Highest Cost",
+    // The tab's own heading, which collides with nothing: the tab *button*
+    // reads "Menu Engineering" too, so this is matched by count elsewhere —
+    // here the marker only has to be text the tab itself puts on screen.
+    engineering: "Popularity vs. Margin",
+    operations: "SOP Checklists",
+  };
+
   it.each(TABS.filter(([id]) => id !== "menu"))(
-    "renders the %s tab without crashing",
-    async (_id, label) => {
+    "renders the %s tab's own content",
+    async (id, label) => {
       const user = userEvent.setup();
       await renderPage();
       await openTab(user, label);
-      await waitFor(() => expect(screen.getAllByText(label).length).toBeGreaterThan(0));
+      await waitFor(() =>
+        expect(screen.getAllByText(TAB_MARKERS[id]).length).toBeGreaterThan(0),
+      );
     },
   );
+
+  it("has a marker for every tab, so none is silently unchecked", () => {
+    for (const [id] of TABS) {
+      expect(TAB_MARKERS[id], `no marker for ${id}`).toBeTruthy();
+    }
+  });
 
   it("shows add-on groups the server returned, not just an empty tab", async () => {
     // The point of this one is the data path, not the markup. Everything on the

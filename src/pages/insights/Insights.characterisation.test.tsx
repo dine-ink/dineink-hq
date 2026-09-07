@@ -117,15 +117,34 @@ describe("Insights — characterisation", () => {
     }
   });
 
+  /**
+   * Checked by content each tab renders itself. "Financial Assumptions" is
+   * both a tab label and a heading, so asserting on the label would have
+   * passed whether the tab mounted or not.
+   */
+  const TAB_MARKERS: Record<string, string> = {
+    Overview: "Break-Even At",
+    "Insights Setup": "Business Assumptions",
+    "Financial Assumptions": "Save Restaurant Defaults",
+  };
+
   it.each(TABS.filter((t) => t !== "Overview"))(
-    "renders the %s tab without crashing",
+    "renders the %s tab's own content",
     async (label) => {
       const user = userEvent.setup();
       await renderPage();
       await openTab(user, label);
-      await waitFor(() => expect(screen.getAllByText(label).length).toBeGreaterThan(0));
+      await waitFor(() =>
+        expect(screen.getAllByText(TAB_MARKERS[label]).length).toBeGreaterThan(0),
+      );
     },
   );
+
+  it("has a marker for every tab, so none is silently unchecked", () => {
+    for (const tab of TABS) {
+      expect(TAB_MARKERS[tab], `no marker for ${tab}`).toBeTruthy();
+    }
+  });
 
   it("survives every tab being visited in sequence", async () => {
     // Financial Assumptions fetches lazily on activation and shares the
