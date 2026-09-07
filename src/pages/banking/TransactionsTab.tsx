@@ -1,6 +1,11 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import dayjs from "dayjs";
 import { useAppSelector } from "@/store";
+import {
+  useGetBankTransactionsQuery,
+  useCreateBankTransactionMutation,
+  useReconcileTransactionsMutation,
+} from "@/store/api/bankingApi";
 import {
   Button,
   Dialog,
@@ -38,13 +43,10 @@ const statusChip: Record<BankTransactionEntry["reconciliationStatus"], { status:
 };
 
 export default function TransactionsTab() {
-  const { user, token } = useAppSelector((s) => s.auth);
+  const { user } = useAppSelector((s) => s.auth);
   const { selectedBranch } = useAppSelector((s) => s.branch);
   const [from, setFrom] = useState(monthAgoStr());
   const [to, setTo] = useState(todayStr());
-  const [transactions, setTransactions] = useState<BankTransactionEntry[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(false);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [form, setForm] = useState(emptyForm);
@@ -55,29 +57,25 @@ export default function TransactionsTab() {
   const dialog = useDisclosure();
   const branchId = selectedBranch?.id;
 
-  const load = async () => {
-    if (!user?.restaurantId || !branchId) return;
-    try {
-      setLoading(true);
-      setError(false);
-      const res = await fetch(
-        `${API_URL}/api/banking/transactions/${user.restaurantId}/${branchId}?from=${from}&to=${to}`,
-        { headers: { Authorization: `Bearer ${token}` } },
-      );
-      const json = await res.json();
-      if (json.success) setTransactions(json.data || []);
-      else setError(true);
-    } catch {
-      setError(true);
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Keyed by the date range, so stepping back to a range already viewed is
+  // instant. Both the create and the reconcile invalidate this list.
+  const {
+    data: transactions = [],
+    isFetching: loading,
+    isError: error,
+    refetch,
+  } = useGetBankTransactionsQuery(
+    {
+      restaurantId: user?.restaurantId as number,
+      branchId: branchId as number,
+      from,
+      to,
+    },
+    { skip: !user?.restaurantId || !branchId },
+  );
 
-  useEffect(() => {
-    load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.restaurantId, branchId, from, to]);
+  const [createBankTransaction] = useCreateBankTransactionMutation();
+  const [reconcileTransactions] = useReconcileTransactionsMutation();
 
   const openAdd = () => {
     setForm(emptyForm);
@@ -98,25 +96,15 @@ export default function TransactionsTab() {
     try {
       setSaving(true);
       setFormError(null);
-      const res = await fetch(`${API_URL}/api/banking/transactions`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({
-          branchId,
-          entryDate: form.entryDate,
-          description: form.description || undefined,
-          amount: amountNum,
-          type: form.type,
-          notes: form.notes || undefined,
-        }),
-      });
-      const json = await res.json();
-      if (!res.ok || json.success === false) {
-        setFormError(json.message || "Failed to save transaction.");
-        return;
-      }
+      await createBankTransaction({
+        branchId,
+        entryDate: form.entryDate,
+        description: form.description || undefined,
+        amount: amountNum,
+        type: form.type,
+        notes: form.notes || undefined,
+      }).unwrap();
       dialog.close();
-      await load();
     } catch {
       setFormError("Failed to save transaction. Please try again.");
     } finally {
@@ -130,17 +118,14 @@ export default function TransactionsTab() {
       setReconciling(true);
       setReconcileError(null);
       setReconcileResult(null);
-      const res = await fetch(`${API_URL}/api/banking/transactions/${user.restaurantId}/${branchId}/reconcile`, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const json = await res.json();
-      if (!res.ok || json.success === false) {
-        setReconcileError(json.message || "Reconciliation failed.");
-        return;
-      }
-      setReconcileResult(json.data);
-      await load();
+      // A mutation, not a query: it marks transactions reconciled on the
+      // server, so the list has to refresh — which the tag now does.
+      setReconcileResult(
+        await reconcileTransactions({
+          restaurantId: user.restaurantId,
+          branchId,
+        }).unwrap(),
+      );
     } catch {
       setReconcileError("Reconciliation failed. Please try again.");
     } finally {
@@ -225,7 +210,7 @@ export default function TransactionsTab() {
         rowKey={(r) => r.id}
         loading={loading}
         error={error}
-        onRetry={load}
+        onRetry={refetch}
         emptyTitle="No transactions in this date range"
         emptyDescription="Add a manual entry, or widen the date range above."
       />

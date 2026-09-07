@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAppSelector } from "@/store";
+import { useGetDashboardOverviewQuery } from "@/store/api/dashboardApi";
 import { Button, LoadingOverlay, EmptyState } from "@/design";
 import { ChartBarIcon, ArrowRightIcon } from "@heroicons/react/24/outline";
 
@@ -16,29 +16,25 @@ export default function PaymentAnalyticsTab() {
   const navigate = useNavigate();
   const { from, to, preset } = useAppSelector((s) => s.dateRange);
   const { selectedBranch } = useAppSelector((s) => s.branch);
-  const { user, token } = useAppSelector((s) => s.auth);
-  const [loading, setLoading] = useState(false);
-  const [paymentSplit, setPaymentSplit] = useState<Record<string, number> | null>(null);
+  const { user } = useAppSelector((s) => s.auth);
 
-  useEffect(() => {
-    const fetch_ = async () => {
-      if (!user?.restaurantId || !selectedBranch?.id) return;
-      try {
-        setLoading(true);
-        const res = await fetch(
-          `${API_URL}/api/analytics/${user.restaurantId}/restaurantDashboardOverview?branchId=${selectedBranch.id}&range=${preset}&from=${from}&to=${to}`,
-          { headers: { Authorization: `Bearer ${token}` } },
-        );
-        const json = await res.json();
-        if (json.success) setPaymentSplit(json.data?.paymentSplit || {});
-      } catch {
-        /* silent */
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetch_();
-  }, [user?.restaurantId, selectedBranch?.id, from, to, preset, token]);
+  /**
+   * The same overview Dashboard and Reports read, so this shares their cache
+   * entry rather than issuing a fourth request for it. Only the payment split
+   * is wanted here.
+   */
+  const { data: overview, isFetching: loading } = useGetDashboardOverviewQuery(
+    {
+      restaurantId: user?.restaurantId as number,
+      branchId: selectedBranch?.id as number,
+      preset,
+      from,
+      to,
+    },
+    { skip: !user?.restaurantId || !selectedBranch?.id },
+  );
+  const paymentSplit: Record<string, number> | null =
+    overview?.paymentSplit ?? null;
 
   if (loading) return <LoadingOverlay label="Loading payment analytics..." />;
 

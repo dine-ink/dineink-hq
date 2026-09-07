@@ -1,6 +1,11 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import type { Dispatch, SetStateAction } from "react";
 import { useAppSelector } from "@/store";
+import {
+  useGetUpiConfigQuery,
+  useGetUpiQrQuery,
+  useSaveUpiConfigMutation,
+} from "@/store/api/bankingApi";
 import { Button, Dialog, FormField, Input, Alert, EmptyState, LoadingOverlay, useDisclosure } from "@/design";
 import { QrCodeIcon, PencilIcon } from "@heroicons/react/24/outline";
 import type { UpiConfig, UpiQrData } from "./types";
@@ -13,13 +18,8 @@ interface UpiForm {
 }
 
 export default function UpiTab() {
-  const { user, token } = useAppSelector((s) => s.auth);
+  const { user } = useAppSelector((s) => s.auth);
   const { selectedBranch } = useAppSelector((s) => s.branch);
-  const [config, setConfig] = useState<UpiConfig | null>(null);
-  const [qr, setQr] = useState<UpiQrData | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [qrLoading, setQrLoading] = useState(false);
-  const [qrPrompt, setQrPrompt] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [form, setForm] = useState<UpiForm>({ upiId: "", displayName: "" });
@@ -28,54 +28,42 @@ export default function UpiTab() {
 
   const branchId = selectedBranch?.id;
 
-  const loadConfig = async () => {
-    if (!user?.restaurantId || !branchId) return;
-    try {
-      setLoading(true);
-      const res = await fetch(`${API_URL}/api/banking/upi/${user.restaurantId}/${branchId}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const json = await res.json();
-      if (json.success) setConfig(json.data || null);
-    } catch {
-      /* silent */
-    } finally {
-      setLoading(false);
-    }
+  const scope = {
+    restaurantId: user?.restaurantId as number,
+    branchId: branchId as number,
   };
+  const noScope = !user?.restaurantId || !branchId;
 
-  const loadQr = async () => {
-    if (!user?.restaurantId || !branchId) return;
-    try {
-      setQrLoading(true);
-      setQrPrompt(null);
-      const res = await fetch(`${API_URL}/api/banking/upi/${user.restaurantId}/${branchId}/qr`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const json = await res.json();
-      if (res.ok && json.success) {
-        setQr(json.data);
-      } else {
-        setQr(null);
-        setQrPrompt(json.message || "No UPI ID configured yet.");
-      }
-    } catch {
-      setQr(null);
-      setQrPrompt("Could not load the QR code. Please try again.");
-    } finally {
-      setQrLoading(false);
-    }
-  };
+  // The slice types its payloads `any`, so the shapes are named here instead
+  // — the endpoints are shared and their callers disagree about what they
+  // want back, but this screen knows exactly what it is rendering.
+  const { data, isFetching: loading } = useGetUpiConfigQuery(scope, {
+    skip: noScope,
+  });
+  const config: UpiConfig | null = data ?? null;
 
-  useEffect(() => {
-    loadConfig();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.restaurantId, branchId]);
+  /**
+   * The QR is only asked for once a UPI id exists, which was a second effect
+   * watching `config?.upiId`; it is a skip now.
+   *
+   * Both share the Upi tag, so saving new details invalidates the code drawn
+   * from the old ones. Before, the page kept showing a QR pointing at the
+   * previous UPI id until it was reloaded — a bad way to be paid.
+   */
+  const {
+    data: qrData,
+    isFetching: qrLoading,
+    isError: qrError,
+  } = useGetUpiQrQuery(scope, { skip: noScope || !config?.upiId });
+  const qr: UpiQrData | null = qrData ?? null;
 
-  useEffect(() => {
-    if (config?.upiId) loadQr();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [config?.upiId]);
+  const qrPrompt = qrError
+    ? "Could not load the QR code. Please try again."
+    : !config?.upiId
+      ? "No UPI ID configured yet."
+      : null;
+
+  const [saveUpiConfig] = useSaveUpiConfigMutation();
 
   const openEdit = () => {
     setForm({ upiId: config?.upiId || "", displayName: config?.displayName || "" });
@@ -95,18 +83,12 @@ export default function UpiTab() {
     try {
       setSaving(true);
       setFormError(null);
-      const res = await fetch(`${API_URL}/api/banking/upi`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ branchId, upiId: form.upiId.trim(), displayName: form.displayName.trim() }),
-      });
-      const json = await res.json();
-      if (!res.ok || json.success === false) {
-        setFormError(json.message || "Failed to save UPI details.");
-        return;
-      }
+      await saveUpiConfig({
+        branchId,
+        upiId: form.upiId.trim(),
+        displayName: form.displayName.trim(),
+      }).unwrap();
       editDialog.close();
-      await loadConfig();
     } catch {
       setFormError("Failed to save UPI details. Please try again.");
     } finally {

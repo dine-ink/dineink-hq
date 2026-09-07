@@ -64,6 +64,9 @@ export const api = createApi({
     "Leave",
     "Payroll",
     "VendorLedger",
+    "BankAccount",
+    "BankTransaction",
+    "Upi",
   ],
   endpoints: () => ({}),
 });

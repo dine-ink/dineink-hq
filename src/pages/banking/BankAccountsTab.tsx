@@ -1,6 +1,11 @@
 import { useEffect, useState } from "react";
 import { useAppSelector } from "@/store";
 import {
+  useGetBankAccountsQuery,
+  useSaveBankAccountMutation,
+  useDeleteBankAccountMutation,
+} from "@/store/api/bankingApi";
+import {
   Button,
   IconButton,
   Dialog,
@@ -28,11 +33,8 @@ const emptyForm = {
 };
 
 export default function BankAccountsTab() {
-  const { user, token } = useAppSelector((s) => s.auth);
+  const { user } = useAppSelector((s) => s.auth);
   const { selectedBranch } = useAppSelector((s) => s.branch);
-  const [accounts, setAccounts] = useState<BankAccount[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(false);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [editing, setEditing] = useState<BankAccount | null>(null);
@@ -41,23 +43,17 @@ export default function BankAccountsTab() {
   const dialog = useDisclosure();
   const { dialogProps, confirm } = useConfirmDialog();
 
-  const load = async () => {
-    if (!user?.restaurantId) return;
-    try {
-      setLoading(true);
-      setError(false);
-      const res = await fetch(`${API_URL}/api/banking/accounts/${user.restaurantId}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const json = await res.json();
-      if (json.success) setAccounts(json.data || []);
-      else setError(true);
-    } catch {
-      setError(true);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const {
+    data: accounts = [],
+    isFetching: loading,
+    isError: error,
+    refetch: load,
+  } = useGetBankAccountsQuery(user?.restaurantId as number, {
+    skip: !user?.restaurantId,
+  });
+
+  const [saveBankAccount] = useSaveBankAccountMutation();
+  const [deleteBankAccount] = useDeleteBankAccountMutation();
 
   useEffect(() => {
     load();
@@ -95,21 +91,8 @@ export default function BankAccountsTab() {
       const body: Record<string, unknown> = { ...form };
       if (!editing && selectedBranch?.id) body.branchId = selectedBranch.id;
 
-      const res = await fetch(
-        editing ? `${API_URL}/api/banking/accounts/${editing.id}` : `${API_URL}/api/banking/accounts`,
-        {
-          method: editing ? "PUT" : "POST",
-          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-          body: JSON.stringify(body),
-        },
-      );
-      const json = await res.json();
-      if (!res.ok || json.success === false) {
-        setFormError(json.message || "Failed to save account.");
-        return;
-      }
+      await saveBankAccount({ id: editing?.id, body }).unwrap();
       dialog.close();
-      await load();
     } catch {
       setFormError("Failed to save account. Please try again.");
     } finally {
@@ -123,11 +106,13 @@ export default function BankAccountsTab() {
       message: `Remove ${acc.bankName} — ${acc.accountNumberMasked} from your saved accounts? This does not affect the actual bank account, only this record.`,
       tone: "danger",
       onConfirm: async () => {
-        await fetch(`${API_URL}/api/banking/accounts/${acc.id}`, {
-          method: "DELETE",
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        await load();
+        try {
+          // Fire-and-forget before: a refused delete reloaded the list, showed
+          // the row still sitting there, and said nothing about why.
+          await deleteBankAccount(acc.id).unwrap();
+        } catch {
+          alert("Failed to delete this account");
+        }
       },
     });
   };
