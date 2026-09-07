@@ -4,12 +4,12 @@ import { useFinanceAssumptions } from "./useFinanceAssumptions";
 import {
   useGetInsightsSetupQuery,
   useGetTableOperationsQuery,
-  useGetVendorOutstandingQuery,
   useGetVendorInvoiceActivityQuery,
   useGetFinanceSummaryForPeriodQuery,
   useGetRestaurantIngredientsQuery,
   useSaveInsightsSetupMutation,
 } from "@/store/api/insightsApi";
+import { useGetVendorOutstandingQuery } from "@/store/api/vendorsApi";
 import {
   useGetMenuManagementQuery,
   useGetRestockHistoryQuery,
@@ -195,7 +195,13 @@ export default function Insights() {
   // The page shows an estimated-figures banner for either, as before.
   const financeSummaryError = financeQ.isError || financeQ.data === null;
   const tableOps = tableOpsQ.data ?? null;
-  const accountsPayable = payableQ.data ?? 0;
+  // The endpoint returns a row per vendor; this page wants the one number.
+  // Summed here rather than in the slice so Vendors can share the same cache
+  // entry for the list it actually displays.
+  const accountsPayable = (payableQ.data ?? []).reduce(
+    (sum: number, v: any) => sum + Number(v.outstanding || 0),
+    0,
+  );
   const hasVendorInvoices = !!invoiceActivityQ.data?.hasAnyInvoices;
 
   /**

@@ -48,26 +48,6 @@ export const insightsApi = api.injectEndpoints({
     }),
 
     /**
-     * Total owed to vendors — the accounts-payable figure behind Days Payable
-     * Outstanding.
-     *
-     * Summed here rather than at the call site, and the unwrap tolerates both
-     * an enveloped list and a bare array. That tolerance was in the original
-     * (`json?.data || json || []`) and is kept: this endpoint is the one place
-     * in the app that has answered both ways.
-     */
-    getVendorOutstanding: builder.query<number, BranchScope>({
-      query: ({ restaurantId, branchId }) =>
-        `/api/vendors/outstanding/${restaurantId}/${branchId}`,
-      transformResponse: (response: any) => {
-        const rows = response?.data || response || [];
-        if (!Array.isArray(rows)) return 0;
-        return rows.reduce((s: number, v: any) => s + Number(v.outstanding || 0), 0);
-      },
-      providesTags: ["Vendor"],
-    }),
-
-    /**
      * The finance engine's summary for a named period.
      *
      * dashboardApi has a summary query too, but it takes an explicit from/to
@@ -150,7 +130,6 @@ export const {
   useGetInsightsSetupQuery,
   useSaveInsightsSetupMutation,
   useGetTableOperationsQuery,
-  useGetVendorOutstandingQuery,
   useGetFinanceSummaryForPeriodQuery,
   useGetVendorInvoiceActivityQuery,
   useGetRestaurantIngredientsQuery,

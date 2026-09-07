@@ -1,7 +1,18 @@
 import { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { useAppSelector } from "@/store";
-import { apiSend, errorMessage } from "@/utils/apiRequest";
+import { useAppDispatch, useAppSelector } from "@/store";
+import {
+  vendorsApi,
+  useGetVendorOutstandingQuery,
+  useGetVendorPerformanceQuery,
+  useSaveVendorMutation,
+  useDeleteVendorMutation,
+  useRecordVendorPaymentMutation,
+  useCreateVendorInvoiceMutation,
+  usePayVendorInvoiceMutation,
+} from "@/store/api/vendorsApi";
+import { useGetVendorsQuery } from "@/store/api/ingredientsApi";
+import { errorMessage } from "@/utils/apiRequest";
 import {
   TruckIcon,
   PlusIcon,
@@ -23,17 +34,14 @@ import MobileTableCards from "@/components/common/MobileTableCards";
 const API_URL = import.meta.env.VITE_API_URL;
 
 export default function Vendors() {
-  const { user, token } = useAppSelector((s) => s.auth);
+  const { user } = useAppSelector((s) => s.auth);
+  const dispatch = useAppDispatch();
   const { selectedBranch } = useAppSelector((s) => s.branch);
   const location = useLocation();
   const navigate = useNavigate();
 
-  const [vendors, setVendors] = useState<any[]>([]);
-  const [outstanding, setOutstanding] = useState<any[]>([]);
-  const [performance, setPerformance] = useState<any[]>([]);
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState("");
-  const [loading, setLoading] = useState(false);
 
   // Modals
   const [vendorModal, setVendorModal] = useState<{
@@ -95,61 +103,33 @@ export default function Vendors() {
   });
   const [invoiceFile, setInvoiceFile] = useState<File | null>(null);
 
-  const headers = {
-    Authorization: `Bearer ${token}`,
-    "Content-Type": "application/json",
+  /**
+   * Three lists, and every write on this screen invalidates the ledger tag
+   * that two of them carry. `fetchOutstanding()` used to be called by hand
+   * from five places to keep the owed figures current.
+   *
+   * The vendor list itself comes from ingredientsApi, because the endpoint is
+   * under /api/ingredients and Menu Management's ingredient editor reads the
+   * same one. Shared definition, shared cache entry.
+   */
+  const scope = {
+    restaurantId: user?.restaurantId as number,
+    branchId: selectedBranch?.id as number,
   };
+  const skip = { skip: !user?.restaurantId || !selectedBranch?.id };
 
-  const fetchVendors = async () => {
-    if (!user?.restaurantId || !selectedBranch?.id) return;
-    try {
-      setLoading(true);
-      const res = await fetch(
-        `${API_URL}/api/ingredients/${user.restaurantId}/${selectedBranch.id}/fetchVendors`,
-        { headers },
-      );
-      const data = await res.json();
-      setVendors(data.data || []);
-    } catch {
-      /* silent */
-    } finally {
-      setLoading(false);
-    }
-  };
+  const { data: vendors = [], isFetching: loading } = useGetVendorsQuery(
+    scope,
+    skip,
+  );
+  const { data: outstanding = [] } = useGetVendorOutstandingQuery(scope, skip);
+  const { data: performance = [] } = useGetVendorPerformanceQuery(scope, skip);
 
-  const fetchOutstanding = async () => {
-    if (!user?.restaurantId || !selectedBranch?.id) return;
-    try {
-      const res = await fetch(
-        `${API_URL}/api/vendors/outstanding/${user.restaurantId}/${selectedBranch.id}`,
-        { headers },
-      );
-      const data = await res.json();
-      setOutstanding(data.data || []);
-    } catch {
-      /* silent */
-    }
-  };
-
-  const fetchPerformance = async () => {
-    if (!user?.restaurantId || !selectedBranch?.id) return;
-    try {
-      const res = await fetch(
-        `${API_URL}/api/vendors/performance/${user.restaurantId}/${selectedBranch.id}`,
-        { headers },
-      );
-      const data = await res.json();
-      setPerformance(data.data || []);
-    } catch {
-      /* silent */
-    }
-  };
-
-  useEffect(() => {
-    fetchVendors();
-    fetchOutstanding();
-    fetchPerformance();
-  }, [selectedBranch?.id]);
+  const [saveVendor] = useSaveVendorMutation();
+  const [deleteVendorMutation] = useDeleteVendorMutation();
+  const [recordVendorPayment] = useRecordVendorPaymentMutation();
+  const [createVendorInvoice] = useCreateVendorInvoiceMutation();
+  const [payVendorInvoice] = usePayVendorInvoiceMutation();
 
   // Deep-link from a low-stock alert (Menu Management → Analytics) — open the
   // purchase invoice modal for the vendor tied to the ingredient running low.
@@ -186,23 +166,18 @@ export default function Vendors() {
     setVendorModal({ open: true, editing: v ?? null });
   };
 
-  const saveVendor = async () => {
+  const handleSaveVendor = async () => {
     if (!vendorForm.name.trim() || !user?.restaurantId || !selectedBranch?.id)
       return;
-    const url = vendorModal.editing
-      ? `${API_URL}/api/ingredients/vendors/${vendorModal.editing.id}`
-      : `${API_URL}/api/ingredients/vendors`;
-    const method = vendorModal.editing ? "PUT" : "POST";
     try {
-      await apiSend(url, {
-        method,
-        headers,
-        body: JSON.stringify({
+      await saveVendor({
+        id: vendorModal.editing?.id,
+        body: {
           ...vendorForm,
           restaurantId: user.restaurantId,
           branchId: selectedBranch.id,
-        }),
-      });
+        },
+      }).unwrap();
     } catch (error) {
       // The modal stays open on failure, so the values the person typed are
       // still there to retry with. Closing it and refetching — which is what
@@ -211,8 +186,6 @@ export default function Vendors() {
       return;
     }
     setVendorModal({ open: false, editing: null });
-    fetchVendors();
-    fetchOutstanding();
   };
 
   const deleteVendor = async (id: number) => {
@@ -223,39 +196,32 @@ export default function Vendors() {
     )
       return;
     try {
-      await apiSend(`${API_URL}/api/ingredients/vendors/${id}`, {
-        method: "DELETE",
-        headers,
-      });
+      await deleteVendorMutation(id).unwrap();
     } catch (error) {
       alert(errorMessage(error));
-      return;
     }
-    fetchVendors();
-    fetchOutstanding();
   };
 
+  /**
+   * Opened from a row, so imperative rather than three hook queries — and
+   * forceRefetch, because paying an invoice reopens this modal to show the
+   * new balance and must not be handed the figures from before the payment.
+   */
   const openDetailModal = async (vendor: any) => {
     try {
-      const [pRes, iRes, ingRes] = await Promise.all([
-        fetch(`${API_URL}/api/vendors/${vendor.id}/payments`, { headers }),
-        fetch(`${API_URL}/api/vendors/${vendor.id}/invoices`, { headers }),
-        fetch(`${API_URL}/api/ingredients/vendors/${vendor.id}/ingredients`, {
-          headers,
-        }),
+      const fresh = { forceRefetch: true };
+      const [payments, invoices, ingredients] = await Promise.all([
+        dispatch(
+          vendorsApi.endpoints.getVendorPayments.initiate(vendor.id, fresh),
+        ).unwrap(),
+        dispatch(
+          vendorsApi.endpoints.getVendorInvoices.initiate(vendor.id, fresh),
+        ).unwrap(),
+        dispatch(
+          vendorsApi.endpoints.getVendorIngredients.initiate(vendor.id, fresh),
+        ).unwrap(),
       ]);
-      const [pData, iData, ingData] = await Promise.all([
-        pRes.json(),
-        iRes.json(),
-        ingRes.json(),
-      ]);
-      setDetailModal({
-        open: true,
-        vendor,
-        payments: pData.data || [],
-        invoices: iData.data || [],
-        ingredients: ingData.data || [],
-      });
+      setDetailModal({ open: true, vendor, payments, invoices, ingredients });
     } catch {
       /* silent */
     }
@@ -273,19 +239,16 @@ export default function Vendors() {
       // This is money. A payment that silently fails to record is
       // indistinguishable from one that succeeded until someone reconciles the
       // ledger against the vendor's own statement — so this is the write on
-      // this screen that least tolerates being fire-and-forget.
-      await apiSend(`${API_URL}/api/vendors/payments`, {
-        method: "POST",
-        headers,
-        body: JSON.stringify({
-          vendorId: paymentModal.vendor.id,
-          restaurantId: user.restaurantId,
-          branchId: selectedBranch.id,
-          ...paymentForm,
-          amount: Number(paymentForm.amount),
-          createdById: user.id,
-        }),
-      });
+      // this screen that least tolerates being fire-and-forget. `.unwrap()`
+      // is what makes a rejection reach the catch below.
+      await recordVendorPayment({
+        vendorId: paymentModal.vendor.id,
+        restaurantId: user.restaurantId,
+        branchId: selectedBranch.id,
+        ...paymentForm,
+        amount: Number(paymentForm.amount),
+        createdById: user.id,
+      }).unwrap();
     } catch (error) {
       alert(errorMessage(error));
       return;
@@ -297,7 +260,6 @@ export default function Vendors() {
       paymentDate: new Date().toISOString().split("T")[0],
       notes: "",
     });
-    fetchOutstanding();
   };
 
   const createInvoice = async () => {
@@ -326,24 +288,16 @@ export default function Vendors() {
         fd.append("notes", invoiceForm.notes);
         fd.append("createdById", String(user.id));
         fd.append("document", invoiceFile);
-        await apiSend(`${API_URL}/api/vendors/invoices`, {
-          method: "POST",
-          headers: { Authorization: `Bearer ${token}` },
-          body: fd,
-        });
-    } else {
-        await apiSend(`${API_URL}/api/vendors/invoices`, {
-          method: "POST",
-          headers,
-          body: JSON.stringify({
-            vendorId: invoiceModal.vendor.id,
-            restaurantId: user.restaurantId,
-            branchId: selectedBranch.id,
-            ...invoiceForm,
-            totalAmount: Number(invoiceForm.totalAmount),
-            createdById: user.id,
-          }),
-        });
+        await createVendorInvoice(fd).unwrap();
+      } else {
+        await createVendorInvoice({
+          vendorId: invoiceModal.vendor.id,
+          restaurantId: user.restaurantId,
+          branchId: selectedBranch.id,
+          ...invoiceForm,
+          totalAmount: Number(invoiceForm.totalAmount),
+          createdById: user.id,
+        }).unwrap();
       }
     } catch (error) {
       // Modal stays open so the invoice details and the attached file are not
@@ -360,7 +314,6 @@ export default function Vendors() {
       notes: "",
     });
     setInvoiceFile(null);
-    fetchOutstanding();
   };
 
   // Mirrors ComplianceChecker.tsx's resolveDocumentUrl convention: a
@@ -375,17 +328,10 @@ export default function Vendors() {
   const openPriceHistory = async (vendor: any) => {
     setPriceHistoryModal({ open: true, vendor, data: [], loading: true });
     try {
-      const res = await fetch(
-        `${API_URL}/api/vendors/${vendor.id}/pricing-history`,
-        { headers },
-      );
-      const data = await res.json();
-      setPriceHistoryModal({
-        open: true,
-        vendor,
-        data: data.data || [],
-        loading: false,
-      });
+      const data = await dispatch(
+        vendorsApi.endpoints.getVendorPricingHistory.initiate(vendor.id),
+      ).unwrap();
+      setPriceHistoryModal({ open: true, vendor, data, loading: false });
     } catch {
       setPriceHistoryModal({ open: true, vendor, data: [], loading: false });
     }
@@ -395,17 +341,14 @@ export default function Vendors() {
     const amt = prompt(`Pay how much? (Remaining: ₹${remaining})`);
     if (!amt || isNaN(Number(amt))) return;
     try {
-      await apiSend(`${API_URL}/api/vendors/invoices/${invoiceId}/pay`, {
-        method: "PUT",
-        headers,
-        body: JSON.stringify({ amount: Number(amt) }),
-      });
+      await payVendorInvoice({ invoiceId, amount: Number(amt) }).unwrap();
     } catch (error) {
       alert(errorMessage(error));
       return;
     }
+    // The modal holds its rows in local state, so it is reopened to pick up
+    // the new balance; the owed totals behind it follow the ledger tag.
     if (detailModal.vendor) openDetailModal(detailModal.vendor);
-    fetchOutstanding();
   };
 
   const totalOutstanding = outstanding.reduce(
@@ -895,7 +838,7 @@ export default function Vendors() {
                 Cancel
               </button>
               <button
-                onClick={saveVendor}
+                onClick={handleSaveVendor}
                 disabled={!vendorForm.name.trim()}
                 className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-[#b10000] py-2 text-[12px] font-bold text-white disabled:opacity-40"
               >
@@ -1313,8 +1256,6 @@ export default function Vendors() {
         open={reorderModal.open}
         vendor={reorderModal.vendor}
         branchId={selectedBranch?.id}
-        apiUrl={API_URL}
-        token={token}
         onClose={() => setReorderModal({ open: false, vendor: null })}
       />
 

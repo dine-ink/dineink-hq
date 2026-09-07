@@ -1,4 +1,8 @@
 import { useEffect, useState } from "react";
+import {
+  useGetVendorIngredientsQuery,
+  useReorderFromVendorMutation,
+} from "@/store/api/vendorsApi";
 import { XMarkIcon, ArrowPathIcon } from "@heroicons/react/24/outline";
 
 interface ReorderIngredient {
@@ -18,8 +22,6 @@ interface ReorderDialogProps {
   open: boolean;
   vendor: ReorderVendor | null;
   branchId?: number | null;
-  apiUrl: string;
-  token: string | null | undefined;
   onClose: () => void;
 }
 
@@ -31,45 +33,39 @@ interface ReorderDialogProps {
 // reorder endpoint. Mirrors Vendors.tsx's existing hand-rolled modal style
 // (fixed inset-0 + rounded-2xl card) rather than the design-system Dialog,
 // since this file doesn't use that system anywhere else.
+// apiUrl and token used to be props, passed in purely so this dialog could
+// build its own requests. Both queries take their auth from the store now, so
+// the parent hands over only what the dialog is actually about.
 export default function ReorderDialog({
   open,
   vendor,
   branchId,
-  apiUrl,
-  token,
   onClose,
 }: ReorderDialogProps) {
-  const [ingredients, setIngredients] = useState<ReorderIngredient[]>([]);
   const [selected, setSelected] = useState<number[]>([]);
   const [channel, setChannel] = useState<"whatsapp" | "email">("whatsapp");
-  const [loading, setLoading] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
 
+  // The vendor's ingredient list is also read by the vendor detail modal, so
+  // opening the reorder dialog for a vendor whose details were just viewed
+  // costs nothing.
+  const { data: ingredients = [], isFetching: loading } =
+    useGetVendorIngredientsQuery(vendor?.id as number, {
+      skip: !open || !vendor?.id,
+    });
+
+  const [reorderFromVendor, { isLoading: submitting }] =
+    useReorderFromVendorMutation();
+
+  // Reset the form each time the dialog opens on a vendor. This ran inside
+  // the fetch effect before; the fetch is gone but the reset is still needed.
   useEffect(() => {
     if (!open || !vendor) return;
     setSelected([]);
     setError("");
     setSuccess(false);
     setChannel("whatsapp");
-    const fetchIngredients = async () => {
-      try {
-        setLoading(true);
-        const res = await fetch(
-          `${apiUrl}/api/ingredients/vendors/${vendor.id}/ingredients`,
-          { headers: { Authorization: `Bearer ${token}` } },
-        );
-        const data = await res.json();
-        setIngredients(data.data || []);
-      } catch {
-        /* silent */
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchIngredients();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, vendor?.id]);
 
   const toggle = (id: number) => {
@@ -77,28 +73,18 @@ export default function ReorderDialog({
   };
 
   const submit = async () => {
-    if (!vendor || selected.length === 0) return;
-    setSubmitting(true);
+    if (!vendor || selected.length === 0 || !branchId) return;
     setError("");
     try {
-      const res = await fetch(`${apiUrl}/api/vendors/${vendor.id}/reorder`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ branchId, channel, ingredientIds: selected }),
-      });
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        setError(data.message || "Failed to send reorder request");
-        return;
-      }
+      await reorderFromVendor({
+        vendorId: vendor.id,
+        branchId,
+        channel,
+        ingredientIds: selected,
+      }).unwrap();
       setSuccess(true);
     } catch {
       setError("Failed to send reorder request");
-    } finally {
-      setSubmitting(false);
     }
   };
 
