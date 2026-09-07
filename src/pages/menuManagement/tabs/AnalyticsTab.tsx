@@ -204,7 +204,7 @@ export default function AnalyticsTab({ analytics, allIngredients, aiAlerts }: An
 
                       {/* RIGHT */}
 
-                      <div className="flex items-center gap-2">
+                      <div className="flex flex-wrap items-center gap-2">
                         {/* VIEW TOGGLE */}
 
                         <div className="flex items-center rounded-xl border border-gray-200 bg-gray-50 p-1">

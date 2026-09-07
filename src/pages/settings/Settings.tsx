@@ -1382,7 +1382,7 @@ export default function Settings() {
                 </div>
                 <button
                   onClick={handleSignOutAll}
-                  className="rounded-xl border border-red-200 bg-white px-4 py-2 text-[12px] font-semibold text-red-600 transition hover:bg-[#b10000] active:scale-95"
+                  className="rounded-xl border border-red-200 bg-white px-4 py-2 text-[12px] font-semibold text-red-600 transition hover:border-[#b10000] hover:bg-[#b10000] hover:text-white active:scale-95"
                 >
                   Sign Out All
                 </button>
@@ -1503,7 +1503,7 @@ export default function Settings() {
                     </div>
                   </div>
                   <div className="flex flex-col gap-2">
-                    <button className="rounded-xl bg-white px-5 py-2.5 text-[12px] font-bold text-red-600 transition hover:bg-[#b10000]">
+                    <button className="rounded-xl bg-white px-5 py-2.5 text-[12px] font-bold text-red-600 transition hover:bg-[#b10000] hover:text-white">
                       Upgrade Plan
                     </button>
                     <button className="rounded-xl border border-white/20 bg-white/10 px-5 py-2.5 text-[12px] font-semibold text-white transition hover:bg-white/20">

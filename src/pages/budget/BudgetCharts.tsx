@@ -91,7 +91,7 @@ export default function BudgetCharts({ budget }: { budget: any }) {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h4 className="text-[13px] font-bold text-gray-900">Charts — FY{budget.financialYear}</h4>
         <div className="flex items-center gap-1 rounded-xl bg-gray-100 p-1">
           {(["line", "bar", "area"] as ChartMode[]).map((m) => (

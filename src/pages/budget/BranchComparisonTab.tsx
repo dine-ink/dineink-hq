@@ -72,7 +72,7 @@ export default function BranchComparisonTab() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h3 className="text-[16px] font-bold text-gray-900">Branch Budget vs Actual Comparison</h3>
         <div className="flex items-center gap-1 rounded-xl bg-gray-100 p-1">
           {PERIODS.map((p) => (

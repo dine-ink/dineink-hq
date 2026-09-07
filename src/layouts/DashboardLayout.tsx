@@ -392,7 +392,7 @@ export default function DashboardLayout() {
                     />
                     <button
                       onClick={handleCustomApply}
-                      className="rounded-lg bg-white px-3 py-1 text-[11px] font-bold text-red-600 transition hover:bg-[#b10000]"
+                      className="rounded-lg bg-white px-3 py-1 text-[11px] font-bold text-red-600 transition hover:bg-[#b10000] hover:text-white"
                     >
                       Apply
                     </button>
@@ -494,7 +494,7 @@ export default function DashboardLayout() {
                           localStorage.clear();
                           window.location.href = "/login";
                         }}
-                        className="flex w-full items-center gap-2.5 px-4 py-2 text-left text-[13px] font-semibold text-red-600 transition hover:bg-[#b10000]"
+                        className="flex w-full items-center gap-2.5 px-4 py-2 text-left text-[13px] font-semibold text-red-600 transition hover:bg-[#b10000] hover:text-white"
                       >
                         <XMarkIcon className="h-4 w-4" />
                         Sign Out

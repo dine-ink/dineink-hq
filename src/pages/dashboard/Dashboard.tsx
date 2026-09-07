@@ -646,10 +646,10 @@ export default function Dashboard() {
                       className="rounded-xl border border-gray-100 bg-gray-50/60 p-2.5 transition hover:bg-gray-50"
                     >
                       <div className="flex items-center justify-between gap-2">
-                        <p className="truncate text-[12px] font-semibold text-gray-900">
+                        <p className="min-w-0 truncate text-[12px] font-semibold text-gray-900">
                           {item.name}
                         </p>
-                        <div className="flex h-7 min-w-[32px] items-center justify-center rounded-lg bg-[#b10000] px-2 text-[11px] font-bold text-white">
+                        <div className="flex h-7 min-w-[32px] shrink-0 items-center justify-center rounded-lg bg-[#b10000] px-2 text-[11px] font-bold text-white">
                           {item.quantity}
                         </div>
                       </div>
@@ -708,11 +708,11 @@ export default function Dashboard() {
                         className="rounded-xl border border-gray-100 bg-gray-50/60 p-2.5 transition hover:bg-gray-50"
                       >
                         <div className="flex items-center justify-between gap-2">
-                          <p className="truncate text-[12px] font-semibold text-gray-900">
+                          <p className="min-w-0 truncate text-[12px] font-semibold text-gray-900">
                             {cat.name}
                           </p>
                           <div
-                            className={`flex h-7 min-w-[32px] items-center justify-center rounded-lg px-2 text-[11px] font-bold text-white ${colors[i] || "bg-gray-400"}`}
+                            className={`flex h-7 min-w-[32px] shrink-0 items-center justify-center rounded-lg px-2 text-[11px] font-bold text-white ${colors[i] || "bg-gray-400"}`}
                           >
                             {cat.quantity}
                           </div>

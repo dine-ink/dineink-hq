@@ -346,16 +346,16 @@ export default function Customers() {
           <button
             onClick={() => setSelectedCustomer(c)}
             title="View customer"
-            className="flex h-8 w-8 items-center justify-center rounded-md bg-gray-100 transition hover:bg-[#b10000] md:h-7 md:w-7"
+            className="group flex h-8 w-8 items-center justify-center rounded-md bg-gray-100 transition hover:bg-[#b10000] md:h-7 md:w-7"
           >
-            <EyeIcon className="h-3.5 w-3.5 text-gray-600 hover:text-red-600" />
+            <EyeIcon className="h-3.5 w-3.5 text-gray-600 transition-colors group-hover:text-white" />
           </button>
           <button
             onClick={() => setMessageCustomer(c)}
             title="Send WhatsApp message"
-            className="flex h-8 w-8 items-center justify-center rounded-md bg-gray-100 transition hover:bg-[#b10000] md:h-7 md:w-7"
+            className="group flex h-8 w-8 items-center justify-center rounded-md bg-gray-100 transition hover:bg-[#b10000] md:h-7 md:w-7"
           >
-            <ChatBubbleLeftRightIcon className="h-3.5 w-3.5 text-gray-600 hover:text-red-600" />
+            <ChatBubbleLeftRightIcon className="h-3.5 w-3.5 text-gray-600 transition-colors group-hover:text-white" />
           </button>
         </div>
       ),
@@ -371,7 +371,7 @@ export default function Customers() {
           <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-red-100 text-[10px] font-bold text-red-600">
             {c.name?.charAt(0)}
           </div>
-          <p className="truncate font-semibold text-gray-900">{c.name}</p>
+          <p className="min-w-0 truncate font-semibold text-gray-900">{c.name}</p>
         </div>
       ),
     },

@@ -14,6 +14,7 @@ import {
   QueueListIcon,
   SparklesIcon,
   Squares2X2Icon,
+  TrashIcon,
   UsersIcon,
   XMarkIcon,
 } from "@heroicons/react/24/outline";
@@ -535,13 +536,13 @@ export default function RestaurantSetupModal({ open, setOpen }: Props) {
                               }`}
                             >
                               <tab.icon
-                                className={`h-4 w-4 ${selectedTab === index ? "text-red-600" : "text-gray-500"}`}
+                                className={`h-4 w-4 transition-colors ${selectedTab === index ? "text-red-600" : "text-gray-500 group-hover:text-white"}`}
                               />
                               <span
-                                className={`absolute -top-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full text-[9px] font-black ${
+                                className={`absolute -top-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full text-[9px] font-black transition-colors ${
                                   selectedTab === index
                                     ? "bg-[#b10000] text-white"
-                                    : "bg-gray-300 text-gray-600"
+                                    : "bg-gray-300 text-gray-600 group-hover:bg-white group-hover:text-[#b10000]"
                                 }`}
                               >
                                 {index + 1}
@@ -549,7 +550,7 @@ export default function RestaurantSetupModal({ open, setOpen }: Props) {
                             </div>
                             <div className="min-w-0">
                               <p
-                                className={`text-[12px] font-semibold truncate ${selectedTab === index ? "text-red-700" : "text-gray-800"}`}
+                                className={`text-[12px] font-semibold truncate transition-colors ${selectedTab === index ? "text-red-700" : "text-gray-800 group-hover:text-[#b10000]"}`}
                               >
                                 {tab.name}
                               </p>
@@ -1182,8 +1183,8 @@ export default function RestaurantSetupModal({ open, setOpen }: Props) {
                                       key={iIndex}
                                       className="rounded-2xl border border-gray-200 bg-gray-50 p-5"
                                     >
-                                      <div className="grid grid-cols-1 gap-4 xl:grid-cols-12">
-                                        <div className="xl:col-span-4">
+                                      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-12">
+                                        <div className="sm:col-span-2 xl:col-span-4">
                                           <label className="mb-2 block text-sm font-medium text-gray-700">
                                             Item Name
                                           </label>
@@ -1247,7 +1248,7 @@ export default function RestaurantSetupModal({ open, setOpen }: Props) {
                                             </span>
                                           </div>
                                         </div>
-                                        <div className="xl:col-span-3">
+                                        <div className="xl:col-span-2">
                                           <label className="mb-2 block text-sm font-medium text-gray-700">
                                             Type
                                           </label>
@@ -1271,8 +1272,11 @@ export default function RestaurantSetupModal({ open, setOpen }: Props) {
                                             </option>
                                           </select>
                                         </div>
-                                        <div className="flex items-end xl:col-span-1">
+                                        <div className="flex items-end sm:col-span-2 xl:col-span-2">
                                           <button
+                                            type="button"
+                                            title="Remove item"
+                                            aria-label="Remove item"
                                             onClick={() =>
                                               updateCategory(index, {
                                                 items: category.items.filter(
@@ -1280,9 +1284,10 @@ export default function RestaurantSetupModal({ open, setOpen }: Props) {
                                                 ),
                                               })
                                             }
-                                            className="w-full rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-[#b10000] transition hover:bg-red-100"
+                                            className="flex w-full items-center justify-center gap-2 whitespace-nowrap rounded-2xl border border-red-200 bg-red-50 px-3 py-3 text-sm font-semibold text-[#b10000] transition hover:bg-red-100"
                                           >
-                                            Remove
+                                            <TrashIcon className="h-4 w-4 shrink-0" />
+                                            <span>Remove</span>
                                           </button>
                                         </div>
                                       </div>

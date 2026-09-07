@@ -199,12 +199,12 @@ export default function RestockTab({ analytics, restocks, selectedWeek, setSelec
                     <div className="flex items-center gap-3">
                       {/* WEEK SWITCHER */}
 
-                      <div className="flex items-center rounded-2xl border border-gray-200 bg-gray-50 p-1">
+                      <div className="flex w-full items-center overflow-x-auto rounded-2xl border border-gray-200 bg-gray-50 p-1 xl:w-auto">
                         {[1, 2, 3, 4, 5].map((week) => (
                           <button
                             key={week}
                             onClick={() => setSelectedWeek(`week${week}`)}
-                            className={`min-w-[64px] rounded-xl px-3 py-2 text-[12px] font-semibold transition-all ${
+                            className={`min-w-[64px] shrink-0 rounded-xl px-3 py-2 text-[12px] font-semibold transition-all ${
                               selectedWeek === `week${week}`
                                 ? "bg-[#b10000] text-white shadow-sm"
                                 : "text-gray-600 hover:bg-white"
