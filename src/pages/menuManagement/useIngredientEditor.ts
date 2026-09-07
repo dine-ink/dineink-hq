@@ -1,8 +1,16 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { saveAs } from "file-saver";
 import ExcelJS from "exceljs";
 import { loadWorkbook, sheetToJson } from "@/utils/readExcel";
-import { useAppSelector } from "@/store";
+import { useAppDispatch, useAppSelector } from "@/store";
+import {
+  ingredientsApi,
+  useSaveIngredientsMutation,
+  useGenerateIngredientsMutation,
+  useUpdateIngredientPriceMutation,
+  useUploadVendorDataMutation,
+  useGetVendorsQuery,
+} from "@/store/api/ingredientsApi";
 
 /**
  * The ingredient stock editor: the draft rows people type into, the categories
@@ -24,7 +32,13 @@ export function useIngredientEditor(
   setCategories: (rows: any[]) => void,
   setLoading: (on: boolean) => void,
 ) {
-  const { user, token } = useAppSelector((s) => s.auth);
+  const { user } = useAppSelector((s) => s.auth);
+  const dispatch = useAppDispatch();
+
+  const [saveIngredients] = useSaveIngredientsMutation();
+  const [generateIngredients] = useGenerateIngredientsMutation();
+  const [updateIngredientPrice] = useUpdateIngredientPriceMutation();
+  const [uploadVendorData] = useUploadVendorDataMutation();
   const { selectedBranch } = useAppSelector((s) => s.branch);
   const API_URL = import.meta.env.VITE_API_URL;
 
@@ -37,7 +51,6 @@ export function useIngredientEditor(
     new Set(),
   );
 
-  const [vendors, setVendors] = useState<any[]>([]);
   const [priceHistoryModal, setPriceHistoryModal] = useState<{
     open: boolean;
     ingredientId: number | null;
@@ -61,38 +74,22 @@ export function useIngredientEditor(
   const handleGenerate = async () => {
     try {
       setLoading(true);
-
-      const res = await fetch(
-        `${API_URL}/api/ingredients/generateIngredients`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            restaurantId: user.restaurantId,
-          }),
-        },
+      const suggested = await generateIngredients({
+        restaurantId: user.restaurantId,
+      }).unwrap();
+      const formatted = Object.fromEntries(
+        Object.entries(suggested).map(([category, items]) => [
+          category,
+          (items as string[]).map((item) => ({
+            name: item,
+            quantity: "",
+            unit: "Kg",
+            purchasePrice: "",
+            pricePerUnit: "",
+          })),
+        ]),
       );
-      const data = await res.json();
-      if (data.success) {
-        const formatted = Object.fromEntries(
-          Object.entries(data.data).map(([category, items]) => [
-            category,
-            (items as string[]).map((item) => ({
-              name: item,
-              quantity: "",
-              unit: "Kg",
-              purchasePrice: "",
-              pricePerUnit: "",
-            })),
-          ]),
-        );
-        setIngredients(formatted);
-      } else {
-        alert(data.message || "Couldn't generate an ingredient list");
-      }
+      setIngredients(formatted);
     } catch {
       alert("Couldn't generate an ingredient list");
     } finally {
@@ -109,28 +106,15 @@ export function useIngredientEditor(
       return;
     }
     try {
-      const restaurantId = user.restaurantId;
-      const res = await fetch(`${API_URL}/api/ingredients/saveIngredients`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          restaurantId,
-          branchId: selectedBranch.id,
-          ingredients,
-        }),
-      });
-      const data = await res.json();
-      if (data.success) {
-        alert("Ingredients saved successfully");
-      } else {
-        // Success alerted; failure did not. Pressing Save and getting no
-        // response at all is indistinguishable from the click missing.
-        alert(data.message || "Failed to save these ingredients");
-      }
+      await saveIngredients({
+        restaurantId: user.restaurantId,
+        branchId: selectedBranch.id,
+        ingredients,
+      }).unwrap();
+      alert("Ingredients saved successfully");
     } catch {
+      // Success alerted; failure did not. Pressing Save and getting no response
+      // at all is indistinguishable from the click missing.
       alert("Failed to save these ingredients");
     }
   };
@@ -152,16 +136,14 @@ export function useIngredientEditor(
       loading: true,
     });
     try {
-      const res = await fetch(
-        `${API_URL}/api/ingredients/price-history/${ingredient.id}`,
-        { headers: { Authorization: `Bearer ${token}` } },
-      );
-      const data = await res.json();
-      setPriceHistoryModal((prev) => ({
-        ...prev,
-        history: data.success ? data.data || [] : [],
-        loading: false,
-      }));
+      // Imperative rather than a hook query: it is per-ingredient and only
+      // wanted while the modal is open. `initiate` uses the same cache, so
+      // reopening the same ingredient is free — it was a fresh request every
+      // time before.
+      const history = await dispatch(
+        ingredientsApi.endpoints.getIngredientPriceHistory.initiate(ingredient.id),
+      ).unwrap();
+      setPriceHistoryModal((prev) => ({ ...prev, history, loading: false }));
     } catch {
       setPriceHistoryModal((prev) => ({ ...prev, loading: false }));
     }
@@ -171,40 +153,31 @@ export function useIngredientEditor(
     const { ingredientId, newPrice, category, index } = priceHistoryModal;
     if (!ingredientId || !newPrice || Number(newPrice) <= 0) return;
     try {
-      const res = await fetch(`${API_URL}/api/ingredients/price-update`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          ingredientId,
-          restaurantId: user.restaurantId,
-          newPrice: Number(newPrice),
-        }),
+      await updateIngredientPrice({
+        ingredientId,
+        restaurantId: user.restaurantId,
+        newPrice: Number(newPrice),
+      }).unwrap();
+      // Patch just the one price. Re-seeding the whole draft from the server
+      // would discard any other rows being edited — see the note on this
+      // mutation's invalidatesTags.
+      setIngredients((prev: any) => {
+        const updated = { ...prev };
+        if (updated[category]?.[index]) {
+          updated[category][index] = {
+            ...updated[category][index],
+            pricePerUnit: Number(newPrice),
+          };
+        }
+        return updated;
       });
-      const data = await res.json();
-      if (data.success) {
-        setIngredients((prev: any) => {
-          const updated = { ...prev };
-          if (updated[category]?.[index]) {
-            updated[category][index] = {
-              ...updated[category][index],
-              pricePerUnit: Number(newPrice),
-            };
-          }
-          return updated;
-        });
-        openPriceHistory(category, index, {
-          id: ingredientId,
-          name: priceHistoryModal.ingredientName,
-        });
-      } else {
-        // An ingredient price feeds every recipe's food cost, so a price change
-        // that silently didn't take leaves margins computed on the old figure.
-        alert(data.message || "Failed to record that price change");
-      }
+      openPriceHistory(category, index, {
+        id: ingredientId,
+        name: priceHistoryModal.ingredientName,
+      });
     } catch {
+      // An ingredient price feeds every recipe's food cost, so a change that
+      // silently didn't take leaves margins computed on the old figure.
       alert("Failed to record that price change");
     }
   };
@@ -340,35 +313,13 @@ export function useIngredientEditor(
 
           const jsonData: any = sheetToJson(worksheet);
 
-          const res = await fetch(
-            `${API_URL}/api/ingredients/uploadVendorData`,
-            {
-              method: "POST",
-
-              headers: {
-                "Content-Type": "application/json",
-
-                Authorization: `Bearer ${token}`,
-              },
-
-              body: JSON.stringify({
-                restaurantId: user.restaurantId,
-
-                branchId: selectedBranch?.id,
-
-                vendors: jsonData,
-              }),
-            },
-          );
-
-          const result = await res.json();
-
-          if (result.success) {
-            alert(`Vendor upload successful (${jsonData.length} vendors)`);
-            await fetchVendors();
-          } else {
-            alert(result.message || "Vendor upload failed");
-          }
+          await uploadVendorData({
+            restaurantId: user.restaurantId,
+            branchId: selectedBranch?.id,
+            vendors: jsonData,
+          }).unwrap();
+          // The vendor list refreshes from the tag; no hand-written refetch.
+          alert(`Vendor upload successful (${jsonData.length} vendors)`);
         } catch {
           alert("Failed to process vendor file");
         } finally {
@@ -383,35 +334,13 @@ export function useIngredientEditor(
     }
   };
 
-  const fetchVendors = async () => {
-    try {
-      if (!selectedBranch?.id) {
-        return;
-      }
-
-      const res = await fetch(
-        `${API_URL}/api/ingredients/${user.restaurantId}/${selectedBranch.id}/fetchVendors`,
-        {
-          method: "GET",
-
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        },
-      );
-
-      const result = await res.json();
-
-      if (result.success) {
-        setVendors(result.data || []);
-      }
-    } catch {
-      // fetch error
-    }
-  };
-  useEffect(() => {
-    fetchVendors();
-  }, []);
+  // Was fetched in an effect with an empty dependency array, so switching
+  // branches left the previous branch's vendors on screen. The query is keyed
+  // on the branch, so it follows the selection.
+  const { data: vendors = [] } = useGetVendorsQuery(
+    { restaurantId: user?.restaurantId as number, branchId: selectedBranch?.id as number },
+    { skip: !user?.restaurantId || !selectedBranch?.id },
+  );
 
   return {
     ingredients,
@@ -425,7 +354,6 @@ export function useIngredientEditor(
     manualCategories,
     setManualCategories,
     vendors,
-    setVendors,
     priceHistoryModal,
     setPriceHistoryModal,
     handleGenerate,
@@ -439,7 +367,6 @@ export function useIngredientEditor(
     handleFieldChange,
     downloadVendorTemplate,
     handleVendorUpload,
-    vendorsRefresh: fetchVendors,
   };
 }
 

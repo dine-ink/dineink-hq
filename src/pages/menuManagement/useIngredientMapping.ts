@@ -1,5 +1,10 @@
 import { useState } from "react";
-import { useAppSelector } from "@/store";
+import { useAppDispatch, useAppSelector } from "@/store";
+import {
+  inventoryApi,
+  useSaveMenuItemMappingMutation,
+} from "@/store/api/inventoryApi";
+import { useAiSuggestIngredientsMutation } from "@/store/api/ingredientsApi";
 
 /**
  * Which ingredients go into which menu item, and what that recipe costs.
@@ -25,7 +30,11 @@ export function useIngredientMapping(
   // duplicated: one list, one owner.
   setMenuItems: (items: any[]) => void,
 ) {
-  const { user, token } = useAppSelector((s) => s.auth);
+  const { user } = useAppSelector((s) => s.auth);
+  const dispatch = useAppDispatch();
+
+  const [saveMenuItemMapping] = useSaveMenuItemMappingMutation();
+  const [aiSuggestIngredients] = useAiSuggestIngredientsMutation();
   const API_URL = import.meta.env.VITE_API_URL;
 
   const [selectedMenuItem, setSelectedMenuItem] = useState<any>(null);
@@ -67,28 +76,9 @@ export function useIngredientMapping(
         })),
       };
 
-      const res = await fetch(
-        `${API_URL}/api/inventory/save-menu-item-mapping`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify(payload),
-        },
-      );
-
-      const data = await res.json();
-
-      if (data.success) {
-        alert("Mapping saved");
-        fetchMenuItemMappings();
-      } else {
-        // `alert(undefined)` renders the string "undefined" when the server
-        // sends no message, so the fallback is not cosmetic.
-        alert(data.message || "Failed to save this recipe mapping");
-      }
+      await saveMenuItemMapping(payload).unwrap();
+      alert("Mapping saved");
+      await fetchMenuItemMappings();
     } catch {
       alert("Failed to save this recipe mapping");
     } finally {
@@ -96,28 +86,22 @@ export function useIngredientMapping(
     }
   };
 
+  /**
+   * Imperative rather than a hook query, because it is also the page's own load
+   * step and it reseeds the selection. `initiate` goes through the same cache
+   * as the mapping tag, so a save refetches once rather than twice.
+   */
   const fetchMenuItemMappings = async () => {
     try {
-      const restaurantId = user.restaurantId;
-      const res = await fetch(
-        `${API_URL}/api/inventory/${restaurantId}/get-mapped-menu`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        },
-      );
-
-      const data = await res.json();
-
-      if (data.success) {
-        setMenuItems(data.data);
-
-        if (data.data.length) {
-          setSelectedMenuItem(data.data[0]);
-
-          setIngredientMappings(data.data[0].menuItemIngredients || []);
-        }
+      const mapped = await dispatch(
+        inventoryApi.endpoints.getMappedMenu.initiate(user.restaurantId, {
+          forceRefetch: true,
+        }),
+      ).unwrap();
+      setMenuItems(mapped);
+      if (mapped.length) {
+        setSelectedMenuItem(mapped[0]);
+        setIngredientMappings(mapped[0].menuItemIngredients || []);
       }
     } catch {
       // fetch error
@@ -126,28 +110,12 @@ export function useIngredientMapping(
 
   const handleAISuggest = async () => {
     try {
-      const res = await fetch(
-        `${API_URL}/api/ingredients/ai-suggestIngredients`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            menuItemId: selectedMenuItem?.id,
-          }),
-        },
+      setIngredientMappings(
+        await aiSuggestIngredients({ menuItemId: selectedMenuItem?.id }).unwrap(),
       );
-      const data = await res.json();
-      if (data.success) {
-        setIngredientMappings(data.data);
-      } else {
-        // The AI suggestion is a slow call behind a button. With nothing shown
-        // on failure, the button simply appeared to do nothing.
-        alert(data.message || "Couldn't suggest ingredients for this item");
-      }
     } catch {
+      // The AI suggestion is a slow call behind a button. With nothing shown on
+      // failure, the button simply appeared to do nothing.
       alert("Couldn't suggest ingredients for this item");
     }
   };

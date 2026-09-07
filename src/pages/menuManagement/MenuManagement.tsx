@@ -1,10 +1,11 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useAppDispatch, useAppSelector } from "@/store";
 import { useAddOns } from "./useAddOns";
 import {
   useGetMenuManagementQuery,
   useGetDailyAuditCountQuery,
 } from "@/store/api/inventoryApi";
+import { useGetBillsQuery } from "@/store/api/billsApi";
 import {
   useAttachAddOnGroupMutation,
   useDetachAddOnGroupMutation,
@@ -227,49 +228,32 @@ export default function MenuManagement() {
   const allIngredients: any[] = Object.values(
     ingredients || {},
   ).flat() as any[];
-  const [bills, setBills] = useState<any[]>([]);
 
 
-  const fetchBills = async () => {
-    try {
-      if (!selectedBranch?.id) {
-        return;
-      }
+  /**
+   * Bounded to the current month — matches Insights.tsx's own Inventory
+   * Turnover scope (also hardcoded to the current month, not the global
+   * date-range picker). Before that bound existed this pulled every
+   * non-cancelled bill ever placed at the branch, so the turnover figure grew
+   * with restaurant age instead of being comparable.
+   */
+  const monthRange = (() => {
+    const now = new Date();
+    const y = now.getFullYear();
+    const m = String(now.getMonth() + 1).padStart(2, "0");
+    const lastDay = new Date(y, now.getMonth() + 1, 0).getDate();
+    return { from: `${y}-${m}-01`, to: `${y}-${m}-${String(lastDay).padStart(2, "0")}` };
+  })();
 
-      // Bounded to the current month — matches Insights.tsx's own Inventory
-      // Turnover scope (also hardcoded to the current month, not the global
-      // date-range picker). Previously this fetch had no from/to at all, so
-      // it pulled every non-cancelled bill ever placed at the branch, making
-      // this page's Inventory Turnover figure grow unboundedly with
-      // restaurant age instead of being a comparable, period-scoped number
-      // like Insights.tsx's.
-      const now = new Date();
-      const monthStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
-      const lastDay = new Date(
-        now.getFullYear(),
-        now.getMonth() + 1,
-        0,
-      ).getDate();
-      const monthEnd = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
-
-      const res = await fetch(
-        `${API_URL}/api/bills/${user.restaurantId}/restaurantwise?branchId=${selectedBranch.id}&from=${monthStart}&to=${monthEnd}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        },
-      );
-
-      const data = await res.json();
-
-      if (data.success) {
-        setBills(data.bills || []);
-      }
-    } catch {
-      // fetch error
-    }
-  };
+  const { data: bills = [] } = useGetBillsQuery(
+    {
+      restaurantId: user?.restaurantId as number,
+      branchId: selectedBranch?.id,
+      from: monthRange.from,
+      to: monthRange.to,
+    },
+    { skip: !user?.restaurantId || !selectedBranch?.id },
+  );
 
 
 
@@ -968,10 +952,37 @@ export default function MenuManagement() {
     { skip: !user?.restaurantId || !selectedBranch?.id },
   );
 
+  /**
+   * Two kinds of assignment, and they cannot share an effect.
+   *
+   * `menuItems` and `categories` are read-only mirrors of the payload, so they
+   * are safe to overwrite whenever it refreshes.
+   *
+   * The ingredient rows are not: they are an editable draft, and the Item
+   * Mapping selection is a choice someone made. Both used to be re-seeded here
+   * on every payload change, which was harmless while the payload only
+   * refetched on a branch or week change. It stopped being harmless the moment
+   * menu-item writes began invalidating it — saving a menu item would have
+   * discarded half-typed ingredient rows and jumped the mapping selection back
+   * to the first item.
+   *
+   * So the draft and the selection are seeded once per branch, and the mirrors
+   * follow the cache.
+   */
+  const seededBranch = useRef<number | null>(null);
+
   useEffect(() => {
     if (!menuManagement) return;
-
     setMenuItems(menuManagement.menuItems || []);
+    setCategories(menuManagement.categories || []);
+  }, [menuManagement]);
+
+  useEffect(() => {
+    if (!menuManagement) return;
+    const branchId = selectedBranch?.id ?? null;
+    if (seededBranch.current === branchId) return;
+    seededBranch.current = branchId;
+
     if (menuManagement.menuItems?.length) {
       setSelectedMenuItem(menuManagement.menuItems[0]);
     }
@@ -997,8 +1008,7 @@ export default function MenuManagement() {
       {},
     );
     setIngredients(groupedIngredients);
-    setCategories(menuManagement.categories || []);
-  }, [menuManagement]);
+  }, [menuManagement, selectedBranch?.id]);
 
   // Week-dependent only. No request: the sheets are already in the payload
   // above, and this reshapes the chosen week's rows for the Restock tab.
@@ -1064,11 +1074,10 @@ export default function MenuManagement() {
     setRestockHistory(currentMonthRestock?.data || {});
   }, [menuManagement, selectedWeek]);
 
-  // Both were called from the effect above purely because they sat in it; they
-  // never depended on the week.
+  // Bills are a query now; only the mapping load is still imperative, because
+  // it also reseeds the Item Mapping selection.
   useEffect(() => {
     fetchMenuItemMappings();
-    fetchBills();
   }, [selectedBranch?.id]);
 
 

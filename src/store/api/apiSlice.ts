@@ -54,6 +54,10 @@ export const api = createApi({
     "Sop",
     "MenuItem",
     "IngredientMapping",
+    "IngredientPrice",
+    "Vendor",
+    "Bills",
+    "MenuEngineering",
   ],
   endpoints: () => ({}),
 });
