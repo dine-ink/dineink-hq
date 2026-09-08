@@ -38,7 +38,7 @@ const variantConfig: Record<AlertVariant, { bg: string; text: string; icon: type
 const DISMISS_MS: Record<AlertVariant, number> = {
   success: 4000,
   info: 4000,
-  warning: 6000,
+  warning: 8000, // setup validation names rows and fields; three sentences need the extra time
   danger: 9000,
 };
 
@@ -114,7 +114,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   return (
     <ToastContext.Provider value={value}>
       {children}
-      <div className="pointer-events-none fixed bottom-4 right-4 z-50 flex w-full max-w-sm flex-col gap-2">
+      <div className="pointer-events-none fixed bottom-4 right-4 z-[70] flex w-full max-w-sm flex-col gap-2">
         {toasts.map((t) => {
           const c = variantConfig[t.variant];
           const Icon = c.icon;
