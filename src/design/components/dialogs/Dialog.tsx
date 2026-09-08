@@ -48,15 +48,17 @@ export function Dialog({ open, onClose, title, children, footer, size = "md" }: 
             leaveFrom="opacity-100 scale-100"
             leaveTo="opacity-0 scale-95"
           >
-            <DialogPanel className={`w-full ${sizeClasses[size]} overflow-hidden rounded-dialog bg-white shadow-dialog`}>
+            {/* Bounded to the viewport with the body scrolling, so a tall form is never
+                clipped behind a fixed overlay that cannot scroll. Header and footer stay put. */}
+            <DialogPanel className={`flex max-h-[90vh] w-full flex-col ${sizeClasses[size]} overflow-hidden rounded-dialog bg-white shadow-dialog`}>
               {title && (
-                <div className="flex items-center justify-between border-b border-surface-border px-5 py-4">
+                <div className="flex shrink-0 items-center justify-between border-b border-surface-border px-5 py-4">
                   <DialogTitle className="text-[16px] font-bold text-gray-900">{title}</DialogTitle>
                   <IconButton icon={<XMarkIcon className="h-4 w-4" />} aria-label="Close dialog" onClick={onClose} variant="ghost" />
                 </div>
               )}
-              <div className="px-5 py-4">{children}</div>
-              {footer && <div className="flex items-center justify-end gap-2 border-t border-surface-border px-5 py-3">{footer}</div>}
+              <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">{children}</div>
+              {footer && <div className="flex shrink-0 items-center justify-end gap-2 border-t border-surface-border px-5 py-3">{footer}</div>}
             </DialogPanel>
           </TransitionChild>
         </div>

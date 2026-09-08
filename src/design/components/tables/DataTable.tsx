@@ -1,4 +1,6 @@
 import type { ReactNode } from "react";
+import { Pagination } from "./Pagination";
+import { usePagination } from "@/design/hooks/usePagination";
 import { Table, TableHead, Th, TableBody, TableRow, Td, TableContainer } from "./Table";
 import { LoadingSkeleton } from "@/design/components/feedback/LoadingSkeleton";
 import { EmptyState, ErrorState } from "@/design/components/feedback/EmptyState";
@@ -22,6 +24,10 @@ export interface DataTableProps<T> {
   emptyDescription?: string;
   onRowClick?: (row: T) => void;
   selectedRowKey?: string | number;
+  /** Page the rows client-side, starting at this many per page, with a rows-per-page selector. Omit to show every row. */
+  pageSize?: number;
+  /** Noun for the footer summary, e.g. "transactions". */
+  rowNoun?: string;
 }
 
 // A generic, column-driven table for straightforward tabular data — built
@@ -41,7 +47,14 @@ export function DataTable<T>({
   emptyDescription,
   onRowClick,
   selectedRowKey,
+  pageSize,
+  rowNoun = "rows",
 }: DataTableProps<T>) {
+  // Called unconditionally (hooks), sized to the whole list when not paging.
+  const paging = pageSize !== undefined;
+  const pager = usePagination(rows, paging ? pageSize : Number.MAX_SAFE_INTEGER);
+  const visibleRows = paging ? pager.pageRows : rows;
+
   if (loading) {
     return (
       <div className="p-4">
@@ -59,6 +72,7 @@ export function DataTable<T>({
   }
 
   return (
+    <>
     <TableContainer>
       <Table>
         <TableHead>
@@ -69,7 +83,7 @@ export function DataTable<T>({
           ))}
         </TableHead>
         <TableBody>
-          {rows.map((row) => {
+          {visibleRows.map((row) => {
             const key = rowKey(row);
             return (
               <TableRow
@@ -89,6 +103,17 @@ export function DataTable<T>({
         </TableBody>
       </Table>
     </TableContainer>
+    {paging && (
+      <Pagination
+        page={pager.page}
+        totalPages={pager.totalPages}
+        onPageChange={pager.setPage}
+        pageSize={pager.pageSize}
+        onPageSizeChange={pager.setPageSize}
+        range={{ from: pager.from, to: pager.to, total: pager.total, noun: rowNoun }}
+      />
+    )}
+    </>
   );
 }
 
