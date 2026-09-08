@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
-import { useAppSelector } from "../../store";
-import { Alert, EmptyState, LoadingOverlay, MetricCard, type MetricStatus } from "../../design";
+import { useAppSelector } from "@/store";
+import { useGetDuesEbitdaSummaryQuery } from "@/store/api/duesApi";
+import { Alert, EmptyState, LoadingOverlay, MetricCard, type MetricStatus } from "@/design";
 import { formatCurrency, titleCaseFromKey } from "./duesShared";
 
 interface EbitdaTabProps {
@@ -38,35 +38,30 @@ const statusForValue = (key: string, value: number): MetricStatus => {
 };
 
 export default function EbitdaTab({ month, year }: EbitdaTabProps) {
-  const API_URL = import.meta.env.VITE_API_URL;
-  const { user, token } = useAppSelector((s) => s.auth);
+  const { user } = useAppSelector((s) => s.auth);
   const { selectedBranch } = useAppSelector((s) => s.branch);
 
-  const [data, setData] = useState<Record<string, any> | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(false);
 
-  useEffect(() => {
-    const run = async () => {
-      if (!user?.restaurantId || !selectedBranch?.id) return;
-      setLoading(true);
-      setError(false);
-      try {
-        const res = await fetch(
-          `${API_URL}/api/dues/${user.restaurantId}/${selectedBranch.id}/ebitda-summary?month=${month}&year=${year}`,
-          { headers: { Authorization: `Bearer ${token}` } },
-        );
-        const json = await res.json();
-        if (json.success) setData(json.data && typeof json.data === "object" ? json.data : {});
-        else setError(true);
-      } catch {
-        setError(true);
-      } finally {
-        setLoading(false);
-      }
-    };
-    run();
-  }, [user?.restaurantId, selectedBranch?.id, month, year]);
+  // Carries the same scope tag as the dues list, so recording a payment
+  // refreshes this summary too. It used to keep the pre-payment figures
+  // until the month was changed and changed back.
+  const {
+    data: fetched,
+    isFetching: loading,
+    isError: error,
+  } = useGetDuesEbitdaSummaryQuery(
+    {
+      restaurantId: user?.restaurantId as number,
+      branchId: selectedBranch?.id as number,
+      month,
+      year,
+    },
+    { skip: !user?.restaurantId || !selectedBranch?.id },
+  );
+  // The page distinguishes "loaded but empty" from "not loaded", so a
+  // non-object payload collapses to {} rather than null, as before.
+  const data: Record<string, any> | null =
+    fetched === undefined ? null : fetched && typeof fetched === "object" ? fetched : {};
 
   if (loading) {
     return <LoadingOverlay label="Loading EBITDA summary..." />;

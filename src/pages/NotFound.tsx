@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { HomeIcon } from "@heroicons/react/24/outline";
-import Logo from "../components/common/Logo";
+import Logo from "@/components/common/Logo";
 
 export default function NotFound() {
   return (

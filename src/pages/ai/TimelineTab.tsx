@@ -1,38 +1,37 @@
-import { useEffect, useState } from "react";
-import { useAppSelector } from "../../store";
-import { TrendChart } from "../executive/ExecutiveCharts";
+import { useAppSelector } from "@/store";
+import { useGetExecutiveTimelineQuery } from "@/store/api/executiveApi";
+import { useGetAiInsightTimelineQuery } from "@/store/api/aiApi";
+import { TrendChart } from "@/pages/executive/ExecutiveCharts";
 import { CATEGORY_BADGE_STYLES, CATEGORY_LABELS, SEVERITY_STYLES } from "./aiCategories";
 
 export default function TimelineTab() {
   const { selectedBranch } = useAppSelector((s) => s.branch);
-  const { user, token } = useAppSelector((s) => s.auth);
-  const API_URL = import.meta.env.VITE_API_URL;
+  const { user } = useAppSelector((s) => s.auth);
 
-  const [logs, setLogs] = useState<any[]>([]);
-  const [trendPoints, setTrendPoints] = useState<any[]>([]);
-  const [loading, setLoading] = useState(false);
+  // Two sources, two slices: the trend series belongs to the executive module,
+  // the insight log to the AI one. That split used to be half-done — the
+  // comment here said the log "moves when that module does", and it now has.
+  const { data: timeline, isFetching: timelineLoading } = useGetExecutiveTimelineQuery(
+    {
+      restaurantId: user?.restaurantId as number,
+      branchId: selectedBranch?.id ?? null,
+      granularity: "monthly",
+    },
+    { skip: !user?.restaurantId },
+  );
+  const trendPoints = timeline?.points ?? [];
 
-  useEffect(() => {
-    const run = async () => {
-      if (!user?.restaurantId) return;
-      setLoading(true);
-      try {
-        const branchParam = selectedBranch?.id ? `&branchId=${selectedBranch.id}` : "";
-        const [logsRes, timelineRes] = await Promise.all([
-          fetch(`${API_URL}/api/ai/${user.restaurantId}/insight-timeline?limit=50${branchParam}`, { headers: { Authorization: `Bearer ${token}` } }),
-          fetch(`${API_URL}/api/executive/${user.restaurantId}/timeline?granularity=monthly${branchParam}`, { headers: { Authorization: `Bearer ${token}` } }),
-        ]);
-        const [logsJson, timelineJson] = await Promise.all([logsRes.json(), timelineRes.json()]);
-        if (logsJson.success) setLogs(logsJson.data);
-        if (timelineJson.success) setTrendPoints(timelineJson.data.points || []);
-      } catch {
-        // fetch error — silently ignored
-      } finally {
-        setLoading(false);
-      }
-    };
-    run();
-  }, [user?.restaurantId, selectedBranch?.id]);
+  // On failure the list is empty and the trend chart above is unaffected, which
+  // is what the old catch arranged by hand.
+  const { data: logs = [], isFetching: logsLoading } = useGetAiInsightTimelineQuery(
+    {
+      restaurantId: user?.restaurantId as number,
+      branchId: selectedBranch?.id,
+      limit: 50,
+    },
+    { skip: !user?.restaurantId },
+  );
+  const loading = logsLoading || timelineLoading;
 
   return (
     <div className="space-y-4">

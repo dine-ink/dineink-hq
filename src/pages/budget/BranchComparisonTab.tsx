@@ -1,7 +1,8 @@
-import { useEffect, useState } from "react";
-import { useAppSelector } from "../../store";
+import { useMemo, useState } from "react";
+import { useAppSelector } from "@/store";
+import { useGetBudgetsQuery, useGetBudgetVarianceBatchQuery } from "@/store/api/budgetsApi";
 import { fmtCategoryValue } from "./budgetCategories";
-import MobileTableCards from "../../components/common/MobileTableCards";
+import MobileTableCards from "@/components/common/MobileTableCards";
 import { TrophyIcon } from "@heroicons/react/24/outline";
 
 // Reuses the existing per-budget variance endpoint (no new backend
@@ -17,59 +18,42 @@ const PERIODS = [
 ];
 
 export default function BranchComparisonTab() {
-  const { user, token } = useAppSelector((s) => s.auth);
-  const API_URL = import.meta.env.VITE_API_URL;
+  const { user } = useAppSelector((s) => s.auth);
+  const restaurantId = user?.restaurantId as number;
 
   const [period, setPeriod] = useState("currentMonth");
-  const [rows, setRows] = useState<any[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [hasBranchBudgets, setHasBranchBudgets] = useState(true);
 
-  useEffect(() => {
-    const fetchComparison = async () => {
-      if (!user?.restaurantId) return;
-      setLoading(true);
-      try {
-        const listRes = await fetch(`${API_URL}/api/budgets/${user.restaurantId}?status=PUBLISHED`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        const listJson = await listRes.json();
-        const branchBudgets = (listJson.data || []).filter((b: any) => b.branchId !== null);
-        setHasBranchBudgets(branchBudgets.length > 0);
-        if (branchBudgets.length === 0) {
-          setRows([]);
-          return;
-        }
+  const { data: budgets = [] } = useGetBudgetsQuery(
+    { restaurantId, status: "PUBLISHED" },
+    { skip: !user?.restaurantId },
+  );
+  const branchBudgets = budgets.filter((b) => b.branchId !== null);
+  const hasBranchBudgets = branchBudgets.length > 0;
 
-        const varianceResults = await Promise.all(
-          branchBudgets.map(async (b: any) => {
-            const res = await fetch(
-              `${API_URL}/api/budgets/${user.restaurantId}/${b.id}/variance?period=${period}`,
-              { headers: { Authorization: `Bearer ${token}` } },
-            );
-            const json = await res.json();
-            const byCategory = Object.fromEntries((json.data?.rows || []).map((r: any) => [r.category, r]));
-            return { budget: b, byCategory };
-          }),
-        );
+  // One cache entry for the whole set — a hook cannot be called per budget.
+  const { data: varianceByBudget = {}, isFetching: loading } = useGetBudgetVarianceBatchQuery(
+    { restaurantId, budgetIds: branchBudgets.map((b) => b.id), period },
+    { skip: !user?.restaurantId || branchBudgets.length === 0 },
+  );
 
-        const withRank = varianceResults.map(({ budget, byCategory }) => {
-          const achievements = RANK_CATEGORIES.map((c) => byCategory[c]?.achievementPercentage).filter(
-            (v) => v !== null && v !== undefined,
-          );
-          const avgAchievement = achievements.length > 0 ? achievements.reduce((s, v) => s + v, 0) / achievements.length : null;
-          return { budget, byCategory, avgAchievement };
-        });
-        withRank.sort((a, b) => (b.avgAchievement ?? -Infinity) - (a.avgAchievement ?? -Infinity));
-        setRows(withRank);
-      } catch {
-        // fetch error — silently ignored
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchComparison();
-  }, [user?.restaurantId, period]);
+  // Ranking is presentation, so it stays here rather than in the endpoint.
+  const rows = useMemo(() => {
+    const withRank = branchBudgets.map((budget) => {
+      const byCategory = Object.fromEntries(
+        (varianceByBudget[budget.id]?.rows ?? []).map((r) => [r.category, r]),
+      );
+      const achievements = RANK_CATEGORIES.map(
+        (c) => byCategory[c]?.achievementPercentage as number | undefined,
+      ).filter((v): v is number => v !== null && v !== undefined);
+      const avgAchievement =
+        achievements.length > 0 ? achievements.reduce((sum, v) => sum + v, 0) / achievements.length : null;
+      return { budget, byCategory, avgAchievement };
+    });
+    return [...withRank].sort((a, b) => (b.avgAchievement ?? -Infinity) - (a.avgAchievement ?? -Infinity));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [varianceByBudget, budgets]);
+
+
 
   const rankBadge = (index: number) => {
     if (index === 0) return "bg-amber-100 text-amber-700";
@@ -88,7 +72,7 @@ export default function BranchComparisonTab() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h3 className="text-[16px] font-bold text-gray-900">Branch Budget vs Actual Comparison</h3>
         <div className="flex items-center gap-1 rounded-xl bg-gray-100 p-1">
           {PERIODS.map((p) => (

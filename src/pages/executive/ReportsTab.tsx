@@ -4,9 +4,11 @@ import autoTable from "jspdf-autotable";
 import ExcelJS from "exceljs";
 import { saveAs } from "file-saver";
 import { ArrowDownTrayIcon, PrinterIcon } from "@heroicons/react/24/outline";
-import { useAppSelector } from "../../store";
+import { useAppDispatch, useAppSelector } from "@/store";
+import { errorMessage } from "@/utils/apiRequest";
+import { executiveApi } from "@/store/api/executiveApi";
 import { fmtCategoryValue, PERIOD_OPTIONS } from "./executiveCategories";
-import MobileTableCards from "../../components/common/MobileTableCards";
+import MobileTableCards from "@/components/common/MobileTableCards";
 
 const REPORT_TYPES = [
   { key: "summary", label: "Executive Summary Report" },
@@ -20,12 +22,14 @@ const REPORT_TYPES = [
 
 export default function ReportsTab() {
   const { selectedBranch } = useAppSelector((s) => s.branch);
-  const { user, token } = useAppSelector((s) => s.auth);
-  const API_URL = import.meta.env.VITE_API_URL;
+  const { user } = useAppSelector((s) => s.auth);
+  const dispatch = useAppDispatch();
+  const restaurantId = user?.restaurantId as number;
 
   const [reportType, setReportType] = useState("summary");
   const [period, setPeriod] = useState("currentMonth");
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
   const [columns, setColumns] = useState<string[]>([]);
   const [rows, setRows] = useState<any[]>([]);
 
@@ -33,58 +37,59 @@ export default function ReportsTab() {
     const run = async () => {
       if (!user?.restaurantId) return;
       setLoading(true);
+      setError("");
       try {
-        const branchParam = selectedBranch?.id ? `&branchId=${selectedBranch.id}` : "";
+        // Through the executive endpoints so this report reuses whatever the
+        // dashboard tabs have already computed for the same scope and period.
+        const scope = { restaurantId, branchId: selectedBranch?.id ?? null, period };
+        const run = <T,>(endpoint: any, args: unknown): Promise<T> =>
+          dispatch(endpoint.initiate(args)).unwrap();
         if (reportType === "summary" || reportType === "ceo") {
-          const res = await fetch(`${API_URL}/api/executive/${user.restaurantId}/overview?period=${period}${branchParam}`, { headers: { Authorization: `Bearer ${token}` } });
-          const json = await res.json();
+          const json = { data: await run<any>(executiveApi.endpoints.getExecutiveOverview, scope) };
           setColumns(["Current", "Target", "Previous Period", "Achievement %", "Status"]);
           setRows((json.data?.kpis || []).map((k: any) => ({
             label: k.label, unit: k.unit,
             values: [fmtCategoryValue(k.current, k.unit), k.target != null ? fmtCategoryValue(k.target, k.unit) : "—", k.previousPeriod != null ? fmtCategoryValue(k.previousPeriod, k.unit) : "—", k.achievementPercentage != null ? `${k.achievementPercentage.toFixed(0)}%` : "—", k.status],
           })));
           if (reportType === "ceo") {
-            const healthRes = await fetch(`${API_URL}/api/executive/${user.restaurantId}/health-score?period=${period}${branchParam}`, { headers: { Authorization: `Bearer ${token}` } });
-            const healthJson = await healthRes.json();
+            const healthJson = { data: await run<any>(executiveApi.endpoints.getHealthScore, scope) };
             setRows((prev) => [
               { label: "Business Health Score", unit: "count", values: [String(healthJson.data?.overall ?? "—"), "—", "—", "—", healthJson.data?.status ?? "—"] },
               ...prev,
             ]);
           }
         } else if (reportType === "branch") {
-          const res = await fetch(`${API_URL}/api/executive/${user.restaurantId}/multi-branch?period=${period}`, { headers: { Authorization: `Bearer ${token}` } });
-          const json = await res.json();
+          const json = { data: await run<any>(executiveApi.endpoints.getMultiBranch, { restaurantId, period }) };
           setColumns(["Revenue", "Profit", "EBITDA", "Food Cost %", "Labour %", "ROI", "Health Score"]);
           setRows((json.data?.branches || []).map((b: any) => ({
             label: b.branch.name, unit: "currency",
             values: [fmtCategoryValue(b.revenue, "currency"), fmtCategoryValue(b.netProfit, "currency"), fmtCategoryValue(b.ebitda, "currency"), b.foodCostPercentage != null ? `${b.foodCostPercentage.toFixed(1)}%` : "—", b.labourCostPercentage != null ? `${b.labourCostPercentage.toFixed(1)}%` : "—", b.roi != null ? `${b.roi.toFixed(1)}%` : "—", String(b.healthScore)],
           })));
         } else if (reportType === "scorecard") {
-          const res = await fetch(`${API_URL}/api/executive/${user.restaurantId}/scorecards?period=${period}${branchParam}`, { headers: { Authorization: `Bearer ${token}` } });
-          const json = await res.json();
+          const json = { data: await run<any>(executiveApi.endpoints.getScorecards, scope) };
           setColumns(["Current", "Target", "Budget", "Forecast", "Achievement %", "Status"]);
           setRows((json.data || []).map((r: any) => ({
             label: r.label, unit: r.unit,
             values: [fmtCategoryValue(r.current, r.unit), r.target != null ? fmtCategoryValue(r.target, r.unit) : "—", r.budget != null ? fmtCategoryValue(r.budget, r.unit) : "—", r.forecast != null ? fmtCategoryValue(r.forecast, r.unit) : "—", r.achievementPercentage != null ? `${r.achievementPercentage.toFixed(0)}%` : "—", r.status],
           })));
         } else if (reportType === "trend") {
-          const res = await fetch(`${API_URL}/api/executive/${user.restaurantId}/timeline?granularity=monthly${branchParam}`, { headers: { Authorization: `Bearer ${token}` } });
-          const json = await res.json();
+          const json = { data: await run<any>(executiveApi.endpoints.getExecutiveTimeline, { restaurantId, branchId: selectedBranch?.id ?? null, granularity: "monthly" }) };
           setColumns(["Revenue", "Net Profit", "EBITDA"]);
           setRows((json.data?.points || []).map((p: any) => ({ label: p.label, unit: "currency", values: [fmtCategoryValue(p.revenue, "currency"), fmtCategoryValue(p.netProfit, "currency"), fmtCategoryValue(p.ebitda, "currency")] })));
         } else if (reportType === "health") {
-          const res = await fetch(`${API_URL}/api/executive/${user.restaurantId}/health-score?period=${period}${branchParam}`, { headers: { Authorization: `Bearer ${token}` } });
-          const json = await res.json();
+          const json = { data: await run<any>(executiveApi.endpoints.getHealthScore, scope) };
           setColumns(["Score", "Weight", "Contribution", "Status"]);
           setRows((json.data?.categories || []).map((c: any) => ({ label: c.label, unit: "count", values: [c.clampedScore != null ? c.clampedScore.toFixed(0) : "—", `${(c.weight * 100).toFixed(0)}%`, c.contribution.toFixed(1), c.status] })));
         } else if (reportType === "risk") {
-          const res = await fetch(`${API_URL}/api/executive/${user.restaurantId}/alerts?period=${period}${branchParam}`, { headers: { Authorization: `Bearer ${token}` } });
-          const json = await res.json();
+          const json = { data: await run<any>(executiveApi.endpoints.getExecutiveAlerts, scope) };
           setColumns(["Severity", "Impact", "Recommended Action"]);
           setRows((json.data || []).map((a: any) => ({ label: a.message, unit: "count", values: [a.severity, a.impact, a.recommendedAction] })));
         }
-      } catch {
-        // fetch error — silently ignored
+      } catch (err) {
+        // Previously silent: a failed report left the previous table on screen,
+        // so it read as current data for a report that never loaded.
+        setError(errorMessage(err, "Couldn't build this report"));
+        setRows([]);
       } finally {
         setLoading(false);
       }
@@ -127,6 +132,12 @@ export default function ReportsTab() {
 
   return (
     <div className="space-y-4">
+      {error && (
+        <p role="alert" className="rounded-xl bg-red-50 px-3 py-2 text-[12px] font-bold text-red-600 print:hidden">
+          {error}
+        </p>
+      )}
+
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between print:hidden">
         <div className="flex flex-wrap items-center gap-2">
           <select value={reportType} onChange={(e) => setReportType(e.target.value)} className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-[12px] font-semibold text-gray-700 outline-none">

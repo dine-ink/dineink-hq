@@ -1,32 +1,16 @@
-import { useEffect, useState } from "react";
-import { useAppSelector } from "../../store";
+import { useAppSelector } from "@/store";
+import { useGetInvestmentBranchRankingQuery } from "@/store/api/investmentApi";
 import { fmtCategoryValue } from "./investmentCategories";
-import MobileTableCards from "../../components/common/MobileTableCards";
+import MobileTableCards from "@/components/common/MobileTableCards";
 import { TrophyIcon } from "@heroicons/react/24/outline";
 
 export default function BranchComparisonTab() {
-  const { user, token } = useAppSelector((s) => s.auth);
-  const API_URL = import.meta.env.VITE_API_URL;
+  const { user } = useAppSelector((s) => s.auth);
 
-  const [rows, setRows] = useState<any[]>([]);
-  const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    const fetchRanking = async () => {
-      if (!user?.restaurantId) return;
-      setLoading(true);
-      try {
-        const res = await fetch(`${API_URL}/api/investments/${user.restaurantId}/branch-ranking`, { headers: { Authorization: `Bearer ${token}` } });
-        const json = await res.json();
-        if (json.success) setRows(json.data);
-      } catch {
-        // fetch error — silently ignored
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchRanking();
-  }, [user?.restaurantId]);
+  const { data: rows = [], isFetching: loading } = useGetInvestmentBranchRankingQuery(
+    user?.restaurantId as number,
+    { skip: !user?.restaurantId },
+  );
 
   const rankBadge = (index: number) => {
     if (index === 0) return "bg-amber-100 text-amber-700";

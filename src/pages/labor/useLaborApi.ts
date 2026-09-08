@@ -1,18 +1,23 @@
-// Shared fetch plumbing for the Labor & Capacity tabs.
+// Shared plumbing for the Labor & Capacity tabs.
 //
-// Factored out because all six tabs hit the same /api/labor namespace with the
-// same auth header, the same {success, data} envelope and the same
-// restaurant/branch scoping — inlining that in each tab (the pattern most older
-// pages use) would repeat the token/branch/error handling six times and let the
-// tabs drift apart in how they treat a failed request.
+// This was hand-rolled before RTK Query reached this module, and it had grown
+// most of the same pieces: an unwrapped {success, data} envelope, a scope
+// guard, and a `latest` ref so a slow earlier request could not overwrite a
+// newer one's result. All three are things the query cache does natively.
+//
+// The interface is unchanged — `useLaborScope().request` for writes,
+// `useLaborQuery(path)` for reads — so the six tabs did not have to move. Only
+// what sits underneath did. What they gain is the cache: six tabs share one
+// /api/labor namespace, and switching between them used to refetch every time.
 
-import { useCallback, useEffect, useRef, useState } from "react";
-import { useAppSelector } from "../../store";
+import { useCallback } from "react";
+import { useAppDispatch, useAppSelector } from "@/store";
+import { operationsApi } from "@/store/api/operationsApi";
 
 export const useLaborScope = () => {
   const { selectedBranch } = useAppSelector((s) => s.branch);
-  const { user, token } = useAppSelector((s) => s.auth);
-  const API_URL = import.meta.env.VITE_API_URL;
+  const { user } = useAppSelector((s) => s.auth);
+  const dispatch = useAppDispatch();
 
   const restaurantId = user?.restaurantId ?? null;
   const branchId = selectedBranch?.id ?? null;
@@ -21,24 +26,37 @@ export const useLaborScope = () => {
    * One request against /api/labor. Returns the unwrapped `data` payload, or
    * throws with the server's own message so callers can surface the real reason
    * (a 400 from labor.validation.ts is far more useful than "request failed").
+   *
+   * The message survives the move: RTK Query puts the parsed response body on
+   * `error.data`, so a rejected mutation still carries what the validator said.
    */
   const request = useCallback(
     async (path: string, init?: RequestInit) => {
-      const res = await fetch(`${API_URL}/api/labor${path}`, {
-        ...init,
-        headers: {
-          Authorization: `Bearer ${token}`,
-          ...(init?.body ? { "Content-Type": "application/json" } : {}),
-          ...(init?.headers || {}),
-        },
-      });
-      const json = await res.json().catch(() => null);
-      if (!res.ok || !json?.success) {
-        throw new Error(json?.message || `Request failed (${res.status})`);
+      const method = (init?.method || "GET").toUpperCase();
+      const body = init?.body ? JSON.parse(init.body as string) : undefined;
+
+      try {
+        if (method === "GET") {
+          return await dispatch(
+            operationsApi.endpoints.getLabor.initiate({ path }, { forceRefetch: true }),
+          ).unwrap();
+        }
+        return await dispatch(
+          operationsApi.endpoints.writeLabor.initiate({
+            path,
+            method: method as "POST" | "PUT" | "DELETE",
+            body,
+          }),
+        ).unwrap();
+      } catch (error: any) {
+        const message =
+          error?.data?.message ||
+          error?.message ||
+          `Request failed${error?.status ? ` (${error.status})` : ""}`;
+        throw new Error(message);
       }
-      return json.data;
     },
-    [API_URL, token],
+    [dispatch],
   );
 
   return { restaurantId, branchId, branchName: selectedBranch?.name ?? null, request };
@@ -55,36 +73,20 @@ interface FetchState<T> {
  * tab needs (no restaurant or no branch selected → don't fire, don't error).
  *
  * `path` is expected to already include the /:restaurantId/:branchId prefix;
- * pass null to hold the request (e.g. while a dependency is still loading).
+ * pass null to hold the request (e.g. while a dependency is still loading) —
+ * which is now a `skip` rather than an early return.
  */
 export function useLaborQuery<T>(path: string | null): FetchState<T> & { reload: () => void } {
-  const { request } = useLaborScope();
-  const [state, setState] = useState<FetchState<T>>({ data: null, loading: false, error: null });
-  const [nonce, setNonce] = useState(0);
+  const query = operationsApi.useGetLaborQuery({ path: path as string }, { skip: !path });
 
-  // Guards against a slow earlier request overwriting a newer one's result when
-  // the user changes window/branch quickly.
-  const latest = useRef(0);
-
-  useEffect(() => {
-    if (!path) {
-      setState({ data: null, loading: false, error: null });
-      return;
-    }
-    const requestId = ++latest.current;
-    setState((s) => ({ ...s, loading: true, error: null }));
-    request(path)
-      .then((data) => {
-        if (latest.current !== requestId) return;
-        setState({ data, loading: false, error: null });
-      })
-      .catch((err: Error) => {
-        if (latest.current !== requestId) return;
-        setState({ data: null, loading: false, error: err.message });
-      });
-  }, [path, request, nonce]);
-
-  const reload = useCallback(() => setNonce((n) => n + 1), []);
-
-  return { ...state, reload };
+  return {
+    data: (query.data as T | undefined) ?? null,
+    loading: query.isFetching,
+    // The server's message where there is one, so a 400 from the validator
+    // still reads as itself rather than a generic failure.
+    error: query.isError
+      ? (query.error as any)?.data?.message || "Request failed"
+      : null,
+    reload: query.refetch,
+  };
 }

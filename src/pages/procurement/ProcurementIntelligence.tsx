@@ -7,8 +7,9 @@ import {
   LockClosedIcon,
   ArrowTopRightOnSquareIcon,
 } from "@heroicons/react/24/outline";
-import { useAppSelector } from "../../store";
-import MobileTableCards from "../../components/common/MobileTableCards";
+import { useAppDispatch } from "@/store";
+import { operationsApi } from "@/store/api/operationsApi";
+import MobileTableCards from "@/components/common/MobileTableCards";
 
 const API_URL = import.meta.env.VITE_API_URL;
 const EXTENSION_ID = import.meta.env.VITE_PROCUREMENT_EXTENSION_ID;
@@ -135,7 +136,7 @@ const formatCapturedAt = (iso: string) =>
 type CompareStatus = "idle" | "not_installed" | "not_logged_in" | "results";
 
 export default function ProcurementIntelligence() {
-  const { token } = useAppSelector((s) => s.auth);
+  const dispatch = useAppDispatch();
 
   const [search, setSearch] = useState("");
   const [submittedTerm, setSubmittedTerm] = useState("");
@@ -147,18 +148,18 @@ export default function ProcurementIntelligence() {
     string | null
   >(null);
 
+  /**
+   * Searched on submit, so `initiate` rather than a hook. Keyed by the term,
+   * which means re-running the same search — easy to do, since the form keeps
+   * the text — costs nothing.
+   */
   const fetchPrices = async (term: string) => {
-    if (!token) return;
-    const res = await fetch(
-      `${API_URL}/api/procurement/prices?term=${encodeURIComponent(term)}`,
-      { headers: { Authorization: `Bearer ${token}` } },
-    );
-    const body = await res.json();
-    if (body.success) {
-      setResults(body.data.results || []);
-      setCheapestSupplierCode(body.data.cheapestSupplierCode ?? null);
-      setStatus("results");
-    }
+    const body = await dispatch(
+      operationsApi.endpoints.getProcurementPrices.initiate({ term }),
+    ).unwrap();
+    setResults(body?.results || []);
+    setCheapestSupplierCode(body?.cheapestSupplierCode ?? null);
+    setStatus("results");
   };
 
   const handleSearch = async (e: React.FormEvent) => {

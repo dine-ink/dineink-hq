@@ -13,7 +13,7 @@ import {
   YAxis,
 } from "recharts";
 import { ClockIcon, CurrencyRupeeIcon, UserGroupIcon, UsersIcon } from "@heroicons/react/24/outline";
-import { Alert, MetricCard } from "../../design";
+import { Alert, MetricCard } from "@/design";
 import {
   BASIS_OPTIONS,
   CHART_CARD,
@@ -31,7 +31,7 @@ import {
   type StationConstraint,
 } from "./laborCategories";
 import { useLaborQuery, useLaborScope } from "./useLaborApi";
-import MobileTableCards from "../../components/common/MobileTableCards";
+import MobileTableCards from "@/components/common/MobileTableCards";
 
 // The manager-facing output: required vs. rostered staff, who stands where,
 // when the peak actually lands, what the binding constraint is, and what to do

@@ -1,5 +1,11 @@
-import { useEffect, useMemo, useState } from "react";
-import { useAppSelector } from "../../store";
+import { useMemo, useState } from "react";
+import { useAppSelector } from "@/store";
+import {
+  useGetEquipmentQuery,
+  useGetMaintenanceDueQuery,
+  useSaveEquipmentMutation,
+  useDeleteEquipmentMutation,
+} from "@/store/api/operationsApi";
 import {
   WrenchScrewdriverIcon,
   PlusIcon,
@@ -26,9 +32,9 @@ import {
   Alert,
   type DataTableColumn,
   type ChipStatus,
-} from "../../design";
+} from "@/design";
+import { notify } from "@/utils/notify";
 
-const API_URL = import.meta.env.VITE_API_URL;
 
 interface EmiScheduleRef {
   id: number;
@@ -139,12 +145,9 @@ function dateUrgency(value: string | null): ChipStatus | null {
 }
 
 export default function EquipmentList() {
-  const { user, token } = useAppSelector((s) => s.auth);
+  const { user } = useAppSelector((s) => s.auth);
   const { selectedBranch } = useAppSelector((s) => s.branch);
 
-  const [equipment, setEquipment] = useState<Equipment[]>([]);
-  const [maintenanceDue, setMaintenanceDue] = useState<MaintenanceDueEquipment[]>([]);
-  const [loading, setLoading] = useState(false);
 
   const [formModal, setFormModal] = useState<{ open: boolean; editing: Equipment | null }>({
     open: false,
@@ -156,46 +159,29 @@ export default function EquipmentList() {
 
   const [deleteTarget, setDeleteTarget] = useState<Equipment | null>(null);
 
-  const headers = {
-    Authorization: `Bearer ${token}`,
-    "Content-Type": "application/json",
+  /**
+   * The list and the maintenance-due subset share the Equipment tag, so a save
+   * or a delete refreshes both. They were two hand-written refetches called in
+   * sequence after every write, which the Stations tab in the Labor module also
+   * had to do — that one now benefits too, since writing an equipment-station
+   * link invalidates the same tag.
+   */
+  const scope = {
+    restaurantId: user?.restaurantId as number,
+    branchId: selectedBranch?.id as number,
   };
+  const skip = { skip: !user?.restaurantId || !selectedBranch?.id };
 
-  const fetchEquipment = async () => {
-    if (!user?.restaurantId || !selectedBranch?.id) return;
-    try {
-      setLoading(true);
-      const res = await fetch(
-        `${API_URL}/api/equipment/${user.restaurantId}/${selectedBranch.id}`,
-        { headers },
-      );
-      const json = await res.json();
-      if (json.success) setEquipment(json.data || []);
-    } catch {
-      /* silent */
-    } finally {
-      setLoading(false);
-    }
-  };
+  const { data: equipment = [], isFetching: loading } = useGetEquipmentQuery(scope, skip);
+  // Typed at the point of use; the slice types its payloads `any[]`.
+  const { data: maintenanceDueData = [] } = useGetMaintenanceDueQuery(
+    { ...scope, withinDays: 30 },
+    skip,
+  );
+  const maintenanceDue = maintenanceDueData as MaintenanceDueEquipment[];
 
-  const fetchMaintenanceDue = async () => {
-    if (!user?.restaurantId || !selectedBranch?.id) return;
-    try {
-      const res = await fetch(
-        `${API_URL}/api/equipment/${user.restaurantId}/${selectedBranch.id}/maintenance-due?withinDays=30`,
-        { headers },
-      );
-      const json = await res.json();
-      if (json.success) setMaintenanceDue(json.data || []);
-    } catch {
-      /* silent */
-    }
-  };
-
-  useEffect(() => {
-    fetchEquipment();
-    fetchMaintenanceDue();
-  }, [user?.restaurantId, selectedBranch?.id]);
+  const [saveEquipment] = useSaveEquipmentMutation();
+  const [deleteEquipment] = useDeleteEquipmentMutation();
 
   const overdueItems = maintenanceDue.filter((e) => e.isOverdue);
   const warrantyExpiringCount = useMemo(
@@ -270,19 +256,8 @@ export default function EquipmentList() {
     setFormError("");
     setSaving(true);
     try {
-      const url = formModal.editing
-        ? `${API_URL}/api/equipment/${formModal.editing.id}`
-        : `${API_URL}/api/equipment`;
-      const method = formModal.editing ? "PUT" : "POST";
-      const res = await fetch(url, { method, headers, body: JSON.stringify(body) });
-      const json = await res.json();
-      if (json.success) {
-        closeFormModal();
-        fetchEquipment();
-        fetchMaintenanceDue();
-      } else {
-        setFormError(json.message || "Failed to save equipment");
-      }
+      await saveEquipment({ id: formModal.editing?.id, body }).unwrap();
+      closeFormModal();
     } catch {
       setFormError("Failed to save equipment");
     } finally {
@@ -294,11 +269,14 @@ export default function EquipmentList() {
     if (!deleteTarget) return;
     const id = deleteTarget.id;
     try {
-      await fetch(`${API_URL}/api/equipment/${id}`, { method: "DELETE", headers });
-      setEquipment((prev) => prev.filter((e) => e.id !== id));
-      setMaintenanceDue((prev) => prev.filter((e) => e.id !== id));
+      // Rows disappear only once the server has confirmed. The original never
+      // read the response and filtered unconditionally, so a failed delete
+      // removed the item from the screen while it still existed in the
+      // database — and it reappeared on the next load. `.unwrap()` keeps that
+      // fixed, and the tag replaces the two manual filters.
+      await deleteEquipment(id).unwrap();
     } catch {
-      /* silent */
+      notify("Failed to delete this equipment item");
     } finally {
       setDeleteTarget(null);
     }

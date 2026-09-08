@@ -1,0 +1,156 @@
+import {
+  MdRestaurant,
+  MdLocalCafe,
+  MdLocalBar,
+  MdWineBar,
+  MdBakeryDining,
+  MdLocalPizza,
+  MdFastfood,
+  MdCoffee,
+  MdCake,
+  MdIcecream,
+  MdRiceBowl,
+  MdDinnerDining,
+  MdRamenDining,
+  MdSoupKitchen,
+  MdOutdoorGrill,
+  MdSetMeal,
+  MdKebabDining,
+  MdEmojiFoodBeverage,
+  MdLiquor,
+  MdTakeoutDining,
+  MdDeliveryDining,
+  MdLocalDining,
+  MdStorefront,
+  MdBrunchDining,
+  MdTapas,
+  MdRestaurantMenu,
+  MdFlatware,
+  MdLunchDining,
+  MdBreakfastDining,
+} from "react-icons/md";
+import {
+  GiNoodles,
+  GiSandwich,
+  GiSteak,
+  GiChickenLeg,
+  GiWok,
+  GiTacos,
+  GiHotDog,
+  GiCupcake,
+  GiShrimp,
+  GiSushis,
+  GiDumpling,
+} from "react-icons/gi";
+import {
+  FaLeaf,
+  FaEgg,
+  FaCocktail,
+  FaBeer,
+  FaCheese,
+  FaFish,
+} from "react-icons/fa";
+
+/**
+ * Two display helpers shared by Menu Management and its tabs.
+ *
+ * They were module-level consts in MenuManagement.tsx, which stopped working
+ * the moment a tab moved into its own file: a tab cannot import from the page
+ * that imports the tab. Here they belong to neither.
+ *
+ * Moved verbatim. iconMap is 84 entries long -- 50 category names and a legacy
+ * fallback for every component name -- and retyping it dropped 78 of them.
+ */
+
+// Keys match the display names stored in category.icon field in the DB
+export const iconMap: any = {
+  Starter: MdFlatware,
+  "Main Dish": MdRestaurantMenu,
+  "Side Dish": MdLunchDining,
+  Breakfast: MdBreakfastDining,
+  Brunch: MdBrunchDining,
+  Dinner: MdDinnerDining,
+  Snacks: MdFastfood,
+  Dessert: MdCake,
+  "South Indian": MdRiceBowl,
+  "North Indian": MdDinnerDining,
+  Biryani: MdSetMeal,
+  Kebab: MdKebabDining,
+  Chinese: MdRamenDining,
+  Noodles: GiNoodles,
+  "Wok / Stir Fry": GiWok,
+  Soup: MdSoupKitchen,
+  Pizza: MdLocalPizza,
+  Burger: MdFastfood,
+  Sandwich: GiSandwich,
+  "Hot Dog": GiHotDog,
+  Tacos: GiTacos,
+  "Steak / BBQ": GiSteak,
+  Grill: MdOutdoorGrill,
+  Chicken: GiChickenLeg,
+  "Chicken Wings": GiChickenLeg,
+  Seafood: GiShrimp,
+  Fish: FaFish,
+  Salad: FaLeaf,
+  Sushi: GiSushis,
+  Eggs: FaEgg,
+  "Cheese / Dairy": FaCheese,
+  Vegan: FaLeaf,
+  Spicy: FaLeaf,
+  Dumplings: GiDumpling,
+  Bakery: MdBakeryDining,
+  Cupcake: GiCupcake,
+  "Ice Cream": MdIcecream,
+  Coffee: MdCoffee,
+  Cafe: MdLocalCafe,
+  Drinks: MdEmojiFoodBeverage,
+  Cocktail: FaCocktail,
+  Beer: FaBeer,
+  Liquor: MdLiquor,
+  Bar: MdLocalBar,
+  "Wine Bar": MdWineBar,
+  Tapas: MdTapas,
+  "Multi Cuisine": MdLocalDining,
+  Takeaway: MdTakeoutDining,
+  Delivery: MdDeliveryDining,
+  Restaurant: MdRestaurant,
+  Store: MdStorefront,
+  // Legacy component-name keys (fallback for older data)
+  MdRestaurant,
+  MdLocalCafe,
+  MdLocalBar,
+  MdWineBar,
+  MdBakeryDining,
+  MdLocalPizza,
+  MdFastfood,
+  MdCoffee,
+  MdCake,
+  MdIcecream,
+  MdRiceBowl,
+  MdDinnerDining,
+  MdRamenDining,
+  MdSoupKitchen,
+  MdOutdoorGrill,
+  MdSetMeal,
+  MdKebabDining,
+  MdEmojiFoodBeverage,
+  MdLiquor,
+  MdTakeoutDining,
+  MdDeliveryDining,
+  MdLocalDining,
+  MdStorefront,
+  MdBrunchDining,
+  MdTapas,
+  MdRestaurantMenu,
+  MdFlatware,
+  MdLunchDining,
+  MdBreakfastDining,
+};
+
+// Menu item `type` is a free-text DB field, so older items (e.g. seeded via
+// onboarding) may be stored as "Veg"/"Non Veg" instead of "VEG"/"NON_VEG".
+// Normalize before comparing so the veg/non-veg badge is never wrong.
+export const isVegType = (type: any) =>
+  String(type || "")
+    .toLowerCase()
+    .replace(/[\s_-]/g, "") === "veg";

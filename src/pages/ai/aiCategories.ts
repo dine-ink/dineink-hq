@@ -3,7 +3,7 @@
 // formatting a sixth time. ai.service.ts (and the engines it composes) is
 // the sole source of every number shown here; this file only knows how to
 // label and color an Insight's category/severity.
-export { fmtCategoryValue } from "../budget/budgetCategories";
+export { fmtCategoryValue } from "@/pages/budget/budgetCategories";
 
 export const PERIOD_OPTIONS = [
   { key: "currentMonth", label: "Current Month" },

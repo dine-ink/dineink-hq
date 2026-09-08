@@ -1,8 +1,8 @@
 import { useMemo, useState } from "react";
-import { Alert } from "../../design";
+import { Alert } from "@/design";
 import { CHART_CARD, PROFICIENCY_LABELS } from "./laborCategories";
 import { useLaborQuery, useLaborScope } from "./useLaborApi";
-import MobileTableCards from "../../components/common/MobileTableCards";
+import MobileTableCards from "@/components/common/MobileTableCards";
 
 // Who can work where, and how fast. This is what turns "how many people do I
 // need?" into "who should stand where?" — a 4.5-FTE grill gap plus a 1.8-FTE

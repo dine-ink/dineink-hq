@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useAppSelector } from "../../store";
+import { useAppSelector } from "@/store";
 import {
   CalendarDaysIcon,
   ChartBarIcon,
@@ -8,8 +8,8 @@ import {
   ShoppingBagIcon,
   XMarkIcon,
 } from "@heroicons/react/24/outline";
-import { SearchBar, Pagination } from "../../design";
-import MobileTableCards from "../../components/common/MobileTableCards";
+import { SearchBar, Pagination } from "@/design";
+import MobileTableCards from "@/components/common/MobileTableCards";
 
 export default function Bills() {
   const API_URL = import.meta.env.VITE_API_URL;

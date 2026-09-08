@@ -1,7 +1,7 @@
 import { Fragment, useEffect, useState } from "react";
-import { useAppDispatch, useAppSelector } from "../../store";
-import { setAuth } from "../../store/slices/authSlice";
-import { setBranches as setBranchesInStore } from "../../store/slices/branchSlice";
+import { useAppDispatch, useAppSelector } from "@/store";
+import { setAuth } from "@/store/slices/authSlice";
+import { setBranches as setBranchesInStore } from "@/store/slices/branchSlice";
 import {
   Dialog,
   DialogPanel,
@@ -14,6 +14,7 @@ import {
   QueueListIcon,
   SparklesIcon,
   Squares2X2Icon,
+  TrashIcon,
   UsersIcon,
   XMarkIcon,
 } from "@heroicons/react/24/outline";
@@ -69,7 +70,9 @@ import {
   FaCheese,
   FaFish,
 } from "react-icons/fa";
-import { getIndianCitiesForState, getIndianStates } from "../../utils/indiaLocations";
+import { getIndianCitiesForState, getIndianStates } from "@/utils/indiaLocations";
+import { notify } from "@/utils/notify";
+import { confirmAction } from "@/utils/confirmAction";
 
 const tabs = [
   {
@@ -216,6 +219,34 @@ const LABEL_CLS = "mb-1.5 block text-xs font-semibold text-gray-600";
 const BRANCH_INPUT_CLS =
   "w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm outline-none transition focus:border-red-500";
 
+/**
+ * Marks a field the setup will not accept blank. Two things earn the mark, and
+ * both are read off handleSubmitSetup rather than guessed at:
+ *   - the five Restaurant Details fields, which block Finish Setup outright;
+ *   - the fields the save filters on (branch name, category name, item name and
+ *     price, staff name and phone) — leave one blank and that whole row is
+ *     dropped on save with nothing said, which is worth flagging up front.
+ */
+function Req() {
+  return (
+    <span className="ml-0.5 font-bold text-[#b10000]" title="Required">
+      *
+    </span>
+  );
+}
+
+/** Footnote for the steps whose rows are dropped rather than rejected. */
+function SkipNote({ onBanner = false }: { onBanner?: boolean }) {
+  return (
+    <p className={`mt-2 text-xs ${onBanner ? "text-red-100" : "text-gray-500"}`}>
+      <span className={`font-bold ${onBanner ? "text-white" : "text-[#b10000]"}`}>
+        *
+      </span>{" "}
+      Required — entries missing one of these are skipped when you finish setup.
+    </p>
+  );
+}
+
 export default function RestaurantSetupModal({ open, setOpen }: Props) {
   const API_URL = import.meta.env.VITE_API_URL;
   const dispatch = useAppDispatch();
@@ -344,14 +375,14 @@ export default function RestaurantSetupModal({ open, setOpen }: Props) {
       prev.map((s, idx) => (idx === i ? { ...s, ...updates } : s)),
     );
 
-  const handleCloseSetup = () => {
-    if (
-      window.confirm(
-        "If you close now, all setup progress will be lost. Do you really want to close?",
-      )
-    ) {
-      setOpen(false);
-    }
+  const handleCloseSetup = async () => {
+    const confirmed = await confirmAction({
+      title: "Close setup and lose your progress?",
+      message: "Nothing you have entered so far has been saved yet.",
+      confirmLabel: "Close anyway",
+      cancelLabel: "Keep setting up",
+    });
+    if (confirmed) setOpen(false);
   };
 
   const handleSubmitSetup = async () => {
@@ -363,13 +394,13 @@ export default function RestaurantSetupModal({ open, setOpen }: Props) {
       !restaurant.email ||
       !restaurant.gst
     ) {
-      alert("Please fill all required restaurant details");
+      notify("Please fill all required restaurant details", "warning");
       return;
     }
     try {
       setLoading(true);
       if (!authToken) {
-        alert("Session expired. Please login again.");
+        notify("Session expired. Please login again.");
         return;
       }
       const filteredStaff = staff.filter((s) => s.name && s.phone);
@@ -430,10 +461,10 @@ export default function RestaurantSetupModal({ open, setOpen }: Props) {
         setOpen(false);
         window.location.reload();
       } else {
-        alert(data.message);
+        notify(data.message || "Setup failed");
       }
     } catch {
-      alert("Setup failed");
+      notify("Setup failed");
     } finally {
       setLoading(false);
     }
@@ -535,13 +566,13 @@ export default function RestaurantSetupModal({ open, setOpen }: Props) {
                               }`}
                             >
                               <tab.icon
-                                className={`h-4 w-4 ${selectedTab === index ? "text-red-600" : "text-gray-500"}`}
+                                className={`h-4 w-4 transition-colors ${selectedTab === index ? "text-red-600" : "text-gray-500 group-hover:text-white"}`}
                               />
                               <span
-                                className={`absolute -top-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full text-[9px] font-black ${
+                                className={`absolute -top-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full text-[9px] font-black transition-colors ${
                                   selectedTab === index
                                     ? "bg-[#b10000] text-white"
-                                    : "bg-gray-300 text-gray-600"
+                                    : "bg-gray-300 text-gray-600 group-hover:bg-white group-hover:text-[#b10000]"
                                 }`}
                               >
                                 {index + 1}
@@ -549,7 +580,7 @@ export default function RestaurantSetupModal({ open, setOpen }: Props) {
                             </div>
                             <div className="min-w-0">
                               <p
-                                className={`text-[12px] font-semibold truncate ${selectedTab === index ? "text-red-700" : "text-gray-800"}`}
+                                className={`text-[12px] font-semibold truncate transition-colors ${selectedTab === index ? "text-red-700" : "text-gray-800 group-hover:text-[#b10000]"}`}
                               >
                                 {tab.name}
                               </p>
@@ -606,10 +637,17 @@ export default function RestaurantSetupModal({ open, setOpen }: Props) {
                           <p className="mt-2 text-sm text-gray-500">
                             Basic business information and branding
                           </p>
+                          <p className="mt-2 text-xs text-gray-500">
+                            <span className="font-bold text-[#b10000]">*</span>{" "}
+                            Required — setup cannot be finished without these.
+                          </p>
                         </div>
                         <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                           <div className="md:col-span-2">
-                            <label className={LABEL_CLS}>Restaurant Name</label>
+                            <label className={LABEL_CLS}>
+                              Restaurant Name
+                              <Req />
+                            </label>
                             <input
                               type="text"
                               value={restaurant.name}
@@ -624,7 +662,10 @@ export default function RestaurantSetupModal({ open, setOpen }: Props) {
                             />
                           </div>
                           <div>
-                            <label className={LABEL_CLS}>Email Address</label>
+                            <label className={LABEL_CLS}>
+                              Email Address
+                              <Req />
+                            </label>
                             <input
                               type="email"
                               value={restaurant.email}
@@ -639,7 +680,10 @@ export default function RestaurantSetupModal({ open, setOpen }: Props) {
                             />
                           </div>
                           <div>
-                            <label className={LABEL_CLS}>Phone Number</label>
+                            <label className={LABEL_CLS}>
+                              Phone Number
+                              <Req />
+                            </label>
                             <input
                               type="text"
                               value={restaurant.phone}
@@ -654,7 +698,10 @@ export default function RestaurantSetupModal({ open, setOpen }: Props) {
                             />
                           </div>
                           <div className="md:col-span-2">
-                            <label className={LABEL_CLS}>Address</label>
+                            <label className={LABEL_CLS}>
+                              Address
+                              <Req />
+                            </label>
                             <textarea
                               rows={1}
                               value={restaurant.address}
@@ -669,7 +716,10 @@ export default function RestaurantSetupModal({ open, setOpen }: Props) {
                             />
                           </div>
                           <div>
-                            <label className={LABEL_CLS}>GST Number</label>
+                            <label className={LABEL_CLS}>
+                              GST Number
+                              <Req />
+                            </label>
                             <input
                               type="text"
                               value={restaurant.gst}
@@ -714,6 +764,7 @@ export default function RestaurantSetupModal({ open, setOpen }: Props) {
                               Configure branch details, seating and operational
                               setup
                             </p>
+                            <SkipNote />
                           </div>
                           <div className="rounded-2xl border border-red-100 bg-gradient-to-r from-red-50 px-5 py-4 shadow-sm">
                             <p className="text-xs font-medium uppercase tracking-wide text-red-500">
@@ -786,6 +837,7 @@ export default function RestaurantSetupModal({ open, setOpen }: Props) {
                                 <div className="md:col-span-2">
                                   <label className={LABEL_CLS}>
                                     Branch Name
+                                    <Req />
                                   </label>
                                   <input
                                     type="text"
@@ -1032,6 +1084,7 @@ export default function RestaurantSetupModal({ open, setOpen }: Props) {
                                 Organize categories, menu items, pricing and
                                 item types for your restaurant.
                               </p>
+                              <SkipNote onBanner />
                             </div>
                             <div className="rounded-2xl bg-white/10 px-5 py-4 backdrop-blur-xl">
                               <p className="text-xs text-red-100">
@@ -1084,6 +1137,7 @@ export default function RestaurantSetupModal({ open, setOpen }: Props) {
                                     <div className="flex-1">
                                       <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">
                                         Category Name
+                                        <Req />
                                       </p>
                                       <input
                                         type="text"
@@ -1182,10 +1236,11 @@ export default function RestaurantSetupModal({ open, setOpen }: Props) {
                                       key={iIndex}
                                       className="rounded-2xl border border-gray-200 bg-gray-50 p-5"
                                     >
-                                      <div className="grid grid-cols-1 gap-4 xl:grid-cols-12">
-                                        <div className="xl:col-span-4">
+                                      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-12">
+                                        <div className="sm:col-span-2 xl:col-span-4">
                                           <label className="mb-2 block text-sm font-medium text-gray-700">
                                             Item Name
+                                            <Req />
                                           </label>
                                           <input
                                             type="text"
@@ -1204,6 +1259,7 @@ export default function RestaurantSetupModal({ open, setOpen }: Props) {
                                         <div className="xl:col-span-2">
                                           <label className="mb-2 block text-sm font-medium text-gray-700">
                                             Price
+                                            <Req />
                                           </label>
                                           <div className="relative">
                                             <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm text-gray-400">
@@ -1247,7 +1303,7 @@ export default function RestaurantSetupModal({ open, setOpen }: Props) {
                                             </span>
                                           </div>
                                         </div>
-                                        <div className="xl:col-span-3">
+                                        <div className="xl:col-span-2">
                                           <label className="mb-2 block text-sm font-medium text-gray-700">
                                             Type
                                           </label>
@@ -1271,8 +1327,11 @@ export default function RestaurantSetupModal({ open, setOpen }: Props) {
                                             </option>
                                           </select>
                                         </div>
-                                        <div className="flex items-end xl:col-span-1">
+                                        <div className="flex items-end sm:col-span-2 xl:col-span-2">
                                           <button
+                                            type="button"
+                                            title="Remove item"
+                                            aria-label="Remove item"
                                             onClick={() =>
                                               updateCategory(index, {
                                                 items: category.items.filter(
@@ -1280,9 +1339,10 @@ export default function RestaurantSetupModal({ open, setOpen }: Props) {
                                                 ),
                                               })
                                             }
-                                            className="w-full rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-[#b10000] transition hover:bg-red-100"
+                                            className="flex w-full items-center justify-center gap-2 whitespace-nowrap rounded-2xl border border-red-200 bg-red-50 px-3 py-3 text-sm font-semibold text-[#b10000] transition hover:bg-red-100"
                                           >
-                                            Remove
+                                            <TrashIcon className="h-4 w-4 shrink-0" />
+                                            <span>Remove</span>
                                           </button>
                                         </div>
                                       </div>
@@ -1700,6 +1760,7 @@ export default function RestaurantSetupModal({ open, setOpen }: Props) {
                                 Add managers, cashiers, kitchen staff and assign
                                 them to restaurant branches.
                               </p>
+                              <SkipNote onBanner />
                             </div>
                             <div className="rounded-2xl bg-white/10 px-5 py-4 backdrop-blur-xl">
                               <p className="text-xs text-red-100">
@@ -1755,6 +1816,7 @@ export default function RestaurantSetupModal({ open, setOpen }: Props) {
                                   <div>
                                     <label className={LABEL_CLS}>
                                       Full Name
+                                      <Req />
                                     </label>
                                     <input
                                       placeholder="Enter staff name"
@@ -1785,6 +1847,7 @@ export default function RestaurantSetupModal({ open, setOpen }: Props) {
                                   <div>
                                     <label className={LABEL_CLS}>
                                       Phone Number
+                                      <Req />
                                     </label>
                                     <input
                                       placeholder="Enter phone"

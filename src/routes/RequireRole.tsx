@@ -1,6 +1,6 @@
 import { Navigate } from "react-router-dom";
 import { ReactNode } from "react";
-import { useAppSelector } from "../store";
+import { useAppSelector } from "@/store";
 
 // Mirrors ProtectedRoute's shape but additionally checks the caller's role —
 // used to gate the new finance/ops-sensitive dashboard pages (Cash Flow,

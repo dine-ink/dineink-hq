@@ -8,10 +8,10 @@ import {
   SparklesIcon,
   ShieldCheckIcon,
 } from "@heroicons/react/24/outline";
-import Logo from "../../components/common/Logo";
-import { useAppDispatch } from "../../store";
-import { setAuth } from "../../store/slices/authSlice";
-import { setBranches } from "../../store/slices/branchSlice";
+import Logo from "@/components/common/Logo";
+import { useAppDispatch } from "@/store";
+import { setAuth } from "@/store/slices/authSlice";
+import { setBranches } from "@/store/slices/branchSlice";
 
 export default function Login() {
   const API_URL = import.meta.env.VITE_API_URL;
@@ -21,12 +21,17 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  // A rejected sign-in belongs next to the form, not in an alert() the browser
+  // A rejected sign-in belongs next to the form, not in a toast the browser
   // strips of context. `locked` is the one case that needs more than a message:
   // the password will not work again until it has been reset, so the banner has
   // to carry the way out.
   const [error, setError] = useState<{ message: string; locked: boolean } | null>(null);
 
+  /**
+   * Deliberately still a raw fetch while the rest of the app is on RTK
+   * Query. The four outcomes below are the reason — see the note in
+   * store/api/apiSlice.ts.
+   */
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     try {

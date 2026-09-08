@@ -1,12 +1,17 @@
-import { useEffect, useState } from "react";
+import { useMemo, useState } from "react";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import ExcelJS from "exceljs";
 import { saveAs } from "file-saver";
 import { ArrowDownTrayIcon, PrinterIcon } from "@heroicons/react/24/outline";
-import { useAppSelector } from "../../store";
+import { useAppSelector } from "@/store";
 import { fmtCategoryValue, MODEL_OPTIONS, PERIOD_OPTIONS } from "./forecastCategories";
-import MobileTableCards from "../../components/common/MobileTableCards";
+import MobileTableCards from "@/components/common/MobileTableCards";
+import {
+  useGetBranchRankingQuery,
+  useGetForecastAccuracyQuery,
+  useGenerateForecastQuery,
+} from "@/store/api/forecastApi";
 
 const REPORT_TYPES = [
   { key: "summary", label: "Forecast Summary Report" },
@@ -26,59 +31,73 @@ const localDateStr = (iso: string) => {
 
 export default function ReportsTab() {
   const { selectedBranch } = useAppSelector((s) => s.branch);
-  const { user, token } = useAppSelector((s) => s.auth);
-  const API_URL = import.meta.env.VITE_API_URL;
+  const { user } = useAppSelector((s) => s.auth);
 
   const [reportType, setReportType] = useState("summary");
   const [period, setPeriod] = useState("NEXT_MONTH");
   const [model, setModel] = useState("HISTORICAL_TREND");
-  const [loading, setLoading] = useState(false);
-  const [columns, setColumns] = useState<string[]>([]);
-  const [rows, setRows] = useState<any[]>([]);
-  const [subtitle, setSubtitle] = useState("");
 
-  useEffect(() => {
-    const run = async () => {
-      if (!user?.restaurantId) return;
-      setLoading(true);
-      try {
-        if (reportType === "branch") {
-          const res = await fetch(`${API_URL}/api/forecasts/${user.restaurantId}/branch-ranking?period=${period}&model=${model}`, { headers: { Authorization: `Bearer ${token}` } });
-          const json = await res.json();
-          setColumns(["Expected Revenue", "Expected Profit", "Expected EBITDA", "Growth %", "Confidence"]);
-          setRows((json.data || []).map((r: any) => ({
-            label: r.branch.name, unit: "currency",
-            values: [fmtCategoryValue(r.revenue, "currency"), fmtCategoryValue(r.netProfit, "currency"), fmtCategoryValue(r.ebitda, "currency"), r.growthPercentage != null ? `${r.growthPercentage.toFixed(1)}%` : "—", r.confidence],
-          })));
-          setSubtitle(`${PERIOD_OPTIONS.find((p) => p.key === period)?.label} · ${MODEL_OPTIONS.find((m) => m.key === model)?.label}`);
-        } else if (reportType === "accuracy") {
-          const branchParam = selectedBranch?.id ? `branchId=${selectedBranch.id}` : "branchId=null";
-          const res = await fetch(`${API_URL}/api/forecasts/${user.restaurantId}/accuracy?${branchParam}`, { headers: { Authorization: `Bearer ${token}` } });
-          const json = await res.json();
-          setColumns(["Average Accuracy %", "Sample Size"]);
-          setRows((json.data?.kpiAccuracy || []).map((k: any) => ({ label: k.label, unit: "percentage", values: [`${k.averageAccuracyPercentage.toFixed(1)}%`, String(k.sampleSize)] })));
-          setSubtitle(`${selectedBranch?.name || "Restaurant-wide"} · ${json.data?.completedForecastCount ?? 0} completed forecast(s)`);
-        } else {
-          const branchParam = selectedBranch?.id ? `&branchId=${selectedBranch.id}` : "";
-          const res = await fetch(`${API_URL}/api/forecasts/${user.restaurantId}/generate?period=${period}&model=${model}${branchParam}`, { headers: { Authorization: `Bearer ${token}` } });
-          const json = await res.json();
-          const keyFilter = reportType === "revenue" ? REVENUE_KEYS : reportType === "profit" ? PROFIT_KEYS : null;
-          const kpis = keyFilter ? (json.data?.kpis || []).filter((k: any) => keyFilter.includes(k.key)) : json.data?.kpis || [];
-          setColumns(["Last Period", "Forecast", "Variance %", "Achievement %"]);
-          setRows(kpis.map((k: any) => ({
-            label: k.label, unit: k.unit,
-            values: [fmtCategoryValue(k.baseline, k.unit), fmtCategoryValue(k.predicted, k.unit), k.variancePercentage != null ? `${k.variancePercentage.toFixed(1)}%` : "—", k.achievementPercentage != null ? `${k.achievementPercentage.toFixed(0)}%` : "—"],
-          })));
-          setSubtitle(`${selectedBranch?.name || "Restaurant-wide"} · ${PERIOD_OPTIONS.find((p) => p.key === period)?.label} · ${json.data ? `${localDateStr(json.data.targetStartDate)} to ${localDateStr(json.data.targetEndDate)}` : ""} · ${MODEL_OPTIONS.find((m) => m.key === (json.data?.modelUsed || model))?.label}`);
-        }
-      } catch {
-        // fetch error — silently ignored
-      } finally {
-        setLoading(false);
-      }
+  /**
+   * Three report shapes over three endpoints. Each query is skipped unless its
+   * report type is selected, so only one is ever in flight — the same as the
+   * `if/else if/else` this replaced.
+   *
+   * Two of the three are shared with other tabs (Branch Comparison runs the
+   * ranking, Overview runs the forecast), and the cache means switching between
+   * them no longer re-runs work the app has already done.
+   */
+  const restaurantId = user?.restaurantId as number;
+  const branchId = selectedBranch?.id;
+  const off = !restaurantId;
+
+  const ranking = useGetBranchRankingQuery(
+    { restaurantId, period, model },
+    { skip: off || reportType !== "branch" },
+  );
+  const accuracy = useGetForecastAccuracyQuery(
+    { restaurantId, branchId },
+    { skip: off || reportType !== "accuracy" },
+  );
+  const forecast = useGenerateForecastQuery(
+    { restaurantId, branchId, period, model },
+    { skip: off || reportType === "branch" || reportType === "accuracy" },
+  );
+
+  const loading = ranking.isFetching || accuracy.isFetching || forecast.isFetching;
+
+  const { columns, rows, subtitle } = useMemo((): {
+    columns: string[];
+    rows: any[];
+    subtitle: string;
+  } => {
+    if (reportType === "branch") {
+      return {
+        columns: ["Expected Revenue", "Expected Profit", "Expected EBITDA", "Growth %", "Confidence"],
+        rows: (ranking.data || []).map((r: any) => ({
+          label: r.branch.name, unit: "currency",
+          values: [fmtCategoryValue(r.revenue, "currency"), fmtCategoryValue(r.netProfit, "currency"), fmtCategoryValue(r.ebitda, "currency"), r.growthPercentage != null ? `${r.growthPercentage.toFixed(1)}%` : "—", r.confidence],
+        })),
+        subtitle: `${PERIOD_OPTIONS.find((p) => p.key === period)?.label} · ${MODEL_OPTIONS.find((m) => m.key === model)?.label}`,
+      };
+    }
+    if (reportType === "accuracy") {
+      return {
+        columns: ["Average Accuracy %", "Sample Size"],
+        rows: (accuracy.data?.kpiAccuracy || []).map((k: any) => ({ label: k.label, unit: "percentage", values: [`${k.averageAccuracyPercentage.toFixed(1)}%`, String(k.sampleSize)] })),
+        subtitle: `${selectedBranch?.name || "Restaurant-wide"} · ${accuracy.data?.completedForecastCount ?? 0} completed forecast(s)`,
+      };
+    }
+    const keyFilter = reportType === "revenue" ? REVENUE_KEYS : reportType === "profit" ? PROFIT_KEYS : null;
+    const kpis = keyFilter ? (forecast.data?.kpis || []).filter((k: any) => keyFilter.includes(k.key)) : forecast.data?.kpis || [];
+    return {
+      columns: ["Last Period", "Forecast", "Variance %", "Achievement %"],
+      rows: kpis.map((k: any) => ({
+        label: k.label, unit: k.unit,
+        values: [fmtCategoryValue(k.baseline, k.unit), fmtCategoryValue(k.predicted, k.unit), k.variancePercentage != null ? `${k.variancePercentage.toFixed(1)}%` : "—", k.achievementPercentage != null ? `${k.achievementPercentage.toFixed(0)}%` : "—"],
+      })),
+      subtitle: `${selectedBranch?.name || "Restaurant-wide"} · ${PERIOD_OPTIONS.find((p) => p.key === period)?.label} · ${forecast.data ? `${localDateStr(forecast.data.targetStartDate)} to ${localDateStr(forecast.data.targetEndDate)}` : ""} · ${MODEL_OPTIONS.find((m) => m.key === (forecast.data?.modelUsed || model))?.label}`,
     };
-    run();
-  }, [reportType, period, model, user?.restaurantId, selectedBranch?.id]);
+  }, [reportType, period, model, selectedBranch?.name, ranking.data, accuracy.data, forecast.data]);
 
   const reportTitle = REPORT_TYPES.find((r) => r.key === reportType)?.label || "Forecast Report";
 

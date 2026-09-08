@@ -4,7 +4,7 @@
 // backend's Investment Engine (investment.formulas.ts) is the sole source of
 // every ROI/NPV/IRR/Payback number; this file only knows how to label and
 // color them.
-export { fmtCategoryValue } from "../budget/budgetCategories";
+export { fmtCategoryValue } from "@/pages/budget/budgetCategories";
 
 export const INVESTMENT_TYPES = [
   { key: "NEW_BRANCH", label: "New Branch" },

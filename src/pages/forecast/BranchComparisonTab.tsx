@@ -1,36 +1,22 @@
-import { useEffect, useState } from "react";
-import { useAppSelector } from "../../store";
+import { useState } from "react";
+import { useAppSelector } from "@/store";
+import { useGetBranchRankingQuery } from "@/store/api/forecastApi";
 import { CONFIDENCE_STYLES, fmtCategoryValue, MODEL_OPTIONS, PERIOD_OPTIONS } from "./forecastCategories";
-import MobileTableCards from "../../components/common/MobileTableCards";
+import MobileTableCards from "@/components/common/MobileTableCards";
 import { TrophyIcon } from "@heroicons/react/24/outline";
 
 export default function BranchComparisonTab() {
-  const { user, token } = useAppSelector((s) => s.auth);
-  const API_URL = import.meta.env.VITE_API_URL;
+  const { user } = useAppSelector((s) => s.auth);
 
   const [period, setPeriod] = useState("NEXT_MONTH");
   const [model, setModel] = useState("HISTORICAL_TREND");
-  const [rows, setRows] = useState<any[]>([]);
-  const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    const fetchRanking = async () => {
-      if (!user?.restaurantId) return;
-      setLoading(true);
-      try {
-        const res = await fetch(`${API_URL}/api/forecasts/${user.restaurantId}/branch-ranking?period=${period}&model=${model}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        const json = await res.json();
-        if (json.success) setRows(json.data);
-      } catch {
-        // fetch error — silently ignored
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchRanking();
-  }, [user?.restaurantId, period, model]);
+  // Reports runs the same ranking query; the cache means only one of the two
+  // tabs actually pays for it.
+  const { data: rows = [], isFetching: loading } = useGetBranchRankingQuery(
+    { restaurantId: user?.restaurantId as number, period, model },
+    { skip: !user?.restaurantId },
+  );
 
   const rankBadge = (index: number) => {
     if (index === 0) return "bg-amber-100 text-amber-700";

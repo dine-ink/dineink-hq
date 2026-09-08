@@ -1,7 +1,16 @@
-import { useEffect, useState } from "react";
-import { useAppSelector } from "../../store";
+import { useState } from "react";
+import { useAppSelector } from "@/store";
+import { errorMessage } from "@/utils/apiRequest";
+import {
+  useCloneScenarioMutation,
+  useCreateScenarioMutation,
+  useDeleteScenarioMutation,
+  useGetScenariosQuery,
+  useResetScenarioFieldsMutation,
+  useUpdateScenarioMutation,
+} from "@/store/api/scenariosApi";
 import { OVERRIDE_FIELD_GROUPS, OVERRIDE_FIELDS, SCENARIO_TYPE_STYLES } from "./scenarioCategories";
-import MobileTableCards from "../../components/common/MobileTableCards";
+import MobileTableCards from "@/components/common/MobileTableCards";
 import {
   ArchiveBoxIcon,
   ArrowLeftIcon,
@@ -12,15 +21,29 @@ import {
   PlusIcon,
   TrashIcon,
 } from "@heroicons/react/24/outline";
+import { notify } from "@/utils/notify";
+import { confirmAction } from "@/utils/confirmAction";
 
 export default function ScenariosTab() {
   const { branches } = useAppSelector((s) => s.branch);
-  const { user, token } = useAppSelector((s) => s.auth);
-  const API_URL = import.meta.env.VITE_API_URL;
+  const { user } = useAppSelector((s) => s.auth);
 
-  const [scenarios, setScenarios] = useState<any[]>([]);
   const [scopeBranchId, setScopeBranchId] = useState<string>("restaurant");
-  const [loading, setLoading] = useState(false);
+
+  const restaurantId = user?.restaurantId as number;
+  const { data: scenarios = [], isFetching: loading } = useGetScenariosQuery(
+    {
+      restaurantId,
+      branchId: scopeBranchId === "restaurant" ? null : Number(scopeBranchId),
+    },
+    { skip: !user?.restaurantId },
+  );
+
+  const [createScenario] = useCreateScenarioMutation();
+  const [updateScenario] = useUpdateScenarioMutation();
+  const [resetFields] = useResetScenarioFieldsMutation();
+  const [cloneScenario] = useCloneScenarioMutation();
+  const [deleteScenario] = useDeleteScenarioMutation();
   const [view, setView] = useState<"list" | "create" | "edit">("list");
   const [selectedScenario, setSelectedScenario] = useState<any>(null);
   const [overrideValues, setOverrideValues] = useState<Record<string, string>>({});
@@ -30,27 +53,6 @@ export default function ScenariosTab() {
   const [formName, setFormName] = useState("");
   const [formDescription, setFormDescription] = useState("");
   const [formBranchId, setFormBranchId] = useState<string>("restaurant");
-
-  const fetchScenarios = async () => {
-    if (!user?.restaurantId) return;
-    setLoading(true);
-    try {
-      const branchParam = scopeBranchId === "restaurant" ? "null" : scopeBranchId;
-      const res = await fetch(`${API_URL}/api/scenarios/${user.restaurantId}?branchId=${branchParam}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const json = await res.json();
-      if (json.success) setScenarios(json.data);
-    } catch {
-      // fetch error — silently ignored
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchScenarios();
-  }, [user?.restaurantId, scopeBranchId]);
 
   const openCreate = () => {
     setFormName("");
@@ -71,31 +73,24 @@ export default function ScenariosTab() {
 
   const handleCreate = async () => {
     if (!formName.trim()) {
-      alert("Please enter a scenario name");
+      notify("Please enter a scenario name", "warning");
       return;
     }
     setSaving(true);
     try {
-      const res = await fetch(`${API_URL}/api/scenarios/${user.restaurantId}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({
+      const created = await createScenario({
+        restaurantId,
+        body: {
           name: formName.trim(),
           description: formDescription.trim() || null,
           branchId: formBranchId === "restaurant" ? null : Number(formBranchId),
           type: "CUSTOM",
           overrides: buildOverridesPayload(),
-        }),
-      });
-      const json = await res.json();
-      if (json.success) {
-        await fetchScenarios();
-        openDetail(json.data);
-      } else {
-        alert(json.message || "Failed to create scenario");
-      }
-    } catch {
-      alert("Failed to create scenario");
+        },
+      }).unwrap();
+      if (created) openDetail(created);
+    } catch (err) {
+      notify(errorMessage(err, "Failed to create scenario"));
     } finally {
       setSaving(false);
     }
@@ -115,20 +110,14 @@ export default function ScenariosTab() {
     if (!selectedScenario) return;
     setSaving(true);
     try {
-      const res = await fetch(`${API_URL}/api/scenarios/${user.restaurantId}/${selectedScenario.id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ overrides: buildOverridesPayload() }),
-      });
-      const json = await res.json();
-      if (json.success) {
-        setSelectedScenario(json.data);
-        await fetchScenarios();
-      } else {
-        alert(json.message || "Failed to save");
-      }
-    } catch {
-      alert("Failed to save scenario");
+      const saved = await updateScenario({
+        restaurantId,
+        id: selectedScenario.id,
+        body: { overrides: buildOverridesPayload() },
+      }).unwrap();
+      if (saved) setSelectedScenario(saved);
+    } catch (err) {
+      notify(errorMessage(err, "Failed to save scenario"));
     } finally {
       setSaving(false);
     }
@@ -142,74 +131,64 @@ export default function ScenariosTab() {
 
   const handleResetAll = async () => {
     if (!selectedScenario) return;
-    if (!confirm("Reset every override on this scenario back to its inherited default?")) return;
+    const confirmed = await confirmAction({
+      title: "Reset every override on this scenario?",
+      message: "Each field goes back to the default it inherits.",
+      confirmLabel: "Reset all",
+    });
+    if (!confirmed) return;
     try {
-      const res = await fetch(`${API_URL}/api/scenarios/${user.restaurantId}/${selectedScenario.id}/reset-fields`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ fields: OVERRIDE_FIELDS.map((f) => f.key) }),
-      });
-      const json = await res.json();
-      if (json.success) {
-        openDetail(json.data);
-        await fetchScenarios();
-      }
-    } catch {
-      // reset error — silently ignored
+      const reset = await resetFields({
+        restaurantId,
+        id: selectedScenario.id,
+        fields: OVERRIDE_FIELDS.map((f) => f.key),
+      }).unwrap();
+      if (reset) openDetail(reset);
+    } catch (err) {
+      notify(errorMessage(err, "Failed to reset the overrides on this scenario"));
     }
   };
 
   const handleToggleActive = async () => {
     if (!selectedScenario) return;
     try {
-      const res = await fetch(`${API_URL}/api/scenarios/${user.restaurantId}/${selectedScenario.id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ isActive: !selectedScenario.isActive }),
-      });
-      const json = await res.json();
-      if (json.success) {
-        setSelectedScenario(json.data);
-        await fetchScenarios();
-      }
-    } catch {
-      // toggle error — silently ignored
+      // A failed toggle used to leave the switch showing its old state, which
+      // reads as "the click didn't land" rather than "that was rejected".
+      const toggled = await updateScenario({
+        restaurantId,
+        id: selectedScenario.id,
+        body: { isActive: !selectedScenario.isActive },
+      }).unwrap();
+      if (toggled) setSelectedScenario(toggled);
+    } catch (err) {
+      notify(errorMessage(err, "Failed to change whether this scenario is active"));
     }
   };
 
   const handleClone = async (scenarioId: number) => {
     try {
-      const res = await fetch(`${API_URL}/api/scenarios/${user.restaurantId}/${scenarioId}/clone`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({}),
-      });
-      const json = await res.json();
-      if (json.success) {
-        await fetchScenarios();
-        openDetail(json.data);
-      }
-    } catch {
-      // clone error — silently ignored
+      const cloned = await cloneScenario({ restaurantId, id: scenarioId }).unwrap();
+      if (cloned) openDetail(cloned);
+    } catch (err) {
+      notify(errorMessage(err, "Failed to clone this scenario"));
     }
   };
 
   const handleDelete = async (scenario: any) => {
     if (scenario.type !== "CUSTOM") {
-      alert("Built-in scenarios can't be deleted — archive it instead.");
+      notify("Built-in scenarios can't be deleted — archive it instead.", "warning");
       return;
     }
-    if (!confirm(`Delete scenario "${scenario.name}"? This can't be undone.`)) return;
+    const confirmed = await confirmAction({
+      title: `Delete the "${scenario.name}" scenario?`,
+      message: "This cannot be undone.",
+      confirmLabel: "Delete",
+    });
+    if (!confirmed) return;
     try {
-      const res = await fetch(`${API_URL}/api/scenarios/${user.restaurantId}/${scenario.id}`, {
-        method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const json = await res.json();
-      if (json.success) await fetchScenarios();
-      else alert(json.message || "Failed to delete scenario");
-    } catch {
-      alert("Failed to delete scenario");
+      await deleteScenario({ restaurantId, id: scenario.id }).unwrap();
+    } catch (err) {
+      notify(errorMessage(err, "Failed to delete scenario"));
     }
   };
 

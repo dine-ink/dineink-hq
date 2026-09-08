@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { useAppSelector } from "../../store";
-import { Dialog, FormField, FormSection, Input, Textarea, Button, Alert } from "../../design";
+import { useAppSelector } from "@/store";
+import { Dialog, FormField, FormSection, Input, Textarea, Button, Alert } from "@/design";
 
 export type WhatsAppTemplateType =
   | "CUSTOMER_MARKETING"

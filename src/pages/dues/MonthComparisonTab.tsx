@@ -1,9 +1,10 @@
-import { useEffect, useState } from "react";
 import { Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import { useAppSelector } from "../../store";
-import { Alert, EmptyState, LoadingOverlay, chartPalette } from "../../design";
+import { tooltipFormatter } from "@/utils/chartFormatters";
+import { useAppSelector } from "@/store";
+import { useGetDuesMonthComparisonQuery } from "@/store/api/duesApi";
+import { Alert, EmptyState, LoadingOverlay, chartPalette } from "@/design";
 import { categoryLabel, formatCurrency, monthYearLabel, type MonthComparisonData } from "./duesShared";
-import MobileTableCards from "../../components/common/MobileTableCards";
+import MobileTableCards from "@/components/common/MobileTableCards";
 
 interface MonthComparisonTabProps {
   month: number;
@@ -17,35 +18,26 @@ const PREVIOUS_COLOR = chartPalette[1]; // info[500] — previous month
 const previousMonthYear = (month: number, year: number) => (month === 1 ? { month: 12, year: year - 1 } : { month: month - 1, year });
 
 export default function MonthComparisonTab({ month, year }: MonthComparisonTabProps) {
-  const API_URL = import.meta.env.VITE_API_URL;
-  const { user, token } = useAppSelector((s) => s.auth);
+  const { user } = useAppSelector((s) => s.auth);
   const { selectedBranch } = useAppSelector((s) => s.branch);
 
-  const [data, setData] = useState<MonthComparisonData | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(false);
 
-  useEffect(() => {
-    const run = async () => {
-      if (!user?.restaurantId || !selectedBranch?.id) return;
-      setLoading(true);
-      setError(false);
-      try {
-        const res = await fetch(
-          `${API_URL}/api/dues/${user.restaurantId}/${selectedBranch.id}/month-comparison?month=${month}&year=${year}`,
-          { headers: { Authorization: `Bearer ${token}` } },
-        );
-        const json = await res.json();
-        if (json.success) setData(json.data || null);
-        else setError(true);
-      } catch {
-        setError(true);
-      } finally {
-        setLoading(false);
-      }
-    };
-    run();
-  }, [user?.restaurantId, selectedBranch?.id, month, year]);
+  // The slice types this `any`; the shape is named here so the category
+  // lists below keep their inference.
+  const {
+    data: fetched,
+    isFetching: loading,
+    isError: error,
+  } = useGetDuesMonthComparisonQuery(
+    {
+      restaurantId: user?.restaurantId as number,
+      branchId: selectedBranch?.id as number,
+      month,
+      year,
+    },
+    { skip: !user?.restaurantId || !selectedBranch?.id },
+  );
+  const data: MonthComparisonData | null = fetched ?? null;
 
   if (loading) {
     return <LoadingOverlay label="Loading month comparison..." />;
@@ -91,7 +83,7 @@ export default function MonthComparisonTab({ month, year }: MonthComparisonTabPr
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                   <XAxis dataKey="categoryDisplay" tick={TICK} axisLine={false} tickLine={false} interval={0} angle={-15} textAnchor="end" height={50} />
                   <YAxis tick={TICK} axisLine={false} tickLine={false} tickFormatter={(v) => `₹${Math.round(v / 1000)}k`} />
-                  <Tooltip formatter={(v: number) => formatCurrency(v)} />
+                  <Tooltip formatter={tooltipFormatter((v) => formatCurrency(v))} />
                   <Legend wrapperStyle={{ fontSize: 11 }} />
                   <Bar dataKey="currentAmount" name={monthYearLabel(month, year)} fill={CURRENT_COLOR} radius={[4, 4, 0, 0]} />
                   <Bar dataKey="previousAmount" name={monthYearLabel(prev.month, prev.year)} fill={PREVIOUS_COLOR} radius={[4, 4, 0, 0]} />

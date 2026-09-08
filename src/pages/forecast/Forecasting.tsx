@@ -7,7 +7,7 @@ import ReportsTab from "./ReportsTab";
 import PeakHourForecastTab from "./PeakHourForecastTab";
 import DemandForecastTab from "./DemandForecastTab";
 import InventoryForecastTab from "./InventoryForecastTab";
-import TabStrip from "../../components/common/TabStrip";
+import TabStrip from "@/components/common/TabStrip";
 
 const TABS = ["Overview", "Branch Comparison", "Peak Hour", "Demand", "Inventory", "Accuracy", "Reports"];
 

@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { Card } from "./Card";
-import { SectionHeader } from "../layout/SectionHeader";
+import { SectionHeader } from "@/design/components/layout/SectionHeader";
 
 export interface ChartCardProps {
   title: ReactNode;

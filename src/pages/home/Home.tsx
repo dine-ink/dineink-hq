@@ -1,12 +1,12 @@
-import Navbar from "../../components/common/Navbar";
-import HeroSection from "../../components/home/HeroSection";
-import ProblemSection from "../../components/home/ProblemSection";
-import DashboardPreviewSection from "../../components/home/DashboardPreviewSection";
-import ThreeLayersSection from "../../components/home/ThreeLayersSection";
-import WhyDineInkSection from "../../components/home/WhyDineInkSection";
-import ProductSplitSection from "../../components/home/ProductSplitSection";
-import LaunchSection from "../../components/home/LaunchSection";
-import Footer from "../../components/common/Footer";
+import Navbar from "@/components/common/Navbar";
+import HeroSection from "@/components/home/HeroSection";
+import ProblemSection from "@/components/home/ProblemSection";
+import DashboardPreviewSection from "@/components/home/DashboardPreviewSection";
+import ThreeLayersSection from "@/components/home/ThreeLayersSection";
+import WhyDineInkSection from "@/components/home/WhyDineInkSection";
+import ProductSplitSection from "@/components/home/ProductSplitSection";
+import LaunchSection from "@/components/home/LaunchSection";
+import Footer from "@/components/common/Footer";
 
 const productStats = [
   { value: "29", label: "Dashboard modules" },

@@ -1,7 +1,12 @@
 import { useEffect, useState } from "react";
-import { useAppSelector } from "../../store";
+import { useAppSelector } from "@/store";
+import {
+  useGetForecastSnapshotsQuery,
+  useGetForecastAccuracyQuery,
+  useGetForecastVsActualQuery,
+} from "@/store/api/forecastApi";
 import { fmtCategoryValue } from "./forecastCategories";
-import MobileTableCards from "../../components/common/MobileTableCards";
+import MobileTableCards from "@/components/common/MobileTableCards";
 
 const localDateStr = (iso: string) => {
   const d = new Date(iso);
@@ -14,59 +19,36 @@ const PERIOD_LABELS: Record<string, string> = {
 
 export default function AccuracyTab() {
   const { selectedBranch } = useAppSelector((s) => s.branch);
-  const { user, token } = useAppSelector((s) => s.auth);
-  const API_URL = import.meta.env.VITE_API_URL;
+  const { user } = useAppSelector((s) => s.auth);
 
   const [scope, setScope] = useState<"branch" | "restaurant">("branch");
-  const [snapshots, setSnapshots] = useState<any[]>([]);
   const [selectedId, setSelectedId] = useState<number | null>(null);
-  const [comparison, setComparison] = useState<any>(null);
-  const [accuracyReport, setAccuracyReport] = useState<any>(null);
-  const [loading, setLoading] = useState(false);
 
-  const branchParam = scope === "branch" && selectedBranch?.id ? `branchId=${selectedBranch.id}` : "branchId=null";
+  const scopeArgs = {
+    restaurantId: user?.restaurantId as number,
+    branchId: scope === "branch" ? selectedBranch?.id : undefined,
+  };
+  const skip = { skip: !user?.restaurantId };
 
+  const { data: snapshots = [], isFetching: snapshotsLoading } =
+    useGetForecastSnapshotsQuery(scopeArgs, skip);
+  const { data: accuracyReport, isFetching: accuracyLoading } =
+    useGetForecastAccuracyQuery(scopeArgs, skip);
+  const loading = snapshotsLoading || accuracyLoading;
+
+  // The old code picked the first snapshot inside the fetch. It still has to be
+  // picked somewhere, and it has to re-pick when the branch or scope changes
+  // brings back a different list — so the selection follows the data rather
+  // than the request.
+  const firstId = snapshots[0]?.id ?? null;
   useEffect(() => {
-    const fetchSnapshots = async () => {
-      if (!user?.restaurantId) return;
-      setLoading(true);
-      try {
-        const [listRes, accuracyRes] = await Promise.all([
-          fetch(`${API_URL}/api/forecasts/${user.restaurantId}?${branchParam}`, { headers: { Authorization: `Bearer ${token}` } }),
-          fetch(`${API_URL}/api/forecasts/${user.restaurantId}/accuracy?${branchParam}`, { headers: { Authorization: `Bearer ${token}` } }),
-        ]);
-        const listJson = await listRes.json();
-        const accuracyJson = await accuracyRes.json();
-        if (listJson.success) {
-          setSnapshots(listJson.data);
-          setSelectedId(listJson.data[0]?.id ?? null);
-        }
-        if (accuracyJson.success) setAccuracyReport(accuracyJson.data);
-      } catch {
-        // fetch error — silently ignored
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchSnapshots();
-  }, [user?.restaurantId, selectedBranch?.id, scope]);
+    setSelectedId(firstId);
+  }, [firstId]);
 
-  useEffect(() => {
-    const fetchComparison = async () => {
-      if (!selectedId || !user?.restaurantId) {
-        setComparison(null);
-        return;
-      }
-      try {
-        const res = await fetch(`${API_URL}/api/forecasts/${user.restaurantId}/${selectedId}/vs-actual`, { headers: { Authorization: `Bearer ${token}` } });
-        const json = await res.json();
-        if (json.success) setComparison(json.data);
-      } catch {
-        // fetch error — silently ignored
-      }
-    };
-    fetchComparison();
-  }, [selectedId]);
+  const { data: comparison } = useGetForecastVsActualQuery(
+    { restaurantId: user?.restaurantId as number, forecastId: selectedId as number },
+    { skip: !user?.restaurantId || !selectedId },
+  );
 
   return (
     <div className="space-y-4">

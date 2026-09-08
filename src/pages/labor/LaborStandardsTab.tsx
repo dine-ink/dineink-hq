@@ -1,8 +1,8 @@
 import { useMemo, useState } from "react";
-import { Alert, Button, Dialog, FormField, Input } from "../../design";
+import { Alert, Button, Dialog, FormField, Input } from "@/design";
 import { CHART_CARD } from "./laborCategories";
 import { useLaborQuery, useLaborScope } from "./useLaborApi";
-import MobileTableCards from "../../components/common/MobileTableCards";
+import MobileTableCards from "@/components/common/MobileTableCards";
 
 // The labor-standards matrix: menu item × station minutes. This is the data the
 // whole engine rests on — "don't only store total prep time, store

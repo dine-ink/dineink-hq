@@ -5,7 +5,7 @@ import ScorecardsTab from "./ScorecardsTab";
 import MultiBranchTab from "./MultiBranchTab";
 import TimelineTab from "./TimelineTab";
 import ReportsTab from "./ReportsTab";
-import TabStrip from "../../components/common/TabStrip";
+import TabStrip from "@/components/common/TabStrip";
 
 const TABS = ["Overview", "Scorecards", "Multi-Branch", "Timeline", "Reports"];
 

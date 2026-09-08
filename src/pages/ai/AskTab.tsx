@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { useAppSelector } from "../../store";
+import { useAppDispatch, useAppSelector } from "@/store";
+import { aiApi } from "@/store/api/aiApi";
 import { ASK_QUESTIONS, fmtCategoryValue, PERIOD_OPTIONS } from "./aiCategories";
 import {
   ChatBubbleLeftEllipsisIcon,
@@ -8,8 +9,8 @@ import {
 
 export default function AskTab() {
   const { selectedBranch } = useAppSelector((s) => s.branch);
-  const { user, token } = useAppSelector((s) => s.auth);
-  const API_URL = import.meta.env.VITE_API_URL;
+  const { user } = useAppSelector((s) => s.auth);
+  const dispatch = useAppDispatch();
 
   const [period, setPeriod] = useState("currentMonth");
   const [percentage, setPercentage] = useState(10);
@@ -18,14 +19,29 @@ export default function AskTab() {
 
   const branchParam = selectedBranch?.id ? `&branchId=${selectedBranch.id}` : "";
 
+  /**
+   * Asked on a button press, so `initiate` rather than a hook query — the
+   * answers accumulate into a history list rather than replacing one another.
+   *
+   * Going through the cache means asking the same question twice in a row does
+   * not cost two model calls, which on this screen is easy to do by accident:
+   * the buttons are right there and nothing about them says "expensive".
+   */
   const ask = async (key: string, needsPercentage: boolean) => {
     if (!user?.restaurantId) return;
     setLoading(key);
     try {
-      const qs = needsPercentage ? `percentage=${percentage}&period=${period}` : `period=${period}${branchParam}`;
-      const res = await fetch(`${API_URL}/api/ai/${user.restaurantId}/ask/${key}?${qs}`, { headers: { Authorization: `Bearer ${token}` } });
-      const json = await res.json();
-      if (json.success) setHistory((prev) => [json.data, ...prev]);
+      const query = needsPercentage
+        ? `percentage=${percentage}&period=${period}`
+        : `period=${period}${branchParam}`;
+      const answer = await dispatch(
+        aiApi.endpoints.askAi.initiate({
+          restaurantId: user.restaurantId,
+          key,
+          query,
+        }),
+      ).unwrap();
+      setHistory((prev) => [answer, ...prev]);
     } catch {
       // fetch error — silently ignored
     } finally {

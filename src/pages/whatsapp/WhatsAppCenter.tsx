@@ -1,5 +1,9 @@
-import { useEffect, useState } from "react";
-import { useAppSelector } from "../../store";
+import { useState } from "react";
+import { useAppSelector } from "@/store";
+import {
+  useGetWhatsAppTemplatesQuery,
+  useGetWhatsAppLogsQuery,
+} from "@/store/api/whatsappApi";
 import { ChatBubbleLeftRightIcon } from "@heroicons/react/24/outline";
 import {
   PageContainer,
@@ -11,11 +15,11 @@ import {
   DataTable,
   type DataTableColumn,
   type ChipStatus,
-} from "../../design";
-import SendWhatsAppDialog from "../../components/common/SendWhatsAppDialog";
+} from "@/design";
+import SendWhatsAppDialog from "@/components/common/SendWhatsAppDialog";
 import TemplatesPanel, { type WhatsAppTemplate } from "./TemplatesPanel";
 import BulkSendPanel from "./BulkSendPanel";
-import TabStrip from "../../components/common/TabStrip";
+import TabStrip from "@/components/common/TabStrip";
 
 const TABS = ["Bulk Send", "Templates", "Message Log"] as const;
 type Tab = (typeof TABS)[number];
@@ -65,73 +69,48 @@ function truncate(text: string, max = 60) {
 // every other analytics/log page in the app (Kitchen, Compliance, ...)
 // re-fetches on branch change.
 export default function WhatsAppCenter() {
-  const API_URL = import.meta.env.VITE_API_URL;
-  const { user, token } = useAppSelector((s) => s.auth);
+  const { user } = useAppSelector((s) => s.auth);
   const { selectedBranch } = useAppSelector((s) => s.branch);
 
   const [activeTab, setActiveTab] = useState<Tab>("Bulk Send");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(false);
-  const [logs, setLogs] = useState<WhatsAppMessageLog[]>([]);
   const [sendOpen, setSendOpen] = useState(false);
-  const [templates, setTemplates] = useState<WhatsAppTemplate[]>([]);
-  const [templatesLoading, setTemplatesLoading] = useState(false);
 
-  const fetchTemplates = async () => {
-    if (!user?.restaurantId) return;
-    setTemplatesLoading(true);
-    try {
-      const res = await fetch(`${API_URL}/api/whatsapp/templates/${user.restaurantId}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const json = await res.json();
-      if (json.success) setTemplates(json.data || []);
-    } catch {
-      // silent
-    } finally {
-      setTemplatesLoading(false);
-    }
-  };
+  /**
+   * Templates and the send log.
+   *
+   * Three effects became two queries.
+   *
+   * The template list was fetched here and handed to TemplatesPanel with an
+   * `onRefetch` callback threaded back up, because the panel does the writing
+   * and this component owned the list. The tag replaces that callback: the
+   * panel invalidates, this updates, nothing passes between them.
+   *
+   * The third effect refetched the log whenever the Message Log tab opened, so
+   * that "a bulk send made moments ago on the other tab shows up". The send
+   * invalidates the log tag now, so it shows up without anyone watching the
+   * tab.
+   *
+   * The AbortController is gone as well — cancelling a superseded request is
+   * what the query subscription already does.
+   */
+  const { data: templates = [], isFetching: templatesLoading } =
+    useGetWhatsAppTemplatesQuery(user?.restaurantId as number, {
+      skip: !user?.restaurantId,
+    });
 
-  useEffect(() => {
-    fetchTemplates();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.restaurantId]);
-
-  const fetchLogs = async (signal?: AbortSignal) => {
-    if (!user?.restaurantId) return;
-    try {
-      setLoading(true);
-      setError(false);
-      const branchParam = selectedBranch?.id ? `&branchId=${selectedBranch.id}` : "";
-      const res = await fetch(
-        `${API_URL}/api/whatsapp/${user.restaurantId}?limit=200${branchParam}`,
-        { signal, headers: { Authorization: `Bearer ${token}` } },
-      );
-      const json = await res.json();
-      if (json.success) setLogs(json.data || []);
-      else setError(true);
-    } catch (err) {
-      if (err instanceof DOMException) return; // aborted
-      setError(true);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    const controller = new AbortController();
-    fetchLogs(controller.signal);
-    return () => controller.abort();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedBranch?.id, user?.restaurantId]);
-
-  // Re-fetch whenever the Message Log tab is opened, so a bulk send made
-  // moments ago on the other tab shows up without waiting for a branch change.
-  useEffect(() => {
-    if (activeTab === "Message Log") fetchLogs();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeTab]);
+  const {
+    data: logs = [],
+    isFetching: loading,
+    isError: error,
+    refetch: refetchLogs,
+  } = useGetWhatsAppLogsQuery(
+    {
+      restaurantId: user?.restaurantId as number,
+      branchId: selectedBranch?.id,
+      limit: 200,
+    },
+    { skip: !user?.restaurantId },
+  );
 
   const total = logs.length;
   const sent = logs.filter((l) => l.status === "SENT").length;
@@ -188,7 +167,7 @@ export default function WhatsAppCenter() {
       {activeTab === "Bulk Send" && <BulkSendPanel templates={templates} />}
 
       {activeTab === "Templates" && (
-        <TemplatesPanel templates={templates} loading={templatesLoading} onRefetch={fetchTemplates} />
+        <TemplatesPanel templates={templates} loading={templatesLoading} />
       )}
 
       {activeTab === "Message Log" && (
@@ -214,7 +193,7 @@ export default function WhatsAppCenter() {
                 rows={logs}
                 rowKey={(row) => row.id}
                 error={error}
-                onRetry={() => fetchLogs()}
+                onRetry={() => refetchLogs()}
                 emptyTitle="No WhatsApp messages yet"
                 emptyDescription="Messages sent from Customers, bulk sends, or the Send Single Message button will show up here."
               />
@@ -227,7 +206,7 @@ export default function WhatsAppCenter() {
         open={sendOpen}
         onClose={() => setSendOpen(false)}
         templateType="CUSTOMER_MARKETING"
-        onSent={() => fetchLogs()}
+        onSent={() => refetchLogs()}
       />
     </PageContainer>
   );

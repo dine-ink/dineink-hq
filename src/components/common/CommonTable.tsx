@@ -1,5 +1,5 @@
 import React from "react";
-import MobileTableCards from "../../components/common/MobileTableCards";
+import MobileTableCards from "@/components/common/MobileTableCards";
 
 type Column = {
   header: string;

@@ -1,6 +1,18 @@
 import { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { useAppSelector } from "../../store";
+import { useAppDispatch, useAppSelector } from "@/store";
+import {
+  vendorsApi,
+  useGetVendorOutstandingQuery,
+  useGetVendorPerformanceQuery,
+  useSaveVendorMutation,
+  useDeleteVendorMutation,
+  useRecordVendorPaymentMutation,
+  useCreateVendorInvoiceMutation,
+  usePayVendorInvoiceMutation,
+} from "@/store/api/vendorsApi";
+import { useGetVendorsQuery } from "@/store/api/ingredientsApi";
+import { errorMessage } from "@/utils/apiRequest";
 import {
   TruckIcon,
   PlusIcon,
@@ -15,24 +27,24 @@ import {
   ChartBarIcon,
   PaperClipIcon,
 } from "@heroicons/react/24/outline";
-import { StatusChip } from "../../design";
+import { StatusChip } from "@/design";
 import ReorderDialog from "./ReorderDialog";
-import MobileTableCards from "../../components/common/MobileTableCards";
+import PayInvoiceDialog from "./PayInvoiceDialog";
+import MobileTableCards from "@/components/common/MobileTableCards";
+import { notify, notifySuccess } from "@/utils/notify";
+import { confirmAction } from "@/utils/confirmAction";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
 export default function Vendors() {
-  const { user, token } = useAppSelector((s) => s.auth);
+  const { user } = useAppSelector((s) => s.auth);
+  const dispatch = useAppDispatch();
   const { selectedBranch } = useAppSelector((s) => s.branch);
   const location = useLocation();
   const navigate = useNavigate();
 
-  const [vendors, setVendors] = useState<any[]>([]);
-  const [outstanding, setOutstanding] = useState<any[]>([]);
-  const [performance, setPerformance] = useState<any[]>([]);
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState("");
-  const [loading, setLoading] = useState(false);
 
   // Modals
   const [vendorModal, setVendorModal] = useState<{
@@ -94,61 +106,39 @@ export default function Vendors() {
   });
   const [invoiceFile, setInvoiceFile] = useState<File | null>(null);
 
-  const headers = {
-    Authorization: `Bearer ${token}`,
-    "Content-Type": "application/json",
+  /**
+   * Three lists, and every write on this screen invalidates the ledger tag
+   * that two of them carry. `fetchOutstanding()` used to be called by hand
+   * from five places to keep the owed figures current.
+   *
+   * The vendor list itself comes from ingredientsApi, because the endpoint is
+   * under /api/ingredients and Menu Management's ingredient editor reads the
+   * same one. Shared definition, shared cache entry.
+   */
+  const scope = {
+    restaurantId: user?.restaurantId as number,
+    branchId: selectedBranch?.id as number,
   };
+  const skip = { skip: !user?.restaurantId || !selectedBranch?.id };
 
-  const fetchVendors = async () => {
-    if (!user?.restaurantId || !selectedBranch?.id) return;
-    try {
-      setLoading(true);
-      const res = await fetch(
-        `${API_URL}/api/ingredients/${user.restaurantId}/${selectedBranch.id}/fetchVendors`,
-        { headers },
-      );
-      const data = await res.json();
-      setVendors(data.data || []);
-    } catch {
-      /* silent */
-    } finally {
-      setLoading(false);
-    }
-  };
+  const { data: vendors = [], isFetching: loading } = useGetVendorsQuery(
+    scope,
+    skip,
+  );
+  const { data: outstanding = [] } = useGetVendorOutstandingQuery(scope, skip);
+  const { data: performance = [] } = useGetVendorPerformanceQuery(scope, skip);
 
-  const fetchOutstanding = async () => {
-    if (!user?.restaurantId || !selectedBranch?.id) return;
-    try {
-      const res = await fetch(
-        `${API_URL}/api/vendors/outstanding/${user.restaurantId}/${selectedBranch.id}`,
-        { headers },
-      );
-      const data = await res.json();
-      setOutstanding(data.data || []);
-    } catch {
-      /* silent */
-    }
-  };
-
-  const fetchPerformance = async () => {
-    if (!user?.restaurantId || !selectedBranch?.id) return;
-    try {
-      const res = await fetch(
-        `${API_URL}/api/vendors/performance/${user.restaurantId}/${selectedBranch.id}`,
-        { headers },
-      );
-      const data = await res.json();
-      setPerformance(data.data || []);
-    } catch {
-      /* silent */
-    }
-  };
-
-  useEffect(() => {
-    fetchVendors();
-    fetchOutstanding();
-    fetchPerformance();
-  }, [selectedBranch?.id]);
+  const [saveVendor] = useSaveVendorMutation();
+  const [deleteVendorMutation] = useDeleteVendorMutation();
+  const [recordVendorPayment] = useRecordVendorPaymentMutation();
+  const [createVendorInvoice] = useCreateVendorInvoiceMutation();
+  const [payVendorInvoice, { isLoading: payingInvoice }] =
+    usePayVendorInvoiceMutation();
+  const [payModal, setPayModal] = useState<{
+    open: boolean;
+    invoiceId: number | null;
+    remaining: number;
+  }>({ open: false, invoiceId: null, remaining: 0 });
 
   // Deep-link from a low-stock alert (Menu Management → Analytics) — open the
   // purchase invoice modal for the vendor tied to the ingredient running low.
@@ -185,63 +175,62 @@ export default function Vendors() {
     setVendorModal({ open: true, editing: v ?? null });
   };
 
-  const saveVendor = async () => {
+  const handleSaveVendor = async () => {
     if (!vendorForm.name.trim() || !user?.restaurantId || !selectedBranch?.id)
       return;
-    const url = vendorModal.editing
-      ? `${API_URL}/api/ingredients/vendors/${vendorModal.editing.id}`
-      : `${API_URL}/api/ingredients/vendors`;
-    const method = vendorModal.editing ? "PUT" : "POST";
-    await fetch(url, {
-      method,
-      headers,
-      body: JSON.stringify({
-        ...vendorForm,
-        restaurantId: user.restaurantId,
-        branchId: selectedBranch.id,
-      }),
-    });
+    try {
+      await saveVendor({
+        id: vendorModal.editing?.id,
+        body: {
+          ...vendorForm,
+          restaurantId: user.restaurantId,
+          branchId: selectedBranch.id,
+        },
+      }).unwrap();
+    } catch (error) {
+      // The modal stays open on failure, so the values the person typed are
+      // still there to retry with. Closing it and refetching — which is what
+      // this did before — showed them the unchanged list and read as success.
+      notify(errorMessage(error));
+      return;
+    }
     setVendorModal({ open: false, editing: null });
-    fetchVendors();
-    fetchOutstanding();
   };
 
   const deleteVendor = async (id: number) => {
-    if (
-      !confirm(
-        "Delete this vendor? This will also remove all ingredient links.",
-      )
-    )
-      return;
-    await fetch(`${API_URL}/api/ingredients/vendors/${id}`, {
-      method: "DELETE",
-      headers,
+    const confirmed = await confirmAction({
+      title: "Delete this vendor?",
+      message: "Every ingredient link to this vendor will be removed as well.",
+      confirmLabel: "Delete",
     });
-    fetchVendors();
-    fetchOutstanding();
+    if (!confirmed) return;
+    try {
+      await deleteVendorMutation(id).unwrap();
+    } catch (error) {
+      notify(errorMessage(error));
+    }
   };
 
+  /**
+   * Opened from a row, so imperative rather than three hook queries — and
+   * forceRefetch, because paying an invoice reopens this modal to show the
+   * new balance and must not be handed the figures from before the payment.
+   */
   const openDetailModal = async (vendor: any) => {
     try {
-      const [pRes, iRes, ingRes] = await Promise.all([
-        fetch(`${API_URL}/api/vendors/${vendor.id}/payments`, { headers }),
-        fetch(`${API_URL}/api/vendors/${vendor.id}/invoices`, { headers }),
-        fetch(`${API_URL}/api/ingredients/vendors/${vendor.id}/ingredients`, {
-          headers,
-        }),
+      const fresh = { forceRefetch: true };
+      const [payments, invoices, ingredients] = await Promise.all([
+        dispatch(
+          vendorsApi.endpoints.getVendorPayments.initiate(vendor.id, fresh),
+        ).unwrap(),
+        dispatch(
+          vendorsApi.endpoints.getVendorInvoices.initiate(vendor.id, fresh),
+        ).unwrap(),
+        dispatch(
+          vendorsApi.endpoints.getVendorIngredients.initiate(vendor.id, fresh),
+        ).unwrap(),
       ]);
-      const [pData, iData, ingData] = await Promise.all([
-        pRes.json(),
-        iRes.json(),
-        ingRes.json(),
-      ]);
-      setDetailModal({
-        open: true,
-        vendor,
-        payments: pData.data || [],
-        invoices: iData.data || [],
-        ingredients: ingData.data || [],
-      });
+      setDetailModal({ open: true, vendor, payments, invoices, ingredients });
     } catch {
       /* silent */
     }
@@ -255,18 +244,24 @@ export default function Vendors() {
       !selectedBranch?.id
     )
       return;
-    await fetch(`${API_URL}/api/vendors/payments`, {
-      method: "POST",
-      headers,
-      body: JSON.stringify({
+    try {
+      // This is money. A payment that silently fails to record is
+      // indistinguishable from one that succeeded until someone reconciles the
+      // ledger against the vendor's own statement — so this is the write on
+      // this screen that least tolerates being fire-and-forget. `.unwrap()`
+      // is what makes a rejection reach the catch below.
+      await recordVendorPayment({
         vendorId: paymentModal.vendor.id,
         restaurantId: user.restaurantId,
         branchId: selectedBranch.id,
         ...paymentForm,
         amount: Number(paymentForm.amount),
         createdById: user.id,
-      }),
-    });
+      }).unwrap();
+    } catch (error) {
+      notify(errorMessage(error));
+      return;
+    }
     setPaymentModal({ open: false, vendor: null });
     setPaymentForm({
       amount: "",
@@ -274,7 +269,6 @@ export default function Vendors() {
       paymentDate: new Date().toISOString().split("T")[0],
       notes: "",
     });
-    fetchOutstanding();
   };
 
   const createInvoice = async () => {
@@ -290,36 +284,35 @@ export default function Vendors() {
     // picks it up and sets documentUrl on the created invoice. With no
     // file attached, keep sending exactly the JSON body this page has
     // always sent (no behavior change for the no-file case).
-    if (invoiceFile) {
-      const fd = new FormData();
-      fd.append("vendorId", String(invoiceModal.vendor.id));
-      fd.append("restaurantId", String(user.restaurantId));
-      fd.append("branchId", String(selectedBranch.id));
-      fd.append("invoiceNumber", invoiceForm.invoiceNumber);
-      fd.append("invoiceDate", invoiceForm.invoiceDate);
-      fd.append("dueDate", invoiceForm.dueDate);
-      fd.append("totalAmount", String(Number(invoiceForm.totalAmount)));
-      fd.append("notes", invoiceForm.notes);
-      fd.append("createdById", String(user.id));
-      fd.append("document", invoiceFile);
-      await fetch(`${API_URL}/api/vendors/invoices`, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
-        body: fd,
-      });
-    } else {
-      await fetch(`${API_URL}/api/vendors/invoices`, {
-        method: "POST",
-        headers,
-        body: JSON.stringify({
+    try {
+      if (invoiceFile) {
+        const fd = new FormData();
+        fd.append("vendorId", String(invoiceModal.vendor.id));
+        fd.append("restaurantId", String(user.restaurantId));
+        fd.append("branchId", String(selectedBranch.id));
+        fd.append("invoiceNumber", invoiceForm.invoiceNumber);
+        fd.append("invoiceDate", invoiceForm.invoiceDate);
+        fd.append("dueDate", invoiceForm.dueDate);
+        fd.append("totalAmount", String(Number(invoiceForm.totalAmount)));
+        fd.append("notes", invoiceForm.notes);
+        fd.append("createdById", String(user.id));
+        fd.append("document", invoiceFile);
+        await createVendorInvoice(fd).unwrap();
+      } else {
+        await createVendorInvoice({
           vendorId: invoiceModal.vendor.id,
           restaurantId: user.restaurantId,
           branchId: selectedBranch.id,
           ...invoiceForm,
           totalAmount: Number(invoiceForm.totalAmount),
           createdById: user.id,
-        }),
-      });
+        }).unwrap();
+      }
+    } catch (error) {
+      // Modal stays open so the invoice details and the attached file are not
+      // lost to a retry.
+      notify(errorMessage(error));
+      return;
     }
     setInvoiceModal({ open: false, vendor: null });
     setInvoiceForm({
@@ -330,7 +323,6 @@ export default function Vendors() {
       notes: "",
     });
     setInvoiceFile(null);
-    fetchOutstanding();
   };
 
   // Mirrors ComplianceChecker.tsx's resolveDocumentUrl convention: a
@@ -345,32 +337,32 @@ export default function Vendors() {
   const openPriceHistory = async (vendor: any) => {
     setPriceHistoryModal({ open: true, vendor, data: [], loading: true });
     try {
-      const res = await fetch(
-        `${API_URL}/api/vendors/${vendor.id}/pricing-history`,
-        { headers },
-      );
-      const data = await res.json();
-      setPriceHistoryModal({
-        open: true,
-        vendor,
-        data: data.data || [],
-        loading: false,
-      });
+      const data = await dispatch(
+        vendorsApi.endpoints.getVendorPricingHistory.initiate(vendor.id),
+      ).unwrap();
+      setPriceHistoryModal({ open: true, vendor, data, loading: false });
     } catch {
       setPriceHistoryModal({ open: true, vendor, data: [], loading: false });
     }
   };
 
-  const payInvoice = async (invoiceId: number, remaining: number) => {
-    const amt = prompt(`Pay how much? (Remaining: ₹${remaining})`);
-    if (!amt || isNaN(Number(amt))) return;
-    await fetch(`${API_URL}/api/vendors/invoices/${invoiceId}/pay`, {
-      method: "PUT",
-      headers,
-      body: JSON.stringify({ amount: Number(amt) }),
-    });
+  // Validation of the amount lives in PayInvoiceDialog, which will not submit
+  // a figure that is empty, zero, negative or larger than what is owed. This
+  // handler therefore only has to record it.
+  const payInvoice = async (amount: number) => {
+    const invoiceId = payModal.invoiceId;
+    if (invoiceId === null) return;
+    try {
+      await payVendorInvoice({ invoiceId, amount }).unwrap();
+    } catch (error) {
+      notify(errorMessage(error));
+      return;
+    }
+    setPayModal({ open: false, invoiceId: null, remaining: 0 });
+    notifySuccess(`Payment of ₹${amount.toLocaleString("en-IN")} recorded`);
+    // The modal holds its rows in local state, so it is reopened to pick up
+    // the new balance; the owed totals behind it follow the ledger tag.
     if (detailModal.vendor) openDetailModal(detailModal.vendor);
-    fetchOutstanding();
   };
 
   const totalOutstanding = outstanding.reduce(
@@ -860,7 +852,7 @@ export default function Vendors() {
                 Cancel
               </button>
               <button
-                onClick={saveVendor}
+                onClick={handleSaveVendor}
                 disabled={!vendorForm.name.trim()}
                 className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-[#b10000] py-2 text-[12px] font-bold text-white disabled:opacity-40"
               >
@@ -1182,7 +1174,11 @@ export default function Vendors() {
                           {i.status !== "PAID" && (
                             <button
                               onClick={() =>
-                                payInvoice(i.id, i.totalAmount - i.paidAmount)
+                                setPayModal({
+                                  open: true,
+                                  invoiceId: i.id,
+                                  remaining: i.totalAmount - i.paidAmount,
+                                })
                               }
                               className="text-[9px] font-bold text-emerald-600 underline"
                             >
@@ -1278,8 +1274,6 @@ export default function Vendors() {
         open={reorderModal.open}
         vendor={reorderModal.vendor}
         branchId={selectedBranch?.id}
-        apiUrl={API_URL}
-        token={token}
         onClose={() => setReorderModal({ open: false, vendor: null })}
       />
 
@@ -1383,6 +1377,14 @@ export default function Vendors() {
           </div>
         </div>
       )}
+
+      <PayInvoiceDialog
+        open={payModal.open}
+        remaining={payModal.remaining}
+        submitting={payingInvoice}
+        onClose={() => setPayModal({ open: false, invoiceId: null, remaining: 0 })}
+        onSubmit={payInvoice}
+      />
     </main>
   );
 }

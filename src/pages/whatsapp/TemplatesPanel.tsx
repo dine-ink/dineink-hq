@@ -1,7 +1,12 @@
 import { useState } from "react";
 import { PlusIcon, TrashIcon, PencilSquareIcon } from "@heroicons/react/24/outline";
-import { useAppSelector } from "../../store";
-import { Button, Dialog, DeleteDialog, FormField, FormSection, Input, Textarea, Alert, EmptyState } from "../../design";
+import { useAppSelector } from "@/store";
+import {
+  useSaveWhatsAppTemplateMutation,
+  useDeleteWhatsAppTemplateMutation,
+} from "@/store/api/whatsappApi";
+import { Button, Dialog, DeleteDialog, FormField, FormSection, Input, Textarea, Alert, EmptyState } from "@/design";
+import { notify } from "@/utils/notify";
 
 export interface WhatsAppTemplate {
   id: number;
@@ -15,15 +20,15 @@ const MAX_TEMPLATES = 5;
 interface TemplatesPanelProps {
   templates: WhatsAppTemplate[];
   loading: boolean;
-  onRefetch: () => void;
 }
 
 // Template CRUD — capped at MAX_TEMPLATES per restaurant (enforced
 // server-side too; this just mirrors it so the "New Template" button
 // disables itself instead of round-tripping to find out).
-export default function TemplatesPanel({ templates, loading, onRefetch }: TemplatesPanelProps) {
-  const API_URL = import.meta.env.VITE_API_URL;
-  const { user, token } = useAppSelector((s) => s.auth);
+export default function TemplatesPanel({ templates, loading }: TemplatesPanelProps) {
+  const { user } = useAppSelector((s) => s.auth);
+  const [saveTemplate] = useSaveWhatsAppTemplateMutation();
+  const [deleteTemplate] = useDeleteWhatsAppTemplateMutation();
 
   // null = closed, "new" = create mode, a WhatsAppTemplate = edit mode.
   const [editorTarget, setEditorTarget] = useState<WhatsAppTemplate | "new" | null>(null);
@@ -66,17 +71,14 @@ export default function TemplatesPanel({ templates, loading, onRefetch }: Templa
     setSaving(true);
     setError(null);
     try {
-      const url = isEditing
-        ? `${API_URL}/api/whatsapp/templates/${user.restaurantId}/${(editorTarget as WhatsAppTemplate).id}`
-        : `${API_URL}/api/whatsapp/templates/${user.restaurantId}`;
-      const res = await fetch(url, {
-        method: isEditing ? "PUT" : "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ name: name.trim(), message: message.trim() }),
-      });
-      const json = await res.json();
-      if (!res.ok || !json.success) throw new Error(json?.message || `Failed to ${isEditing ? "update" : "create"} template`);
-      onRefetch();
+      // No onRefetch: the mutation invalidates the template tag and whoever
+      // is displaying the list updates itself.
+      await saveTemplate({
+        restaurantId: user.restaurantId,
+        id: isEditing ? (editorTarget as WhatsAppTemplate).id : undefined,
+        name: name.trim(),
+        message: message.trim(),
+      }).unwrap();
       resetAndClose();
     } catch (err: any) {
       setError(err?.message || "Something went wrong.");
@@ -88,12 +90,14 @@ export default function TemplatesPanel({ templates, loading, onRefetch }: Templa
   const handleDelete = async () => {
     if (!user?.restaurantId || !deleteTarget) return;
     try {
-      const res = await fetch(`${API_URL}/api/whatsapp/templates/${user.restaurantId}/${deleteTarget.id}`, {
-        method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const json = await res.json();
-      if (json.success) onRefetch();
+      await deleteTemplate({
+        restaurantId: user.restaurantId,
+        id: deleteTarget.id,
+      }).unwrap();
+    } catch {
+      // Was swallowed entirely: a refused delete closed the dialog and left
+      // the template in the list with nothing said.
+      notify("Failed to delete this template");
     } finally {
       setDeleteTarget(null);
     }

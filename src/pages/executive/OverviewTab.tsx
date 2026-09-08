@@ -1,9 +1,16 @@
 import { useEffect, useState } from "react";
-import { useAppSelector } from "../../store";
+import { useAppSelector } from "@/store";
+import {
+  useGetExecutiveAlertsQuery,
+  useGetExecutiveOverviewQuery,
+  useGetExecutivePreferencesQuery,
+  useGetHealthScoreQuery,
+  useSaveExecutivePreferencesMutation,
+} from "@/store/api/executiveApi";
 import { ALL_KPI_LABELS, fmtCategoryValue, PERIOD_OPTIONS, STATUS_STYLES, WIDGET_KPIS } from "./executiveCategories";
-import { AlertIcon, TrendIcon } from "../../utils/kpiDisplay";
-import { ALERT_STYLES, trendStyle } from "../../utils/kpiStyles";
-import MobileTableCards from "../../components/common/MobileTableCards";
+import { AlertIcon, TrendIcon } from "@/utils/kpiDisplay";
+import { ALERT_STYLES, trendStyle } from "@/utils/kpiStyles";
+import MobileTableCards from "@/components/common/MobileTableCards";
 import {
   Cog6ToothIcon,
   EllipsisVerticalIcon,
@@ -13,89 +20,89 @@ import {
 
 export default function OverviewTab() {
   const { selectedBranch } = useAppSelector((s) => s.branch);
-  const { user, token } = useAppSelector((s) => s.auth);
-  const API_URL = import.meta.env.VITE_API_URL;
+  const { user } = useAppSelector((s) => s.auth);
 
   const [scope, setScope] = useState<"branch" | "restaurant">("branch");
   const [period, setPeriod] = useState("currentMonth");
-  const [overview, setOverview] = useState<any>(null);
-  const [health, setHealth] = useState<any>(null);
-  const [alerts, setAlerts] = useState<any[]>([]);
-  const [loading, setLoading] = useState(false);
   const [showCustomize, setShowCustomize] = useState(false);
   const [pinnedKpis, setPinnedKpis] = useState<string[]>(WIDGET_KPIS);
 
-  const branchParam = scope === "branch" && selectedBranch?.id ? `branchId=${selectedBranch.id}` : "";
+  const restaurantId = user?.restaurantId as number;
+  const skip = !user?.restaurantId;
+  const execScope = {
+    restaurantId,
+    branchId: scope === "branch" ? selectedBranch?.id : null,
+    period,
+  };
 
+  const overviewQuery = useGetExecutiveOverviewQuery(execScope, { skip });
+  const healthQuery = useGetHealthScoreQuery(execScope, { skip });
+  const alertsQuery = useGetExecutiveAlertsQuery(execScope, { skip });
+  const { data: preferences } = useGetExecutivePreferencesQuery({ restaurantId }, { skip });
+  const [savePreferencesMutation] = useSaveExecutivePreferencesMutation();
+
+  const overview = overviewQuery.data;
+  const health = healthQuery.data;
+  const alerts: any[] = alertsQuery.data ?? [];
+  const loading = overviewQuery.isFetching || healthQuery.isFetching || alertsQuery.isFetching;
+
+  // Applies the saved layout once it arrives. Both are local state after that,
+  // because the person edits them directly.
   useEffect(() => {
-    const fetchPreferences = async () => {
-      if (!user?.restaurantId) return;
-      try {
-        const res = await fetch(`${API_URL}/api/executive/${user.restaurantId}/preferences`, { headers: { Authorization: `Bearer ${token}` } });
-        const json = await res.json();
-        if (json.success && json.data?.pinnedKpis) setPinnedKpis(json.data.pinnedKpis);
-        if (json.success && json.data?.defaultPeriod) setPeriod(json.data.defaultPeriod);
-      } catch {
-        // fetch error — silently ignored
-      }
-    };
-    fetchPreferences();
-  }, [user?.restaurantId]);
+    if (preferences?.pinnedKpis) setPinnedKpis(preferences.pinnedKpis);
+    if (preferences?.defaultPeriod) setPeriod(preferences.defaultPeriod);
+  }, [preferences]);
 
-  useEffect(() => {
-    const fetchAll = async () => {
-      if (!user?.restaurantId) return;
-      setLoading(true);
-      try {
-        const qs = `period=${period}${branchParam ? `&${branchParam}` : ""}`;
-        const [overviewRes, healthRes, alertsRes] = await Promise.all([
-          fetch(`${API_URL}/api/executive/${user.restaurantId}/overview?${qs}`, { headers: { Authorization: `Bearer ${token}` } }),
-          fetch(`${API_URL}/api/executive/${user.restaurantId}/health-score?${qs}`, { headers: { Authorization: `Bearer ${token}` } }),
-          fetch(`${API_URL}/api/executive/${user.restaurantId}/alerts?${qs}`, { headers: { Authorization: `Bearer ${token}` } }),
-        ]);
-        const [overviewJson, healthJson, alertsJson] = await Promise.all([overviewRes.json(), healthRes.json(), alertsRes.json()]);
-        if (overviewJson.success) setOverview(overviewJson.data);
-        if (healthJson.success) setHealth(healthJson.data);
-        if (alertsJson.success) setAlerts(alertsJson.data);
-      } catch {
-        // fetch error — silently ignored
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchAll();
-  }, [user?.restaurantId, selectedBranch?.id, scope, period]);
 
-  const savePreferences = async (next: { pinnedKpis?: string[]; defaultPeriod?: string }) => {
+
+  /**
+   * These saves are optimistic — the pin or reorder is applied on screen first
+   * and persisted after. When the save failed, nothing happened at all: the new
+   * layout stayed on screen and quietly reverted on the next page load, which
+   * reads as the app forgetting the setting rather than as a failure.
+   *
+   * `rollback` puts the UI back instead. An alert on every pin click would be
+   * disproportionate for a layout preference; the pin visibly snapping back is
+   * the feedback, and the real reason goes to the console for diagnosis. The
+   * response is also checked now — this only awaited the request, so a 400 was
+   * as invisible as a thrown error.
+   */
+  const savePreferences = async (
+    next: { pinnedKpis?: string[]; defaultPeriod?: string },
+    rollback?: () => void,
+  ) => {
     if (!user?.restaurantId) return;
     try {
-      await fetch(`${API_URL}/api/executive/${user.restaurantId}/preferences`, {
-        method: "PUT", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ restaurantId: user.restaurantId, ...next }),
-      });
-    } catch {
-      // save error — silently ignored
+      // `.unwrap()` is what makes a rejected save throw — without it the
+      // promise resolves either way and the rollback below never runs.
+      await savePreferencesMutation({ restaurantId, ...next }).unwrap();
+    } catch (error) {
+      console.error("[executive] could not save dashboard preferences:", error);
+      rollback?.();
     }
   };
 
   const togglePin = (key: string) => {
+    const previous = pinnedKpis;
     const next = pinnedKpis.includes(key) ? pinnedKpis.filter((k) => k !== key) : [...pinnedKpis, key];
     setPinnedKpis(next);
-    savePreferences({ pinnedKpis: next });
+    savePreferences({ pinnedKpis: next }, () => setPinnedKpis(previous));
   };
 
   const moveKpi = (index: number, direction: -1 | 1) => {
+    const previous = pinnedKpis;
     const next = [...pinnedKpis];
     const target = index + direction;
     if (target < 0 || target >= next.length) return;
     [next[index], next[target]] = [next[target], next[index]];
     setPinnedKpis(next);
-    savePreferences({ pinnedKpis: next });
+    savePreferences({ pinnedKpis: next }, () => setPinnedKpis(previous));
   };
 
   const handlePeriodChange = (value: string) => {
+    const previous = period;
     setPeriod(value);
-    savePreferences({ defaultPeriod: value });
+    savePreferences({ defaultPeriod: value }, () => setPeriod(previous));
   };
 
   const kpisByKey = overview ? Object.fromEntries(overview.kpis.map((k: any) => [k.key, k])) : {};

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import dayjs from "dayjs";
-import RestaurantSetupModal from "../../components/dashboard/RestaurantSetupModal";
+import RestaurantSetupModal from "@/components/dashboard/RestaurantSetupModal";
 import StatsStrip from "@/components/StatsStrip";
 import CommonTable from "@/components/common/CommonTable";
 import { logoMarkClasses } from "@/components/common/logoTokens";
@@ -13,7 +13,7 @@ import {
   useGetFinanceSummaryQuery,
   useGetRatioReportQuery,
 } from "@/store/api/dashboardApi";
-import { useAppSelector } from "../../store";
+import { useAppSelector } from "@/store";
 import {
   ResponsiveContainer,
   AreaChart,
@@ -125,6 +125,26 @@ export default function Dashboard() {
     }
     return data;
   })();
+
+  /**
+   * The two series above are the same chart over different X axes: a single day
+   * is plotted by hour under `label`, a range by day under `date`, which is why
+   * the XAxis `dataKey` switches alongside the data. Their inferred types
+   * therefore differ, and Recharts' `data` prop is homogeneous — it takes
+   * `ChartData<T>`, not a union of two array types.
+   *
+   * Declaring the row shape once, with both X keys optional, collapses the
+   * union at the point of choice rather than casting at the point of use.
+   */
+  type DashboardChartRow = {
+    label?: string;
+    date?: string;
+    revenue: number;
+    orders: number;
+  };
+  const activeChartData: DashboardChartRow[] = isSingleDay
+    ? hourlyChartData
+    : chartData;
 
   const hasRevenueData = isSingleDay
     ? hourlyChartData.some((h) => h.revenue > 0)
@@ -455,7 +475,7 @@ export default function Dashboard() {
                 </div>
               ) : (
                 <ResponsiveContainer width="100%" height={200}>
-                  <BarChart data={isSingleDay ? hourlyChartData : chartData}>
+                  <BarChart data={activeChartData}>
                     <CartesianGrid
                       strokeDasharray="3 3"
                       vertical={false}
@@ -626,10 +646,10 @@ export default function Dashboard() {
                       className="rounded-xl border border-gray-100 bg-gray-50/60 p-2.5 transition hover:bg-gray-50"
                     >
                       <div className="flex items-center justify-between gap-2">
-                        <p className="truncate text-[12px] font-semibold text-gray-900">
+                        <p className="min-w-0 truncate text-[12px] font-semibold text-gray-900">
                           {item.name}
                         </p>
-                        <div className="flex h-7 min-w-[32px] items-center justify-center rounded-lg bg-[#b10000] px-2 text-[11px] font-bold text-white">
+                        <div className="flex h-7 min-w-[32px] shrink-0 items-center justify-center rounded-lg bg-[#b10000] px-2 text-[11px] font-bold text-white">
                           {item.quantity}
                         </div>
                       </div>
@@ -688,11 +708,11 @@ export default function Dashboard() {
                         className="rounded-xl border border-gray-100 bg-gray-50/60 p-2.5 transition hover:bg-gray-50"
                       >
                         <div className="flex items-center justify-between gap-2">
-                          <p className="truncate text-[12px] font-semibold text-gray-900">
+                          <p className="min-w-0 truncate text-[12px] font-semibold text-gray-900">
                             {cat.name}
                           </p>
                           <div
-                            className={`flex h-7 min-w-[32px] items-center justify-center rounded-lg px-2 text-[11px] font-bold text-white ${colors[i] || "bg-gray-400"}`}
+                            className={`flex h-7 min-w-[32px] shrink-0 items-center justify-center rounded-lg px-2 text-[11px] font-bold text-white ${colors[i] || "bg-gray-400"}`}
                           >
                             {cat.quantity}
                           </div>

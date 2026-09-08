@@ -1,47 +1,35 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { useGetPeakHourForecastQuery } from "@/store/api/forecastApi";
 import { ClockIcon, UsersIcon } from "@heroicons/react/24/outline";
 import { BarChart, Bar, CartesianGrid, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
-import { useAppSelector } from "../../store";
-import { MetricCard } from "../../design";
+import { useAppSelector } from "@/store";
+import { MetricCard } from "@/design";
 import { CONFIDENCE_STYLES, MODEL_OPTIONS, PERIOD_OPTIONS } from "./forecastCategories";
-import { TrendIcon } from "../../utils/kpiDisplay";
-import { trendStyle } from "../../utils/kpiStyles";
+import { TrendIcon } from "@/utils/kpiDisplay";
+import { trendStyle } from "@/utils/kpiStyles";
 
 const TICK = { fontSize: 10, fill: "#6b7280" };
 const CHART_CARD = "overflow-hidden rounded-xl border border-gray-200 bg-white p-3 shadow-sm";
 
 export default function PeakHourForecastTab() {
   const { selectedBranch } = useAppSelector((s) => s.branch);
-  const { user, token } = useAppSelector((s) => s.auth);
-  const API_URL = import.meta.env.VITE_API_URL;
+  const { user } = useAppSelector((s) => s.auth);
 
   const [scope, setScope] = useState<"branch" | "restaurant">("branch");
   const [period, setPeriod] = useState("NEXT_MONTH");
   const [model, setModel] = useState("HISTORICAL_TREND");
-  const [data, setData] = useState<any>(null);
-  const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    const fetchPeakHour = async () => {
-      if (!user?.restaurantId) return;
-      setLoading(true);
-      try {
-        const branchParam = scope === "branch" && selectedBranch?.id ? `&branchId=${selectedBranch.id}` : "";
-        const res = await fetch(`${API_URL}/api/forecasts/${user.restaurantId}/peak-hour?period=${period}&model=${model}${branchParam}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        const json = await res.json();
-        if (json.success) setData(json.data);
-        else setData(null);
-      } catch {
-        // fetch error — silently ignored
-        setData(null);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchPeakHour();
-  }, [user?.restaurantId, selectedBranch?.id, scope, period, model]);
+  // On failure this used to set data to null; RTK Query leaves it undefined,
+  // which the `data && ...` guards below treat identically.
+  const { data, isFetching: loading } = useGetPeakHourForecastQuery(
+    {
+      restaurantId: user?.restaurantId as number,
+      branchId: scope === "branch" ? selectedBranch?.id : undefined,
+      period,
+      model,
+    },
+    { skip: !user?.restaurantId },
+  );
 
   // perPeriod is the busiest hour's projected TOTAL order count, one entry
   // per future week/month in the horizon — not an hour-of-day breakdown

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import ExcelJS from "exceljs";
@@ -8,8 +8,9 @@ import {
   ArrowDownTrayIcon,
   PrinterIcon,
 } from "@heroicons/react/24/outline";
-import { useAppSelector } from "../../store";
-import MobileTableCards from "../../components/common/MobileTableCards";
+import { useAppSelector } from "@/store";
+import { useGetFinancialStatementQuery } from "@/store/api/reportsApi";
+import MobileTableCards from "@/components/common/MobileTableCards";
 
 const STATEMENT_TYPES: { key: string; label: string }[] = [
   { key: "pnl", label: "Profit & Loss" },
@@ -48,36 +49,27 @@ const fmtValue = (row: { value: number | string; unit?: string }) => {
 
 export default function FinancialStatements() {
   const { selectedBranch } = useAppSelector((s) => s.branch);
-  const { user, token } = useAppSelector((s) => s.auth);
-  const API_URL = import.meta.env.VITE_API_URL;
+  const { user } = useAppSelector((s) => s.auth);
 
   const [statementType, setStatementType] = useState("pnl");
   const [period, setPeriod] = useState("currentMonth");
-  const [statement, setStatement] = useState<any>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    const fetchStatement = async () => {
-      if (!user?.restaurantId || !selectedBranch?.id) return;
-      setLoading(true);
-      setError(null);
-      try {
-        const res = await fetch(
-          `${API_URL}/api/finance/${user.restaurantId}/${selectedBranch.id}/statements/${statementType}?period=${period}`,
-          { headers: { Authorization: `Bearer ${token}` } },
-        );
-        const json = await res.json();
-        if (json.success) setStatement(json.data);
-        else setError(json.message || "Failed to load statement");
-      } catch {
-        setError("Failed to load statement");
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchStatement();
-  }, [statementType, period, selectedBranch?.id, user?.restaurantId]);
+  // Keyed by statement type and period, so switching between P&L, balance
+  // sheet and cash flow — which people do repeatedly while reading — no longer
+  // refetches each one every time.
+  const {
+    data: statement,
+    isFetching: loading,
+    isError,
+  } = useGetFinancialStatementQuery(
+    {
+      restaurantId: user?.restaurantId as number,
+      branchId: selectedBranch?.id as number,
+      statementType,
+      period,
+    },
+    { skip: !user?.restaurantId || !selectedBranch?.id },
+  );
+  const error = isError ? "Failed to load statement" : null;
 
   const handleExportPDF = () => {
     if (!statement) return;

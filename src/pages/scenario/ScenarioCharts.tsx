@@ -14,6 +14,7 @@ import {
   Legend,
   Cell,
 } from "recharts";
+import { tooltipFormatter } from "@/utils/chartFormatters";
 import { fmtCategoryValue } from "./scenarioCategories";
 
 const TICK = { fontSize: 10, fill: "#6b7280" };
@@ -51,7 +52,7 @@ function BaselineVsProjectedChart({ mode, baseline, projected, unit, color }: { 
           <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
           <XAxis type="number" tick={TICK} axisLine={false} tickLine={false} tickFormatter={tickFormatter} />
           <YAxis type="category" dataKey="name" tick={TICK} axisLine={false} tickLine={false} width={110} />
-          <Tooltip formatter={(v: number) => fmtCategoryValue(v, unit as any)} />
+          <Tooltip formatter={tooltipFormatter((v) => fmtCategoryValue(v, unit as any))} />
           <Bar dataKey="baseline" stackId="a" name="Baseline" fill="#9ca3af" radius={[4, 0, 0, 4]} />
           <Bar dataKey="delta" stackId="a" name="Increase" fill="#10b981" radius={[0, 4, 4, 0]} />
           <Bar dataKey="negDelta" stackId="a" name="Decrease" fill="#ef4444" radius={[0, 4, 4, 0]} />
@@ -67,7 +68,7 @@ function BaselineVsProjectedChart({ mode, baseline, projected, unit, color }: { 
           <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
           <XAxis dataKey="name" tick={TICK} axisLine={false} tickLine={false} />
           <YAxis tick={TICK} axisLine={false} tickLine={false} tickFormatter={tickFormatter} />
-          <Tooltip formatter={(v: number) => fmtCategoryValue(v, unit as any)} />
+          <Tooltip formatter={tooltipFormatter((v) => fmtCategoryValue(v, unit as any))} />
           <Line type="monotone" dataKey="value" stroke={color} strokeWidth={2} dot={{ r: 4 }} />
         </LineChart>
       ) : mode === "area" ? (
@@ -75,7 +76,7 @@ function BaselineVsProjectedChart({ mode, baseline, projected, unit, color }: { 
           <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
           <XAxis dataKey="name" tick={TICK} axisLine={false} tickLine={false} />
           <YAxis tick={TICK} axisLine={false} tickLine={false} tickFormatter={tickFormatter} />
-          <Tooltip formatter={(v: number) => fmtCategoryValue(v, unit as any)} />
+          <Tooltip formatter={tooltipFormatter((v) => fmtCategoryValue(v, unit as any))} />
           <Area type="monotone" dataKey="value" stroke={color} fill={color} fillOpacity={0.2} />
         </AreaChart>
       ) : (
@@ -83,7 +84,7 @@ function BaselineVsProjectedChart({ mode, baseline, projected, unit, color }: { 
           <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
           <XAxis dataKey="name" tick={TICK} axisLine={false} tickLine={false} />
           <YAxis tick={TICK} axisLine={false} tickLine={false} tickFormatter={tickFormatter} />
-          <Tooltip formatter={(v: number) => fmtCategoryValue(v, unit as any)} />
+          <Tooltip formatter={tooltipFormatter((v) => fmtCategoryValue(v, unit as any))} />
           <Bar dataKey="value" radius={[4, 4, 0, 0]}>
             <Cell fill="#9ca3af" />
             <Cell fill={color} />
@@ -104,7 +105,7 @@ export default function ScenarioCharts({ kpis }: { kpis: any[] }) {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h4 className="text-[13px] font-bold text-gray-900">Baseline vs Projected</h4>
         <div className="flex items-center gap-1 rounded-xl bg-gray-100 p-1">
           {(["line", "bar", "area", "stacked"] as ChartMode[]).map((m) => (
@@ -129,7 +130,7 @@ export default function ScenarioCharts({ kpis }: { kpis: any[] }) {
             <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
             <XAxis dataKey="name" tick={TICK} axisLine={false} tickLine={false} interval={0} angle={-20} textAnchor="end" height={50} />
             <YAxis tick={TICK} axisLine={false} tickLine={false} tickFormatter={(v) => `${v}%`} />
-            <Tooltip formatter={(v: number) => `${v.toFixed(1)}%`} />
+            <Tooltip formatter={tooltipFormatter((v) => `${v.toFixed(1)}%`)} />
             <Legend wrapperStyle={{ fontSize: 10 }} />
             <Bar dataKey="variancePercentage" name="Variance %" radius={[4, 4, 0, 0]}>
               {variancePctData.map((d, i) => (

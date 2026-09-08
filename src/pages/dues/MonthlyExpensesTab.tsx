@@ -1,6 +1,13 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { PencilSquareIcon, PlusIcon, TrashIcon } from "@heroicons/react/24/outline";
-import { useAppSelector } from "../../store";
+import { useAppSelector } from "@/store";
+import { errorMessage as messageFrom } from "@/utils/apiRequest";
+import {
+  useCreateMonthlyDueMutation,
+  useDeleteMonthlyDueMutation,
+  useGetMonthlyDuesQuery,
+  useUpdateMonthlyDueMutation,
+} from "@/store/api/duesApi";
 import {
   Alert,
   Button,
@@ -14,7 +21,7 @@ import {
   Select,
   StatusChip,
   Textarea,
-} from "../../design";
+} from "@/design";
 import {
   DUE_CATEGORIES,
   STATUS_TO_CHIP,
@@ -37,13 +44,29 @@ interface MergedRow {
 }
 
 export default function MonthlyExpensesTab({ month, year }: MonthlyExpensesTabProps) {
-  const API_URL = import.meta.env.VITE_API_URL;
-  const { user, token } = useAppSelector((s) => s.auth);
+  // No API_URL and no token here any more: fetchBaseQuery holds the base URL,
+  // and prepareHeaders reads the token straight from the store, so neither has
+  // to be threaded through the component.
+  const { user } = useAppSelector((s) => s.auth);
   const { selectedBranch } = useAppSelector((s) => s.branch);
 
-  const [dues, setDues] = useState<MonthlyDue[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(false);
+  const scope = {
+    restaurantId: user?.restaurantId as number,
+    branchId: selectedBranch?.id as number,
+    month,
+    year,
+  };
+  const canQuery = Boolean(user?.restaurantId && selectedBranch?.id);
+
+  const {
+    data: dues = [],
+    isFetching: loading,
+    isError: error,
+  } = useGetMonthlyDuesQuery(scope, { skip: !canQuery });
+
+  const [createDue] = useCreateMonthlyDueMutation();
+  const [updateDue] = useUpdateMonthlyDueMutation();
+  const [deleteDue] = useDeleteMonthlyDueMutation();
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingRow, setEditingRow] = useState<MonthlyDue | null>(null);
@@ -57,30 +80,7 @@ export default function MonthlyExpensesTab({ month, year }: MonthlyExpensesTabPr
   const [formError, setFormError] = useState<string | null>(null);
 
   const [deleteTarget, setDeleteTarget] = useState<MonthlyDue | null>(null);
-
-  const fetchDues = async () => {
-    if (!user?.restaurantId || !selectedBranch?.id) return;
-    setLoading(true);
-    setError(false);
-    try {
-      const res = await fetch(
-        `${API_URL}/api/dues/${user.restaurantId}/${selectedBranch.id}?month=${month}&year=${year}`,
-        { headers: { Authorization: `Bearer ${token}` } },
-      );
-      const json = await res.json();
-      if (json.success) setDues(json.data || []);
-      else setError(true);
-    } catch {
-      setError(true);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchDues();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.restaurantId, selectedBranch?.id, month, year]);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const merged: MergedRow[] = DUE_CATEGORIES.map((c) => ({
     key: c.key,
@@ -133,44 +133,33 @@ export default function MonthlyExpensesTab({ month, year }: MonthlyExpensesTabPr
     setSaving(true);
     setFormError(null);
     try {
-      const headers = { "Content-Type": "application/json", Authorization: `Bearer ${token}` };
-      let res: Response;
       if (editingRow) {
-        res = await fetch(`${API_URL}/api/dues/${editingRow.id}`, {
-          method: "PUT",
-          headers,
-          body: JSON.stringify({
-            amountDue: formAmountDue === "" ? undefined : Number(formAmountDue),
-            amountPaid: formAmountPaid === "" ? undefined : Number(formAmountPaid),
-            dueDate: formDueDate || undefined,
-            paidDate: formPaidDate || undefined,
-            notes: formNotes === "" ? undefined : formNotes,
-          }),
-        });
+        await updateDue({
+          id: editingRow.id,
+          amountDue: formAmountDue === "" ? undefined : Number(formAmountDue),
+          amountPaid: formAmountPaid === "" ? undefined : Number(formAmountPaid),
+          dueDate: formDueDate || undefined,
+          paidDate: formPaidDate || undefined,
+          notes: formNotes === "" ? undefined : formNotes,
+          scope,
+        }).unwrap();
       } else {
-        res = await fetch(`${API_URL}/api/dues`, {
-          method: "POST",
-          headers,
-          body: JSON.stringify({
-            branchId: selectedBranch.id,
-            category: formCategory,
-            month,
-            year,
-            amountDue: Number(formAmountDue) || 0,
-            dueDate: formDueDate || undefined,
-            notes: formNotes === "" ? undefined : formNotes,
-          }),
-        });
+        await createDue({
+          branchId: selectedBranch.id,
+          category: formCategory,
+          month,
+          year,
+          amountDue: Number(formAmountDue) || 0,
+          dueDate: formDueDate || undefined,
+          notes: formNotes === "" ? undefined : formNotes,
+          scope,
+        }).unwrap();
       }
-      const json = await res.json();
-      if (json.success) {
-        closeDialog();
-        await fetchDues();
-      } else {
-        setFormError(json.message || "Failed to save this due");
-      }
-    } catch {
-      setFormError("Failed to save this due");
+      // No manual refetch: invalidatesTags refreshes this branch/month's list,
+      // and only that one.
+      closeDialog();
+    } catch (err) {
+      setFormError(messageFrom(err, "Failed to save this due"));
     } finally {
       setSaving(false);
     }
@@ -178,18 +167,16 @@ export default function MonthlyExpensesTab({ month, year }: MonthlyExpensesTabPr
 
   const handleDelete = async () => {
     if (!deleteTarget) return;
+    setDeleteError(null);
     try {
-      const res = await fetch(`${API_URL}/api/dues/${deleteTarget.id}`, {
-        method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const json = await res.json();
-      if (json.success) {
-        setDeleteTarget(null);
-        await fetchDues();
-      }
-    } catch {
-      /* surfaced implicitly — row remains, user can retry */
+      await deleteDue({ id: deleteTarget.id, scope }).unwrap();
+      setDeleteTarget(null);
+    } catch (err) {
+      // The previous comment here claimed the failure was "surfaced implicitly
+      // — row remains, user can retry". It wasn't: a row that stays looks
+      // exactly like one nobody has deleted yet, and the `if (json.success)`
+      // above it had no else, so a server-rejected delete said nothing either.
+      setDeleteError(messageFrom(err, "Failed to delete this due"));
     }
   };
 
@@ -251,6 +238,15 @@ export default function MonthlyExpensesTab({ month, year }: MonthlyExpensesTabPr
       {error && (
         <Alert variant="danger" title="Couldn't load monthly expenses">
           Something went wrong fetching this month's dues. The table below may be incomplete — try switching months or refreshing.
+        </Alert>
+      )}
+
+      {/* A failed delete has no home inside DeleteDialog, and the dialog closes
+          on its own — so it is reported here, where the row it failed to remove
+          is still visible. */}
+      {deleteError && (
+        <Alert variant="danger" title="Couldn't delete that entry">
+          {deleteError}
         </Alert>
       )}
 
@@ -362,7 +358,10 @@ export default function MonthlyExpensesTab({ month, year }: MonthlyExpensesTabPr
 
       <DeleteDialog
         open={!!deleteTarget}
-        onClose={() => setDeleteTarget(null)}
+        onClose={() => {
+          setDeleteTarget(null);
+          setDeleteError(null);
+        }}
         onConfirm={handleDelete}
         itemLabel={deleteTarget ? `the ${categoryLabel(deleteTarget.category)} due entry` : "this due entry"}
       />

@@ -1656,8 +1656,8 @@ export async function generateExcelReport(
         ? parseFloat(
             itemsSales
               .map((i) => parseFloat(i.margin as string) || 0)
-              .sort((a, b) => a - b)
-              [Math.floor(itemsSales.length / 2)].toFixed(1),
+              .sort((a, b) => a - b)[Math.floor(itemsSales.length / 2)]
+              .toFixed(1),
           )
         : 50;
     const quadColors: Record<string, string> = {

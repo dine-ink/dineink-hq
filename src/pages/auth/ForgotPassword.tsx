@@ -7,7 +7,7 @@ import {
   EyeIcon,
   EyeSlashIcon,
 } from "@heroicons/react/24/outline";
-import Logo from "../../components/common/Logo";
+import Logo from "@/components/common/Logo";
 
 export default function ForgotPassword() {
   const navigate = useNavigate();

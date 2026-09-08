@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
-import { useAppSelector } from "../../store";
-import { Alert, EmptyState, LoadingOverlay, StatusChip } from "../../design";
+import { useAppSelector } from "@/store";
+import { useGetDuesPaymentCalendarQuery } from "@/store/api/duesApi";
+import { Alert, EmptyState, LoadingOverlay, StatusChip } from "@/design";
 import {
   SOURCE_CHIP,
   SOURCE_LABEL,
@@ -16,36 +16,27 @@ interface PaymentDayTrackerTabProps {
 }
 
 export default function PaymentDayTrackerTab({ month, year }: PaymentDayTrackerTabProps) {
-  const API_URL = import.meta.env.VITE_API_URL;
-  const { user, token } = useAppSelector((s) => s.auth);
+  const { user } = useAppSelector((s) => s.auth);
   const { selectedBranch } = useAppSelector((s) => s.branch);
 
-  const [entries, setEntries] = useState<PaymentCalendarEntry[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(false);
 
-  useEffect(() => {
-    const run = async () => {
-      if (!user?.restaurantId || !selectedBranch?.id) return;
-      setLoading(true);
-      setError(false);
-      try {
-        const { from, to } = monthRangeISO(month, year);
-        const res = await fetch(
-          `${API_URL}/api/dues/${user.restaurantId}/${selectedBranch.id}/payment-calendar?from=${from}&to=${to}`,
-          { headers: { Authorization: `Bearer ${token}` } },
-        );
-        const json = await res.json();
-        if (json.success) setEntries(json.data || []);
-        else setError(true);
-      } catch {
-        setError(true);
-      } finally {
-        setLoading(false);
-      }
-    };
-    run();
-  }, [user?.restaurantId, selectedBranch?.id, month, year]);
+  // The from/to pair is derived from the month, so it stays part of the
+  // cache key rather than being rebuilt inside a fetch.
+  const range = monthRangeISO(month, year);
+  const {
+    data: entries = [],
+    isFetching: loading,
+    isError: error,
+  } = useGetDuesPaymentCalendarQuery(
+    {
+      restaurantId: user?.restaurantId as number,
+      branchId: selectedBranch?.id as number,
+      month,
+      year,
+      ...range,
+    },
+    { skip: !user?.restaurantId || !selectedBranch?.id },
+  );
 
   if (loading) {
     return <LoadingOverlay label="Loading payment calendar..." />;

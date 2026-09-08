@@ -2,7 +2,7 @@ import { Fragment } from "react";
 import type { ReactNode } from "react";
 import { Dialog as HeadlessDialog, DialogPanel, DialogTitle, Transition, TransitionChild } from "@headlessui/react";
 import { XMarkIcon } from "@heroicons/react/24/outline";
-import { IconButton } from "../buttons/IconButton";
+import { IconButton } from "@/design/components/buttons/IconButton";
 
 export interface DialogProps {
   open: boolean;

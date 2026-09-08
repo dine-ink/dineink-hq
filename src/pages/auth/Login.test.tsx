@@ -4,7 +4,7 @@ import { MemoryRouter, Route, Routes } from "react-router-dom";
 import userEvent from "@testing-library/user-event";
 import { render, screen, waitFor } from "@testing-library/react";
 import Login from "./Login";
-import { makeTestStore } from "../../test/test-utils";
+import { makeTestStore } from "@/test/test-utils";
 
 function renderLogin() {
   const store = makeTestStore();

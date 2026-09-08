@@ -1,7 +1,18 @@
 import { useEffect, useState } from "react";
-import { useAppSelector } from "../../store";
+import { useAppDispatch, useAppSelector } from "@/store";
+import { errorMessage } from "@/utils/apiRequest";
+import {
+  budgetsApi,
+  useCreateBudgetMutation,
+  useDeleteBudgetMutation,
+  useDuplicateBudgetMutation,
+  useGetBudgetsQuery,
+  useGetFixedCostDefaultsQuery,
+  useSaveBudgetItemsMutation,
+  useUpdateBudgetMutation,
+} from "@/store/api/budgetsApi";
 import { BUDGET_CATEGORIES, BUDGET_CATEGORY_GROUPS, MONTH_NAMES, fyMonths } from "./budgetCategories";
-import MobileTableCards from "../../components/common/MobileTableCards";
+import MobileTableCards from "@/components/common/MobileTableCards";
 import {
   ArchiveBoxIcon,
   ArrowLeftIcon,
@@ -11,6 +22,8 @@ import {
   PlusIcon,
   TrashIcon,
 } from "@heroicons/react/24/outline";
+import { notify } from "@/utils/notify";
+import { confirmAction } from "@/utils/confirmAction";
 
 const currentFyStartYear = () => {
   const now = new Date();
@@ -19,11 +32,20 @@ const currentFyStartYear = () => {
 
 export default function BudgetsTab() {
   const { branches } = useAppSelector((s) => s.branch);
-  const { user, token } = useAppSelector((s) => s.auth);
-  const API_URL = import.meta.env.VITE_API_URL;
+  const { user } = useAppSelector((s) => s.auth);
+  const dispatch = useAppDispatch();
+  const restaurantId = user?.restaurantId as number;
 
-  const [budgets, setBudgets] = useState<any[]>([]);
-  const [loading, setLoading] = useState(false);
+  const { data: budgets = [], isFetching: loading } = useGetBudgetsQuery(
+    { restaurantId },
+    { skip: !user?.restaurantId },
+  );
+  const [createBudget] = useCreateBudgetMutation();
+  const [updateBudget] = useUpdateBudgetMutation();
+  const [saveBudgetItems] = useSaveBudgetItemsMutation();
+  const [duplicateBudget] = useDuplicateBudgetMutation();
+  const [deleteBudget] = useDeleteBudgetMutation();
+
   const [view, setView] = useState<"list" | "create" | "edit">("list");
   const [selectedBudget, setSelectedBudget] = useState<any>(null);
   const [gridValues, setGridValues] = useState<Record<string, number | "">>({});
@@ -38,51 +60,31 @@ export default function BudgetsTab() {
   // Fixed-cost categories (Rent, Labour, EMI, ...) are pre-filled from live
   // RestaurantInsights/payroll data whenever the create form is open — still
   // ordinary editable inputs, just not starting from a blank 0.
-  useEffect(() => {
-    if (view !== "create" || !user?.restaurantId) return;
-    const params = formBranchId === "restaurant" ? "" : `?branchId=${formBranchId}`;
-    fetch(`${API_URL}/api/budgets/${user.restaurantId}/fixed-defaults${params}`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then((res) => res.json())
-      .then((json) => {
-        if (!json.success) return;
-        setFormDefaults((prev) => ({
-          ...prev,
-          rent: String(json.data.rent || ""),
-          labour: String(json.data.labour || ""),
-          loanEmi: String(json.data.loanEmi || ""),
-          internet: String(json.data.internet || ""),
-          phoneBills: String(json.data.phoneBills || ""),
-          accounting: String(json.data.accounting || ""),
-          insurance: String(json.data.insurance || ""),
-          licenses: String(json.data.licenses || ""),
-        }));
-      })
-      .catch(() => {
-        // fixed-defaults fetch failure — fields simply stay blank/editable
-      });
-  }, [view, formBranchId, user?.restaurantId]);
+  const { data: fixedDefaults } = useGetFixedCostDefaultsQuery(
+    {
+      restaurantId,
+      branchId: formBranchId === "restaurant" ? null : Number(formBranchId),
+    },
+    { skip: view !== "create" || !user?.restaurantId },
+  );
 
-  const fetchBudgets = async () => {
-    if (!user?.restaurantId) return;
-    setLoading(true);
-    try {
-      const res = await fetch(`${API_URL}/api/budgets/${user.restaurantId}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const json = await res.json();
-      if (json.success) setBudgets(json.data);
-    } catch {
-      // fetch error — silently ignored
-    } finally {
-      setLoading(false);
-    }
-  };
-
+  // Pre-fills the fixed-cost inputs when they arrive. They stay ordinary
+  // editable fields — a failed lookup just leaves them blank, which is why this
+  // has no error path.
   useEffect(() => {
-    fetchBudgets();
-  }, [user?.restaurantId]);
+    if (!fixedDefaults) return;
+    setFormDefaults((prev) => ({
+      ...prev,
+      rent: String(fixedDefaults.rent || ""),
+      labour: String(fixedDefaults.labour || ""),
+      loanEmi: String(fixedDefaults.loanEmi || ""),
+      internet: String(fixedDefaults.internet || ""),
+      phoneBills: String(fixedDefaults.phoneBills || ""),
+      accounting: String(fixedDefaults.accounting || ""),
+      insurance: String(fixedDefaults.insurance || ""),
+      licenses: String(fixedDefaults.licenses || ""),
+    }));
+  }, [fixedDefaults]);
 
   const openCreate = () => {
     setFormName("");
@@ -94,7 +96,7 @@ export default function BudgetsTab() {
 
   const handleCreate = async () => {
     if (!formName.trim()) {
-      alert("Please enter a budget name");
+      notify("Please enter a budget name", "warning");
       return;
     }
     setSaving(true);
@@ -104,25 +106,18 @@ export default function BudgetsTab() {
         const n = Number(v);
         if (v !== "" && Number.isFinite(n)) monthlyDefaults[k] = n;
       });
-      const res = await fetch(`${API_URL}/api/budgets/${user.restaurantId}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({
+      const created = await createBudget({
+        restaurantId,
+        body: {
           name: formName.trim(),
           financialYear: formFy,
           branchId: formBranchId === "restaurant" ? null : Number(formBranchId),
           monthlyDefaults,
-        }),
-      });
-      const json = await res.json();
-      if (json.success) {
-        await fetchBudgets();
-        openDetail(json.data);
-      } else {
-        alert(json.message || "Failed to create budget");
-      }
-    } catch {
-      alert("Failed to create budget");
+        },
+      }).unwrap();
+      if (created) openDetail(created);
+    } catch (err) {
+      notify(errorMessage(err, "Failed to create budget"));
     } finally {
       setSaving(false);
     }
@@ -140,13 +135,14 @@ export default function BudgetsTab() {
 
   const handleOpenBudget = async (budgetId: number) => {
     try {
-      const res = await fetch(`${API_URL}/api/budgets/${user.restaurantId}/${budgetId}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const json = await res.json();
-      if (json.success) openDetail(json.data);
-    } catch {
-      // fetch error — silently ignored
+      // The detail response carries the line items the grid edits, so it is
+      // fetched on demand rather than taken from the list row.
+      const full = await dispatch(
+        budgetsApi.endpoints.getBudget.initiate({ restaurantId, budgetId }),
+      ).unwrap();
+      if (full) openDetail(full);
+    } catch (err) {
+      notify(errorMessage(err, "Couldn't open that budget"));
     }
   };
 
@@ -164,20 +160,14 @@ export default function BudgetsTab() {
           const [category, year, month] = key.split(":");
           return { category, year: Number(year), month: Number(month), amount: Number(amount) };
         });
-      const res = await fetch(`${API_URL}/api/budgets/${user.restaurantId}/${selectedBudget.id}/items`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ items }),
-      });
-      const json = await res.json();
-      if (json.success) {
-        setSelectedBudget(json.data);
-        await fetchBudgets();
-      } else {
-        alert(json.message || "Failed to save");
-      }
-    } catch {
-      alert("Failed to save budget items");
+      const saved = await saveBudgetItems({
+        restaurantId,
+        budgetId: selectedBudget.id,
+        items: { items },
+      }).unwrap();
+      if (saved) setSelectedBudget(saved);
+    } catch (err) {
+      notify(errorMessage(err, "Failed to save budget items"));
     } finally {
       setSaving(false);
     }
@@ -186,72 +176,55 @@ export default function BudgetsTab() {
   const handleSetStatus = async (status: "PUBLISHED" | "ARCHIVED" | "DRAFT") => {
     if (!selectedBudget) return;
     try {
-      const res = await fetch(`${API_URL}/api/budgets/${user.restaurantId}/${selectedBudget.id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ status }),
-      });
-      const json = await res.json();
-      if (json.success) {
-        setSelectedBudget(json.data);
-        await fetchBudgets();
-      }
-    } catch {
-      // save error — silently ignored
+      // Publishing or archiving used to look like it worked whichever way it
+      // went — a rejected response fell through with no else, and a thrown one
+      // was swallowed.
+      const updated = await updateBudget({
+        restaurantId,
+        budgetId: selectedBudget.id,
+        body: { status },
+      }).unwrap();
+      if (updated) setSelectedBudget(updated);
+    } catch (err) {
+      notify(errorMessage(err, "Failed to change the budget's status"));
     }
   };
 
   const handleDeleteBudget = async (budget: any) => {
-    if (!window.confirm(`Delete "${budget.name}"? This cannot be undone.`)) return;
+    const confirmed = await confirmAction({
+      title: `Delete "${budget.name}"?`,
+      message: "This cannot be undone.",
+      confirmLabel: "Delete",
+    });
+    if (!confirmed) return;
     try {
-      const res = await fetch(`${API_URL}/api/budgets/${user.restaurantId}/${budget.id}`, {
-        method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const json = await res.json();
-      if (json.success) {
-        if (selectedBudget?.id === budget.id) setView("list");
-        await fetchBudgets();
-      } else {
-        alert(json.message || "Failed to delete budget");
-      }
-    } catch {
-      alert("Failed to delete budget");
+      await deleteBudget({ restaurantId, budgetId: budget.id }).unwrap();
+      if (selectedBudget?.id === budget.id) setView("list");
+    } catch (err) {
+      notify(errorMessage(err, "Failed to delete budget"));
     }
   };
 
   const handleDuplicate = async (budgetId: number) => {
     try {
-      const res = await fetch(`${API_URL}/api/budgets/${user.restaurantId}/${budgetId}/duplicate`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({}),
-      });
-      const json = await res.json();
-      if (json.success) {
-        await fetchBudgets();
-        openDetail(json.data);
-      }
-    } catch {
-      // duplicate error — silently ignored
+      const copy = await duplicateBudget({ restaurantId, budgetId }).unwrap();
+      if (copy) openDetail(copy);
+    } catch (err) {
+      notify(errorMessage(err, "Failed to duplicate this budget"));
     }
   };
 
   const handleCopyToNextYear = async (budget: any) => {
     try {
       const nextFy = String(Number(budget.financialYear) + 1);
-      const res = await fetch(`${API_URL}/api/budgets/${user.restaurantId}/${budget.id}/duplicate`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ financialYear: nextFy, name: `${budget.name} (FY${nextFy})` }),
-      });
-      const json = await res.json();
-      if (json.success) {
-        await fetchBudgets();
-        openDetail(json.data);
-      }
-    } catch {
-      // copy error — silently ignored
+      const copy = await duplicateBudget({
+        restaurantId,
+        budgetId: budget.id,
+        body: { financialYear: nextFy, name: `${budget.name} (FY${nextFy})` },
+      }).unwrap();
+      if (copy) openDetail(copy);
+    } catch (err) {
+      notify(errorMessage(err, "Failed to copy this budget to next year"));
     }
   };
 

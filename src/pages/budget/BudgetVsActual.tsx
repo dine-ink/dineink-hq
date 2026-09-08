@@ -4,7 +4,7 @@ import BudgetsTab from "./BudgetsTab";
 import OverviewTab from "./OverviewTab";
 import BranchComparisonTab from "./BranchComparisonTab";
 import ReportsTab from "./ReportsTab";
-import TabStrip from "../../components/common/TabStrip";
+import TabStrip from "@/components/common/TabStrip";
 
 const TABS = ["Overview", "Budgets", "Branch Comparison", "Reports"];
 

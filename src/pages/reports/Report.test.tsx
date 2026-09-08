@@ -1,32 +1,44 @@
 import { describe, expect, it, vi } from "vitest";
 import { screen, waitFor, within } from "@testing-library/react";
 import Report from "./Report";
-import { authenticatedState, renderWithProviders } from "../../test/test-utils";
+import {
+  authenticatedState,
+  jsonResponse,
+  renderWithProviders,
+  requestUrl,
+} from "@/test/test-utils";
 
 const mockBills = [
   { id: 1, status: "PAID", total: 1000, discount: 0, cgst: 50, sgst: 50 },
   { id: 2, status: "PAID", total: 500, discount: 0, cgst: 0, sgst: 0 },
 ];
 
-// Report.tsx fires 9 parallel fetches on mount — this responds to each by
-// URL, returning empty-but-well-formed data for everything except bills
-// (which drives the P&L KPIs under test) and finance summary (left
-// unsuccessful so the page falls back to its bills-derived P&L math,
-// avoiding the need to fabricate a full finance-engine payload).
+// Report.tsx issues nine requests on mount — this responds to each by URL,
+// returning empty-but-well-formed data for everything except bills (which drive
+// the P&L KPIs under test) and the finance summary (left unsuccessful so the
+// page falls back to its bills-derived P&L math, rather than needing a full
+// finance-engine payload fabricated here).
+//
+// The signature matters. This used to take `(url: string)` and return a
+// `{ json }` stand-in, which worked while the page used raw fetch and broke the
+// moment it moved to RTK Query — a Request object has no `.includes`, so the
+// mock threw and every query resolved empty. requestUrl and jsonResponse exist
+// to stop that recurring; see their note in test-utils.
 function mockReportFetches() {
   vi.stubGlobal(
     "fetch",
-    vi.fn((url: string) => {
+    vi.fn((input: RequestInfo | URL) => {
+      const url = requestUrl(input);
       if (url.includes("/api/bills/")) {
-        return Promise.resolve({ json: () => Promise.resolve({ success: true, bills: mockBills }) });
+        return jsonResponse({ success: true, bills: mockBills });
       }
       if (url.includes("/api/finance/")) {
-        return Promise.resolve({ json: () => Promise.resolve({ success: false }) });
+        return jsonResponse({ success: false });
       }
       if (url.includes("/menu-management")) {
-        return Promise.resolve({ json: () => Promise.resolve({ success: true, data: { menuItems: [] } }) });
+        return jsonResponse({ success: true, data: { menuItems: [] } });
       }
-      return Promise.resolve({ json: () => Promise.resolve({ success: true, data: [] }) });
+      return jsonResponse({ success: true, data: [] });
     }),
   );
 }

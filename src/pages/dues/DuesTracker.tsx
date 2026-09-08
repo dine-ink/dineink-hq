@@ -5,7 +5,7 @@ import PaymentDayTrackerTab from "./PaymentDayTrackerTab";
 import MonthComparisonTab from "./MonthComparisonTab";
 import EbitdaTab from "./EbitdaTab";
 import { monthYearLabel } from "./duesShared";
-import TabStrip from "../../components/common/TabStrip";
+import TabStrip from "@/components/common/TabStrip";
 
 const TABS = ["Monthly Expenses", "Payment Day Tracker", "Month Comparison", "EBITDA"];
 

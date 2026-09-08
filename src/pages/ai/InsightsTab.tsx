@@ -1,37 +1,28 @@
-import { useEffect, useState } from "react";
-import { useAppSelector } from "../../store";
+import { useState } from "react";
+import { useAppSelector } from "@/store";
+import { useGetAiInsightsQuery } from "@/store/api/aiApi";
 import { CATEGORY_OPTIONS, PERIOD_OPTIONS } from "./aiCategories";
 import InsightCard from "./InsightCard";
 
 export default function InsightsTab() {
   const { selectedBranch } = useAppSelector((s) => s.branch);
-  const { user, token } = useAppSelector((s) => s.auth);
-  const API_URL = import.meta.env.VITE_API_URL;
+  const { user } = useAppSelector((s) => s.auth);
 
   const [scope, setScope] = useState<"branch" | "restaurant">("branch");
   const [period, setPeriod] = useState("currentMonth");
   const [category, setCategory] = useState("all");
-  const [insights, setInsights] = useState<any[]>([]);
-  const [loading, setLoading] = useState(false);
 
-  const branchParam = scope === "branch" && selectedBranch?.id ? `&branchId=${selectedBranch.id}` : "";
-
-  useEffect(() => {
-    const run = async () => {
-      if (!user?.restaurantId) return;
-      setLoading(true);
-      try {
-        const res = await fetch(`${API_URL}/api/ai/${user.restaurantId}/insights?period=${period}${branchParam}`, { headers: { Authorization: `Bearer ${token}` } });
-        const json = await res.json();
-        if (json.success) setInsights(json.data);
-      } catch {
-        // fetch error — silently ignored
-      } finally {
-        setLoading(false);
-      }
-    };
-    run();
-  }, [user?.restaurantId, selectedBranch?.id, scope, period]);
+  // Each of these is a model call on the server, so the cache is not just a
+  // latency win: the Reports tab asks for this same answer, and before this
+  // the model ran twice for identical parameters.
+  const { data: insights = [], isFetching: loading } = useGetAiInsightsQuery(
+    {
+      restaurantId: user?.restaurantId as number,
+      period,
+      branchId: scope === "branch" ? selectedBranch?.id : undefined,
+    },
+    { skip: !user?.restaurantId },
+  );
 
   const filtered = category === "all" ? insights : insights.filter((i) => i.category === category);
   const counts: Record<string, number> = { all: insights.length };

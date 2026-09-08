@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { ArrowsRightLeftIcon } from "@heroicons/react/24/outline";
 import {
   ResponsiveContainer,
@@ -12,7 +12,12 @@ import {
   CartesianGrid,
   Tooltip,
 } from "recharts";
-import { useAppSelector } from "../../store";
+import { tooltipFormatter } from "@/utils/chartFormatters";
+import { useAppSelector } from "@/store";
+import {
+  useGetCashProjectionQuery,
+  useGetCashInflowDailyQuery,
+} from "@/store/api/operationsApi";
 import {
   PageContainer,
   PageHeader,
@@ -24,7 +29,7 @@ import {
   colors,
   type DataTableColumn,
   type MetricStatus,
-} from "../../design";
+} from "@/design";
 
 type Horizon = "week" | "month" | "quarter";
 
@@ -108,65 +113,39 @@ function normalizeDueItem(item: unknown, idx: number, kind: "vendor" | "emi"): D
 const isoDate = (d: Date): string => d.toISOString().split("T")[0];
 
 export default function CashFlowPredictor() {
-  const API_URL = import.meta.env.VITE_API_URL;
-  const { user, token } = useAppSelector((s) => s.auth);
+  const { user } = useAppSelector((s) => s.auth);
   const { selectedBranch } = useAppSelector((s) => s.branch);
 
   const [horizon, setHorizon] = useState<Horizon>("month");
-  const [projection, setProjection] = useState<CashFlowProjection | null>(null);
-  const [projectionLoading, setProjectionLoading] = useState(false);
 
-  const [dailyInflow, setDailyInflow] = useState<DailyInflowPoint[]>([]);
-  const [dailyLoading, setDailyLoading] = useState(false);
 
-  useEffect(() => {
-    const restaurantId = user?.restaurantId;
-    const branchId = selectedBranch?.id;
-    if (!restaurantId || !branchId) return;
+  /**
+   * The daily-inflow window is the last 30 days, computed here rather than in
+   * the effect it used to live in — it is part of the cache key, so it has to
+   * be stable across renders on the same day.
+   */
+  const inflowWindow = (() => {
+    const end = new Date();
+    const start = new Date();
+    start.setDate(start.getDate() - 29);
+    return { from: isoDate(start), to: isoDate(end) };
+  })();
 
-    const fetchProjection = async () => {
-      try {
-        setProjectionLoading(true);
-        const res = await fetch(
-          `${API_URL}/api/cashflow/${restaurantId}/${branchId}/projection?horizon=${horizon}`,
-          { headers: { Authorization: `Bearer ${token}` } },
-        );
-        const json = await res.json();
-        if (json.success) setProjection(json.data);
-      } catch {
-        /* silent */
-      } finally {
-        setProjectionLoading(false);
-      }
-    };
-    fetchProjection();
-  }, [API_URL, token, user?.restaurantId, selectedBranch?.id, horizon]);
+  const scope = {
+    restaurantId: user?.restaurantId as number,
+    branchId: selectedBranch?.id as number,
+  };
+  const skip = { skip: !user?.restaurantId || !selectedBranch?.id };
 
-  useEffect(() => {
-    const restaurantId = user?.restaurantId;
-    const branchId = selectedBranch?.id;
-    if (!restaurantId || !branchId) return;
+  // The slice types these payloads `any`; the shapes are named here so the
+  // nested breakdown lists below keep their inference.
+  const { data: projectionData, isFetching: projectionLoading } =
+    useGetCashProjectionQuery({ ...scope, horizon }, skip);
+  const projection: CashFlowProjection | null = projectionData ?? null;
 
-    const fetchDailyInflow = async () => {
-      try {
-        setDailyLoading(true);
-        const to = new Date();
-        const from = new Date();
-        from.setDate(from.getDate() - 29);
-        const res = await fetch(
-          `${API_URL}/api/cashflow/${restaurantId}/${branchId}/inflow-daily?from=${isoDate(from)}&to=${isoDate(to)}`,
-          { headers: { Authorization: `Bearer ${token}` } },
-        );
-        const json = await res.json();
-        if (json.success) setDailyInflow(json.data || []);
-      } catch {
-        /* silent */
-      } finally {
-        setDailyLoading(false);
-      }
-    };
-    fetchDailyInflow();
-  }, [API_URL, token, user?.restaurantId, selectedBranch?.id]);
+  const { data: inflowData, isFetching: dailyLoading } =
+    useGetCashInflowDailyQuery({ ...scope, ...inflowWindow }, skip);
+  const dailyInflow: DailyInflowPoint[] = inflowData ?? [];
 
   if (projectionLoading && !projection) {
     return <LoadingOverlay label="Loading cash flow projection..." />;
@@ -269,7 +248,7 @@ export default function CashFlowPredictor() {
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={colors.neutral[100]} />
               <XAxis dataKey="name" tick={TICK} axisLine={false} tickLine={false} />
               <YAxis tick={TICK} axisLine={false} tickLine={false} />
-              <Tooltip formatter={(v: number) => formatCurrency(v)} />
+              <Tooltip formatter={tooltipFormatter((v) => formatCurrency(v))} />
               <Bar dataKey="value" name="Amount" radius={[4, 4, 0, 0]}>
                 {comparisonData.map((entry) => (
                   <Cell key={entry.name} fill={entry.fill} />
@@ -289,7 +268,7 @@ export default function CashFlowPredictor() {
                 <XAxis dataKey="date" tick={TICK} axisLine={false} tickLine={false} interval={4} />
                 <YAxis tick={TICK} axisLine={false} tickLine={false} />
                 <Tooltip
-                  formatter={(v: number, name: string) => (name === "Revenue" ? formatCurrency(v) : v)}
+                  formatter={tooltipFormatter((v, name) => (name === "Revenue" ? formatCurrency(v) : v))}
                   labelFormatter={(v) => formatDate(v as string)}
                 />
                 <Line

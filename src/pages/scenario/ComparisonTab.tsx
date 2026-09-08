@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
-import { useAppSelector } from "../../store";
+import { useAppSelector } from "@/store";
+import { useGetScenariosQuery, useGetWhatIfBatchQuery } from "@/store/api/scenariosApi";
+import { useGetBudgetsQuery, useGetBudgetVarianceQuery } from "@/store/api/budgetsApi";
 import { fmtCategoryValue, SCENARIO_KPIS } from "./scenarioCategories";
-import MobileTableCards from "../../components/common/MobileTableCards";
+import MobileTableCards from "@/components/common/MobileTableCards";
 
 const PERIODS = [
   { key: "currentMonth", label: "Current Month" },
@@ -21,90 +23,67 @@ const MAX_SELECTED_SCENARIOS = 4;
 
 export default function ComparisonTab() {
   const { branches } = useAppSelector((s) => s.branch);
-  const { user, token } = useAppSelector((s) => s.auth);
-  const API_URL = import.meta.env.VITE_API_URL;
+  const { user } = useAppSelector((s) => s.auth);
 
   // Independent of the global top-nav branch selector — same convention as
   // the Scenarios tab's own scope dropdown, so a restaurant-wide custom
   // scenario stays visible here regardless of which branch happens to be
   // selected in the top nav, and vice versa.
   const [scopeBranchId, setScopeBranchId] = useState<string>("restaurant");
-  const [scenarios, setScenarios] = useState<any[]>([]);
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [period, setPeriod] = useState("currentMonth");
-  const [budgetColumn, setBudgetColumn] = useState<Record<string, number | null> | null>(null);
-  const [results, setResults] = useState<Record<number, any>>({});
-  const [loading, setLoading] = useState(false);
 
+  const restaurantId = user?.restaurantId as number;
+
+  const { data: scenarios = [] } = useGetScenariosQuery(
+    {
+      restaurantId,
+      branchId: scopeBranchId === "restaurant" ? null : Number(scopeBranchId),
+      activeOnly: true,
+    },
+    { skip: !user?.restaurantId },
+  );
+
+  // One cache entry for the whole selected set — a hook cannot be called once
+  // per id, so the fan-out lives in the endpoint (see getWhatIfBatch).
+  const { data: results = {}, isFetching: loading } = useGetWhatIfBatchQuery(
+    { restaurantId, scenarioIds: selectedIds, period },
+    { skip: !user?.restaurantId || selectedIds.length === 0 },
+  );
+
+  // Pre-select up to the max so the table isn't empty on first load, without
+  // silently dropping scenarios beyond the cap — the rest are just left
+  // unselected, still pickable via the chips below.
   useEffect(() => {
-    const fetchScenarios = async () => {
-      if (!user?.restaurantId) return;
-      try {
-        const branchParam = scopeBranchId === "restaurant" ? "null" : scopeBranchId;
-        const res = await fetch(`${API_URL}/api/scenarios/${user.restaurantId}?branchId=${branchParam}&activeOnly=true`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        const json = await res.json();
-        if (json.success) {
-          setScenarios(json.data);
-          // Pre-select up to the max so the table isn't empty on first load,
-          // without silently dropping scenarios beyond the cap — the rest are
-          // just left unselected, still pickable via the chips below.
-          setSelectedIds(json.data.slice(0, MAX_SELECTED_SCENARIOS).map((s: any) => s.id));
-        }
-      } catch {
-        // fetch error — silently ignored
-      }
-    };
-    fetchScenarios();
-  }, [user?.restaurantId, scopeBranchId]);
+    setSelectedIds(scenarios.slice(0, MAX_SELECTED_SCENARIOS).map((s) => s.id));
+  }, [scenarios]);
 
-  useEffect(() => {
-    const fetchComparison = async () => {
-      if (selectedIds.length === 0 || !user?.restaurantId) {
-        setResults({});
-        return;
-      }
-      setLoading(true);
-      try {
-        const entries = await Promise.all(
-          selectedIds.map(async (id) => {
-            const res = await fetch(`${API_URL}/api/scenarios/${user.restaurantId}/${id}/what-if?period=${period}`, {
-              method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: "{}",
-            });
-            const json = await res.json();
-            return [id, json.data] as const;
-          }),
-        );
-        setResults(Object.fromEntries(entries));
+  // The optional Budget column, now on the budgets slice — this was the call
+  // deliberately left on fetch when the scenarios module was migrated, because
+  // it belongs to a different module.
+  const budgetBranchId = scopeBranchId === "restaurant" ? null : Number(scopeBranchId);
+  const { data: publishedBudgets = [] } = useGetBudgetsQuery(
+    { restaurantId, branchId: budgetBranchId, status: "PUBLISHED" },
+    { skip: !user?.restaurantId || selectedIds.length === 0 },
+  );
 
-        // Optional Budget column — reuses the Budget module's own variance
-        // endpoint rather than re-deriving budget figures; skipped silently
-        // if no published budget exists for this scope.
-        const budgetBranchId = scopeBranchId === "restaurant" ? null : Number(scopeBranchId);
-        const branchParam = budgetBranchId ? `?branchId=${budgetBranchId}&status=PUBLISHED` : "?status=PUBLISHED";
-        const budgetListRes = await fetch(`${API_URL}/api/budgets/${user.restaurantId}${branchParam}`, { headers: { Authorization: `Bearer ${token}` } });
-        const budgetListJson = await budgetListRes.json();
-        const budget = budgetBranchId
-          ? budgetListJson.data?.find((b: any) => b.branchId === budgetBranchId)
-          : budgetListJson.data?.find((b: any) => b.branchId === null) || budgetListJson.data?.[0];
-        if (budget) {
-          const varianceRes = await fetch(`${API_URL}/api/budgets/${user.restaurantId}/${budget.id}/variance?period=${period}`, { headers: { Authorization: `Bearer ${token}` } });
-          const varianceJson = await varianceRes.json();
-          const byCategory: Record<string, number | null> = {};
-          (varianceJson.data?.rows || []).forEach((r: any) => { byCategory[r.category] = r.budget; });
-          setBudgetColumn(byCategory);
-        } else {
-          setBudgetColumn(null);
-        }
-      } catch {
-        // fetch error — silently ignored
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchComparison();
-  }, [selectedIds, period, user?.restaurantId, scopeBranchId]);
+  const budget = budgetBranchId
+    ? publishedBudgets.find((b) => b.branchId === budgetBranchId)
+    : publishedBudgets.find((b) => b.branchId === null) || publishedBudgets[0];
+
+  const { data: budgetVariance } = useGetBudgetVarianceQuery(
+    { restaurantId, budgetId: budget?.id as number, period },
+    { skip: !budget?.id },
+  );
+
+  // No published budget for this scope is an ordinary state, not a failure —
+  // the column simply does not render.
+  const budgetColumn = useMemo(() => {
+    if (!budgetVariance?.rows) return null;
+    const byCategory: Record<string, number | null> = {};
+    budgetVariance.rows.forEach((r) => { byCategory[r.category] = r.budget; });
+    return byCategory;
+  }, [budgetVariance]);
 
   const toggleScenario = (id: number) => {
     setSelectedIds((prev) => {

@@ -1,12 +1,19 @@
-import { useEffect, useState } from "react";
+import { useMemo, useState } from "react";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import ExcelJS from "exceljs";
 import { saveAs } from "file-saver";
 import { ArrowDownTrayIcon, PrinterIcon } from "@heroicons/react/24/outline";
-import { useAppSelector } from "../../store";
+import { useAppSelector } from "@/store";
+import {
+  useGetAiExecutiveBriefQuery,
+  useGetAiInsightsQuery,
+  useGetAiRisksQuery,
+  useGetAiOpportunitiesQuery,
+  useGetAiBranchNarrativesQuery,
+} from "@/store/api/aiApi";
 import { PERIOD_OPTIONS } from "./aiCategories";
-import MobileTableCards from "../../components/common/MobileTableCards";
+import MobileTableCards from "@/components/common/MobileTableCards";
 
 const REPORT_TYPES = [
   { key: "executive", label: "AI Executive Report" },
@@ -18,70 +25,117 @@ const REPORT_TYPES = [
 ];
 
 export default function ReportsTab() {
-  const { user, token } = useAppSelector((s) => s.auth);
-  const API_URL = import.meta.env.VITE_API_URL;
+  const { user } = useAppSelector((s) => s.auth);
 
   const [reportType, setReportType] = useState("executive");
   const [period, setPeriod] = useState("currentMonth");
-  const [loading, setLoading] = useState(false);
-  const [columns, setColumns] = useState<string[]>([]);
-  const [rows, setRows] = useState<{ label: string; values: string[] }[]>([]);
-  const [summaryLines, setSummaryLines] = useState<string[]>([]);
 
-  useEffect(() => {
-    const run = async () => {
-      if (!user?.restaurantId) return;
-      setLoading(true);
-      try {
-        if (reportType === "executive" || reportType === "weekly") {
-          const res = await fetch(`${API_URL}/api/ai/${user.restaurantId}/executive-brief?period=${period}`, { headers: { Authorization: `Bearer ${token}` } });
-          const json = await res.json();
-          const brief = json.data;
-          setSummaryLines(brief ? [
-            `Business Health: ${brief.businessHealth.overall}/100 (${brief.businessHealth.status})`,
-            `Budget Performance: ${brief.budgetPerformance}`,
-            `Forecast Summary: ${brief.forecastSummary}`,
-            `Investment Updates: ${brief.investmentUpdates}`,
-          ] : []);
-          setColumns(["Category", "Severity", "Summary"]);
-          setRows(brief ? [
-            ...brief.biggestWins.map((w: any) => ({ label: w.title, values: ["Opportunity", w.severity, w.summary] })),
-            ...brief.biggestRisks.map((r: any) => ({ label: r.title, values: ["Risk", r.severity, r.summary] })),
-            ...brief.immediatePriorities.map((p: string) => ({ label: p, values: ["Priority", "—", "Immediate priority flagged by the AI Advisor"] })),
-          ] : []);
-        } else if (reportType === "insights") {
-          const res = await fetch(`${API_URL}/api/ai/${user.restaurantId}/insights?period=${period}`, { headers: { Authorization: `Bearer ${token}` } });
-          const json = await res.json();
-          setSummaryLines([]);
-          setColumns(["Category", "Severity", "Confidence", "Summary"]);
-          setRows((json.data || []).map((i: any) => ({ label: i.title, values: [i.category, i.severity, i.confidence, i.summary] })));
-        } else if (reportType === "risk") {
-          const res = await fetch(`${API_URL}/api/ai/${user.restaurantId}/risks?period=${period}`, { headers: { Authorization: `Bearer ${token}` } });
-          const json = await res.json();
-          setSummaryLines([]);
-          setColumns(["Severity", "Confidence", "Summary", "Recommended Action"]);
-          setRows((json.data || []).map((r: any) => ({ label: r.title, values: [r.severity, r.confidence, r.summary, r.recommendedActions[0] || "—"] })));
-        } else if (reportType === "opportunity") {
-          const res = await fetch(`${API_URL}/api/ai/${user.restaurantId}/opportunities?period=${period}`, { headers: { Authorization: `Bearer ${token}` } });
-          const json = await res.json();
-          setSummaryLines([]);
-          setColumns(["Confidence", "Summary", "Recommended Action"]);
-          setRows((json.data || []).map((o: any) => ({ label: o.title, values: [o.confidence, o.summary, o.recommendedActions[0] || "—"] })));
-        } else if (reportType === "branch") {
-          const res = await fetch(`${API_URL}/api/ai/${user.restaurantId}/branch-narratives?period=${period}`, { headers: { Authorization: `Bearer ${token}` } });
-          const json = await res.json();
-          setSummaryLines([]);
-          setColumns(["Health Score", "Narrative"]);
-          setRows((json.data || []).map((n: any) => ({ label: n.branchName, values: [String(n.healthScore), n.narrative] })));
-        }
-      } catch {
-        // fetch error — silently ignored
-      } finally {
-        setLoading(false);
-      }
-    };
-    run();
-  }, [reportType, period, user?.restaurantId]);
+  /**
+   * Five report shapes over five model calls. Each query is skipped unless its
+   * report type is selected, so only one ever runs — the same as the
+   * if/else-if chain this replaces.
+   *
+   * All five are the same endpoints the individual tabs use, so switching
+   * between a tab and its report no longer re-runs the model. That is the whole
+   * reason this module was worth migrating: these are not cheap reads.
+   *
+   * Note the missing branchId. This tab deliberately reports restaurant-wide
+   * while the single tabs scope to a branch, so they are separate cache
+   * entries — a different question, not a duplicate.
+   */
+  const restaurantId = user?.restaurantId as number;
+  const off = !user?.restaurantId;
+  const only = (...types: string[]) => ({
+    skip: off || !types.includes(reportType),
+  });
+
+  const briefQ = useGetAiExecutiveBriefQuery(
+    { restaurantId, period },
+    only("executive", "weekly"),
+  );
+  const insightsQ = useGetAiInsightsQuery({ restaurantId, period }, only("insights"));
+  const risksQ = useGetAiRisksQuery({ restaurantId, period }, only("risk"));
+  const oppsQ = useGetAiOpportunitiesQuery(
+    { restaurantId, period },
+    only("opportunity"),
+  );
+  const narrativesQ = useGetAiBranchNarrativesQuery(
+    { restaurantId, period },
+    only("branch"),
+  );
+
+  const loading =
+    briefQ.isFetching ||
+    insightsQ.isFetching ||
+    risksQ.isFetching ||
+    oppsQ.isFetching ||
+    narrativesQ.isFetching;
+
+  const { summaryLines, columns, rows } = useMemo((): {
+    summaryLines: string[];
+    columns: string[];
+    // The row shape the table renders, kept explicit so the render
+    // callbacks below still infer their parameters.
+    rows: { label: string; values: string[] }[];
+  } => {
+    if (reportType === "executive" || reportType === "weekly") {
+      const brief = briefQ.data;
+      return {
+        summaryLines: brief
+          ? [
+              `Business Health: ${brief.businessHealth.overall}/100 (${brief.businessHealth.status})`,
+              `Budget Performance: ${brief.budgetPerformance}`,
+              `Forecast Summary: ${brief.forecastSummary}`,
+              `Investment Updates: ${brief.investmentUpdates}`,
+            ]
+          : [],
+        columns: ["Category", "Severity", "Summary"],
+        rows: brief
+          ? [
+              ...brief.biggestWins.map((w: any) => ({ label: w.title, values: ["Opportunity", w.severity, w.summary] })),
+              ...brief.biggestRisks.map((r: any) => ({ label: r.title, values: ["Risk", r.severity, r.summary] })),
+              ...brief.immediatePriorities.map((p: string) => ({ label: p, values: ["Priority", "\u2014", "Immediate priority flagged by the AI Advisor"] })),
+            ]
+          : [],
+      };
+    }
+    if (reportType === "insights") {
+      return {
+        summaryLines: [],
+        columns: ["Category", "Severity", "Confidence", "Summary"],
+        rows: (insightsQ.data || []).map((i: any) => ({ label: i.title, values: [i.category, i.severity, i.confidence, i.summary] })),
+      };
+    }
+    if (reportType === "risk") {
+      return {
+        summaryLines: [],
+        columns: ["Severity", "Confidence", "Summary", "Recommended Action"],
+        rows: (risksQ.data || []).map((r: any) => ({ label: r.title, values: [r.severity, r.confidence, r.summary, r.recommendedActions[0] || "\u2014"] })),
+      };
+    }
+    if (reportType === "opportunity") {
+      return {
+        summaryLines: [],
+        columns: ["Confidence", "Summary", "Recommended Action"],
+        rows: (oppsQ.data || []).map((o: any) => ({ label: o.title, values: [o.confidence, o.summary, o.recommendedActions[0] || "\u2014"] })),
+      };
+    }
+    if (reportType === "branch") {
+      return {
+        summaryLines: [],
+        columns: ["Health Score", "Narrative"],
+        rows: (narrativesQ.data || []).map((n: any) => ({ label: n.branchName, values: [String(n.healthScore), n.narrative] })),
+      };
+    }
+    return { summaryLines: [], columns: [], rows: [] };
+  }, [
+    reportType,
+    briefQ.data,
+    insightsQ.data,
+    risksQ.data,
+    oppsQ.data,
+    narrativesQ.data,
+  ]);
 
   const reportTitle = REPORT_TYPES.find((r) => r.key === reportType)?.label || "AI Report";
   const rowLabel = reportType === "branch" ? "Branch" : reportType === "risk" || reportType === "opportunity" ? "Title" : "Item";

@@ -2,14 +2,14 @@
 // need a raw token value (chart colors, inline style values that can't be
 // expressed as a Tailwind class) should import `theme` from here rather
 // than reaching into individual token files directly.
-import { colors } from "../tokens/colors";
-import { spacing } from "../tokens/spacing";
-import { typography } from "../tokens/typography";
-import { radius } from "../tokens/radius";
-import { elevation } from "../tokens/shadows";
-import { breakpoints, bp } from "../tokens/breakpoints";
-import { transitions } from "../tokens/transitions";
-import { zIndex } from "../tokens/zIndex";
+import { colors } from "@/design/tokens/colors";
+import { spacing } from "@/design/tokens/spacing";
+import { typography } from "@/design/tokens/typography";
+import { radius } from "@/design/tokens/radius";
+import { elevation } from "@/design/tokens/shadows";
+import { breakpoints, bp } from "@/design/tokens/breakpoints";
+import { transitions } from "@/design/tokens/transitions";
+import { zIndex } from "@/design/tokens/zIndex";
 
 export const theme = {
   colors,

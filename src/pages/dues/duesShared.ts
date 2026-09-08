@@ -3,7 +3,7 @@
 // this is large enough to warrant its own module, mirroring how
 // src/pages/budget/budgetCategories.ts centralizes that page's category
 // metadata for its tabs to share.
-import type { ChipStatus } from "../../design";
+import type { ChipStatus } from "@/design";
 
 export type DueCategory =
   | "EB"

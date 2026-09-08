@@ -4,7 +4,7 @@
 // sole source of every projected number; this just knows what to render and
 // how to format it, reusing budgetCategories.ts's fmtCategoryValue formatter
 // instead of re-implementing currency/percentage/count formatting a second time.
-export { fmtCategoryValue } from "../budget/budgetCategories";
+export { fmtCategoryValue } from "@/pages/budget/budgetCategories";
 
 export interface ScenarioKpiDef {
   key: string;

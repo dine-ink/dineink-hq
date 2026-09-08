@@ -1,8 +1,10 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { MagnifyingGlassIcon, PaperAirplaneIcon } from "@heroicons/react/24/outline";
-import { useAppSelector } from "../../store";
-import { Button, Select, Alert, EmptyState } from "../../design";
-import { getCustomerSegment, SEGMENT_LABELS, SEGMENT_STYLES, type CustomerSegment } from "../../utils/customerSegments";
+import { useAppSelector } from "@/store";
+import { useGetCustomersByRestaurantQuery } from "@/store/api/customersApi";
+import { useSendBulkWhatsAppMutation } from "@/store/api/whatsappApi";
+import { Button, Select, Alert, EmptyState } from "@/design";
+import { getCustomerSegment, SEGMENT_LABELS, SEGMENT_STYLES, type CustomerSegment } from "@/utils/customerSegments";
 import type { WhatsAppTemplate } from "./TemplatesPanel";
 
 interface Customer {
@@ -32,12 +34,10 @@ const SEGMENT_OPTIONS: { key: CustomerSegment | "all"; label: string }[] = [
 // branch — the selected branch only tags which branch the resulting
 // WhatsAppMessageLog rows are attributed to.
 export default function BulkSendPanel({ templates }: { templates: WhatsAppTemplate[] }) {
-  const API_URL = import.meta.env.VITE_API_URL;
-  const { user, token } = useAppSelector((s) => s.auth);
+  const { user } = useAppSelector((s) => s.auth);
+  const [sendBulkWhatsApp] = useSendBulkWhatsAppMutation();
   const { selectedBranch } = useAppSelector((s) => s.branch);
 
-  const [customers, setCustomers] = useState<Customer[]>([]);
-  const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<Customer["preferredOrderType"] | "all">("all");
   const [segmentFilter, setSegmentFilter] = useState<CustomerSegment | "all">("all");
@@ -47,29 +47,15 @@ export default function BulkSendPanel({ templates }: { templates: WhatsAppTempla
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<{ total: number; sent: number; failed: number } | null>(null);
 
-  useEffect(() => {
-    const fetchCustomers = async () => {
-      if (!user?.restaurantId) return;
-      setLoading(true);
-      try {
-        // limit=5000 — the default (100) exists for the paginated Customers
-        // table; a bulk-select list needs every customer to filter/select
-        // from, not just the first page.
-        // includeBills=false — this panel only segments on lastVisit/visits/
-        // spend, so the per-customer bill history is pure payload here.
-        const res = await fetch(`${API_URL}/api/customers/${user.restaurantId}/customerByRestaurant?limit=5000&includeBills=false`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        const json = await res.json();
-        if (json.success) setCustomers(json.customers || []);
-      } catch {
-        // silent
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchCustomers();
-  }, [user?.restaurantId]);
+  /**
+   * The list to pick recipients from. The high limit and excluded bills are the
+   * endpoint's defaults now — see customersApi for why this caller wants both.
+   */
+  const { data: customers = [], isFetching: loading } =
+    useGetCustomersByRestaurantQuery(
+      { restaurantId: user?.restaurantId as number },
+      { skip: !user?.restaurantId },
+    );
 
   const filtered = useMemo(() => {
     const term = search.trim().toLowerCase();
@@ -114,18 +100,18 @@ export default function BulkSendPanel({ templates }: { templates: WhatsAppTempla
     setError(null);
     setResult(null);
     try {
-      const res = await fetch(`${API_URL}/api/whatsapp/send-bulk/${user.restaurantId}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({
-          templateId,
-          customerIds: Array.from(selectedIds),
-          branchId: selectedBranch?.id ?? null,
-        }),
-      });
-      const json = await res.json();
-      if (!res.ok || !json.success) throw new Error(json?.message || "Failed to send messages");
-      setResult(json.data);
+      // Invalidates the message log, so the Message Log tab shows these sends
+      // without the effect that used to refetch on every tab change.
+      setResult(
+        await sendBulkWhatsApp({
+          restaurantId: user.restaurantId,
+          body: {
+            templateId,
+            customerIds: Array.from(selectedIds),
+            branchId: selectedBranch?.id ?? null,
+          },
+        }).unwrap(),
+      );
       setSelectedIds(new Set());
     } catch (err: any) {
       setError(err?.message || "Something went wrong while sending.");

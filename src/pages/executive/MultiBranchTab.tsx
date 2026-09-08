@@ -1,8 +1,9 @@
-import { useEffect, useState } from "react";
-import { useAppSelector } from "../../store";
+import { useState } from "react";
+import { useAppSelector } from "@/store";
+import { useGetInsightPanelsQuery, useGetMultiBranchQuery } from "@/store/api/executiveApi";
 import { fmtCategoryValue, PERIOD_OPTIONS, STATUS_STYLES } from "./executiveCategories";
 import { BranchRankingChart, InvestmentPerformanceChart } from "./ExecutiveCharts";
-import MobileTableCards from "../../components/common/MobileTableCards";
+import MobileTableCards from "@/components/common/MobileTableCards";
 import {
   ArrowDownIcon,
   ArrowTrendingUpIcon,
@@ -11,34 +12,19 @@ import {
 } from "@heroicons/react/24/outline";
 
 export default function MultiBranchTab() {
-  const { user, token } = useAppSelector((s) => s.auth);
+  const { user } = useAppSelector((s) => s.auth);
   const API_URL = import.meta.env.VITE_API_URL;
 
   const [period, setPeriod] = useState("currentMonth");
-  const [multiBranch, setMultiBranch] = useState<any>(null);
-  const [panels, setPanels] = useState<any>(null);
-  const [loading, setLoading] = useState(false);
+  const restaurantId = user?.restaurantId as number;
+  const skip = !user?.restaurantId;
+  const multiBranchQuery = useGetMultiBranchQuery({ restaurantId, period }, { skip });
+  const panelsQuery = useGetInsightPanelsQuery({ restaurantId, period }, { skip });
+  const multiBranch = multiBranchQuery.data;
+  const panels = panelsQuery.data;
+  const loading = multiBranchQuery.isFetching || panelsQuery.isFetching;
 
-  useEffect(() => {
-    const fetchAll = async () => {
-      if (!user?.restaurantId) return;
-      setLoading(true);
-      try {
-        const [multiBranchRes, panelsRes] = await Promise.all([
-          fetch(`${API_URL}/api/executive/${user.restaurantId}/multi-branch?period=${period}`, { headers: { Authorization: `Bearer ${token}` } }),
-          fetch(`${API_URL}/api/executive/${user.restaurantId}/insight-panels?period=${period}`, { headers: { Authorization: `Bearer ${token}` } }),
-        ]);
-        const [multiBranchJson, panelsJson] = await Promise.all([multiBranchRes.json(), panelsRes.json()]);
-        if (multiBranchJson.success) setMultiBranch(multiBranchJson.data);
-        if (panelsJson.success) setPanels(panelsJson.data);
-      } catch {
-        // fetch error — silently ignored
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchAll();
-  }, [user?.restaurantId, period]);
+
 
   if (loading) return <div className="flex h-40 items-center justify-center text-[12px] text-gray-400">Loading…</div>;
   if (!multiBranch || multiBranch.branches.length === 0) {

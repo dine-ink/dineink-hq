@@ -1,8 +1,9 @@
-import { useEffect, useState } from "react";
-import { useAppSelector } from "../../store";
+import { useState } from "react";
+import { useAppSelector } from "@/store";
+import { useGetAiExecutiveBriefQuery } from "@/store/api/aiApi";
 import { PERIOD_OPTIONS } from "./aiCategories";
 import InsightCard from "./InsightCard";
-import MobileTableCards from "../../components/common/MobileTableCards";
+import MobileTableCards from "@/components/common/MobileTableCards";
 import {
   ClipboardDocumentCheckIcon,
   HeartIcon,
@@ -35,38 +36,20 @@ const HEALTH_STYLE: Record<
 
 export default function BriefTab() {
   const { selectedBranch } = useAppSelector((s) => s.branch);
-  const { user, token } = useAppSelector((s) => s.auth);
-  const API_URL = import.meta.env.VITE_API_URL;
+  const { user } = useAppSelector((s) => s.auth);
 
   const [scope, setScope] = useState<"branch" | "restaurant">("branch");
   const [period, setPeriod] = useState("currentMonth");
-  const [brief, setBrief] = useState<any>(null);
-  const [loading, setLoading] = useState(false);
 
-  const branchParam =
-    scope === "branch" && selectedBranch?.id
-      ? `&branchId=${selectedBranch.id}`
-      : "";
-
-  useEffect(() => {
-    const run = async () => {
-      if (!user?.restaurantId) return;
-      setLoading(true);
-      try {
-        const res = await fetch(
-          `${API_URL}/api/ai/${user.restaurantId}/executive-brief?period=${period}${branchParam}`,
-          { headers: { Authorization: `Bearer ${token}` } },
-        );
-        const json = await res.json();
-        if (json.success) setBrief(json.data);
-      } catch {
-        // fetch error — silently ignored
-      } finally {
-        setLoading(false);
-      }
-    };
-    run();
-  }, [user?.restaurantId, selectedBranch?.id, scope, period]);
+  const { data: brief = null, isFetching: loading } =
+    useGetAiExecutiveBriefQuery(
+      {
+        restaurantId: user?.restaurantId as number,
+        period,
+        branchId: scope === "branch" ? selectedBranch?.id : undefined,
+      },
+      { skip: !user?.restaurantId },
+    );
 
   const healthStyle = brief
     ? HEALTH_STYLE[brief.businessHealth.status] || HEALTH_STYLE["no-data"]

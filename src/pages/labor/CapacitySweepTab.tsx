@@ -12,10 +12,10 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { Alert, MetricCard } from "../../design";
+import { Alert, MetricCard } from "@/design";
 import { CHART_CARD, TICK, fmtFte, fmtMinutes } from "./laborCategories";
 import { useLaborQuery, useLaborScope } from "./useLaborApi";
-import MobileTableCards from "../../components/common/MobileTableCards";
+import MobileTableCards from "@/components/common/MobileTableCards";
 
 // The whole trading day at a glance: required staff per hour, which station is
 // busiest, and which hours are equipment-bound. Answers "WHEN does the kitchen

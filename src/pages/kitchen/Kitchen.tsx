@@ -1,5 +1,9 @@
-import { useEffect, useState } from "react";
-import { useAppSelector } from "../../store";
+import { useAppSelector } from "@/store";
+import {
+  useGetKitchenAnalyticsQuery,
+  useGetPeakHourAnalysisQuery,
+  useGetEtaPredictionQuery,
+} from "@/store/api/analyticsApi";
 import {
   BarChart,
   Bar,
@@ -15,8 +19,8 @@ import {
   ReferenceLine,
 } from "recharts";
 import { FireIcon } from "@heroicons/react/24/outline";
-import { PageContainer, PageHeader, MetricCard, LoadingOverlay, Alert, type MetricStatus } from "../../design";
-import MobileTableCards from "../../components/common/MobileTableCards";
+import { PageContainer, PageHeader, MetricCard, LoadingOverlay, Alert, type MetricStatus } from "@/design";
+import MobileTableCards from "@/components/common/MobileTableCards";
 
 const TICK = { fontSize: 10, fill: "#6b7280" };
 
@@ -32,62 +36,49 @@ const legacyColorToStatus: Record<string, MetricStatus> = {
 };
 
 export default function Kitchen() {
-  const API_URL = import.meta.env.VITE_API_URL;
   const { from, to } = useAppSelector((s) => s.dateRange);
   const { selectedBranch } = useAppSelector((s) => s.branch);
-  const { user, token } = useAppSelector((s) => s.auth);
-  const [loading, setLoading] = useState(false);
-  const [data, setData] = useState<any>(null);
-  const [peakHourData, setPeakHourData] = useState<any>(null);
-  const [etaData, setEtaData] = useState<any>(null);
+  const { user } = useAppSelector((s) => s.auth);
 
-  useEffect(() => {
-    const fetch_ = async () => {
-      if (!user?.restaurantId) return;
-      try {
-        setLoading(true);
-        const h = { Authorization: `Bearer ${token}` };
-        const branchParam = selectedBranch?.id
-          ? `&branchId=${selectedBranch.id}`
-          : "";
-        const res = await fetch(
-          `${API_URL}/api/analytics/${user.restaurantId}/kitchen?from=${from}&to=${to}${branchParam}`,
-          { headers: h },
-        );
-        const json = await res.json();
-        if (json.success) setData(json.data);
+  /**
+   * Three queries where there was one effect with two nested try/catch blocks
+   * inside it. The nesting was there so a failing peak-hour or ETA request
+   * would not take the kitchen figures down with it; separate queries give
+   * that outright.
+   *
+   * The two branch-scoped ones are skipped without a branch, which is what
+   * the `if (selectedBranch?.id)` wrapper did.
+   */
+  const kitchenQ = useGetKitchenAnalyticsQuery(
+    {
+      restaurantId: user?.restaurantId as number,
+      branchId: selectedBranch?.id,
+      from,
+      to,
+    },
+    { skip: !user?.restaurantId },
+  );
+  const peakQ = useGetPeakHourAnalysisQuery(
+    {
+      restaurantId: user?.restaurantId as number,
+      branchId: selectedBranch?.id as number,
+      from,
+      to,
+    },
+    { skip: !user?.restaurantId || !selectedBranch?.id },
+  );
+  const etaQ = useGetEtaPredictionQuery(
+    {
+      restaurantId: user?.restaurantId as number,
+      branchId: selectedBranch?.id as number,
+    },
+    { skip: !user?.restaurantId || !selectedBranch?.id },
+  );
 
-        if (selectedBranch?.id) {
-          try {
-            const peakRes = await fetch(
-              `${API_URL}/api/analytics/${user.restaurantId}/${selectedBranch.id}/peak-hour-analysis?from=${from}&to=${to}`,
-              { headers: h },
-            );
-            const peakJson = await peakRes.json();
-            if (peakJson.success) setPeakHourData(peakJson.data);
-          } catch {
-            /* silent */
-          }
-
-          try {
-            const etaRes = await fetch(
-              `${API_URL}/api/analytics/${user.restaurantId}/${selectedBranch.id}/eta-prediction`,
-              { headers: h },
-            );
-            const etaJson = await etaRes.json();
-            if (etaJson.success) setEtaData(etaJson.data);
-          } catch {
-            /* silent */
-          }
-        }
-      } catch {
-        /* silent */
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetch_();
-  }, [from, to, selectedBranch?.id]);
+  const data = kitchenQ.data ?? null;
+  const peakHourData = peakQ.data ?? null;
+  const etaData = etaQ.data ?? null;
+  const loading = kitchenQ.isFetching;
 
   if (loading) {
     return <LoadingOverlay label="Loading kitchen analytics..." />;

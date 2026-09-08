@@ -13,6 +13,18 @@ dist-ssr
 coverage
 *.local
 
+# Environment. These were previously committed — the values were only
+# VITE_API_URL and VITE_PROCUREMENT_EXTENSION_ID, which Vite compiles into the
+# client bundle and are therefore public, so nothing secret was exposed. They
+# are ignored now so that the next variable someone adds is not committed by
+# default, and so each developer can point at their own backend.
+.env
+.env.*
+!.env.example
+
+# Generated audit output — regenerate it rather than committing it.
+audit-report.html
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
