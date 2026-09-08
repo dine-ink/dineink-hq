@@ -133,7 +133,7 @@ export default function ForgotPassword() {
 
         <div className="overflow-hidden rounded-[28px] border border-white/60 bg-white">
           <div className="border-b border-red-50 px-6 py-5">
-            <div className="inline-flex rounded-full bg-[#b10000] px-4 py-2 text-[10px] font-black uppercase tracking-[0.22em] text-red-600">
+            <div className="inline-flex rounded-full bg-[#b10000]/10 px-4 py-2 text-[10px] font-black uppercase tracking-[0.22em] text-[#b10000]">
               Password Reset
             </div>
             <h2 className="mt-4 text-[2rem] font-black tracking-tight text-gray-900">

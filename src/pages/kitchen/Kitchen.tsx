@@ -690,7 +690,7 @@ export default function Kitchen() {
                       </td>
                       <td className="px-4 py-2.5">
                         <span
-                          className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${o.durationMinutes <= 30 ? "bg-emerald-50 text-emerald-600" : "bg-[#b10000] text-red-600"}`}
+                          className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${o.durationMinutes <= 30 ? "bg-emerald-50 text-emerald-600" : "bg-red-50 text-red-600"}`}
                         >
                           {o.durationMinutes <= 30 ? "Met" : "Missed"}
                         </span>

@@ -73,6 +73,17 @@ import {
 import { getIndianCitiesForState, getIndianStates } from "@/utils/indiaLocations";
 import { notify } from "@/utils/notify";
 import { confirmAction } from "@/utils/confirmAction";
+import {
+  TAB,
+  branchHasData,
+  categoryHasData,
+  staffHasData,
+  summarizeSetupProblems,
+  validateSetup,
+  validateSetupStep,
+  type SetupInput,
+  type SetupProblem,
+} from "./setupValidation";
 
 const tabs = [
   {
@@ -223,9 +234,10 @@ const BRANCH_INPUT_CLS =
  * Marks a field the setup will not accept blank. Two things earn the mark, and
  * both are read off handleSubmitSetup rather than guessed at:
  *   - the five Restaurant Details fields, which block Finish Setup outright;
- *   - the fields the save filters on (branch name, category name, item name and
- *     price, staff name and phone) — leave one blank and that whole row is
- *     dropped on save with nothing said, which is worth flagging up front.
+ *   - the fields a started row cannot save without (branch name, category
+ *     name, item name and price, staff name and phone). A row left entirely
+ *     blank is dropped on save; a started row missing one of these is
+ *     reported by name (see setupValidation.ts) so nothing is lost silently.
  */
 function Req() {
   return (
@@ -242,7 +254,8 @@ function SkipNote({ onBanner = false }: { onBanner?: boolean }) {
       <span className={`font-bold ${onBanner ? "text-white" : "text-[#b10000]"}`}>
         *
       </span>{" "}
-      Required — entries missing one of these are skipped when you finish setup.
+      Required — a row left completely blank is skipped when you finish setup; a
+      row you have started must be completed.
     </p>
   );
 }
@@ -269,7 +282,7 @@ export default function RestaurantSetupModal({ open, setOpen }: Props) {
       phone: "",
       role: "STAFF",
       hasLogin: false,
-      password: "1234",
+      password: "",
       salary: 0,
       joiningDate: "",
       shift: "",
@@ -385,32 +398,66 @@ export default function RestaurantSetupModal({ open, setOpen }: Props) {
     if (confirmed) setOpen(false);
   };
 
+  const setupInput = (): SetupInput => ({
+    restaurant,
+    branches,
+    categories,
+    staff,
+    owner: { email: user.email, phone: user.phone },
+  });
+
+  // Names the step and the exact rows and fields, then jumps to that step, so
+  // nobody has to hunt for what "fill all required fields" meant.
+  const reportProblems = (problems: SetupProblem[]) => {
+    const summary = summarizeSetupProblems(problems);
+    if (!summary) return false;
+    setSelectedTab(summary.tab);
+    notify(summary.message, "warning");
+    return true;
+  };
+
+  // Each step is checked as it is left, so a mistake surfaces while the
+  // person is still looking at it rather than five steps later.
+  const handleNextStep = () => {
+    if (reportProblems(validateSetupStep(selectedTab, setupInput()))) return;
+    setSelectedTab((prev) => prev + 1);
+  };
+
   const handleSubmitSetup = async () => {
     if (loading) return;
-    if (
-      !restaurant.name ||
-      !restaurant.phone ||
-      !restaurant.address ||
-      !restaurant.email ||
-      !restaurant.gst
-    ) {
-      notify("Please fill all required restaurant details", "warning");
-      return;
-    }
+    if (reportProblems(validateSetup(setupInput()))) return;
     try {
       setLoading(true);
       if (!authToken) {
         notify("Session expired. Please login again.");
         return;
       }
-      const filteredStaff = staff.filter((s) => s.name && s.phone);
+      // validateSetup above guarantees every started row is complete, so the
+      // only rows dropped here are the untouched blank ones.
+      const keptBranchIndex = new Map<number, number>();
       const filteredBranches = branches
-        .filter((b) => b.name)
-        .map((b) => ({ ...b, tables: b.tables || [], billing: b.billing }));
+        .map((b, i) => [b, i] as const)
+        .filter(([b]) => branchHasData(b))
+        .map(([b, i], kept) => {
+          keptBranchIndex.set(i, kept);
+          return { ...b, name: b.name.trim(), tables: b.tables || [], billing: b.billing };
+        });
+      const filteredStaff = staff.filter(staffHasData).map((s) => ({
+        ...s,
+        name: s.name.trim(),
+        email: s.email.trim(),
+        phone: s.phone.trim(),
+        // Staff are assigned by branch position, which shifts when a blank
+        // branch row is dropped above.
+        branchId:
+          s.branchId === null || s.branchId === undefined
+            ? null
+            : (keptBranchIndex.get(s.branchId) ?? null),
+      }));
       const filteredCategories = categories
-        .filter((cat) => cat.name)
+        .filter(categoryHasData)
         .map((cat) => ({
-          name: cat.name,
+          name: cat.name.trim(),
           icon: cat.icon,
           items: cat.items
             .filter((item) => item.name && item.price)
@@ -427,11 +474,11 @@ export default function RestaurantSetupModal({ open, setOpen }: Props) {
         "data",
         JSON.stringify({
           restaurant: {
-            name: restaurant.name,
-            email: restaurant.email,
-            phone: restaurant.phone,
-            address: restaurant.address,
-            gst: restaurant.gst,
+            name: restaurant.name.trim(),
+            email: restaurant.email.trim(),
+            phone: restaurant.phone.trim(),
+            address: restaurant.address.trim(),
+            gst: restaurant.gst.trim().toUpperCase(),
           },
           branches: filteredBranches,
           categories: filteredCategories,
@@ -443,8 +490,13 @@ export default function RestaurantSetupModal({ open, setOpen }: Props) {
         headers: { Authorization: `Bearer ${authToken}` },
         body: formData,
       });
-      const data = await res.json();
-      if (data.success) {
+      let data: any = null;
+      try {
+        data = await res.json();
+      } catch {
+        data = null;
+      }
+      if (data?.success) {
         // The signup token predates the restaurant/branches created here, so
         // the backend issues a fresh one — swap it in the same way Login
         // does, otherwise the dashboard is stuck with a stale, restaurant-
@@ -461,10 +513,28 @@ export default function RestaurantSetupModal({ open, setOpen }: Props) {
         setOpen(false);
         window.location.reload();
       } else {
-        notify(data.message || "Setup failed");
+        // The restaurant exists already (an earlier attempt saved, and this
+        // form was shown again): reloading is what opens the dashboard.
+        if (data?.code === "ALREADY_SET_UP") {
+          window.location.reload();
+          return;
+        }
+        // The backend names the staff row for these, so land on that step.
+        if (
+          data?.code === "DUPLICATE_STAFF_CONTACT" ||
+          data?.code === "STAFF_PASSWORD_TOO_SHORT"
+        ) {
+          setSelectedTab(TAB.staff);
+        }
+        notify(
+          data?.message ||
+            `Setup failed: the server responded with an error (HTTP ${res.status}). Please try again.`,
+        );
       }
     } catch {
-      notify("Setup failed");
+      notify(
+        "Could not reach the DineInk server. Check your internet connection and try again.",
+      );
     } finally {
       setLoading(false);
     }
@@ -1924,6 +1994,24 @@ export default function RestaurantSetupModal({ open, setOpen }: Props) {
                                       </span>
                                     </div>
                                   </div>
+                                  {s.hasLogin && (
+                                    <div>
+                                      <label className={LABEL_CLS}>
+                                        Login Password
+                                        <Req />
+                                      </label>
+                                      <input
+                                        type="password"
+                                        value={s.password}
+                                        onChange={(e) =>
+                                          updateStaff(index, { password: e.target.value })
+                                        }
+                                        className={INPUT_CLS}
+                                        placeholder="At least 6 characters"
+                                        autoComplete="new-password"
+                                      />
+                                    </div>
+                                  )}
                                   <div>
                                     <label className={LABEL_CLS}>Salary</label>
                                     <div className="relative">
@@ -1983,7 +2071,12 @@ export default function RestaurantSetupModal({ open, setOpen }: Props) {
                                       value={s.branchId ?? ""}
                                       onChange={(e) =>
                                         updateStaff(index, {
-                                          branchId: Number(e.target.value),
+                                          // Number("") is 0, which would silently
+                                          // assign "Select Branch" to the first branch.
+                                          branchId:
+                                            e.target.value === ""
+                                              ? null
+                                              : Number(e.target.value),
                                         })
                                       }
                                       className={BRANCH_INPUT_CLS}
@@ -2010,7 +2103,7 @@ export default function RestaurantSetupModal({ open, setOpen }: Props) {
                                   email: "",
                                   phone: "",
                                   role: "STAFF",
-                                  password: "1234",
+                                  password: "",
                                   hasLogin: false,
                                 },
                               ])
@@ -2044,7 +2137,7 @@ export default function RestaurantSetupModal({ open, setOpen }: Props) {
                           onClick={() =>
                             selectedTab === tabs.length - 1
                               ? handleSubmitSetup()
-                              : setSelectedTab((prev) => prev + 1)
+                              : handleNextStep()
                           }
                           className="rounded-2xl bg-[#b10000] px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-red-900/20 transition hover:bg-[#8f0000] disabled:opacity-50"
                         >

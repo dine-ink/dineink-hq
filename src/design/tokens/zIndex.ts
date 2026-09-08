@@ -10,8 +10,12 @@ export const zIndex = {
   stickyHeader: 20, // sticky table headers, sticky page headers
   dropdown: 30,
   overlay: 40, // modal/drawer backdrop
-  modal: 50, // dialog/drawer content, toast notifications
+  modal: 50, // dialog/drawer content
   tooltip: 60,
+  // Toasts must beat every dialog, including Headless UI ones, which portal
+  // to the end of <body> and so win a z-50 tie against a toast mounted inside
+  // #root (the setup dialog's success/failure toast was hidden behind it).
+  toast: 70,
 } as const;
 
 export default zIndex;

@@ -7,7 +7,6 @@ import {
   useUpdateRestaurantLogoMutation,
   useCreateBranchMutation,
   useUpdateBranchMutation,
-  useChangePasswordMutation,
 } from "@/store/api/settingsApi";
 import { dashboardApi } from "@/store/api/dashboardApi";
 import { setBranches } from "@/store/slices/branchSlice";
@@ -27,8 +26,10 @@ import {
   TagIcon,
 } from "@heroicons/react/24/outline";
 import DiscountCodesTab from "./DiscountCodesTab";
+import PasswordTab from "./PasswordTab";
+import { Button, PrimaryButton } from "@/design/components/buttons";
 import TabStrip from "@/components/common/TabStrip";
-import { notify, notifySuccess } from "@/utils/notify";
+import { notify } from "@/utils/notify";
 import { confirmAction } from "@/utils/confirmAction";
 
 const TABS = [
@@ -84,16 +85,10 @@ export default function Settings() {
   const [data, setData] = useState<any>(null);
   const [editMode, setEditMode] = useState(false);
   const [branchEditMode, setBranchEditMode] = useState(false);
-  const [passwordMode, setPasswordMode] = useState(false);
   const [logoError, setLogoError] = useState(false);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const logoRef = useRef<HTMLInputElement>(null);
-  const [passwordForm, setPasswordForm] = useState({
-    currentPassword: "",
-    newPassword: "",
-    confirmPassword: "",
-  });
   const [savingBranch, setSavingBranch] = useState(false);
   const [addingBranch, setAddingBranch] = useState(false);
   const emptyNewBranch = () => ({
@@ -185,7 +180,6 @@ export default function Settings() {
   const [updateLogo] = useUpdateRestaurantLogoMutation();
   const [createBranchMutation] = useCreateBranchMutation();
   const [updateBranchesMutation] = useUpdateBranchMutation();
-  const [changePassword] = useChangePasswordMutation();
 
   /**
    * The shell's branch picker reads Redux, not the cache, so it still has to
@@ -319,32 +313,6 @@ export default function Settings() {
     navigate("/login");
   };
 
-  const handleUpdatePassword = async () => {
-    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
-      notify("Passwords do not match", "warning");
-      return;
-    }
-    try {
-      // token from Redux
-      await changePassword({
-        currentPassword: passwordForm.currentPassword,
-        newPassword: passwordForm.newPassword,
-      }).unwrap();
-      setPasswordMode(false);
-      setPasswordForm({
-        currentPassword: "",
-        newPassword: "",
-        confirmPassword: "",
-      });
-      notifySuccess("Password updated successfully");
-    } catch {
-      // A wrong current password is the common case here, and it used to
-      // surface the server's own message. That distinction is lost with
-      // `.unwrap()`, so the text says what to check.
-      notify("Could not update the password. Check that the current one is right.");
-    }
-  };
-
   const logoSrc =
     logoPreview ||
     (data?.logo && !logoError
@@ -363,7 +331,10 @@ export default function Settings() {
   }
 
   return (
-    <main className="min-h-screen bg-gray-50">
+    // No min-h-screen here: DashboardLayout already owns the viewport and the
+    // header above this, so a 100vh floor forced a scrollbar on every screen
+    // even when the content fit.
+    <div className="bg-gray-50">
       <div className="mx-auto flex flex-col gap-3">
         {/* ── HEADER ─────────────────────────────────── */}
         <div className="relative overflow-hidden rounded-xl border border-gray-200 bg-white px-5 py-4 shadow-sm">
@@ -402,32 +373,33 @@ export default function Settings() {
                 </div>
                 <div className="flex gap-2">
                   {editMode && (
-                    <button
+                    <Button
+                      type="button"
+                      variant="outline"
                       onClick={() => {
                         setEditMode(false);
                         resetDraft();
                       }}
-                      className="flex items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-4 py-2 text-[12px] font-medium text-gray-600 hover:bg-gray-50"
+                      leftIcon={<XMarkIcon className="h-4 w-4" />}
                     >
-                      <XMarkIcon className="h-4 w-4" /> Cancel
-                    </button>
+                      Cancel
+                    </Button>
                   )}
-                  <button
+                  <PrimaryButton
+                    type="button"
                     onClick={() =>
                       editMode ? handleSaveGeneral() : setEditMode(true)
                     }
-                    className="flex items-center gap-1.5 rounded-xl bg-[#b10000] px-4 py-2 text-[12px] font-semibold text-white shadow-sm transition hover:bg-[#950000]"
+                    leftIcon={
+                      editMode ? (
+                        <CheckIcon className="h-4 w-4" />
+                      ) : (
+                        <PencilSquareIcon className="h-4 w-4" />
+                      )
+                    }
                   >
-                    {editMode ? (
-                      <>
-                        <CheckIcon className="h-4 w-4" /> Save Changes
-                      </>
-                    ) : (
-                      <>
-                        <PencilSquareIcon className="h-4 w-4" /> Edit Profile
-                      </>
-                    )}
-                  </button>
+                    {editMode ? "Save Changes" : "Edit Profile"}
+                  </PrimaryButton>
                 </div>
               </div>
 
@@ -565,61 +537,73 @@ export default function Settings() {
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {branchEditMode && (
-                    <button
+                    <Button
+                      type="button"
+                      variant="outline"
                       onClick={() => {
                         resetDraft();
                       }}
-                      className="flex items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-4 py-2 text-[12px] font-medium text-gray-600 hover:bg-gray-50"
+                      leftIcon={<XMarkIcon className="h-4 w-4" />}
                     >
-                      <XMarkIcon className="h-4 w-4" /> Cancel
-                    </button>
+                      Cancel
+                    </Button>
                   )}
                   {branchEditMode && (
-                    <button
+                    <PrimaryButton
+                      type="button"
                       onClick={handleSaveBranches}
-                      disabled={savingBranch}
-                      className="flex items-center gap-1.5 rounded-xl bg-emerald-600 px-4 py-2 text-[12px] font-semibold text-white hover:bg-emerald-700 disabled:opacity-60"
+                      loading={savingBranch}
+                      leftIcon={<CheckIcon className="h-4 w-4" />}
                     >
-                      <CheckIcon className="h-4 w-4" />{" "}
-                      {savingBranch ? "Saving..." : "Save Changes"}
-                    </button>
+                      Save Changes
+                    </PrimaryButton>
                   )}
                   {!branchEditMode && (
-                    <button
+                    <Button
+                      type="button"
+                      variant="outline"
                       onClick={() => setBranchEditMode(true)}
-                      className="flex items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-4 py-2 text-[12px] font-semibold text-gray-700 hover:bg-gray-50"
+                      leftIcon={<PencilSquareIcon className="h-4 w-4" />}
                     >
-                      <PencilSquareIcon className="h-4 w-4" /> Edit Branches
-                    </button>
+                      Edit Branches
+                    </Button>
                   )}
-                  <button
+                  <PrimaryButton
+                    type="button"
                     onClick={() => setAddingBranch(true)}
-                    className="flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-red-500 to-rose-500 px-4 py-2 text-[12px] font-semibold text-white shadow-sm hover:opacity-90"
+                    leftIcon={<PlusIcon className="h-4 w-4" />}
                   >
-                    <PlusIcon className="h-4 w-4" /> Add Branch
-                  </button>
+                    Add Branch
+                  </PrimaryButton>
                 </div>
               </div>
 
               {/* Add Branch Form */}
               {addingBranch && (
-                <div className="mb-4 overflow-hidden rounded-xl border border-red-200 bg-white shadow-sm">
-                  {/* Header */}
-                  <div className="flex items-center justify-between border-b border-gray-100 bg-gradient-to-r from-red-500 to-rose-500 px-5 py-3">
-                    <div>
-                      <p className="text-[14px] font-bold text-white">
-                        Add New Branch
-                      </p>
-                      <p className="text-[11px] text-red-100">
-                        Fill location, tables and billing settings
-                      </p>
+                <div className="mb-4 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+                  {/* Header: same icon-tile header the Password and Discounts forms use */}
+                  <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-red-50 text-[#b10000]">
+                        <BuildingStorefrontIcon className="h-5 w-5" />
+                      </div>
+                      <div>
+                        <p className="text-[14px] font-semibold text-gray-900">
+                          Add New Branch
+                        </p>
+                        <p className="text-[11px] text-gray-400">
+                          Fill location, tables and billing settings
+                        </p>
+                      </div>
                     </div>
                     <button
+                      type="button"
+                      aria-label="Close"
                       onClick={() => {
                         setAddingBranch(false);
                         setNewBranch(emptyNewBranch());
                       }}
-                      className="rounded-lg bg-white/15 p-1.5 text-white hover:bg-white/25"
+                      className="rounded-lg p-1.5 text-gray-400 transition hover:bg-gray-100 hover:text-gray-600"
                     >
                       <XMarkIcon className="h-4 w-4" />
                     </button>
@@ -966,7 +950,7 @@ export default function Settings() {
                                           ],
                                     })
                                   }
-                                  className={`rounded-xl border px-3 py-1.5 text-[12px] font-semibold transition ${active ? "border-red-400 bg-[#b10000] text-red-700" : "border-gray-200 bg-white text-gray-600 hover:border-red-300"}`}
+                                  className={`rounded-xl border px-3 py-1.5 text-[12px] font-semibold transition ${active ? "border-[#b10000] bg-[#b10000] text-white" : "border-gray-200 bg-white text-gray-600 hover:border-red-300"}`}
                                 >
                                   {m}
                                 </button>
@@ -979,22 +963,25 @@ export default function Settings() {
                   </div>
 
                   <div className="flex justify-end gap-2 border-t border-gray-100 px-5 py-3">
-                    <button
+                    <Button
+                      type="button"
+                      variant="outline"
+                      disabled={savingBranch}
                       onClick={() => {
                         setAddingBranch(false);
                         setNewBranch(emptyNewBranch());
                       }}
-                      className="rounded-xl border border-gray-200 bg-white px-4 py-2 text-[12px] font-semibold text-gray-600"
                     >
                       Cancel
-                    </button>
-                    <button
+                    </Button>
+                    <PrimaryButton
+                      type="button"
                       onClick={handleAddBranch}
-                      disabled={savingBranch}
-                      className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-red-500 to-rose-500 px-5 py-2 text-[12px] font-bold text-white disabled:opacity-60"
+                      loading={savingBranch}
+                      leftIcon={<PlusIcon className="h-4 w-4" />}
                     >
-                      {savingBranch ? "Creating..." : "Create Branch"}
-                    </button>
+                      Create Branch
+                    </PrimaryButton>
                   </div>
                 </div>
               )}
@@ -1009,10 +996,10 @@ export default function Settings() {
                     <div className="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
                       <div className="flex items-center gap-3">
                         <div
-                          className={`flex h-10 w-10 items-center justify-center rounded-xl ${branch.isDeleted ? "bg-red-100" : "bg-[#b10000]"}`}
+                          className={`flex h-10 w-10 items-center justify-center rounded-xl ${branch.isDeleted ? "bg-gray-100" : "bg-red-50"}`}
                         >
                           <MapPinIcon
-                            className={`h-5 w-5 ${branch.isDeleted ? "text-red-400" : "text-red-500"}`}
+                            className={`h-5 w-5 ${branch.isDeleted ? "text-gray-400" : "text-[#b10000]"}`}
                           />
                         </div>
                         {branchEditMode ? (
@@ -1041,12 +1028,20 @@ export default function Settings() {
                           {branch.isDeleted ? "CLOSED" : "ACTIVE"}
                         </span>
                       </div>
-                      <button
+                      <PrimaryButton
+                        type="button"
                         onClick={() => toggleBranchDeleted(branch.id)}
-                        className={`self-start rounded-xl px-3 py-1.5 text-[11px] font-semibold text-white sm:self-auto ${branch.isDeleted ? "bg-emerald-500 hover:bg-emerald-600" : "bg-[#b10000] hover:bg-[#b10000]"}`}
+                        leftIcon={
+                          branch.isDeleted ? (
+                            <CheckIcon className="h-4 w-4" />
+                          ) : (
+                            <XMarkIcon className="h-4 w-4" />
+                          )
+                        }
+                        className="self-start sm:self-auto"
                       >
-                        {branch.isDeleted ? "Reopen" : "Close"}
-                      </button>
+                        {branch.isDeleted ? "Reopen Branch" : "Close Branch"}
+                      </PrimaryButton>
                     </div>
 
                     {branchEditMode && (
@@ -1288,100 +1283,7 @@ export default function Settings() {
 
           {/* PASSWORD ─────────────────────────────────── */}
           {activeTab === "Password" && (
-            <div className="p-6">
-              <div className="mb-5 flex items-center justify-between">
-                <div>
-                  <h2 className="text-[18px] font-bold text-gray-900">
-                    Password & Security
-                  </h2>
-                  <p className="mt-0.5 text-[12px] text-gray-500">
-                    Change your login password
-                  </p>
-                </div>
-                <div className="flex gap-2">
-                  {passwordMode && (
-                    <button
-                      onClick={() => {
-                        setPasswordMode(false);
-                        setPasswordForm({
-                          currentPassword: "",
-                          newPassword: "",
-                          confirmPassword: "",
-                        });
-                      }}
-                      className="flex items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-4 py-2 text-[12px] font-medium text-gray-600 hover:bg-gray-50"
-                    >
-                      <XMarkIcon className="h-4 w-4" /> Cancel
-                    </button>
-                  )}
-                  <button
-                    onClick={() =>
-                      passwordMode
-                        ? handleUpdatePassword()
-                        : setPasswordMode(true)
-                    }
-                    className={`flex items-center gap-1.5 rounded-xl px-4 py-2 text-[12px] font-semibold text-white transition ${passwordMode ? "bg-emerald-600 hover:bg-emerald-700" : "bg-gradient-to-r from-red-500 to-rose-500 hover:opacity-90"}`}
-                  >
-                    {passwordMode ? (
-                      <>
-                        <CheckIcon className="h-4 w-4" /> Update Password
-                      </>
-                    ) : (
-                      <>
-                        <LockClosedIcon className="h-4 w-4" /> Change Password
-                      </>
-                    )}
-                  </button>
-                </div>
-              </div>
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                {[
-                  { field: "currentPassword", label: "Current Password" },
-                  { field: "", label: "" },
-                  { field: "newPassword", label: "New Password" },
-                  { field: "confirmPassword", label: "Confirm New Password" },
-                ].map((f, i) =>
-                  f.field ? (
-                    <div key={f.field}>
-                      <label className="mb-1.5 block text-[11px] font-bold uppercase tracking-wide text-gray-400">
-                        {f.label}
-                      </label>
-                      <input
-                        type="password"
-                        readOnly={!passwordMode}
-                        value={(passwordForm as any)[f.field]}
-                        onChange={(e) =>
-                          setPasswordForm((p) => ({
-                            ...p,
-                            [f.field]: e.target.value,
-                          }))
-                        }
-                        placeholder={passwordMode ? "Enter password" : ""}
-                        className={passwordMode ? INPUT_EDIT : INPUT_VIEW}
-                      />
-                    </div>
-                  ) : (
-                    <div key={i} />
-                  ),
-                )}
-              </div>
-              <div className="mt-5 flex flex-col items-start justify-between gap-3 rounded-xl border border-gray-200 bg-gray-50 p-4 sm:flex-row sm:items-center">
-                <div>
-                  <p className="text-[13px] font-semibold text-gray-900">
-                    Sign out of all devices
-                  </p>
-                  <p className="mt-0.5 text-[11px] text-gray-400">
-                    Revoke all active sessions
-                  </p>
-                </div>
-                <button
-                  onClick={handleSignOutAll}
-                  className="rounded-xl border border-red-200 bg-white px-4 py-2 text-[12px] font-semibold text-red-600 transition hover:border-[#b10000] hover:bg-[#b10000] hover:text-white active:scale-95"
-                >
-                  Sign Out All
-                </button>
-              </div>
-            </div>
+            <PasswordTab onSignOutAll={handleSignOutAll} />
           )}
 
           {/* NOTIFICATIONS ────────────────────────────── */}
@@ -1448,9 +1350,7 @@ export default function Settings() {
                 ))}
               </div>
               <div className="mt-5 flex justify-end">
-                <button className="rounded-xl bg-gradient-to-r from-red-500 to-rose-500 px-5 py-2.5 text-[12px] font-semibold text-white hover:opacity-90">
-                  Save Preferences
-                </button>
+                <PrimaryButton type="button">Save Preferences</PrimaryButton>
               </div>
             </div>
           )}
@@ -1497,10 +1397,16 @@ export default function Settings() {
                     </div>
                   </div>
                   <div className="flex flex-col gap-2">
-                    <button className="rounded-xl bg-white px-5 py-2.5 text-[12px] font-bold text-red-600 transition hover:bg-[#b10000] hover:text-white">
+                    <button
+                      type="button"
+                      className="rounded-xl bg-white px-5 py-2.5 text-[12px] font-bold text-[#b10000] shadow-sm transition hover:bg-red-50"
+                    >
                       Upgrade Plan
                     </button>
-                    <button className="rounded-xl border border-white/20 bg-white/10 px-5 py-2.5 text-[12px] font-semibold text-white transition hover:bg-white/20">
+                    <button
+                      type="button"
+                      className="rounded-xl border border-white/20 bg-white/10 px-5 py-2.5 text-[12px] font-semibold text-white transition hover:bg-white/20"
+                    >
                       View Invoice
                     </button>
                   </div>
@@ -1562,6 +1468,6 @@ export default function Settings() {
           )}
         </div>
       </div>
-    </main>
+    </div>
   );
 }
