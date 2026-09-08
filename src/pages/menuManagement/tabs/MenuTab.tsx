@@ -8,6 +8,8 @@ import {
 import MobileTableCards from "@/components/common/MobileTableCards";
 import { isVegType } from "@/pages/menuManagement/menuDisplay";
 import type { UseMenuItemsEditor } from "@/pages/menuManagement/useMenuItemsEditor";
+import { Pagination, usePagination } from "@/design";
+import { nonNegative } from "@/utils/numberInput";
 
 /**
  * The menu itself — every item, its price, availability and category, plus the
@@ -53,6 +55,7 @@ export default function MenuTab({ editor, categories, openAttachModal }: MenuTab
     mobileItemGroups,
   } = editor;
 
+  const menuPager = usePagination(filteredMenuItems ?? [], 10);
   return (
     <>
             <div className="space-y-4">
@@ -347,7 +350,7 @@ export default function MenuTab({ editor, categories, openAttachModal }: MenuTab
 
                     <tbody>
                       {filteredMenuItems?.length ? (
-                        filteredMenuItems.map((item: any, index: number) => (
+                        menuPager.pageRows.map((item: any, index: number) => (
                           <tr
                             key={item.id || index}
                             className="border-b border-gray-100 transition hover:bg-gray-50/70"
@@ -483,6 +486,14 @@ export default function MenuTab({ editor, categories, openAttachModal }: MenuTab
                     </tbody>
                   </table>
                 </div>
+                <Pagination
+                  page={menuPager.page}
+                  totalPages={menuPager.totalPages}
+                  onPageChange={menuPager.setPage}
+                  pageSize={menuPager.pageSize}
+                  onPageSizeChange={menuPager.setPageSize}
+                  range={{ from: menuPager.from, to: menuPager.to, total: menuPager.total, noun: "menu items" }}
+                />
 
                 {/* ===== MOBILE: SEARCH, FILTERS, CATEGORY ACCORDION ===== */}
                 <div className="md:hidden">
@@ -725,7 +736,7 @@ export default function MenuTab({ editor, categories, openAttachModal }: MenuTab
               onClick={() => setShowAddItemForm(false)}
             >
               <div
-                className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl"
+                className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl max-h-[90vh] overflow-y-auto"
                 onClick={(e) => e.stopPropagation()}
               >
                 <div className="mb-4 flex items-center justify-between">
@@ -742,7 +753,7 @@ export default function MenuTab({ editor, categories, openAttachModal }: MenuTab
                 <div className="space-y-3">
                   <div>
                     <label className="mb-1 block text-[11px] font-bold uppercase tracking-wide text-gray-500">
-                      Item Name *
+                      Item Name <span className="text-danger-600">*</span>
                     </label>
                     <input
                       value={itemForm.name}
@@ -801,10 +812,10 @@ export default function MenuTab({ editor, categories, openAttachModal }: MenuTab
                   <div className="grid grid-cols-2 gap-3">
                     <div>
                       <label className="mb-1 block text-[11px] font-bold uppercase tracking-wide text-gray-500">
-                        Price (₹) *
+                        Price (₹) <span className="text-danger-600">*</span>
                       </label>
                       <input
-                        type="number"
+                        type="number" {...nonNegative}
                         min="0"
                         value={itemForm.price}
                         onChange={(e) =>
@@ -822,7 +833,7 @@ export default function MenuTab({ editor, categories, openAttachModal }: MenuTab
                         Prep Time (min)
                       </label>
                       <input
-                        type="number"
+                        type="number" {...nonNegative}
                         min="0"
                         value={itemForm.prepTime}
                         onChange={(e) =>

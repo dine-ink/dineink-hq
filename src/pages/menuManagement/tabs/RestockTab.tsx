@@ -6,6 +6,7 @@ import {
 } from "@heroicons/react/24/outline";
 import MobileTableCards from "@/components/common/MobileTableCards";
 import type { InventoryAnalytics } from "@/pages/menuManagement/useInventoryAnalytics";
+import { Pagination, usePagination } from "@/design";
 
 /**
  * Weekly restock sheets — opening stock, purchases, consumption and closing
@@ -33,6 +34,7 @@ export default function RestockTab({ analytics, restocks, selectedWeek, setSelec
   const { avgFoodCost, inventoryValue, inventoryTurnover, totalConsumptionValue } =
     analytics;
 
+  const restockPager = usePagination(restocks ?? [], 10);
   return (
             <div className="space-y-4">
               {/* ================= HERO ================= */}
@@ -253,7 +255,7 @@ export default function RestockTab({ analytics, restocks, selectedWeek, setSelec
 
                     <tbody>
                       {restocks?.length ? (
-                        restocks.map((row: any, index: number) => (
+                        restockPager.pageRows.map((row: any, index: number) => (
                           <tr
                             key={index}
                             className="border-b border-gray-100 transition hover:bg-gray-50/80"
@@ -358,6 +360,14 @@ export default function RestockTab({ analytics, restocks, selectedWeek, setSelec
                   </table>
                   </MobileTableCards>
                 </div>
+                <Pagination
+                  page={restockPager.page}
+                  totalPages={restockPager.totalPages}
+                  onPageChange={restockPager.setPage}
+                  pageSize={restockPager.pageSize}
+                  onPageSizeChange={restockPager.setPageSize}
+                  range={{ from: restockPager.from, to: restockPager.to, total: restockPager.total, noun: "restocks" }}
+                />
               </div>
             </div>
   );

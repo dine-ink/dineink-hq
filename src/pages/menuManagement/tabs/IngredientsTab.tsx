@@ -8,6 +8,7 @@ import {
 } from "@heroicons/react/24/outline";
 import MobileTableCards from "@/components/common/MobileTableCards";
 import type { UseIngredientEditor } from "@/pages/menuManagement/useIngredientEditor";
+import { nonNegative } from "@/utils/numberInput";
 
 /**
  * Ingredient stock — the editable rows, the categories they group under, the
@@ -391,7 +392,7 @@ export default function IngredientsTab({ editor, loading }: IngredientsTabProps)
 
                                       <td className="px-4 py-2.5">
                                         <input
-                                          type="number"
+                                          type="number" {...nonNegative}
                                           value={item?.quantity || ""}
                                           onChange={(e) =>
                                             handleFieldChange(
@@ -459,7 +460,7 @@ export default function IngredientsTab({ editor, loading }: IngredientsTabProps)
 
                                       <td className="px-4 py-2.5">
                                         <input
-                                          type="number"
+                                          type="number" {...nonNegative}
                                           value={item?.purchasePrice || ""}
                                           onChange={(e) =>
                                             handleFieldChange(
@@ -517,7 +518,7 @@ export default function IngredientsTab({ editor, loading }: IngredientsTabProps)
 
                                       <td className="px-4 py-2.5">
                                         <input
-                                          type="number"
+                                          type="number" {...nonNegative}
                                           placeholder="e.g. 5"
                                           value={item?.reorderLevel ?? ""}
                                           onChange={(e) =>
@@ -669,7 +670,7 @@ export default function IngredientsTab({ editor, loading }: IngredientsTabProps)
                   }
                 >
                   <div
-                    className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl"
+                    className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl max-h-[90vh] overflow-y-auto"
                     onClick={(e) => e.stopPropagation()}
                   >
                     <div className="mb-4 flex items-center justify-between">
@@ -696,7 +697,7 @@ export default function IngredientsTab({ editor, loading }: IngredientsTabProps)
                         </label>
                         <div className="flex gap-2">
                           <input
-                            type="number"
+                            type="number" {...nonNegative}
                             value={priceHistoryModal.newPrice}
                             onChange={(e) =>
                               setPriceHistoryModal((prev) => ({

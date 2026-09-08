@@ -45,6 +45,7 @@ export const api = createApi({
   refetchOnReconnect: true,
   tagTypes: [
     "Restaurant",
+    "MenuCategory",
     "Analytics",
     "Insights",
     "Staff",

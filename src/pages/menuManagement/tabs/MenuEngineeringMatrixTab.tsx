@@ -1,4 +1,6 @@
 import { useAppSelector } from "@/store";
+import { useMemo } from "react";
+import { Pagination, usePagination } from "@/design";
 import { useGetMenuEngineeringQuery } from "@/store/api/inventoryApi";
 import { tooltipFormatter } from "@/utils/chartFormatters";
 import {
@@ -43,6 +45,11 @@ export default function MenuEngineeringMatrixTab() {
       { skip: !user?.restaurantId },
     );
 
+  const rankedItems = useMemo(
+    () => [...(menuEngineering?.items ?? [])].sort( (a: any, b: any) => b.quantitySold - a.quantitySold, ),
+    [menuEngineering?.items],
+  );
+  const itemPager = usePagination(rankedItems, 10);
   return (
     <div className="space-y-4">
       <div className="rounded-2xl border border-gray-200 bg-white px-5 py-4 shadow-sm">
@@ -248,12 +255,7 @@ export default function MenuEngineeringMatrixTab() {
                   </tr>
                 </thead>
                 <tbody>
-                  {[...menuEngineering.items]
-                    .sort(
-                      (a: any, b: any) =>
-                        b.quantitySold - a.quantitySold,
-                    )
-                    .map((item: any) => (
+                  {itemPager.pageRows.map((item: any) => (
                       <tr
                         key={item.id}
                         className="border-b border-gray-50 hover:bg-gray-50/60 transition"
@@ -310,6 +312,14 @@ export default function MenuEngineeringMatrixTab() {
               </table>
               </MobileTableCards>
             </div>
+            <Pagination
+              page={itemPager.page}
+              totalPages={itemPager.totalPages}
+              onPageChange={itemPager.setPage}
+              pageSize={itemPager.pageSize}
+              onPageSizeChange={itemPager.setPageSize}
+              range={{ from: itemPager.from, to: itemPager.to, total: itemPager.total, noun: "items" }}
+            />
           </div>
 
           {menuEngineering.notSold?.length > 0 && (

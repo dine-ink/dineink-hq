@@ -28,7 +28,7 @@ vi.mock("@/utils/notify", async (importOriginal) => ({
 
 const render = () => {
   const { Wrapper } = hookWrapper(authenticatedState());
-  return renderHook(() => useIngredientEditor([], () => {}, () => {}), { wrapper: Wrapper });
+  return renderHook(() => useIngredientEditor(() => {}), { wrapper: Wrapper });
 };
 
 const row = (over: Record<string, unknown> = {}) => ({
@@ -54,13 +54,14 @@ afterEach(() => {
 });
 
 describe("useIngredientEditor — rows", () => {
-  it("appends a blank row, defaulting to Kg", () => {
+  it("puts a blank row at the top of the category, defaulting to Kg", () => {
     const hook = withDraft({ Grains: [row()] });
     act(() => hook.result.current.handleAddIngredient("Grains"));
 
     const rows = hook.result.current.ingredients.Grains;
     expect(rows).toHaveLength(2);
-    expect(rows[1]).toEqual({
+    expect(rows[1]).toEqual(row());
+    expect(rows[0]).toEqual({
       name: "",
       quantity: "",
       unit: "Kg",

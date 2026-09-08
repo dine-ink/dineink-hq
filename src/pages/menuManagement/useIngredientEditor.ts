@@ -29,11 +29,7 @@ import { confirmAction } from "@/utils/confirmAction";
  * it and three other tabs read that.
  */
 
-export function useIngredientEditor(
-  categories: any[],
-  setCategories: (rows: any[]) => void,
-  setLoading: (on: boolean) => void,
-) {
+export function useIngredientEditor(setLoading: (on: boolean) => void) {
   const { user } = useAppSelector((s) => s.auth);
   const dispatch = useAppDispatch();
 
@@ -221,11 +217,13 @@ export function useIngredientEditor(
     });
   };
 
+  // The blank row goes at the top of the category, directly under the Add
+  // Ingredient button that created it. Appended at the bottom, a category with
+  // a long list meant scrolling past every existing row to find the empty one.
   const handleAddIngredient = (category: string) => {
     setIngredients((prev: any) => ({
       ...prev,
       [category]: [
-        ...prev[category],
         {
           name: "",
           quantity: "",
@@ -233,6 +231,7 @@ export function useIngredientEditor(
           purchasePrice: "",
           pricePerUnit: "",
         },
+        ...prev[category],
       ],
     }));
   };

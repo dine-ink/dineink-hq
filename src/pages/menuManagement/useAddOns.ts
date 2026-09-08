@@ -67,7 +67,11 @@ export function useAddOns(): UseAddOns {
   const [deleteAddOnOption] = useDeleteAddOnOptionMutation();
 
   const createGroup = async () => {
-    if (!newGroupName.trim() || !user?.restaurantId) return;
+    if (!user?.restaurantId) return;
+    if (!newGroupName.trim()) {
+      notify("Enter a name for the add-on group first.", "warning");
+      return;
+    }
     try {
       await createAddOnGroup({
         restaurantId: user.restaurantId,
@@ -98,7 +102,21 @@ export function useAddOns(): UseAddOns {
 
   const addOption = async (groupId: number) => {
     const form = newOptionForm[groupId];
-    if (!form?.name?.trim() || !form?.price) return;
+    // Pressing Add with the fields empty used to do nothing at all, which read
+    // as a dead button. Name what is missing, and which group it is for.
+    const groupName = addOnGroups.find((g: any) => g.id === groupId)?.name;
+    const where = groupName ? ` for "${groupName}"` : "";
+    const missing: string[] = [];
+    if (!form?.name?.trim()) missing.push("an option name");
+    if (!form?.price?.toString().trim()) missing.push("a price");
+    if (missing.length) {
+      notify(`Enter ${missing.join(" and ")} to add an option${where}.`, "warning");
+      return;
+    }
+    if (!(Number(form.price) >= 0)) {
+      notify(`The price${where} must be a number of 0 or more.`, "warning");
+      return;
+    }
     try {
       await createAddOnOption({
         addOnGroupId: groupId,
