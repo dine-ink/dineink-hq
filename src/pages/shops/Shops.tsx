@@ -581,7 +581,7 @@ export default function Shops() {
                         render: (t: any) => (
                           <button
                             onClick={() => handleDeleteTable(t.id)}
-                            className="rounded-lg border border-red-100 bg-[#b10000] px-2 py-1 text-[10px] font-semibold text-red-600 transition hover:bg-red-100"
+                            className="rounded-lg border border-red-200 bg-white px-2 py-1 text-[10px] font-semibold text-red-600 transition hover:border-[#b10000] hover:bg-[#b10000] hover:text-white"
                           >
                             Remove
                           </button>
