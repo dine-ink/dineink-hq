@@ -13,6 +13,10 @@ export default defineConfig({
   },
   test: {
     environment: 'jsdom',
+    // The API tests build request URLs from this. Pinning it here means the
+    // suite does not depend on a developer's local .env, which is gitignored
+    // and was missing on one machine when every fetch-based test failed.
+    env: { VITE_API_URL: 'http://localhost:5500' },
     globals: true,
     setupFiles: ['./src/test/setupTests.ts'],
     css: false,
