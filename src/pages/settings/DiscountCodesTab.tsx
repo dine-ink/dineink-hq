@@ -2,6 +2,8 @@ import { useState } from "react";
 import { useAppSelector } from "@/store";
 import { PlusIcon, TrashIcon, TagIcon } from "@heroicons/react/24/outline";
 import { ConfirmationDialog, useConfirmDialog } from "@/design";
+import { FormField, Input, Select } from "@/design/components/forms";
+import { Button, PrimaryButton } from "@/design/components/buttons";
 import MobileTableCards from "@/components/common/MobileTableCards";
 import { errorMessage as messageFrom } from "@/utils/apiRequest";
 import {
@@ -90,21 +92,31 @@ export default function DiscountCodesTab() {
     });
   };
 
+  const closeForm = () => {
+    setShowForm(false);
+    setForm(blankForm);
+    setError("");
+  };
+
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
+    <div className="space-y-5">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h3 className="text-sm font-bold text-gray-900">Discount Codes</h3>
-          <p className="mt-0.5 text-xs text-gray-500">
-            Coupon codes cashiers can apply at checkout — a fixed % or ₹ off, optionally capped by uses or an expiry.
+          <h2 className="text-[18px] font-bold text-gray-900">Discount Codes</h2>
+          <p className="mt-0.5 text-[12px] text-gray-500">
+            Coupon codes cashiers can apply at checkout: a fixed % or ₹ off, optionally capped by uses.
           </p>
         </div>
-        <button
-          onClick={() => setShowForm((s) => !s)}
-          className="flex items-center gap-1.5 rounded-xl bg-red-500 px-3.5 py-2 text-xs font-bold text-white transition hover:bg-red-600"
-        >
-          <PlusIcon className="h-4 w-4" /> New Code
-        </button>
+        {!showForm && (
+          <PrimaryButton
+            type="button"
+            onClick={() => setShowForm(true)}
+            leftIcon={<PlusIcon className="h-4 w-4" />}
+            className="shrink-0 whitespace-nowrap"
+          >
+            New Code
+          </PrimaryButton>
+        )}
       </div>
 
       {/* Page-level, not inside the create form. Toggling and deleting can fail
@@ -112,80 +124,95 @@ export default function DiscountCodesTab() {
           only inside it would set state nobody ever sees, which is the silent
           failure this migration is meant to remove. */}
       {error && (
-        <p role="alert" className="rounded-xl bg-red-50 px-3 py-2 text-xs font-bold text-red-600">
+        <p
+          role="alert"
+          className="rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 text-[12px] font-medium text-red-700"
+        >
           {error}
         </p>
       )}
 
       {showForm && (
-        <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4">
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            handleCreate();
+          }}
+          noValidate
+          className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm"
+        >
+          <div className="mb-5 flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-red-50 text-[#b10000]">
+              <TagIcon className="h-5 w-5" />
+            </div>
             <div>
-              <label className="mb-1 block text-[11px] font-bold uppercase tracking-wide text-gray-400">Code</label>
-              <input
+              <p className="text-[14px] font-semibold text-gray-900">Create a code</p>
+              <p className="text-[11px] text-gray-400">Codes are stored in capitals and must be unique.</p>
+            </div>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <FormField label="Code" required>
+              <Input
                 value={form.code}
                 onChange={(e) => setForm((f) => ({ ...f, code: e.target.value.toUpperCase() }))}
                 placeholder="e.g. WELCOME10"
-                className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm uppercase outline-none focus:border-red-300"
+                className="uppercase"
+                autoFocus
               />
-            </div>
-            <div>
-              <label className="mb-1 block text-[11px] font-bold uppercase tracking-wide text-gray-400">Type</label>
-              <select
+            </FormField>
+            <FormField label="Type">
+              <Select
                 value={form.type}
                 onChange={(e) => setForm((f) => ({ ...f, type: e.target.value as "PERCENTAGE" | "FIXED" }))}
-                className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm outline-none focus:border-red-300"
               >
                 <option value="PERCENTAGE">Percentage (%)</option>
                 <option value="FIXED">Fixed amount (₹)</option>
-              </select>
-            </div>
-            <div>
-              <label className="mb-1 block text-[11px] font-bold uppercase tracking-wide text-gray-400">Value</label>
-              <input
+              </Select>
+            </FormField>
+            <FormField label={form.type === "PERCENTAGE" ? "Value (%)" : "Value (₹)"} required>
+              <Input
                 type="number"
+                min={0}
                 value={form.value}
                 onChange={(e) => setForm((f) => ({ ...f, value: e.target.value }))}
                 placeholder={form.type === "PERCENTAGE" ? "10" : "100"}
-                className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm outline-none focus:border-red-300"
               />
-            </div>
-            <div>
-              <label className="mb-1 block text-[11px] font-bold uppercase tracking-wide text-gray-400">Max uses <span className="normal-case font-normal">(opt)</span></label>
-              <input
+            </FormField>
+            <FormField label="Max uses" helperText="Leave empty for unlimited">
+              <Input
                 type="number"
+                min={1}
                 value={form.maxUses}
                 onChange={(e) => setForm((f) => ({ ...f, maxUses: e.target.value }))}
                 placeholder="Unlimited"
-                className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm outline-none focus:border-red-300"
               />
-            </div>
+            </FormField>
           </div>
-          <div className="mt-3 flex gap-2">
-            <button
-              onClick={handleCreate}
-              disabled={saving}
-              className="rounded-xl bg-red-500 px-4 py-2 text-xs font-bold text-white transition hover:bg-red-600 disabled:opacity-50"
-            >
-              {saving ? "Creating..." : "Create Code"}
-            </button>
-            <button
-              onClick={() => { setShowForm(false); setForm(blankForm); setError(""); }}
-              className="rounded-xl border border-gray-200 bg-white px-4 py-2 text-xs font-bold text-gray-600"
-            >
+
+          <div className="mt-5 flex flex-col-reverse gap-2 border-t border-gray-100 pt-4 sm:flex-row sm:justify-end">
+            <Button type="button" variant="outline" onClick={closeForm} disabled={saving}>
               Cancel
-            </button>
+            </Button>
+            <PrimaryButton type="submit" loading={saving} leftIcon={<PlusIcon className="h-4 w-4" />}>
+              Create Code
+            </PrimaryButton>
           </div>
-        </div>
+        </form>
       )}
 
-      <div className="overflow-hidden rounded-2xl border border-gray-200">
+      <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
         {loading ? (
           <p className="p-6 text-center text-sm text-gray-400">Loading...</p>
         ) : codes.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-10 text-center">
-            <TagIcon className="h-8 w-8 text-gray-300" />
-            <p className="mt-2 text-sm font-bold text-gray-500">No discount codes yet</p>
+          <div className="flex flex-col items-center justify-center px-6 py-12 text-center">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-red-50 text-[#b10000]">
+              <TagIcon className="h-6 w-6" />
+            </div>
+            <p className="mt-3 text-[14px] font-semibold text-gray-900">No discount codes yet</p>
+            <p className="mt-1 max-w-xs text-[12px] text-gray-500">
+              Create one and cashiers can apply it at checkout.
+            </p>
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -193,8 +220,11 @@ export default function DiscountCodesTab() {
           <table className="w-full border-collapse min-w-[40rem]">
             <thead className="bg-gray-50">
               <tr className="border-b border-gray-200">
-                {["Code", "Value", "Uses", "Status", ""].map((h) => (
-                  <th key={h} className="px-3 py-2 text-left text-[10px] font-black uppercase tracking-wider text-gray-500">
+                {["Code", "Value", "Uses", "Status", ""].map((h, i) => (
+                  <th
+                    key={h || `col-${i}`}
+                    className="px-4 py-2.5 text-left text-[11px] font-bold uppercase tracking-wide text-gray-500"
+                  >
                     {h}
                   </th>
                 ))}
@@ -202,28 +232,33 @@ export default function DiscountCodesTab() {
             </thead>
             <tbody>
               {codes.map((dc) => (
-                <tr key={dc.id} className="border-b border-gray-100">
-                  <td className="px-3 py-2.5 text-sm font-black text-gray-900">{dc.code}</td>
-                  <td className="px-3 py-2.5 text-sm text-gray-700">
+                <tr key={dc.id} className="border-b border-gray-100 last:border-0 hover:bg-gray-50/60">
+                  <td className="px-4 py-3 text-sm font-bold text-gray-900">{dc.code}</td>
+                  <td className="px-4 py-3 text-sm text-gray-700">
                     {dc.type === "PERCENTAGE" ? `${dc.value}%` : `₹${dc.value}`}
                   </td>
-                  <td className="px-3 py-2.5 text-xs text-gray-500">
+                  <td className="px-4 py-3 text-[12px] text-gray-500">
                     {dc.usedCount}{dc.maxUses ? ` / ${dc.maxUses}` : ""}
                   </td>
-                  <td className="px-3 py-2.5">
+                  <td className="px-4 py-3">
                     <button
+                      type="button"
                       onClick={() => handleToggleActive(dc)}
-                      className={`rounded-full px-2.5 py-0.5 text-[10px] font-black transition ${
+                      aria-pressed={dc.isActive}
+                      title={dc.isActive ? "Click to deactivate" : "Click to activate"}
+                      className={`rounded-full px-2.5 py-1 text-[11px] font-bold transition ${
                         dc.isActive ? "bg-emerald-100 text-emerald-700 hover:bg-emerald-200" : "bg-gray-100 text-gray-500 hover:bg-gray-200"
                       }`}
                     >
                       {dc.isActive ? "Active" : "Inactive"}
                     </button>
                   </td>
-                  <td className="px-3 py-2.5 text-right">
+                  <td className="px-4 py-3 text-right">
                     <button
+                      type="button"
                       onClick={() => handleDelete(dc.id)}
-                      className="rounded-lg p-1.5 text-gray-400 transition hover:bg-red-50 hover:text-red-500"
+                      aria-label={`Delete ${dc.code}`}
+                      className="rounded-lg p-1.5 text-gray-400 transition hover:bg-red-50 hover:text-red-600"
                     >
                       <TrashIcon className="h-4 w-4" />
                     </button>
