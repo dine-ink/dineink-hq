@@ -190,7 +190,7 @@ export default function WhatsAppCenter() {
               </div>
               <DataTable
                 columns={columns}
-                rows={logs}
+                rows={logs} pageSize={10} rowNoun="messages"
                 rowKey={(row) => row.id}
                 error={error}
                 onRetry={() => refetchLogs()}

@@ -34,6 +34,7 @@ import {
   type ChipStatus,
 } from "@/design";
 import { notify } from "@/utils/notify";
+import { nonNegative } from "@/utils/numberInput";
 
 
 interface EmiScheduleRef {
@@ -457,7 +458,7 @@ export default function EquipmentList() {
             className="m-4"
           />
         ) : (
-          <DataTable columns={columns} rows={equipment} rowKey={(eq) => eq.id} loading={loading} />
+          <DataTable columns={columns} rows={equipment} pageSize={10} rowNoun="equipment" rowKey={(eq) => eq.id} loading={loading} />
         )}
       </div>
 
@@ -518,7 +519,7 @@ export default function EquipmentList() {
               </FormField>
               <FormField label="Item Capacity Count">
                 <Input
-                  type="number"
+                  type="number" {...nonNegative}
                   value={form.itemCapacityCount}
                   onChange={(e) => setForm((f) => ({ ...f, itemCapacityCount: e.target.value }))}
                   placeholder="e.g. 40"
@@ -526,7 +527,7 @@ export default function EquipmentList() {
               </FormField>
               <FormField label="Power Consumption (kW)">
                 <Input
-                  type="number"
+                  type="number" {...nonNegative}
                   step="0.01"
                   value={form.powerConsumptionKw}
                   onChange={(e) => setForm((f) => ({ ...f, powerConsumptionKw: e.target.value }))}
@@ -540,7 +541,7 @@ export default function EquipmentList() {
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
               <FormField label="Purchase Price (₹)">
                 <Input
-                  type="number"
+                  type="number" {...nonNegative}
                   value={form.purchasePrice}
                   onChange={(e) => setForm((f) => ({ ...f, purchasePrice: e.target.value }))}
                   placeholder="0.00"
@@ -582,7 +583,7 @@ export default function EquipmentList() {
               </FormField>
               <FormField label="Expected Lifespan (months)">
                 <Input
-                  type="number"
+                  type="number" {...nonNegative}
                   value={form.expectedLifespanMonths}
                   onChange={(e) => setForm((f) => ({ ...f, expectedLifespanMonths: e.target.value }))}
                   placeholder="e.g. 96"

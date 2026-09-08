@@ -36,6 +36,7 @@ import {
   payrollPeriodLabel,
   type PayrollRun,
 } from "./payrollExport";
+import { nonNegative } from "@/utils/numberInput";
 
 interface PayrollProcessingTabProps {
   allStaff: any[];
@@ -331,7 +332,7 @@ export default function PayrollProcessingTab({ allStaff }: PayrollProcessingTabP
         </div>
         <DataTable
           columns={historyColumns}
-          rows={runs}
+          rows={runs} pageSize={10} rowNoun="payroll runs"
           rowKey={(r) => r.id}
           loading={loadingHistory}
           error={historyError}
@@ -396,7 +397,7 @@ export default function PayrollProcessingTab({ allStaff }: PayrollProcessingTabP
 
           <FormField label="Amount" required>
             <input
-              type="number"
+              type="number" {...nonNegative}
               min="0"
               step="0.01"
               value={formAmount}

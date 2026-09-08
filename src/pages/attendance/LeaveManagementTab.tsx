@@ -243,7 +243,7 @@ export default function LeaveManagementTab({ allStaff }: LeaveManagementTabProps
       <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
         <DataTable
           columns={columns}
-          rows={requests}
+          rows={requests} pageSize={10} rowNoun="leave requests"
           rowKey={(r) => r.id}
           loading={loading}
           error={error}

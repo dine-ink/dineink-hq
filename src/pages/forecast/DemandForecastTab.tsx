@@ -99,7 +99,7 @@ export default function DemandForecastTab() {
 
       <DataTable
         columns={columns}
-        rows={items}
+        rows={items} pageSize={10} rowNoun="items"
         rowKey={(row) => row.name ?? JSON.stringify(row)}
         loading={loading}
         error={error}

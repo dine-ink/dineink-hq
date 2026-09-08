@@ -1,6 +1,7 @@
 import { ChevronDownIcon, CheckIcon } from "@heroicons/react/24/outline";
 import { ASSUMPTION_FIELD_GROUPS } from "@/pages/insights/assumptionFields";
 import type { UseFinanceAssumptions } from "@/pages/insights/useFinanceAssumptions";
+import { nonNegative } from "@/utils/numberInput";
 
 /**
  * Financial Assumptions — the single source of truth for every target, rate and
@@ -202,7 +203,7 @@ export default function FinancialAssumptionsTab({ assumptions, selectedBranch }:
                                   </span>
                                 )}
                                 <input
-                                  type="number"
+                                  type="number" {...nonNegative}
                                   value={value ?? ""}
                                   onChange={(e) =>
                                     handleAssumptionFieldChange(

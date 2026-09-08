@@ -32,6 +32,7 @@ import {
 } from "./laborCategories";
 import { useLaborQuery, useLaborScope } from "./useLaborApi";
 import MobileTableCards from "@/components/common/MobileTableCards";
+import { nonNegative } from "@/utils/numberInput";
 
 // The manager-facing output: required vs. rostered staff, who stands where,
 // when the peak actually lands, what the binding constraint is, and what to do
@@ -241,7 +242,7 @@ export default function StaffingPlanTab() {
             ))}
           </select>
           <input
-            type="number"
+            type="number" {...nonNegative}
             min={1}
             value={assumedHeadcount}
             onChange={(e) => setAssumedHeadcount(e.target.value)}

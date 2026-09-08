@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { Pagination, usePagination } from "@/design";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAppDispatch, useAppSelector } from "@/store";
 import {
@@ -33,6 +34,8 @@ import PayInvoiceDialog from "./PayInvoiceDialog";
 import MobileTableCards from "@/components/common/MobileTableCards";
 import { notify, notifySuccess } from "@/utils/notify";
 import { confirmAction } from "@/utils/confirmAction";
+import { clampToToday, todayISO } from "@/utils/dates";
+import { nonNegative } from "@/utils/numberInput";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -379,6 +382,7 @@ export default function Vendors() {
       (!typeFilter || v.vendorType === typeFilter),
   );
 
+  const vendorPager = usePagination(filtered, 10);
   return (
     <main className="min-h-screen bg-gray-50">
       <div className="mx-auto flex w-full  flex-col gap-3">
@@ -537,7 +541,7 @@ export default function Vendors() {
               <div className="h-6 w-6 animate-spin rounded-full border-2 border-gray-200 border-t-red-500" />
             </div>
           ) : (
-            <div className="overflow-x-auto">
+            <><div className="overflow-x-auto">
               <MobileTableCards>
               <table className="min-w-full text-[12px]">
                 <thead className="bg-gray-50 border-b border-gray-100">
@@ -561,7 +565,7 @@ export default function Vendors() {
                 </thead>
                 <tbody>
                   {filtered.length > 0 ? (
-                    filtered.map((v) => {
+                    vendorPager.pageRows.map((v) => {
                       const outs = outstanding.find((o) => o.id === v.id);
                       return (
                         <tr
@@ -688,6 +692,15 @@ export default function Vendors() {
               </table>
               </MobileTableCards>
             </div>
+            <Pagination
+              page={vendorPager.page}
+              totalPages={vendorPager.totalPages}
+              onPageChange={vendorPager.setPage}
+              pageSize={vendorPager.pageSize}
+              onPageSizeChange={vendorPager.setPageSize}
+              range={{ from: vendorPager.from, to: vendorPager.to, total: vendorPager.total, noun: "vendors" }}
+            />
+            </>
           )}
         </div>
 
@@ -887,10 +900,10 @@ export default function Vendors() {
             <div className="space-y-3">
               <div>
                 <label className="mb-1 block text-[11px] font-bold text-gray-600">
-                  Amount (₹) *
+                  Amount (₹) <span className="text-danger-600">*</span>
                 </label>
                 <input
-                  type="number"
+                  type="number" {...nonNegative}
                   value={paymentForm.amount}
                   onChange={(e) =>
                     setPaymentForm((f) => ({ ...f, amount: e.target.value }))
@@ -927,10 +940,11 @@ export default function Vendors() {
                 <input
                   type="date"
                   value={paymentForm.paymentDate}
+                  max={todayISO()}
                   onChange={(e) =>
                     setPaymentForm((f) => ({
                       ...f,
-                      paymentDate: e.target.value,
+                      paymentDate: clampToToday(e.target.value),
                     }))
                   }
                   className="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-[12px] outline-none focus:border-red-400"

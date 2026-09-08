@@ -6,6 +6,7 @@ import { CHART_CARD } from "./laborCategories";
 import { useLaborQuery, useLaborScope } from "./useLaborApi";
 import MobileTableCards from "@/components/common/MobileTableCards";
 import { confirmAction } from "@/utils/confirmAction";
+import { nonNegative } from "@/utils/numberInput";
 
 // Station setup: the stations themselves, their productive-time factor, their
 // throughput ceiling, and which equipment feeds each one. This is the table
@@ -443,7 +444,7 @@ export default function StationsTab() {
                       </td>
                       <td className="px-4 py-2">
                         <input
-                          type="number"
+                          type="number" {...nonNegative}
                           min={0}
                           step={1}
                           defaultValue={e.itemsPerHour ?? ""}
@@ -509,7 +510,7 @@ export default function StationsTab() {
             helperText="Fraction of the hour a person here is actually producing food. Blank inherits the branch default. 0.75 = 45 min/hr."
           >
             <Input
-              type="number"
+              type="number" {...nonNegative}
               min={0.1}
               max={1}
               step={0.05}
@@ -523,7 +524,7 @@ export default function StationsTab() {
             helperText="Physical output limit of the station itself. Blank = derive from linked equipment, or make no assessment."
           >
             <Input
-              type="number"
+              type="number" {...nonNegative}
               min={1}
               step={1}
               value={form.capacityPerHour}
@@ -533,7 +534,7 @@ export default function StationsTab() {
           </FormField>
           <FormField label="Display order" helperText="Lower numbers appear first.">
             <Input
-              type="number"
+              type="number" {...nonNegative}
               min={0}
               step={1}
               value={form.sortOrder}

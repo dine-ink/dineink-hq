@@ -12,6 +12,7 @@ import {
   InformationCircleIcon,
 } from "@heroicons/react/24/outline";
 import { notify } from "@/utils/notify";
+import { clampToToday, todayISO } from "@/utils/dates";
 
 export default function DailyStockAudit() {
   const { selectedBranch } = useAppSelector((s) => s.branch);
@@ -193,7 +194,8 @@ export default function DailyStockAudit() {
               <input
                 type="date"
                 value={auditDate}
-                onChange={(e) => setAuditDate(e.target.value)}
+                max={todayISO()}
+                onChange={(e) => setAuditDate(clampToToday(e.target.value))}
                 className="h-9 rounded-xl border border-gray-200 bg-white px-3 text-[12px] font-medium text-gray-700 outline-none focus:border-red-400 focus:ring-2 focus:ring-red-100"
               />
             </div>

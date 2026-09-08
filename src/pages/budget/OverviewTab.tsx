@@ -6,6 +6,7 @@ import { TrendIcon } from "@/utils/kpiDisplay";
 import BudgetCharts from "./BudgetCharts";
 import MobileTableCards from "@/components/common/MobileTableCards";
 import { CheckCircleIcon, ExclamationTriangleIcon } from "@heroicons/react/24/outline";
+import { clampToToday, todayISO } from "@/utils/dates";
 
 const WIDGET_CATEGORIES = ["revenue", "foodCost", "labour", "ebitda", "netProfit"];
 
@@ -108,14 +109,17 @@ export default function OverviewTab() {
               <input
                 type="date"
                 value={customFrom}
-                onChange={(e) => setCustomFrom(e.target.value)}
+                max={customTo || todayISO()}
+                onChange={(e) => setCustomFrom(clampToToday(e.target.value))}
                 className="rounded-xl border border-gray-200 bg-white px-2.5 py-1.5 text-[11px] outline-none"
               />
               <span className="text-[11px] text-gray-400">to</span>
               <input
                 type="date"
                 value={customTo}
-                onChange={(e) => setCustomTo(e.target.value)}
+                min={customFrom || undefined}
+                max={todayISO()}
+                onChange={(e) => setCustomTo(clampToToday(e.target.value))}
                 className="rounded-xl border border-gray-200 bg-white px-2.5 py-1.5 text-[11px] outline-none"
               />
             </div>

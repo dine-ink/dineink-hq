@@ -1,4 +1,5 @@
 import MobileTableCards from "@/components/common/MobileTableCards";
+import { Pagination, usePagination } from "@/design";
 
 /**
  * GST summary for the period, with the filing-ready export.
@@ -20,6 +21,7 @@ interface TaxReportTabProps {
 }
 
 export default function TaxReportTab({ totalRevenue, totalCGST, totalSGST, totalGST, bills, downloadGstFiling, downloadingGst }: TaxReportTabProps) {
+  const billPager = usePagination(bills, 10);
   return (
           <div className="space-y-3">
             <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
@@ -98,7 +100,7 @@ export default function TaxReportTab({ totalRevenue, totalCGST, totalSGST, total
                     </tr>
                   </thead>
                   <tbody>
-                    {bills.slice(0, 20).map((b: any) => (
+                    {billPager.pageRows.map((b: any) => (
                       <tr
                         key={b.id}
                         className="border-b border-gray-50 hover:bg-gray-50/60"
@@ -186,6 +188,14 @@ export default function TaxReportTab({ totalRevenue, totalCGST, totalSGST, total
                 </table>
                 </MobileTableCards>
               </div>
+              <Pagination
+                page={billPager.page}
+                totalPages={billPager.totalPages}
+                onPageChange={billPager.setPage}
+                pageSize={billPager.pageSize}
+                onPageSizeChange={billPager.setPageSize}
+                range={{ from: billPager.from, to: billPager.to, total: billPager.total, noun: "bills" }}
+              />
             </div>
           </div>
   );

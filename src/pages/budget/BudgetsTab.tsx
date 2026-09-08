@@ -12,6 +12,7 @@ import {
   useUpdateBudgetMutation,
 } from "@/store/api/budgetsApi";
 import { BUDGET_CATEGORIES, BUDGET_CATEGORY_GROUPS, MONTH_NAMES, fyMonths } from "./budgetCategories";
+import { gridFromItems, isGridDirty, itemsFromGrid, type GridValues } from "./budgetGrid";
 import MobileTableCards from "@/components/common/MobileTableCards";
 import {
   ArchiveBoxIcon,
@@ -24,6 +25,7 @@ import {
 } from "@heroicons/react/24/outline";
 import { notify } from "@/utils/notify";
 import { confirmAction } from "@/utils/confirmAction";
+import { nonNegative } from "@/utils/numberInput";
 
 const currentFyStartYear = () => {
   const now = new Date();
@@ -48,7 +50,11 @@ export default function BudgetsTab() {
 
   const [view, setView] = useState<"list" | "create" | "edit">("list");
   const [selectedBudget, setSelectedBudget] = useState<any>(null);
-  const [gridValues, setGridValues] = useState<Record<string, number | "">>({});
+  const [gridValues, setGridValues] = useState<GridValues>({});
+  // What the grid looked like when it was loaded or last saved. Edits are
+  // local until Save Changes, so this is how the tab knows there are any.
+  const [savedGrid, setSavedGrid] = useState<GridValues>({});
+  const gridDirty = isGridDirty(gridValues, savedGrid);
   const [saving, setSaving] = useState(false);
 
   // Create-form state
@@ -125,13 +131,21 @@ export default function BudgetsTab() {
 
   const openDetail = (budget: any) => {
     setSelectedBudget(budget);
-    const values: Record<string, number | ""> = {};
-    (budget.items || []).forEach((item: any) => {
-      values[`${item.category}:${item.year}:${item.month}`] = item.amount;
-    });
+    const values = gridFromItems(budget.items);
     setGridValues(values);
+    setSavedGrid(values);
     setView("edit");
   };
+
+  /** Asks before an action that would throw away unsaved grid edits. */
+  const confirmDiscard = async () =>
+    !gridDirty ||
+    (await confirmAction({
+      title: "Leave without saving?",
+      message: "Your edits to the budget grid have not been saved and will be lost.",
+      confirmLabel: "Discard changes",
+      cancelLabel: "Keep editing",
+    }));
 
   const handleOpenBudget = async (budgetId: number) => {
     try {
@@ -150,31 +164,34 @@ export default function BudgetsTab() {
     setGridValues((prev) => ({ ...prev, [`${category}:${year}:${month}`]: value === "" ? "" : Number(value) }));
   };
 
-  const handleSaveGrid = async () => {
-    if (!selectedBudget) return;
+  /** Persists the grid. Resolves false when the save failed, so callers can stop. */
+  const saveGrid = async (): Promise<boolean> => {
+    if (!selectedBudget) return false;
     setSaving(true);
     try {
-      const items = Object.entries(gridValues)
-        .filter(([, v]) => v !== "")
-        .map(([key, amount]) => {
-          const [category, year, month] = key.split(":");
-          return { category, year: Number(year), month: Number(month), amount: Number(amount) };
-        });
       const saved = await saveBudgetItems({
         restaurantId,
         budgetId: selectedBudget.id,
-        items: { items },
+        items: { items: itemsFromGrid(gridValues) },
       }).unwrap();
       if (saved) setSelectedBudget(saved);
+      setSavedGrid(gridValues);
+      return true;
     } catch (err) {
       notify(errorMessage(err, "Failed to save budget items"));
+      return false;
     } finally {
       setSaving(false);
     }
   };
+  const handleSaveGrid = () => void saveGrid();
 
   const handleSetStatus = async (status: "PUBLISHED" | "ARCHIVED" | "DRAFT") => {
     if (!selectedBudget) return;
+    // Publishing used to change only the status, so numbers typed but not yet
+    // saved were silently left out of the published budget. Save them first;
+    // a failed save stops the status change so nothing half-applies.
+    if (gridDirty && !(await saveGrid())) return;
     try {
       // Publishing or archiving used to look like it worked whichever way it
       // went — a rejected response fell through with no else, and a thrown one
@@ -379,7 +396,7 @@ export default function BudgetsTab() {
                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-400">₹</span>
                   )}
                   <input
-                    type="number"
+                    type="number" {...nonNegative}
                     value={formDefaults[cat.key] ?? ""}
                     onChange={(e) => setFormDefaults((prev) => ({ ...prev, [cat.key]: e.target.value }))}
                     placeholder="0"
@@ -413,7 +430,7 @@ export default function BudgetsTab() {
 
   return (
     <div className="space-y-4">
-      <button type="button" onClick={() => setView("list")} className="flex items-center gap-1 text-[12px] font-semibold text-gray-500 hover:text-gray-700">
+      <button type="button" onClick={async () => { if (await confirmDiscard()) setView("list"); }} className="flex items-center gap-1 text-[12px] font-semibold text-gray-500 hover:text-gray-700">
         <ArrowLeftIcon className="h-3.5 w-3.5" /> Back to Budgets
       </button>
 
@@ -421,6 +438,11 @@ export default function BudgetsTab() {
         <div className="flex items-center gap-2">
           <h3 className="text-[16px] font-bold text-gray-900">{selectedBudget?.name}</h3>
           {statusBadge(selectedBudget?.status)}
+          {gridDirty && (
+            <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-700">
+              Unsaved changes
+            </span>
+          )}
           <span className="text-[11px] text-gray-400">
             {selectedBudget?.branch?.name || "Restaurant-wide"} · FY{selectedBudget?.financialYear}
           </span>
@@ -428,7 +450,7 @@ export default function BudgetsTab() {
         <div className="flex flex-wrap gap-2">
           <button
             type="button"
-            onClick={() => handleCopyToNextYear(selectedBudget)}
+            onClick={async () => { if (await confirmDiscard()) handleCopyToNextYear(selectedBudget); }}
             className="flex items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3 py-2 text-[12px] font-semibold text-gray-700 shadow-sm transition hover:bg-gray-50"
           >
             <DocumentDuplicateIcon className="h-3.5 w-3.5" /> Copy to Next Year
@@ -454,10 +476,11 @@ export default function BudgetsTab() {
           <button
             type="button"
             onClick={handleSaveGrid}
-            disabled={saving}
+            disabled={saving || !gridDirty}
+            title={gridDirty ? "Save the numbers in the grid" : "Nothing to save"}
             className="flex items-center gap-1.5 rounded-xl bg-[#b10000] px-3 py-2 text-[12px] font-semibold text-white shadow-sm transition hover:bg-[#950000] disabled:opacity-50"
           >
-            <CheckIcon className="h-3.5 w-3.5" /> {saving ? "Saving…" : "Save Changes"}
+            <CheckIcon className="h-3.5 w-3.5" /> {saving ? "Saving…" : gridDirty ? "Save Changes" : "Saved"}
           </button>
           <button
             type="button"
@@ -496,7 +519,7 @@ export default function BudgetsTab() {
                       return (
                         <td key={key} className="px-1 py-1">
                           <input
-                            type="number"
+                            type="number" {...nonNegative}
                             value={gridValues[key] ?? ""}
                             onChange={(e) => handleGridChange(cat.key, m.year, m.month, e.target.value)}
                             placeholder="0"

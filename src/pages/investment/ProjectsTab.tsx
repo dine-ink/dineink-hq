@@ -23,6 +23,7 @@ import {
 } from "@heroicons/react/24/outline";
 import { notify } from "@/utils/notify";
 import { confirmAction } from "@/utils/confirmAction";
+import { nonNegative } from "@/utils/numberInput";
 
 const SCENARIO_TYPE_LABEL: Record<string, string> = { CONSERVATIVE: "Conservative", EXPECTED: "Expected", OPTIMISTIC: "Optimistic" };
 
@@ -253,7 +254,7 @@ export default function ProjectsTab() {
             </div>
             <div>
               <label className="mb-1 block text-[11px] font-medium text-gray-600">Initial Investment (₹)</label>
-              <input type="number" value={form.initialInvestment || ""} onChange={(e) => setForm((p) => ({ ...p, initialInvestment: e.target.value }))} className="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-sm outline-none focus:border-red-300 focus:bg-white" />
+              <input type="number" {...nonNegative} value={form.initialInvestment || ""} onChange={(e) => setForm((p) => ({ ...p, initialInvestment: e.target.value }))} className="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-sm outline-none focus:border-red-300 focus:bg-white" />
             </div>
             <div>
               <label className="mb-1 block text-[11px] font-medium text-gray-600">Planned Start Date</label>
@@ -261,7 +262,7 @@ export default function ProjectsTab() {
             </div>
             <div>
               <label className="mb-1 block text-[11px] font-medium text-gray-600">Project Life (Years)</label>
-              <input type="number" value={form.projectLifeYears || "5"} onChange={(e) => setForm((p) => ({ ...p, projectLifeYears: e.target.value }))} className="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-sm outline-none focus:border-red-300 focus:bg-white" />
+              <input type="number" {...nonNegative} value={form.projectLifeYears || "5"} onChange={(e) => setForm((p) => ({ ...p, projectLifeYears: e.target.value }))} className="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-sm outline-none focus:border-red-300 focus:bg-white" />
             </div>
           </div>
 
@@ -270,7 +271,7 @@ export default function ProjectsTab() {
             {ASSUMPTION_FIELDS.filter((f) => f.key !== "initialInvestment").map((f) => (
               <div key={f.key}>
                 <label className="mb-1 block text-[11px] font-medium text-gray-600">{f.label}</label>
-                <input type="number" value={form[f.key] || ""} onChange={(e) => setForm((p) => ({ ...p, [f.key]: e.target.value }))} placeholder="Default" className="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-sm outline-none focus:border-red-300 focus:bg-white" />
+                <input type="number" {...nonNegative} value={form[f.key] || ""} onChange={(e) => setForm((p) => ({ ...p, [f.key]: e.target.value }))} placeholder="Default" className="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-sm outline-none focus:border-red-300 focus:bg-white" />
               </div>
             ))}
           </div>
@@ -405,7 +406,7 @@ export default function ProjectsTab() {
           {ASSUMPTION_FIELDS.filter((f) => f.key !== "initialInvestment").map((f) => (
             <div key={f.key}>
               <label className="mb-1 block text-[11px] font-medium text-gray-600">{f.label}</label>
-              <input type="number" value={form[f.key] || ""} onChange={(e) => setForm((p) => ({ ...p, [f.key]: e.target.value }))} placeholder="Default" className="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-1.5 text-sm outline-none focus:border-red-300 focus:bg-white" />
+              <input type="number" {...nonNegative} value={form[f.key] || ""} onChange={(e) => setForm((p) => ({ ...p, [f.key]: e.target.value }))} placeholder="Default" className="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-1.5 text-sm outline-none focus:border-red-300 focus:bg-white" />
             </div>
           ))}
         </div>

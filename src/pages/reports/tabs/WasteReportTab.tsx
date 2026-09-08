@@ -1,4 +1,5 @@
 import dayjs from "dayjs";
+import { Pagination, usePagination } from "@/design";
 import {
   ResponsiveContainer,
   BarChart,
@@ -66,6 +67,7 @@ export default function WasteReportTab({ inventoryAdjustments }: WasteReportTabP
     wastageByIngredient,
   ).reduce<number>((s, i: any) => s + i.cost, 0);
 
+  const adjustmentPager = usePagination(inventoryAdjustments, 10);
   return (
     <div className="space-y-3">
       <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
@@ -243,7 +245,7 @@ export default function WasteReportTab({ inventoryAdjustments }: WasteReportTabP
               </tr>
             </thead>
             <tbody>
-              {inventoryAdjustments.slice(0, 20).map((a: any) => (
+              {adjustmentPager.pageRows.map((a: any) => (
                 <tr
                   key={a.id}
                   className="border-b border-gray-50 hover:bg-gray-50/60"
@@ -303,6 +305,14 @@ export default function WasteReportTab({ inventoryAdjustments }: WasteReportTabP
           </table>
           </MobileTableCards>
         </div>
+        <Pagination
+          page={adjustmentPager.page}
+          totalPages={adjustmentPager.totalPages}
+          onPageChange={adjustmentPager.setPage}
+          pageSize={adjustmentPager.pageSize}
+          onPageSizeChange={adjustmentPager.setPageSize}
+          range={{ from: adjustmentPager.from, to: adjustmentPager.to, total: adjustmentPager.total, noun: "adjustments" }}
+        />
       </div>
     </div>
   );

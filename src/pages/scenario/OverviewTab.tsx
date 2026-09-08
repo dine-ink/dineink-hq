@@ -13,6 +13,7 @@ import ScenarioCharts from "./ScenarioCharts";
 import MobileTableCards from "@/components/common/MobileTableCards";
 import { ArrowPathIcon, CheckIcon } from "@heroicons/react/24/outline";
 import { notify } from "@/utils/notify";
+import { clampToToday, todayISO } from "@/utils/dates";
 
 const PERIODS = [
   { key: "currentMonth", label: "Current Month" },
@@ -200,9 +201,9 @@ export default function OverviewTab() {
           </div>
           {period === "custom" && (
             <div className="flex items-center gap-2">
-              <input type="date" value={customFrom} onChange={(e) => setCustomFrom(e.target.value)} className="rounded-xl border border-gray-200 bg-white px-2.5 py-1.5 text-[11px] outline-none" />
+              <input type="date" value={customFrom} max={customTo || todayISO()} onChange={(e) => setCustomFrom(clampToToday(e.target.value))} className="rounded-xl border border-gray-200 bg-white px-2.5 py-1.5 text-[11px] outline-none" />
               <span className="text-[11px] text-gray-400">to</span>
-              <input type="date" value={customTo} onChange={(e) => setCustomTo(e.target.value)} className="rounded-xl border border-gray-200 bg-white px-2.5 py-1.5 text-[11px] outline-none" />
+              <input type="date" value={customTo} min={customFrom || undefined} max={todayISO()} onChange={(e) => setCustomTo(clampToToday(e.target.value))} className="rounded-xl border border-gray-200 bg-white px-2.5 py-1.5 text-[11px] outline-none" />
             </div>
           )}
         </div>

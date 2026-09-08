@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Pagination, usePagination } from "@/design";
 import dayjs from "dayjs";
 import { useAppSelector } from "@/store";
 import {
@@ -31,6 +32,8 @@ import LeaveManagementTab from "./LeaveManagementTab";
 import PayrollProcessingTab from "./PayrollProcessingTab";
 import MobileTableCards from "@/components/common/MobileTableCards";
 import { notify } from "@/utils/notify";
+import { clampToToday, todayISO } from "@/utils/dates";
+import { nonNegative } from "@/utils/numberInput";
 
 // Effective hours for payroll/display purposes: an owner-entered override
 // takes precedence over whatever the POS clock-in/out computed.
@@ -251,6 +254,7 @@ export default function Attendance() {
     );
   })();
 
+  const staffPager = usePagination(allStaff, 10);
   if (loading) {
     return (
       <div className="flex min-h-[400px] items-center justify-center">
@@ -359,7 +363,8 @@ export default function Attendance() {
                   <input
                     type="date"
                     value={date}
-                    onChange={(e) => setDate(e.target.value)}
+                    max={todayISO()}
+                    onChange={(e) => setDate(clampToToday(e.target.value))}
                     className="h-9 rounded-lg border border-gray-200 bg-white px-3 text-[12px] text-gray-700 outline-none focus:border-red-300"
                   />
                 </>
@@ -666,7 +671,7 @@ export default function Attendance() {
                     </tr>
                   </thead>
                   <tbody>
-                    {allStaff.map((s: any) => {
+                    {staffPager.pageRows.map((s: any) => {
                       const att = attendance.find(
                         (a: any) => a.userId === s.id,
                       );
@@ -798,6 +803,14 @@ export default function Attendance() {
                 </table>
                 </MobileTableCards>
               </div>
+              <Pagination
+                page={staffPager.page}
+                totalPages={staffPager.totalPages}
+                onPageChange={staffPager.setPage}
+                pageSize={staffPager.pageSize}
+                onPageSizeChange={staffPager.setPageSize}
+                range={{ from: staffPager.from, to: staffPager.to, total: staffPager.total, noun: "staff" }}
+              />
             </div>
           </>
         )}
@@ -1086,7 +1099,7 @@ export default function Attendance() {
             }
           >
             <div
-              className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl"
+              className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl max-h-[90vh] overflow-y-auto"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="mb-4 flex items-center justify-between">
@@ -1115,7 +1128,7 @@ export default function Attendance() {
                     Total Hours Worked
                   </label>
                   <input
-                    type="number"
+                    type="number" {...nonNegative}
                     step="0.25"
                     min="0"
                     placeholder="e.g. 8.5"
@@ -1133,7 +1146,7 @@ export default function Attendance() {
                     Overtime Hours
                   </label>
                   <input
-                    type="number"
+                    type="number" {...nonNegative}
                     step="0.25"
                     min="0"
                     placeholder="e.g. 1.5"

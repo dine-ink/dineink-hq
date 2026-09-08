@@ -1,4 +1,5 @@
 import dayjs from "dayjs";
+import { Pagination, usePagination } from "@/design";
 import { useAppSelector } from "@/store";
 import { useGetCashSessionsQuery } from "@/store/api/operationsApi";
 import {
@@ -53,6 +54,7 @@ export default function CashSessions() {
     closing: Number(s.closingCash || s.actualCash || 0),
   }));
 
+  const sessionPager = usePagination(sorted, 10);
   if (loading) {
     return (
       <div className="flex min-h-[400px] items-center justify-center">
@@ -336,7 +338,7 @@ export default function CashSessions() {
               </thead>
               <tbody>
                 {sorted.length > 0 ? (
-                  sorted.map((s: any) => {
+                  sessionPager.pageRows.map((s: any) => {
                     const diff = Number(s.cashDifference || 0);
                     const isBig = Math.abs(diff) > 500;
                     return (
@@ -456,6 +458,14 @@ export default function CashSessions() {
             </table>
             </MobileTableCards>
           </div>
+          <Pagination
+            page={sessionPager.page}
+            totalPages={sessionPager.totalPages}
+            onPageChange={sessionPager.setPage}
+            pageSize={sessionPager.pageSize}
+            onPageSizeChange={sessionPager.setPageSize}
+            range={{ from: sessionPager.from, to: sessionPager.to, total: sessionPager.total, noun: "sessions" }}
+          />
         </div>
       </div>
     </main>

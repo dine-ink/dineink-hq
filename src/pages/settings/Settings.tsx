@@ -31,6 +31,7 @@ import { Button, PrimaryButton } from "@/design/components/buttons";
 import TabStrip from "@/components/common/TabStrip";
 import { notify } from "@/utils/notify";
 import { confirmAction } from "@/utils/confirmAction";
+import { nonNegative } from "@/utils/numberInput";
 
 const TABS = [
   { id: "General", label: "Restaurant", icon: BuildingStorefrontIcon },
@@ -717,7 +718,7 @@ export default function Settings() {
                           Number of tables
                         </label>
                         <input
-                          type="number"
+                          type="number" {...nonNegative}
                           value={newBranch.tablesCount || ""}
                           placeholder="0"
                           onChange={(e) => {
@@ -761,7 +762,7 @@ export default function Settings() {
                                 className="flex-1 bg-transparent text-[12px] outline-none"
                               />
                               <input
-                                type="number"
+                                type="number" {...nonNegative}
                                 value={t.capacity || ""}
                                 placeholder="Cap"
                                 onChange={(e) =>
@@ -849,7 +850,7 @@ export default function Settings() {
                             </label>
                             <div className="relative">
                               <input
-                                type="number"
+                                type="number" {...nonNegative}
                                 value={newBranch.billing.gstPercentage}
                                 onChange={(e) =>
                                   setNBBilling({
@@ -870,7 +871,7 @@ export default function Settings() {
                             </label>
                             <div className="relative">
                               <input
-                                type="number"
+                                type="number" {...nonNegative}
                                 value={newBranch.billing.serviceCharge}
                                 onChange={(e) =>
                                   setNBBilling({
@@ -1122,7 +1123,7 @@ export default function Settings() {
                                 {f.label}
                               </p>
                               <input
-                                type="number"
+                                type="number" {...nonNegative}
                                 min={0}
                                 step={0.1}
                                 value={(branch as any)[f.field] ?? ""}
@@ -1182,7 +1183,7 @@ export default function Settings() {
                                 {f.label}
                               </p>
                               <input
-                                type="number"
+                                type="number" {...nonNegative}
                                 min={0}
                                 step={f.step}
                                 value={(branch as any)[f.field] ?? ""}

@@ -25,6 +25,7 @@ import {
 } from "@heroicons/react/24/outline";
 import MobileTableCards from "@/components/common/MobileTableCards";
 import type { InsightsMetrics } from "@/pages/insights/useInsightsMetrics";
+import { nonNegative } from "@/utils/numberInput";
 
 /**
  * Insights Setup — the form behind every figure on Overview: fixed and variable
@@ -374,7 +375,7 @@ export default function InsightsSetupTab({ metrics, insightsData, setInsightsDat
                               ₹
                             </span>
                             <input
-                              type="number"
+                              type="number" {...nonNegative}
                               value={insightsData.monthlyRent || ""}
                               disabled={insightsData.rentModel === "REVENUE_SHARE"}
                               onChange={(e) =>
@@ -406,7 +407,7 @@ export default function InsightsSetupTab({ metrics, insightsData, setInsightsDat
                                   </label>
                                   <div className="relative">
                                     <input
-                                      type="number"
+                                      type="number" {...nonNegative}
                                       min="0"
                                       max="100"
                                       value={insightsData[f.key] || ""}
@@ -470,7 +471,7 @@ export default function InsightsSetupTab({ metrics, insightsData, setInsightsDat
                                 </span>
 
                                 <input
-                                  type="number"
+                                  type="number" {...nonNegative}
                                   value={insightsData[field.key] || ""}
                                   onChange={(e) =>
                                     setInsightsData({
@@ -621,7 +622,7 @@ export default function InsightsSetupTab({ metrics, insightsData, setInsightsDat
                                 </span>
 
                                 <input
-                                  type="number"
+                                  type="number" {...nonNegative}
                                   value={insightsData[field.key] || ""}
                                   onChange={(e) =>
                                     setInsightsData({
@@ -709,7 +710,7 @@ export default function InsightsSetupTab({ metrics, insightsData, setInsightsDat
                               ₹
                             </span>
                             <input
-                              type="number"
+                              type="number" {...nonNegative}
                               value={insightsData.manualFoodCost || ""}
                               onChange={(e) =>
                                 setInsightsData({
@@ -1262,7 +1263,7 @@ export default function InsightsSetupTab({ metrics, insightsData, setInsightsDat
                                 )}
 
                                 <input
-                                  type="number"
+                                  type="number" {...nonNegative}
                                   value={insightsData[field.key] || ""}
                                   onChange={(e) =>
                                     setInsightsData({
@@ -1554,7 +1555,7 @@ export default function InsightsSetupTab({ metrics, insightsData, setInsightsDat
                                 )}
 
                                 <input
-                                  type="number"
+                                  type="number" {...nonNegative}
                                   value={insightsData[field.key] || ""}
                                   onChange={(e) =>
                                     setInsightsData({
