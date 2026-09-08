@@ -3,6 +3,7 @@ import { Alert } from "@/design";
 import { CHART_CARD, PROFICIENCY_LABELS } from "./laborCategories";
 import { useLaborQuery, useLaborScope } from "./useLaborApi";
 import MobileTableCards from "@/components/common/MobileTableCards";
+import { nonNegative } from "@/utils/numberInput";
 
 // Who can work where, and how fast. This is what turns "how many people do I
 // need?" into "who should stand where?" — a 4.5-FTE grill gap plus a 1.8-FTE
@@ -207,7 +208,7 @@ export default function SkillMatrixTab() {
                             </select>
                             {cell && (
                               <input
-                                type="number"
+                                type="number" {...nonNegative}
                                 min={0.25}
                                 max={3}
                                 step={0.05}

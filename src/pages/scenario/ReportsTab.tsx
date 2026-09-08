@@ -9,6 +9,7 @@ import { errorMessage } from "@/utils/apiRequest";
 import { scenariosApi, useGetScenariosQuery } from "@/store/api/scenariosApi";
 import { fmtCategoryValue, SCENARIO_KPIS } from "./scenarioCategories";
 import MobileTableCards from "@/components/common/MobileTableCards";
+import { clampToToday, todayISO } from "@/utils/dates";
 
 const REPORT_TYPES = [
   { key: "summary", label: "Scenario Summary" },
@@ -291,9 +292,9 @@ export default function ReportsTab() {
           </div>
           {period === "custom" && (
             <>
-              <input type="date" value={customFrom} onChange={(e) => setCustomFrom(e.target.value)} className="rounded-xl border border-gray-200 bg-white px-2.5 py-1.5 text-[11px] outline-none" />
+              <input type="date" value={customFrom} max={customTo || todayISO()} onChange={(e) => setCustomFrom(clampToToday(e.target.value))} className="rounded-xl border border-gray-200 bg-white px-2.5 py-1.5 text-[11px] outline-none" />
               <span className="text-[11px] text-gray-400">to</span>
-              <input type="date" value={customTo} onChange={(e) => setCustomTo(e.target.value)} className="rounded-xl border border-gray-200 bg-white px-2.5 py-1.5 text-[11px] outline-none" />
+              <input type="date" value={customTo} min={customFrom || undefined} max={todayISO()} onChange={(e) => setCustomTo(clampToToday(e.target.value))} className="rounded-xl border border-gray-200 bg-white px-2.5 py-1.5 text-[11px] outline-none" />
             </>
           )}
         </div>

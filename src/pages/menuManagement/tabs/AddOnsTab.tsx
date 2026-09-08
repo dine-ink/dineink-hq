@@ -3,6 +3,7 @@ import {
   PlusIcon,
 } from "@heroicons/react/24/outline";
 import type { UseAddOns } from "@/pages/menuManagement/useAddOns";
+import { nonNegative } from "@/utils/numberInput";
 
 /**
  * Add-on groups and their options — creating "Extras", pricing "Extra Cheese",
@@ -39,7 +40,7 @@ export default function AddOnsTab({ addOns }: AddOnsTabProps) {
             <div className="space-y-4">
               <div className="rounded-2xl border border-gray-200 bg-white px-5 py-4 shadow-sm">
                 <div className="flex items-center gap-4">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-500 to-purple-500 shadow-sm">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#b10000] shadow-sm">
                     <PuzzlePieceIcon className="h-5 w-5 text-white" />
                   </div>
                   <div>
@@ -65,12 +66,12 @@ export default function AddOnsTab({ addOns }: AddOnsTabProps) {
                       e.key === "Enter" && handleCreateAddOnGroup()
                     }
                     placeholder="New group name (e.g. Extra Toppings)"
-                    className="flex-1 rounded-xl border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm outline-none transition focus:border-violet-300 focus:bg-white"
+                    className="flex-1 rounded-xl border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm outline-none transition focus:border-red-300 focus:bg-white"
                   />
                   <button
                     onClick={handleCreateAddOnGroup}
                     disabled={!newGroupName.trim()}
-                    className="flex items-center gap-1.5 rounded-xl bg-violet-600 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-violet-700 disabled:cursor-not-allowed disabled:opacity-50"
+                    className="flex items-center gap-1.5 rounded-xl bg-[#b10000] px-4 py-2.5 text-sm font-bold text-white transition hover:bg-[#950000] disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     <PlusIcon className="h-4 w-4" />
                     Add Group
@@ -153,10 +154,10 @@ export default function AddOnsTab({ addOns }: AddOnsTabProps) {
                             }))
                           }
                           placeholder="Option (e.g. Extra Cheese)"
-                          className="min-w-0 flex-1 rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-[12px] outline-none focus:border-violet-300"
+                          className="min-w-0 flex-1 rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-[12px] outline-none focus:border-red-300"
                         />
                         <input
-                          type="number"
+                          type="number" {...nonNegative}
                           value={newOptionForm[group.id]?.price || ""}
                           onChange={(e) =>
                             setNewOptionForm((prev) => ({
@@ -169,11 +170,11 @@ export default function AddOnsTab({ addOns }: AddOnsTabProps) {
                             }))
                           }
                           placeholder="₹"
-                          className="w-16 rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-[12px] outline-none focus:border-violet-300"
+                          className="w-16 rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-[12px] outline-none focus:border-red-300"
                         />
                         <button
                           onClick={() => handleAddOption(group.id)}
-                          className="shrink-0 rounded-lg bg-violet-600 px-3 py-1.5 text-[11px] font-bold text-white transition hover:bg-violet-700"
+                          className="shrink-0 rounded-lg bg-[#b10000] px-3 py-1.5 text-[11px] font-bold text-white transition hover:bg-[#950000]"
                         >
                           Add
                         </button>

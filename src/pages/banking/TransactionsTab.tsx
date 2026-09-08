@@ -22,6 +22,8 @@ import {
 } from "@/design";
 import { PlusIcon, ArrowPathIcon } from "@heroicons/react/24/outline";
 import type { BankTransactionEntry, ReconcileResult, TransactionType } from "./types";
+import { clampToToday, todayISO } from "@/utils/dates";
+import { nonNegative } from "@/utils/numberInput";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -172,11 +174,11 @@ export default function TransactionsTab() {
         <div className="flex flex-wrap items-end gap-3">
           <div>
             <label className="mb-1 block text-[11px] font-bold text-gray-600">From</label>
-            <Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className="w-40" />
+            <Input type="date" value={from} max={to || todayISO()} onChange={(e) => setFrom(clampToToday(e.target.value))} className="w-40" />
           </div>
           <div>
             <label className="mb-1 block text-[11px] font-bold text-gray-600">To</label>
-            <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} className="w-40" />
+            <Input type="date" value={to} min={from || undefined} max={todayISO()} onChange={(e) => setTo(clampToToday(e.target.value))} className="w-40" />
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -206,7 +208,7 @@ export default function TransactionsTab() {
 
       <DataTable
         columns={columns}
-        rows={transactions}
+        rows={transactions} pageSize={10} rowNoun="transactions"
         rowKey={(r) => r.id}
         loading={loading}
         error={error}
@@ -244,7 +246,7 @@ export default function TransactionsTab() {
           </FormField>
           <FormField label="Amount (₹)" required>
             <Input
-              type="number"
+              type="number" {...nonNegative}
               min="0"
               step="0.01"
               value={form.amount}

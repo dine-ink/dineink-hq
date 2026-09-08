@@ -7,6 +7,7 @@ import {
   CartesianGrid,
   Tooltip,
 } from "recharts";
+import { Pagination, usePagination } from "@/design";
 
 /**
  * Recorded shop expenses by type, and what they consume of revenue.
@@ -25,6 +26,7 @@ interface ExpenseTrackerTabProps {
 }
 
 export default function ExpenseTrackerTab({ totalRevenue, localTotalExpenses, expenseByType, expenses }: ExpenseTrackerTabProps) {
+  const expensePager = usePagination(expenses, 10);
   return (
           <div className="space-y-3">
             <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
@@ -143,7 +145,7 @@ export default function ExpenseTrackerTab({ totalRevenue, localTotalExpenses, ex
                   </h3>
                 </div>
                 <div className="divide-y divide-gray-50">
-                  {expenses.slice(0, 8).map((e: any) => (
+                  {expensePager.pageRows.map((e: any) => (
                     <div
                       key={e.id}
                       className="flex items-center justify-between px-4 py-2.5"
@@ -174,6 +176,14 @@ export default function ExpenseTrackerTab({ totalRevenue, localTotalExpenses, ex
                     </div>
                   )}
                 </div>
+                <Pagination
+                  page={expensePager.page}
+                  totalPages={expensePager.totalPages}
+                  onPageChange={expensePager.setPage}
+                  pageSize={expensePager.pageSize}
+                  onPageSizeChange={expensePager.setPageSize}
+                  range={{ from: expensePager.from, to: expensePager.to, total: expensePager.total, noun: "expenses" }}
+                />
               </div>
             </div>
           </div>

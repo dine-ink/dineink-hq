@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { BanknotesIcon, XMarkIcon } from "@heroicons/react/24/outline";
+import { nonNegative } from "@/utils/numberInput";
 
 interface PayInvoiceDialogProps {
   open: boolean;
@@ -76,7 +77,7 @@ export default function PayInvoiceDialog({
         role="dialog"
         aria-modal="true"
         aria-labelledby="pay-invoice-heading"
-        className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl"
+        className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl max-h-[90vh] overflow-y-auto"
       >
         <div className="mb-4 flex items-center justify-between">
           <h3 id="pay-invoice-heading" className="text-[15px] font-black text-gray-900">
@@ -105,7 +106,7 @@ export default function PayInvoiceDialog({
           </span>
           <input
             id="pay-invoice-amount"
-            type="number"
+            type="number" {...nonNegative}
             inputMode="decimal"
             min="0"
             max={remaining}

@@ -84,6 +84,7 @@ import {
   type SetupInput,
   type SetupProblem,
 } from "./setupValidation";
+import { nonNegative } from "@/utils/numberInput";
 
 const tabs = [
   {
@@ -1043,7 +1044,7 @@ export default function RestaurantSetupModal({ open, setOpen }: Props) {
                                     Number of Tables
                                   </label>
                                   <input
-                                    type="number"
+                                    type="number" {...nonNegative}
                                     value={branch.tablesCount || ""}
                                     onChange={(e) => {
                                       const count =
@@ -1102,7 +1103,7 @@ export default function RestaurantSetupModal({ open, setOpen }: Props) {
                                             className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm outline-none transition-all focus:border-red-500 focus:ring-4 focus:ring-red-100"
                                           />
                                           <input
-                                            type="number"
+                                            type="number" {...nonNegative}
                                             value={table.capacity || ""}
                                             onChange={(e) =>
                                               updateBranchTable(index, tIndex, {
@@ -1285,13 +1286,15 @@ export default function RestaurantSetupModal({ open, setOpen }: Props) {
                                     onClick={() =>
                                       updateCategory(index, {
                                         items: [
-                                          ...category.items,
+                                          // New dish goes first: the button is in the category header, so a
+                                          // long category would otherwise hide the blank row at the bottom.
                                           {
                                             name: "",
                                             price: "",
                                             type: "Veg",
                                             prepTime: "",
                                           },
+                                          ...category.items,
                                         ],
                                       })
                                     }
@@ -1336,7 +1339,7 @@ export default function RestaurantSetupModal({ open, setOpen }: Props) {
                                               ₹
                                             </span>
                                             <input
-                                              type="number"
+                                              type="number" {...nonNegative}
                                               value={item.price}
                                               onChange={(e) =>
                                                 updateCategoryItem(
@@ -1356,7 +1359,7 @@ export default function RestaurantSetupModal({ open, setOpen }: Props) {
                                           </label>
                                           <div className="relative">
                                             <input
-                                              type="number"
+                                              type="number" {...nonNegative}
                                               value={item.prepTime || ""}
                                               onChange={(e) =>
                                                 updateCategoryItem(
@@ -1654,7 +1657,7 @@ export default function RestaurantSetupModal({ open, setOpen }: Props) {
                                     </label>
                                     <div className="relative">
                                       <input
-                                        type="number"
+                                        type="number" {...nonNegative}
                                         value={branch.billing.gstPercentage}
                                         onChange={(e) =>
                                           updateBranchBilling(index, {
@@ -1675,7 +1678,7 @@ export default function RestaurantSetupModal({ open, setOpen }: Props) {
                                     </label>
                                     <div className="relative">
                                       <input
-                                        type="number"
+                                        type="number" {...nonNegative}
                                         value={branch.billing.serviceCharge}
                                         onChange={(e) =>
                                           updateBranchBilling(index, {
@@ -2019,7 +2022,7 @@ export default function RestaurantSetupModal({ open, setOpen }: Props) {
                                         ₹
                                       </span>
                                       <input
-                                        type="number"
+                                        type="number" {...nonNegative}
                                         placeholder="0"
                                         value={s.salary || ""}
                                         onChange={(e) =>

@@ -31,6 +31,13 @@ const CATEGORIES = [
   { id: 1, name: "South Indian" },
   { id: 2, name: "Beverages" },
 ];
+// What the menu-management payload's `categories` field actually holds: the
+// ingredient category table. Deliberately different from CATEGORIES so a test
+// can tell which list a dropdown was fed.
+const INGREDIENT_CATEGORIES = [
+  { id: 1, name: "Grains" },
+  { id: 2, name: "Dairy" },
+];
 const INGREDIENTS = [
   { id: 5, name: "Rice", unit: "Kg", quantity: 20, pricePerUnit: 60, purchasePrice: 1200 },
 ];
@@ -55,7 +62,7 @@ const mockFetches = () => {
       const json = jsonResponse;
 
       if (url.includes("/menu-management")) {
-        return json({ success: true, data: { menuItems: MENU_ITEMS, categories: CATEGORIES, ingredients: INGREDIENTS } });
+        return json({ success: true, data: { menuItems: MENU_ITEMS, categories: INGREDIENT_CATEGORIES, ingredients: INGREDIENTS } });
       }
       if (url.includes("/restaurant/categories")) return json({ success: true, data: CATEGORIES });
       if (url.includes("/restaurant/menu-items")) return json({ success: true, data: MENU_ITEMS });
@@ -142,6 +149,30 @@ afterEach(() => {
 });
 
 describe("Menu Management — characterisation", () => {
+  it("fills the Menu tab's category dropdown from menu categories, not ingredient categories", async () => {
+    await renderPage();
+    await waitFor(() =>
+      expect(screen.getAllByRole("option", { name: "South Indian" }).length).toBeGreaterThan(0),
+    );
+    expect(screen.queryAllByRole("option", { name: "Grains" })).toHaveLength(0);
+  });
+
+  it("filters the Item Mapping list as you type in its search box", async () => {
+    const user = userEvent.setup();
+    await renderPage();
+    await openTab(user, "Item Mapping");
+    await waitFor(() => expect(screen.getAllByText("Filter Coffee").length).toBeGreaterThan(0));
+
+    await user.type(screen.getByLabelText("Search menu items"), "dosa");
+
+    expect(screen.queryAllByText("Filter Coffee")).toHaveLength(0);
+    expect(screen.getAllByText("Masala Dosa").length).toBeGreaterThan(0);
+
+    await user.clear(screen.getByLabelText("Search menu items"));
+    await user.type(screen.getByLabelText("Search menu items"), "zzz");
+    expect(screen.getByText('No menu items match "zzz".')).toBeInTheDocument();
+  });
+
   it("loads and lands on the Menu tab", async () => {
     await renderPage();
     expect(screen.getAllByText("Menu").length).toBeGreaterThan(0);

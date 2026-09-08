@@ -3,6 +3,7 @@ import { Alert, Button, Dialog, FormField, Input } from "@/design";
 import { CHART_CARD } from "./laborCategories";
 import { useLaborQuery, useLaborScope } from "./useLaborApi";
 import MobileTableCards from "@/components/common/MobileTableCards";
+import { nonNegative } from "@/utils/numberInput";
 
 // The labor-standards matrix: menu item × station minutes. This is the data the
 // whole engine rests on — "don't only store total prep time, store
@@ -287,7 +288,7 @@ export default function LaborStandardsTab() {
                         return (
                           <td key={s.stationId} className="px-3 py-1.5">
                             <input
-                              type="number"
+                              type="number" {...nonNegative}
                               min={0}
                               step={0.5}
                               value={cellValue(row, s.stationId)}
@@ -368,7 +369,7 @@ export default function LaborStandardsTab() {
             {stations.map((s) => (
               <FormField key={s.stationId} label={s.name}>
                 <Input
-                  type="number"
+                  type="number" {...nonNegative}
                   min={0}
                   step={1}
                   value={seedWeights[s.stationId] ?? ""}

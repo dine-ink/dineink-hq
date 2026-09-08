@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useGetMenuCategoriesQuery } from "@/store/api/menuApi";
 import { useAppDispatch, useAppSelector } from "@/store";
 import { useAddOns } from "./useAddOns";
 import {
@@ -191,7 +192,6 @@ export default function MenuManagement() {
 
   const [menuItems, setMenuItems] = useState<any[]>([]);
   const [restocks, setRestocks] = useState<any[]>([]);
-  const [categories, setCategories] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [restockHistory, setRestockHistory] = useState<any[]>([]);
   const [attachModal, setAttachModal] = useState<{
@@ -218,13 +218,22 @@ export default function MenuManagement() {
   );
   const [selectedWeek, setSelectedWeek] = useState("week1");
 
+  // Menu categories come from their own endpoint. The menu-management
+  // payload also carries a `categories` field, but that is the ingredient
+  // category table; feeding it to the Menu tab gave its dropdowns Grains and
+  // Dairy and saved dishes against ingredient-category ids.
+  const { data: menuCategories = [] } = useGetMenuCategoriesQuery(
+    user?.restaurantId as number,
+    { skip: !user?.restaurantId },
+  );
+
   // The menu list: filters, sort, and the create/edit/delete of items and
   // categories. Nothing outside the Menu tab reads any of it.
-  const menuEditor = useMenuItemsEditor(menuItems, categories);
+  const menuEditor = useMenuItemsEditor(menuItems, menuCategories);
 
   // The ingredient stock editor. The page keeps `ingredients` in view because
   // allIngredients is flattened from it and three other tabs read that.
-  const ingredientEditor = useIngredientEditor(categories, setCategories, setLoading);
+  const ingredientEditor = useIngredientEditor(setLoading);
   const { ingredients, setIngredients } = ingredientEditor;
 
   const allIngredients: any[] = Object.values(
@@ -940,8 +949,8 @@ export default function MenuManagement() {
   /**
    * Two kinds of assignment, and they cannot share an effect.
    *
-   * `menuItems` and `categories` are read-only mirrors of the payload, so they
-   * are safe to overwrite whenever it refreshes.
+   * `menuItems` is a read-only mirror of the payload, so it is safe to
+   * overwrite whenever it refreshes.
    *
    * The ingredient rows are not: they are an editable draft, and the Item
    * Mapping selection is a choice someone made. Both used to be re-seeded here
@@ -959,7 +968,6 @@ export default function MenuManagement() {
   useEffect(() => {
     if (!menuManagement) return;
     setMenuItems(menuManagement.menuItems || []);
-    setCategories(menuManagement.categories || []);
   }, [menuManagement]);
 
   useEffect(() => {
@@ -1238,10 +1246,14 @@ export default function MenuManagement() {
           })}
         </div>
         {/* ================= CONTENT ================= */}
-        <div className="rounded-md border border-white/40 bg-white/80 p-8 shadow-sm backdrop-blur-xl">
+        {/* No backdrop-blur here: a backdrop filter makes this card the containing
+            block for position:fixed descendants, so every tab's fixed-overlay
+            modal was centred on this (very tall) card instead of the viewport,
+            and had to be scrolled to. */}
+        <div className="rounded-md border border-gray-200 bg-white p-8 shadow-sm">
           {/* MENU */}
           {activeTab === "menu" && (
-            <MenuTab editor={menuEditor} categories={categories} openAttachModal={openAttachModal} />
+            <MenuTab editor={menuEditor} categories={menuCategories} openAttachModal={openAttachModal} />
           )}
 
           {/* INGREDIENTS */}
@@ -1287,7 +1299,7 @@ export default function MenuManagement() {
               }
             >
               <div
-                className="w-full max-w-sm rounded-2xl bg-white p-5 shadow-xl"
+                className="w-full max-w-sm rounded-2xl bg-white p-5 shadow-xl max-h-[90vh] overflow-y-auto"
                 onClick={(e) => e.stopPropagation()}
               >
                 <div className="mb-4 flex items-center justify-between">

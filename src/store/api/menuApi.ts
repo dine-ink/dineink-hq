@@ -29,10 +29,23 @@ export type SaveMenuItemInput = {
 
 export const menuApi = api.injectEndpoints({
   endpoints: (builder) => ({
+    /**
+     * The restaurant's menu categories (Starters, Main Course...). Menu
+     * Management used to take these from the menu-management payload's
+     * `categories`, which is the *ingredient* category table — so the Menu
+     * tab's dropdowns listed Grains and Dairy, and a dish saved through the
+     * dialog was linked to an ingredient category's id.
+     */
+    getMenuCategories: builder.query<any[], number>({
+      query: (restaurantId) => `/api/restaurant/categories/${restaurantId}`,
+      transformResponse: (response: Envelope<any[]>) => unwrap(response) ?? [],
+      providesTags: ["MenuCategory"],
+    }),
+
     createMenuCategory: builder.mutation<any, { restaurantId: number; name: string }>({
       query: (body) => ({ url: "/api/restaurant/categories", method: "POST", body }),
       transformResponse: (response: Envelope<any>) => unwrap(response),
-      invalidatesTags: ["MenuItem"],
+      invalidatesTags: ["MenuItem", "MenuCategory"],
     }),
 
     saveMenuItem: builder.mutation<any, SaveMenuItemInput>({
@@ -67,6 +80,7 @@ export const menuApi = api.injectEndpoints({
 });
 
 export const {
+  useGetMenuCategoriesQuery,
   useCreateMenuCategoryMutation,
   useSaveMenuItemMutation,
   useDeleteMenuItemMutation,

@@ -8,6 +8,7 @@ import { useAppSelector } from "@/store";
 import { useGetBudgetsQuery, useGetBudgetVarianceQuery } from "@/store/api/budgetsApi";
 import { fmtCategoryValue } from "./budgetCategories";
 import MobileTableCards from "@/components/common/MobileTableCards";
+import { clampToToday, todayISO } from "@/utils/dates";
 
 // Monthly/Quarterly/Yearly/Variance Report are all the same underlying
 // Budget vs Actual data at a different period granularity — one flexible
@@ -163,9 +164,9 @@ export default function ReportsTab() {
           </select>
           {reportType === "custom" && (
             <>
-              <input type="date" value={customFrom} onChange={(e) => setCustomFrom(e.target.value)} className="rounded-xl border border-gray-200 bg-white px-2.5 py-1.5 text-[11px] outline-none" />
+              <input type="date" value={customFrom} max={customTo || todayISO()} onChange={(e) => setCustomFrom(clampToToday(e.target.value))} className="rounded-xl border border-gray-200 bg-white px-2.5 py-1.5 text-[11px] outline-none" />
               <span className="text-[11px] text-gray-400">to</span>
-              <input type="date" value={customTo} onChange={(e) => setCustomTo(e.target.value)} className="rounded-xl border border-gray-200 bg-white px-2.5 py-1.5 text-[11px] outline-none" />
+              <input type="date" value={customTo} min={customFrom || undefined} max={todayISO()} onChange={(e) => setCustomTo(clampToToday(e.target.value))} className="rounded-xl border border-gray-200 bg-white px-2.5 py-1.5 text-[11px] outline-none" />
             </>
           )}
         </div>

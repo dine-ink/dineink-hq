@@ -1,3 +1,4 @@
+import { useMemo, useState } from "react";
 import {
   ClipboardDocumentCheckIcon,
   ExclamationTriangleIcon,
@@ -8,6 +9,7 @@ import { MdRestaurant, MdRestaurantMenu } from "react-icons/md";
 import MobileTableCards from "@/components/common/MobileTableCards";
 import { iconMap, isVegType } from "@/pages/menuManagement/menuDisplay";
 import type { UseIngredientMapping } from "@/pages/menuManagement/useIngredientMapping";
+import { nonNegative } from "@/utils/numberInput";
 
 /**
  * Item Mapping — which ingredients go into each menu item, in what quantity,
@@ -44,6 +46,19 @@ export default function ItemMappingTab({ mapping, menuItems, allIngredients, avg
     foodCostPercentage,
     margin,
   } = mapping;
+
+  // The search box above the list. It rendered without value/onChange, so
+  // typing into it filtered nothing. Matches on the dish name or its category.
+  const [search, setSearch] = useState("");
+  const visibleItems = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return menuItems;
+    return menuItems.filter(
+      (item: any) =>
+        String(item.name || "").toLowerCase().includes(q) ||
+        String(item.category?.name || "").toLowerCase().includes(q),
+    );
+  }, [menuItems, search]);
 
   return (
             <div className="space-y-4">
@@ -183,6 +198,10 @@ export default function ItemMappingTab({ mapping, menuItems, allIngredients, avg
                       <MagnifyingGlassIcon className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
 
                       <input
+                        type="search"
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
+                        aria-label="Search menu items"
                         placeholder="Search menu items..."
                         className="
                 h-10
@@ -207,7 +226,7 @@ export default function ItemMappingTab({ mapping, menuItems, allIngredients, avg
 
                   <div className="max-h-[720px] overflow-auto p-3">
                     <div className="space-y-2">
-                      {menuItems.map((item: any) => (
+                      {visibleItems.map((item: any) => (
                         <div
                           key={item.id}
                           onClick={() => {
@@ -287,6 +306,13 @@ export default function ItemMappingTab({ mapping, menuItems, allIngredients, avg
                           </div>
                         </div>
                       ))}
+                      {visibleItems.length === 0 && (
+                        <p className="px-2 py-6 text-center text-[12px] text-gray-500">
+                          {search.trim()
+                            ? `No menu items match "${search.trim()}".`
+                            : "No menu items yet."}
+                        </p>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -451,7 +477,7 @@ export default function ItemMappingTab({ mapping, menuItems, allIngredients, avg
 
                             <td className="px-4 py-3">
                               <input
-                                type="number"
+                                type="number" {...nonNegative}
                                 value={row.quantity || ""}
                                 onChange={(e) =>
                                   setIngredientMappings((prev) =>
@@ -543,7 +569,7 @@ export default function ItemMappingTab({ mapping, menuItems, allIngredients, avg
 
                             <td className="px-4 py-3">
                               <input
-                                type="number"
+                                type="number" {...nonNegative}
                                 value={row.wastage || ""}
                                 onChange={(e) =>
                                   setIngredientMappings((prev) =>

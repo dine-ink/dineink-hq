@@ -229,7 +229,7 @@ export default function OperationsTab({ menuItems }: OperationsTabProps) {
                     <div className="space-y-3">
                       <div>
                         <label className="mb-1 block text-[11px] font-bold uppercase tracking-wide text-gray-500">
-                          Title *
+                          Title <span className="text-danger-600">*</span>
                         </label>
                         <input
                           value={sopForm.title}
@@ -287,7 +287,7 @@ export default function OperationsTab({ menuItems }: OperationsTabProps) {
 
                       <div>
                         <label className="mb-1 block text-[11px] font-bold uppercase tracking-wide text-gray-500">
-                          Steps *
+                          Steps <span className="text-danger-600">*</span>
                         </label>
                         <div className="space-y-2">
                           {sopForm.steps.map((step, i) => (

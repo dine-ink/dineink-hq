@@ -31,6 +31,7 @@ import {
   type DueCategory,
   type MonthlyDue,
 } from "./duesShared";
+import { nonNegative } from "@/utils/numberInput";
 
 interface MonthlyExpensesTabProps {
   month: number;
@@ -274,7 +275,7 @@ export default function MonthlyExpensesTab({ month, year }: MonthlyExpensesTabPr
       </div>
 
       <div className="overflow-hidden rounded-xl border border-gray-200">
-        <DataTable columns={columns} rows={merged} rowKey={(r) => r.key} loading={loading} />
+        <DataTable columns={columns} rows={merged} pageSize={10} rowNoun="expenses" rowKey={(r) => r.key} loading={loading} />
       </div>
 
       <Dialog
@@ -317,7 +318,7 @@ export default function MonthlyExpensesTab({ month, year }: MonthlyExpensesTabPr
 
           <FormField label="Amount Due" required={!isEdit}>
             <Input
-              type="number"
+              type="number" {...nonNegative}
               min="0"
               step="0.01"
               value={formAmountDue}
@@ -329,7 +330,7 @@ export default function MonthlyExpensesTab({ month, year }: MonthlyExpensesTabPr
           {isEdit && (
             <FormField label="Amount Paid">
               <Input
-                type="number"
+                type="number" {...nonNegative}
                 min="0"
                 step="0.01"
                 value={formAmountPaid}

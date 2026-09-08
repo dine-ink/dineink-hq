@@ -3,3 +3,4 @@ export type { Disclosure } from "./useDisclosure";
 export { useMediaQuery, useIsTablet, useIsLaptop, useIsDesktop, useIsMobile, default as useMediaQueryDefault } from "./useBreakpoint";
 export { useConfirmDialog, default as useConfirmDialogDefault } from "./useConfirmDialog";
 export type { UseConfirmDialogResult } from "./useConfirmDialog";
+export { usePagination, default as usePaginationDefault } from "./usePagination";

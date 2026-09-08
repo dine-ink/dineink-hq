@@ -1,3 +1,4 @@
+import { Pagination, usePagination } from "@/design";
 import { useState } from "react";
 import { useAppSelector } from "@/store";
 import {
@@ -82,8 +83,6 @@ export default function Customers() {
   const [search, setSearch] = useState("");
   const [_selectedCustomer, setSelectedCustomer] = useState<any>(null);
   const [messageCustomer, setMessageCustomer] = useState<any>(null);
-  const [page, setPage] = useState(1);
-  const rowsPerPage = 5;
 
   /**
    * The two inputs behind LTV:CAC. Neither endpoint is defined here — the
@@ -123,11 +122,11 @@ export default function Customers() {
       (c.name ?? "").toLowerCase().includes(search.toLowerCase()) ||
       (c.phone ?? "").includes(search),
   );
-  const totalPages = Math.ceil(filtered.length / rowsPerPage);
-  const paginatedCustomers = filtered.slice(
-    (page - 1) * rowsPerPage,
-    page * rowsPerPage,
-  );
+  // Every table on this page pages the same way, with a rows-per-page the
+  // person picks (the overview used to be a fixed 5 rows; the churn and RFM
+  // tables were silently cut at 15, 20 and 50).
+  const overviewPager = usePagination(filtered, 10);
+  const paginatedCustomers = overviewPager.pageRows;
   const [activeTab, setActiveTab] = useState<"overview" | "churn" | "rfm">(
     "overview",
   );
@@ -142,6 +141,8 @@ export default function Customers() {
   const active = customers.filter((c) => getCustomerSegment(c.lastVisit) === "active");
   const atRisk = customers.filter((c) => getCustomerSegment(c.lastVisit) === "at_risk");
   const churned = customers.filter((c) => getCustomerSegment(c.lastVisit) === "churned");
+  const atRiskPager = usePagination(atRisk, 10);
+  const churnedPager = usePagination(churned, 10);
   const topCustomers = [...customers]
     .sort((a, b) => b.spend - a.spend)
     .slice(0, 10);
@@ -215,6 +216,7 @@ export default function Customers() {
     scope,
     { skip: !user?.restaurantId || !selectedBranch?.id || activeTab !== "rfm" },
   );
+  const rfmPager = usePagination<any>(rfmData?.customers || [], 10);
 
   if (loading) {
     return (
@@ -446,7 +448,10 @@ export default function Customers() {
       <div className="mx-auto flex w-full  flex-col gap-2.5">
         <div className="relative overflow-hidden rounded-2xl border border-gray-100 bg-white px-5 py-4 shadow-sm transition-all duration-200 hover:shadow-md">
           <div className="absolute -right-10 -top-10 h-24 w-24 rounded-full bg-red-100/50 blur-3xl" />
-          <div className="relative z-10 flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+          {/* The KPI chips join the title row only from 2xl. Between xl and 2xl
+              (a 1366px laptop) all three did not fit, and the tab strip, being
+              the one shrinkable child, was the part that got clipped. */}
+          <div className="relative z-10 flex flex-col gap-3 2xl:flex-row 2xl:items-center 2xl:justify-between">
             {/* Title and tabs share a row from sm up; on a phone the tabs get
                 their own full-width row instead of being crushed beside the
                 heading. */}
@@ -465,7 +470,7 @@ export default function Customers() {
                 </div>
               </div>
 
-              <div className="-mx-1 overflow-x-auto px-1 sm:mx-0 sm:ml-2 sm:px-0">
+              <div className="-mx-1 overflow-x-auto px-1 sm:mx-0 sm:ml-2 sm:shrink-0 sm:px-0">
                 <div className="inline-flex overflow-hidden rounded-lg border border-gray-200 bg-white">
                   {(["overview", "churn", "rfm"] as const).map((t) => (
                     <button
@@ -595,7 +600,10 @@ export default function Customers() {
                     placeholder="Search customer..."
                     className="h-9 w-full rounded-xl border border-gray-200 bg-white pl-8 pr-3 text-[12px] outline-none transition-all focus:border-red-400 focus:ring-2 focus:ring-red-100 lg:w-60"
                     value={search}
-                    onChange={(e) => setSearch(e.target.value)}
+                    onChange={(e) => {
+                      setSearch(e.target.value);
+                      overviewPager.setPage(1);
+                    }}
                   />
                 </div>
               </div>
@@ -614,38 +622,14 @@ export default function Customers() {
             </div>
 
             {/* FOOTER */}
-
-            <div className="flex items-center justify-between border-t border-gray-100 px-4 py-2">
-              <p className="text-[11px] text-gray-500">
-                Showing{" "}
-                <span className="font-semibold text-gray-700">
-                  {paginatedCustomers.length}
-                </span>{" "}
-                customers
-              </p>
-
-              <div className="flex items-center gap-1.5">
-                <button
-                  disabled={page === 1}
-                  onClick={() => setPage(page - 1)}
-                  className="rounded-md border border-gray-200 bg-white px-2.5 py-1 text-[11px] font-semibold text-gray-700 transition-all hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
-                >
-                  Previous
-                </button>
-
-                <div className="rounded-md border border-gray-200 bg-gray-100 px-2.5 py-1 text-[11px] font-semibold text-gray-700">
-                  {page} / {totalPages}
-                </div>
-
-                <button
-                  disabled={page === totalPages}
-                  onClick={() => setPage(page + 1)}
-                  className="rounded-md border border-gray-200 bg-white px-2.5 py-1 text-[11px] font-semibold text-gray-700 transition-all hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
-                >
-                  Next
-                </button>
-              </div>
-            </div>
+            <Pagination
+              page={overviewPager.page}
+              totalPages={overviewPager.totalPages}
+              onPageChange={overviewPager.setPage}
+              pageSize={overviewPager.pageSize}
+              onPageSizeChange={overviewPager.setPageSize}
+              range={{ from: overviewPager.from, to: overviewPager.to, total: overviewPager.total, noun: "customers" }}
+            />
           </div>
         )}
 
@@ -812,8 +796,8 @@ export default function Customers() {
                     churn
                   </p>
                 </div>
-                <div className="divide-y divide-gray-50 max-h-[320px] overflow-y-auto">
-                  {atRisk.slice(0, 15).map((c: any) => {
+                <div className="divide-y divide-gray-50">
+                  {atRiskPager.pageRows.map((c: any) => {
                     const daysSince = c.lastVisit
                       ? Math.floor(
                           (Date.now() - new Date(c.lastVisit).getTime()) /
@@ -848,6 +832,14 @@ export default function Customers() {
                     </div>
                   )}
                 </div>
+                <Pagination
+                  page={atRiskPager.page}
+                  totalPages={atRiskPager.totalPages}
+                  onPageChange={atRiskPager.setPage}
+                  pageSize={atRiskPager.pageSize}
+                  onPageSizeChange={atRiskPager.setPageSize}
+                  range={{ from: atRiskPager.from, to: atRiskPager.to, total: atRiskPager.total, noun: "at-risk customers" }}
+                />
               </div>
             </div>
 
@@ -869,12 +861,20 @@ export default function Customers() {
               <div className="px-3 pb-3 md:px-0 md:pb-0">
                 <ResponsiveTable
                   columns={churnedColumns}
-                  data={churned.slice(0, 20)}
+                  data={churnedPager.pageRows}
                   rowKey={(c) => c.id}
                   minWidth="44rem"
                   emptyMessage="No churned customers — excellent retention!"
                 />
               </div>
+              <Pagination
+                page={churnedPager.page}
+                totalPages={churnedPager.totalPages}
+                onPageChange={churnedPager.setPage}
+                pageSize={churnedPager.pageSize}
+                onPageSizeChange={churnedPager.setPageSize}
+                range={{ from: churnedPager.from, to: churnedPager.to, total: churnedPager.total, noun: "churned customers" }}
+              />
             </div>
           </div>
         )}
@@ -987,12 +987,20 @@ export default function Customers() {
                   <div className="px-3 pb-3 md:px-0 md:pb-0">
                     <ResponsiveTable
                       columns={rfmColumns}
-                      data={(rfmData?.customers || []).slice(0, 50)}
+                      data={rfmPager.pageRows}
                       rowKey={(c) => c.id}
                       minWidth="52rem"
                       emptyMessage="No customer data available for RFM scoring"
                     />
                   </div>
+                  <Pagination
+                    page={rfmPager.page}
+                    totalPages={rfmPager.totalPages}
+                    onPageChange={rfmPager.setPage}
+                    pageSize={rfmPager.pageSize}
+                    onPageSizeChange={rfmPager.setPageSize}
+                    range={{ from: rfmPager.from, to: rfmPager.to, total: rfmPager.total, noun: "customers" }}
+                  />
                 </div>
               </>
             )}

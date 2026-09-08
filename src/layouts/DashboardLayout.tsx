@@ -50,6 +50,7 @@ import { useAppDispatch, useAppSelector } from "@/store";
 import { setSelectedBranch } from "@/store/slices/branchSlice";
 import { setPreset, setCustomRange } from "@/store/slices/dateRangeSlice";
 import type { Preset } from "@/store/slices/dateRangeSlice";
+import { clampToToday, todayISO } from "@/utils/dates";
 
 const NAV = [
   { name: "Dashboard", href: "/dashboard", icon: HomeIcon },
@@ -380,14 +381,17 @@ export default function DashboardLayout() {
                     <input
                       type="date"
                       value={customFrom}
-                      onChange={(e) => setCustomFrom(e.target.value)}
+                      max={customTo || todayISO()}
+                      onChange={(e) => setCustomFrom(clampToToday(e.target.value))}
                       className="h-7 rounded-lg border border-white/20 bg-white/15 px-2 text-[11px] text-white outline-none focus:border-white/40 backdrop-blur"
                     />
                     <span className="text-[10px] text-white/60">→</span>
                     <input
                       type="date"
                       value={customTo}
-                      onChange={(e) => setCustomTo(e.target.value)}
+                      min={customFrom || undefined}
+                      max={todayISO()}
+                      onChange={(e) => setCustomTo(clampToToday(e.target.value))}
                       className="h-7 rounded-lg border border-white/20 bg-white/15 px-2 text-[11px] text-white outline-none focus:border-white/40 backdrop-blur"
                     />
                     <button

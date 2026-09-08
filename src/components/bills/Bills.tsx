@@ -8,8 +8,9 @@ import {
   ShoppingBagIcon,
   XMarkIcon,
 } from "@heroicons/react/24/outline";
-import { SearchBar, Pagination } from "@/design";
+import { SearchBar, Pagination, usePagination } from "@/design";
 import MobileTableCards from "@/components/common/MobileTableCards";
+import { clampToToday, todayISO } from "@/utils/dates";
 
 export default function Bills() {
   const API_URL = import.meta.env.VITE_API_URL;
@@ -20,10 +21,8 @@ export default function Bills() {
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
-  const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(false);
   const [selectedBill, setSelectedBill] = useState<any>(null);
-  const rowsPerPage = 10;
 
   useEffect(() => {
     const controller = new AbortController();
@@ -84,11 +83,8 @@ export default function Bills() {
     return matchesSearch && matchesStatus && matchesFrom && matchesTo;
   });
 
-  const totalPages = Math.max(Math.ceil(filtered.length / rowsPerPage), 1);
-  const paginated = filtered.slice(
-    (page - 1) * rowsPerPage,
-    page * rowsPerPage,
-  );
+  const pager = usePagination(filtered, 10);
+  const paginated = pager.pageRows;
   const activeBills = filtered.filter(
     (b) => (b.paymentStatus || b.status) !== "CANCELLED",
   );
@@ -244,9 +240,10 @@ export default function Bills() {
                   <input
                     type="date"
                     value={dateFrom}
+                    max={dateTo || todayISO()}
                     onChange={(e) => {
-                      setDateFrom(e.target.value);
-                      setPage(1);
+                      setDateFrom(clampToToday(e.target.value));
+                      pager.setPage(1);
                     }}
                     className="text-[12px] text-gray-700 outline-none bg-transparent"
                   />
@@ -254,9 +251,11 @@ export default function Bills() {
                   <input
                     type="date"
                     value={dateTo}
+                    min={dateFrom || undefined}
+                    max={todayISO()}
                     onChange={(e) => {
-                      setDateTo(e.target.value);
-                      setPage(1);
+                      setDateTo(clampToToday(e.target.value));
+                      pager.setPage(1);
                     }}
                     className="text-[12px] text-gray-700 outline-none bg-transparent"
                   />
@@ -265,7 +264,7 @@ export default function Bills() {
                       onClick={() => {
                         setDateFrom("");
                         setDateTo("");
-                        setPage(1);
+                        pager.setPage(1);
                       }}
                       className="ml-1 text-[10px] font-bold text-gray-400 hover:text-red-500 transition"
                     >
@@ -277,7 +276,7 @@ export default function Bills() {
                   value={statusFilter}
                   onChange={(e) => {
                     setStatusFilter(e.target.value);
-                    setPage(1);
+                    pager.setPage(1);
                   }}
                   className="h-9 rounded-xl border border-gray-200 bg-white px-3 text-[12px] text-gray-700 outline-none transition focus:border-red-400 focus:ring-2 focus:ring-red-100"
                 >
@@ -291,7 +290,7 @@ export default function Bills() {
                   value={search}
                   onChange={(e) => {
                     setSearch(e.target.value);
-                    setPage(1);
+                    pager.setPage(1);
                   }}
                 />
               </div>
@@ -443,22 +442,12 @@ export default function Bills() {
           </div>
 
           <Pagination
-            page={page}
-            totalPages={totalPages}
-            onPageChange={setPage}
-            summary={
-              <>
-                Showing{" "}
-                <span className="font-semibold text-gray-700">
-                  {paginated.length}
-                </span>{" "}
-                of{" "}
-                <span className="font-semibold text-gray-700">
-                  {filtered.length}
-                </span>{" "}
-                bills
-              </>
-            }
+            page={pager.page}
+            totalPages={pager.totalPages}
+            onPageChange={pager.setPage}
+            pageSize={pager.pageSize}
+            onPageSizeChange={pager.setPageSize}
+            range={{ from: pager.from, to: pager.to, total: pager.total, noun: "bills" }}
           />
         </div>
       </div>
@@ -561,11 +550,19 @@ export default function Bills() {
                 ) : (
                   <div className="flex flex-col gap-1.5">
                     {/* Header row */}
-                    <div className="grid grid-cols-[1fr_48px_72px_72px] gap-2 pb-1.5 border-b border-gray-100">
-                      {["Item", "Qty", "Price", "Total"].map((h) => (
+                    {/* Each heading is aligned like the cells beneath it: numbers
+                        right, quantity centred. All-left headings over right-
+                        aligned prices read as misaligned columns. */}
+                    <div className="grid grid-cols-[1fr_48px_80px_80px] gap-2 pb-1.5 border-b border-gray-100">
+                      {[
+                        { h: "Item", align: "text-left" },
+                        { h: "Qty", align: "text-center" },
+                        { h: "Price", align: "text-right" },
+                        { h: "Total", align: "text-right" },
+                      ].map(({ h, align }) => (
                         <p
                           key={h}
-                          className="text-[10px] font-bold uppercase tracking-[0.12em] text-gray-400 last:text-right"
+                          className={`text-[10px] font-bold uppercase tracking-[0.12em] text-gray-400 ${align}`}
                         >
                           {h}
                         </p>
@@ -575,7 +572,7 @@ export default function Bills() {
                       (item: any, idx: number) => (
                         <div
                           key={item.id ?? idx}
-                          className="grid grid-cols-[1fr_48px_72px_72px] gap-2 rounded-lg px-0 py-1.5 items-center"
+                          className="grid grid-cols-[1fr_48px_80px_80px] gap-2 rounded-lg px-0 py-1.5 items-center"
                         >
                           <p className="text-[12px] font-semibold text-gray-800 leading-tight">
                             {item.itemName || item.name || "—"}
@@ -583,10 +580,10 @@ export default function Bills() {
                           <p className="text-[12px] text-gray-500 text-center">
                             ×{item.quantity}
                           </p>
-                          <p className="text-[12px] text-gray-500 text-right">
+                          <p className="text-[12px] text-gray-500 text-right tabular-nums whitespace-nowrap">
                             ₹{Number(item.price || 0).toLocaleString("en-IN")}
                           </p>
-                          <p className="text-[12px] font-semibold text-gray-800 text-right">
+                          <p className="text-[12px] font-semibold text-gray-800 text-right tabular-nums whitespace-nowrap">
                             ₹{Number(item.total || 0).toLocaleString("en-IN")}
                           </p>
                         </div>

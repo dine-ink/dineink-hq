@@ -1,4 +1,6 @@
 import MobileTableCards from "@/components/common/MobileTableCards";
+import { useMemo } from "react";
+import { Pagination, usePagination } from "@/design";
 
 /**
  * Discount usage — how much was given away, on which bills, and what it cost as a share of revenue.
@@ -16,6 +18,8 @@ interface DiscountAnalysisTabProps {
 }
 
 export default function DiscountAnalysisTab({ totalRevenue, totalDiscount, bills }: DiscountAnalysisTabProps) {
+  const discountedBills = useMemo(() => bills.filter((b) => Number(b.discount) > 0), [bills]);
+  const discountPager = usePagination(discountedBills, 10);
   return (
           <div className="space-y-3">
             <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
@@ -97,10 +101,7 @@ export default function DiscountAnalysisTab({ totalRevenue, totalDiscount, bills
                     </tr>
                   </thead>
                   <tbody>
-                    {bills
-                      .filter((b) => Number(b.discount) > 0)
-                      .slice(0, 20)
-                      .map((b: any) => {
+                    {discountPager.pageRows.map((b: any) => {
                         const gross =
                           Number(b.total || 0) + Number(b.discount || 0);
                         const discountPct =
@@ -160,6 +161,14 @@ export default function DiscountAnalysisTab({ totalRevenue, totalDiscount, bills
                 </table>
                 </MobileTableCards>
               </div>
+              <Pagination
+                page={discountPager.page}
+                totalPages={discountPager.totalPages}
+                onPageChange={discountPager.setPage}
+                pageSize={discountPager.pageSize}
+                onPageSizeChange={discountPager.setPageSize}
+                range={{ from: discountPager.from, to: discountPager.to, total: discountPager.total, noun: "discounted bills" }}
+              />
             </div>
           </div>
   );

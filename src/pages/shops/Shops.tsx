@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { usePagination } from "@/design";
 import { useAppSelector } from "@/store";
 import {
   useGetBranchDetailsQuery,
@@ -21,6 +22,7 @@ import {
 } from "@/utils/indiaLocations";
 import MobileTableCards from "@/components/common/MobileTableCards";
 import { notify } from "@/utils/notify";
+import { nonNegative } from "@/utils/numberInput";
 
 const INPUT_BASE =
   "w-full rounded-xl border bg-white px-3 py-2 text-sm outline-none transition-all";
@@ -83,10 +85,11 @@ export default function Shops() {
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const logoInputRef = useRef<HTMLInputElement>(null);
-  const rowsPerPage = 6;
-  const [tablesPage, setTablesPage] = useState(1);
   const [states, setStates] = useState<{ isoCode: string; name: string }[]>([]);
   const [cities, setCities] = useState<{ name: string }[]>([]);
+  // Above every early return: a hook after one is a conditional hook.
+  const tables = branchDetails?.tables || [];
+  const tablesPager = usePagination(tables, 10);
 
   /**
    * The branch payload is an editable draft — every field on this page writes
@@ -228,7 +231,7 @@ export default function Shops() {
         ...(prev.tables || []),
       ],
     }));
-    setTablesPage(1);
+    tablesPager.setPage(1);
   };
   const handleDeleteTable = (id: number) =>
     setBranchDetails((prev: any) => ({
@@ -265,11 +268,7 @@ export default function Shops() {
       prev.map((s: any) => (s.id === id ? { ...s, [field]: value } : s)),
     );
 
-  const tables = branchDetails?.tables || [];
-  const paginatedTables = tables.slice(
-    (tablesPage - 1) * rowsPerPage,
-    tablesPage * rowsPerPage,
-  );
+  const paginatedTables = tablesPager.pageRows;
   const billing = branchDetails?.billing || {};
 
   if (loading)
@@ -503,9 +502,13 @@ export default function Shops() {
               subtitle={`${tables.length} tables configured`}
               compact
               data={paginatedTables}
-              page={tablesPage}
-              totalPages={Math.ceil(tables.length / rowsPerPage)}
-              onPageChange={setTablesPage}
+              page={tablesPager.page}
+              totalPages={tablesPager.totalPages}
+              onPageChange={tablesPager.setPage}
+              pageSize={tablesPager.pageSize}
+              onPageSizeChange={tablesPager.setPageSize}
+              totalRows={tablesPager.total}
+              rowNoun="tables"
               headerAction={
                 editMode && (
                   <button
@@ -548,7 +551,7 @@ export default function Shops() {
                   render: (t) =>
                     editMode ? (
                       <input
-                        type="number"
+                        type="number" {...nonNegative}
                         value={t.capacity || ""}
                         onChange={(e) =>
                           updateTableField(t.id, "capacity", e.target.value)
@@ -580,8 +583,9 @@ export default function Shops() {
                         key: "actions",
                         render: (t: any) => (
                           <button
+                            type="button"
                             onClick={() => handleDeleteTable(t.id)}
-                            className="rounded-lg border border-red-200 bg-white px-2 py-1 text-[10px] font-semibold text-red-600 transition hover:border-[#b10000] hover:bg-[#b10000] hover:text-white"
+                            className="rounded-lg bg-[#b10000] px-2.5 py-1 text-[10px] font-semibold text-white shadow-sm transition hover:bg-[#950000]"
                           >
                             Remove
                           </button>
@@ -749,7 +753,7 @@ export default function Shops() {
                               prev.filter((x: any) => x.id !== s.id),
                             )
                           }
-                          className="rounded-lg border border-red-100 bg-[#b10000] px-2.5 py-1 text-[10px] font-semibold text-white hover:bg-red-100"
+                          className="rounded-lg bg-[#b10000] px-2.5 py-1 text-[10px] font-semibold text-white shadow-sm transition hover:bg-[#950000]"
                         >
                           Remove
                         </button>
@@ -897,7 +901,7 @@ export default function Shops() {
                               ₹
                             </span>
                             <input
-                              type="number"
+                              type="number" {...nonNegative}
                               value={s.salary || ""}
                               placeholder="0"
                               onChange={(e) =>
@@ -1072,7 +1076,7 @@ export default function Shops() {
                     </label>
                     <div className="relative">
                       <input
-                        type="number"
+                        type="number" {...nonNegative}
                         value={billing.gstPercentage || ""}
                         placeholder="0"
                         readOnly={!editMode}
@@ -1093,7 +1097,7 @@ export default function Shops() {
                     </label>
                     <div className="relative">
                       <input
-                        type="number"
+                        type="number" {...nonNegative}
                         value={billing.serviceCharge || ""}
                         placeholder="0"
                         readOnly={!editMode}

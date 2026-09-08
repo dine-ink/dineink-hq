@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Pagination, usePagination } from "@/design";
 import { useAppSelector } from "@/store";
 import { PlusIcon, TrashIcon, TagIcon } from "@heroicons/react/24/outline";
 import { ConfirmationDialog, useConfirmDialog } from "@/design";
@@ -13,6 +14,7 @@ import {
   useUpdateDiscountCodeMutation,
   type DiscountCode,
 } from "@/store/api/discountsApi";
+import { nonNegative } from "@/utils/numberInput";
 
 const blankForm: { code: string; type: "PERCENTAGE" | "FIXED"; value: string; maxUses: string } = {
   code: "",
@@ -98,6 +100,7 @@ export default function DiscountCodesTab() {
     setError("");
   };
 
+  const codePager = usePagination(codes, 10);
   return (
     <div className="space-y-5">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -172,7 +175,7 @@ export default function DiscountCodesTab() {
             </FormField>
             <FormField label={form.type === "PERCENTAGE" ? "Value (%)" : "Value (₹)"} required>
               <Input
-                type="number"
+                type="number" {...nonNegative}
                 min={0}
                 value={form.value}
                 onChange={(e) => setForm((f) => ({ ...f, value: e.target.value }))}
@@ -181,7 +184,7 @@ export default function DiscountCodesTab() {
             </FormField>
             <FormField label="Max uses" helperText="Leave empty for unlimited">
               <Input
-                type="number"
+                type="number" {...nonNegative}
                 min={1}
                 value={form.maxUses}
                 onChange={(e) => setForm((f) => ({ ...f, maxUses: e.target.value }))}
@@ -215,7 +218,7 @@ export default function DiscountCodesTab() {
             </p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
+          <><div className="overflow-x-auto">
           <MobileTableCards>
           <table className="w-full border-collapse min-w-[40rem]">
             <thead className="bg-gray-50">
@@ -231,7 +234,7 @@ export default function DiscountCodesTab() {
               </tr>
             </thead>
             <tbody>
-              {codes.map((dc) => (
+              {codePager.pageRows.map((dc) => (
                 <tr key={dc.id} className="border-b border-gray-100 last:border-0 hover:bg-gray-50/60">
                   <td className="px-4 py-3 text-sm font-bold text-gray-900">{dc.code}</td>
                   <td className="px-4 py-3 text-sm text-gray-700">
@@ -269,6 +272,15 @@ export default function DiscountCodesTab() {
           </table>
           </MobileTableCards>
           </div>
+          <Pagination
+            page={codePager.page}
+            totalPages={codePager.totalPages}
+            onPageChange={codePager.setPage}
+            pageSize={codePager.pageSize}
+            onPageSizeChange={codePager.setPageSize}
+            range={{ from: codePager.from, to: codePager.to, total: codePager.total, noun: "codes" }}
+          />
+          </>
         )}
       </div>
 

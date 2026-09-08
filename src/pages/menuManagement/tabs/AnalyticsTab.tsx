@@ -13,6 +13,7 @@ import { formatQty } from "@/utils/units";
 import { chartPalette } from "@/design";
 import { useNavigate } from "react-router-dom";
 import type { InventoryAnalytics } from "@/pages/menuManagement/useInventoryAnalytics";
+import { Pagination, usePagination } from "@/design";
 
 /**
  * Ingredient consumption analytics — what the kitchen actually used, what it
@@ -43,6 +44,33 @@ export default function AnalyticsTab({ analytics, allIngredients, aiAlerts }: An
   const { ingredientAnalytics, avgFoodCost, avgProfitMargin, totalConsumptionValue } =
     analytics;
 
+  // Hoisted from the table view's IIFE so the pager (a hook) can page it.
+  const totalUsage = (ingredientAnalytics || []).reduce(
+    (s: number, i: any) => s + Number(i.consumed || 0),
+    0,
+  );
+  const ingredientData = (ingredientAnalytics || []).map(
+    (i: any) => ({
+      ingredient: i.ingredient,
+      usage:
+        totalUsage > 0
+          ? Math.round(
+              (Number(i.consumed || 0) / totalUsage) * 100,
+            )
+          : 0,
+      consumed: formatQty(Number(i.consumed || 0), i.unit),
+      cost: Math.round(Number(i.totalCost || 0)),
+      category: i.category || "Other",
+    }),
+  );
+
+  const filteredData =
+    selectedCategory === "all"
+      ? ingredientData
+      : ingredientData.filter(
+          (i) => i.category === selectedCategory,
+        );
+  const itemPager = usePagination(filteredData, 10);
   return (
             <div className="space-y-4">
               {/* ================= HEADER ================= */}
@@ -242,31 +270,6 @@ export default function AnalyticsTab({ analytics, allIngredients, aiAlerts }: An
                     {/* ================= DATA ================= */}
 
                     {(() => {
-                      const totalUsage = ingredientAnalytics.reduce(
-                        (s: number, i: any) => s + Number(i.consumed || 0),
-                        0,
-                      );
-                      const ingredientData = ingredientAnalytics.map(
-                        (i: any) => ({
-                          ingredient: i.ingredient,
-                          usage:
-                            totalUsage > 0
-                              ? Math.round(
-                                  (Number(i.consumed || 0) / totalUsage) * 100,
-                                )
-                              : 0,
-                          consumed: formatQty(Number(i.consumed || 0), i.unit),
-                          cost: Math.round(Number(i.totalCost || 0)),
-                          category: i.category || "Other",
-                        }),
-                      );
-
-                      const filteredData =
-                        selectedCategory === "all"
-                          ? ingredientData
-                          : ingredientData.filter(
-                              (i) => i.category === selectedCategory,
-                            );
 
                       return (
                         <>
@@ -342,7 +345,7 @@ export default function AnalyticsTab({ analytics, allIngredients, aiAlerts }: An
                           {/* ================= TABLE VIEW ================= */}
 
                           {viewMode === "table" && (
-                            <div className="mt-4 overflow-x-auto rounded-2xl border border-gray-100">
+                            <><div className="mt-4 overflow-x-auto rounded-2xl border border-gray-100">
                               <MobileTableCards>
                               <table className="min-w-full">
                                 {/* HEAD */}
@@ -369,7 +372,7 @@ export default function AnalyticsTab({ analytics, allIngredients, aiAlerts }: An
                                 {/* BODY */}
 
                                 <tbody>
-                                  {filteredData.map((item, index) => (
+                                  {itemPager.pageRows.map((item, index) => (
                                     <tr
                                       key={index}
                                       className="border-t border-gray-100 hover:bg-gray-50/50"
@@ -418,6 +421,15 @@ export default function AnalyticsTab({ analytics, allIngredients, aiAlerts }: An
                               </table>
                               </MobileTableCards>
                             </div>
+                            <Pagination
+                              page={itemPager.page}
+                              totalPages={itemPager.totalPages}
+                              onPageChange={itemPager.setPage}
+                              pageSize={itemPager.pageSize}
+                              onPageSizeChange={itemPager.setPageSize}
+                              range={{ from: itemPager.from, to: itemPager.to, total: itemPager.total, noun: "items" }}
+                            />
+                            </>
                           )}
                         </>
                       );

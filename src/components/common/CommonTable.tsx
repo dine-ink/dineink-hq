@@ -1,5 +1,6 @@
 import React from "react";
 import MobileTableCards from "@/components/common/MobileTableCards";
+import { Pagination } from "@/design/components/tables";
 
 type Column = {
   header: string;
@@ -16,6 +17,12 @@ type Props = {
   totalPages?: number;
   headerAction?: React.ReactNode;
   onPageChange?: (page: number) => void;
+  /** With onPageSizeChange, shows the rows-per-page selector. */
+  pageSize?: number;
+  onPageSizeChange?: (size: number) => void;
+  /** Total rows across all pages, for "Showing 1-6 of 40 tables". */
+  totalRows?: number;
+  rowNoun?: string;
   compact?: boolean;
 };
 
@@ -27,8 +34,14 @@ export default function CommonTable({
   page = 1,
   totalPages = 1,
   onPageChange,
+  pageSize,
+  onPageSizeChange,
+  totalRows,
+  rowNoun = "rows",
   headerAction,
 }: Props) {
+  const from = totalRows === undefined || data.length === 0 ? 0 : (page - 1) * (pageSize ?? data.length) + 1;
+  const range = totalRows === undefined ? undefined : { from, to: from + data.length - 1, total: totalRows, noun: rowNoun };
   return (
     <div className="flex h-full flex-col overflow-hidden rounded-xl border border-gray-100 bg-white shadow-sm transition-all duration-200 hover:shadow-md">
       {/* HEADER */}
@@ -125,32 +138,14 @@ export default function CommonTable({
       </div>
 
       {/* PAGINATION */}
-      <div className="flex items-center justify-between border-t border-gray-100 bg-gray-50/50 px-4 py-2">
-        <p className="text-[10px] text-gray-400">
-          Page{" "}
-          <span className="font-semibold text-gray-600">{page}</span> of{" "}
-          <span className="font-semibold text-gray-600">
-            {Math.max(totalPages, 1)}
-          </span>
-        </p>
-
-        <div className="flex gap-1.5">
-          <button
-            disabled={page === 1}
-            onClick={() => onPageChange?.(page - 1)}
-            className="rounded-md border border-gray-200 bg-white px-2.5 py-1 text-[10px] font-medium text-gray-600 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
-          >
-            Prev
-          </button>
-          <button
-            disabled={page === totalPages || totalPages === 0}
-            onClick={() => onPageChange?.(page + 1)}
-            className="rounded-md border border-gray-200 bg-white px-2.5 py-1 text-[10px] font-medium text-gray-600 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
-          >
-            Next
-          </button>
-        </div>
-      </div>
+      <Pagination
+        page={page}
+        totalPages={Math.max(totalPages, 1)}
+        onPageChange={(p) => onPageChange?.(p)}
+        pageSize={pageSize}
+        onPageSizeChange={onPageSizeChange}
+        range={range}
+      />
     </div>
   );
 }

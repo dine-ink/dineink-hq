@@ -102,7 +102,7 @@ export default function InventoryForecastTab() {
 
       <DataTable
         columns={columns}
-        rows={items}
+        rows={items} pageSize={10} rowNoun="ingredients"
         rowKey={(row) => row.ingredientName ?? JSON.stringify(row)}
         loading={loading}
         error={error}

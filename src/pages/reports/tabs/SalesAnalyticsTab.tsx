@@ -1,4 +1,5 @@
 import MobileTableCards from "@/components/common/MobileTableCards";
+import { Pagination, usePagination } from "@/design";
 
 /**
  * Sales mix — paid versus outstanding, revenue by order type, and the payment-method split.
@@ -21,6 +22,7 @@ interface SalesAnalyticsTabProps {
 }
 
 export default function SalesAnalyticsTab({ totalRevenue, paidBills, unpaidBills, dineInRevenue, takeawayRevenue, deliveryRevenue, paymentBreakdown, bills }: SalesAnalyticsTabProps) {
+  const billPager = usePagination(bills, 10);
   return (
           <div className="space-y-3">
             {/* PAYMENT METHOD BREAKDOWN */}
@@ -203,7 +205,7 @@ export default function SalesAnalyticsTab({ totalRevenue, paidBills, unpaidBills
                     </tr>
                   </thead>
                   <tbody>
-                    {bills.slice(0, 15).map((b: any) => (
+                    {billPager.pageRows.map((b: any) => (
                       <tr
                         key={b.id}
                         className="border-b border-gray-50 hover:bg-gray-50/60"
@@ -262,6 +264,14 @@ export default function SalesAnalyticsTab({ totalRevenue, paidBills, unpaidBills
                 </table>
                 </MobileTableCards>
               </div>
+              <Pagination
+                page={billPager.page}
+                totalPages={billPager.totalPages}
+                onPageChange={billPager.setPage}
+                pageSize={billPager.pageSize}
+                onPageSizeChange={billPager.setPageSize}
+                range={{ from: billPager.from, to: billPager.to, total: billPager.total, noun: "bills" }}
+              />
             </div>
           </div>
   );
