@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { ChartBarSquareIcon } from "@heroicons/react/24/outline";
+import { useTabFromQuery } from "@/hooks/useTabFromQuery";
 import BudgetsTab from "./BudgetsTab";
 import OverviewTab from "./OverviewTab";
 import BranchComparisonTab from "./BranchComparisonTab";
@@ -10,6 +11,8 @@ const TABS = ["Overview", "Budgets", "Branch Comparison", "Reports"];
 
 export default function BudgetVsActual() {
   const [activeTab, setActiveTab] = useState("Overview");
+  // The Getting Started guide links straight to the Budgets tab.
+  useTabFromQuery(TABS, setActiveTab);
 
   return (
     <main className="flex flex-col overflow-hidden bg-[#f5f6fa]">

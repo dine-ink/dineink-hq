@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import dayjs from "dayjs";
 import RestaurantSetupModal from "@/components/dashboard/RestaurantSetupModal";
+import { GettingStartedCard } from "@/components/onboarding";
 import StatsStrip from "@/components/StatsStrip";
 import CommonTable from "@/components/common/CommonTable";
 import { logoMarkClasses } from "@/components/common/logoTokens";
@@ -279,6 +280,10 @@ export default function Dashboard() {
   return (
     <main className="min-h-screen bg-gray-100">
       <div className="mx-auto flex flex-col gap-3">
+        {/* The quest-log card: what to set up next. Renders nothing once the
+            guide is hidden, or when the shell has not mounted the provider. */}
+        <GettingStartedCard />
+
         {/* Header — filter lives in topbar now */}
         <div className="relative overflow-hidden rounded-xl border border-gray-200 bg-white px-4 py-3 shadow-sm">
           <div className="absolute -right-8 -top-8 h-24 w-24 rounded-full bg-red-100/40 blur-3xl" />

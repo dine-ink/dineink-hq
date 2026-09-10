@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { BuildingLibraryIcon } from "@heroicons/react/24/outline";
+import { useTabFromQuery } from "@/hooks/useTabFromQuery";
 import { PageContainer, PageHeader } from "@/design";
 import BankAccountsTab from "./BankAccountsTab";
 import UpiTab from "./UpiTab";
@@ -17,6 +18,8 @@ type Tab = (typeof TABS)[number];
 // see the captions on each tab for exactly what is and isn't automated.
 export default function AccountBankIntegration() {
   const [activeTab, setActiveTab] = useState<Tab>("Bank Accounts");
+  // The Getting Started guide links straight to the UPI tab.
+  useTabFromQuery(TABS, setActiveTab);
 
   return (
     <PageContainer>
