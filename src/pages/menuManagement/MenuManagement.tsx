@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useTabFromQuery } from "@/hooks/useTabFromQuery";
 import { useGetMenuCategoriesQuery } from "@/store/api/menuApi";
 import { useAppDispatch, useAppSelector } from "@/store";
 import { useAddOns } from "./useAddOns";
@@ -187,8 +188,12 @@ const tabs = [
   },
 ];
 
+const TAB_IDS = tabs.map((t) => t.id);
+
 export default function MenuManagement() {
   const [activeTab, setActiveTab] = useState("menu");
+  // The Getting Started guide links straight to Ingredients and Item Mapping.
+  useTabFromQuery(TAB_IDS, setActiveTab);
 
   const [menuItems, setMenuItems] = useState<any[]>([]);
   const [restocks, setRestocks] = useState<any[]>([]);

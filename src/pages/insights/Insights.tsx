@@ -1,4 +1,5 @@
 import { useMemo, useState, useEffect } from "react";
+import { useTabFromQuery } from "@/hooks/useTabFromQuery";
 import { ASSUMPTION_FIELD_GROUPS } from "./assumptionFields";
 import { useFinanceAssumptions } from "./useFinanceAssumptions";
 import {
@@ -92,6 +93,8 @@ export default function Insights() {
   const currentUser = user; // alias kept for existing code that uses currentUser
 
   const [activeTab, setActiveTab] = useState("Overview");
+  // The Getting Started guide links straight to Insights Setup.
+  useTabFromQuery(tabs, setActiveTab);
   const [staffData, setStaffData] = useState<any[]>([]);
 
   // Financial Assumptions: defaults, per-branch overrides and the save. The

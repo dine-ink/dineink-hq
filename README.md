@@ -57,6 +57,8 @@ src/
     common/              Genuinely shared (Navbar, Footer, tables, dropdowns)
     home/                Marketing-page sections
     dashboard/, bills/   Feature-specific components
+    onboarding/          The Getting Started guide: quest model, welcome tour,
+                         quest log drawer, in-page coachmark (see quests.ts)
   design/                The design system — tokens, components, hooks
   store/                 Redux: slices/ for client state, api/ for RTK Query
   hooks/ · utils/        Shared hooks and helpers

@@ -45,8 +45,18 @@ import {
   UserGroupIcon,
   ShieldCheckIcon,
   ChatBubbleLeftRightIcon,
+  MapIcon,
 } from "@heroicons/react/24/outline";
 import { useAppDispatch, useAppSelector } from "@/store";
+import {
+  GUIDE_ROLES,
+  OnboardingProvider,
+  QuestCoachmark,
+  QuestDrawer,
+  QuestLauncher,
+  WelcomeTour,
+  useOnboarding,
+} from "@/components/onboarding";
 import { setSelectedBranch } from "@/store/slices/branchSlice";
 import { setPreset, setCustomRange } from "@/store/slices/dateRangeSlice";
 import type { Preset } from "@/store/slices/dateRangeSlice";
@@ -139,9 +149,24 @@ const PRESETS: { key: Preset; label: string }[] = [
   { key: "custom", label: "Custom" },
 ];
 
+/**
+ * The Getting Started guide is mounted here, once, around the whole shell: its
+ * launcher sits in the top bar, its coachmark above every routed page, and its
+ * drawer and welcome tour portal over everything. Every dashboard page lives
+ * under this layout, so one provider covers them all.
+ */
 export default function DashboardLayout() {
+  return (
+    <OnboardingProvider>
+      <DashboardShell />
+    </OnboardingProvider>
+  );
+}
+
+function DashboardShell() {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
+  const onboarding = useOnboarding();
 
   // Redux state
   const { branches, selectedBranch } = useAppSelector((s) => s.branch);
@@ -459,6 +484,9 @@ export default function DashboardLayout() {
                 </span>
               </button>
 
+              {/* Quest log — progress ring + opens the Getting Started drawer */}
+              <QuestLauncher />
+
               <button
                 aria-label="Notifications"
                 className="flex h-8 w-8 items-center justify-center rounded-xl bg-white/10 text-white transition hover:bg-white/20 lg:h-7 lg:w-7"
@@ -491,6 +519,19 @@ export default function DashboardLayout() {
                         Account Settings
                       </button>
                     </MenuItem>
+                    {/* The way back to the guide after "Hide guide". Only for
+                        roles that get it at all — staff logins never see it. */}
+                    {onboarding && GUIDE_ROLES.includes(user?.role) && (
+                      <MenuItem>
+                        <button
+                          onClick={() => onboarding.showGuide()}
+                          className="flex w-full items-center gap-2.5 px-4 py-2 text-left text-[13px] text-gray-700 transition hover:bg-gray-50"
+                        >
+                          <MapIcon className="h-4 w-4 text-gray-400" />
+                          Getting Started guide
+                        </button>
+                      </MenuItem>
+                    )}
                     <div className="my-1 border-t border-gray-100" />
                     <MenuItem>
                       <button
@@ -513,9 +554,15 @@ export default function DashboardLayout() {
 
         {/* PAGE CONTENT */}
         <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100 px-3 py-3 sm:px-4">
+          {/* Steps for the quest being followed on this page (from ?quest=) */}
+          <QuestCoachmark />
           <Outlet />
         </main>
       </div>
+
+      {/* Portalled overlays: the quest log and the first-run tutorial */}
+      <QuestDrawer />
+      <WelcomeTour />
     </div>
   );
 }
